@@ -1,3 +1,4 @@
+import { FrameworkEDI } from '@/components/framework/FrameworkEDI'
 export function FrameworkEDI() {
   const pilares = [
     {
