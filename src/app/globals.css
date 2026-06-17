@@ -5,3 +5,14 @@
 .clip-polygon-triangle {
   clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
 }
+.clip-polygon-triangle {
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+}
+
+.clip-polygon-diamond {
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+
+.clip-polygon-hexagon {
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
