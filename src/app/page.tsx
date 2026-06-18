@@ -8,11 +8,10 @@ import AccessibilityBar from '@/components/layout/AccessibilityBar'
 
 import InclusaoEDI from '@/components/home/InclusaoEDI'
 import LaboratorioExperimental from '@/components/home/LaboratorioExperimental'
-import Participacao from '@/components/home/Participacao'
-
 import EcossistemaFlow from '@/components/home/EcossistemaFlow'
 import EduDataAnalytics from '@/components/home/EduDataAnalytics'
 import SGPA from '@/components/home/SGPA'
+import Participacao from '@/components/home/Participacao'
 
 export default function Page() {
   return (
@@ -23,7 +22,6 @@ export default function Page() {
       <main>
         <section className="min-h-screen bg-gradient-to-br from-[#F5F6F8] via-white to-[#E8EEF4] px-6 py-24 md:px-20">
           <div className="mx-auto grid max-w-7xl gap-16 md:grid-cols-[1fr_1.1fr] md:items-center">
-
             <div className="space-y-8">
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">
                 Framework EDI
@@ -42,9 +40,9 @@ export default function Page() {
               </p>
 
               <p className="max-w-2xl text-lg leading-8 text-slate-500">
-                A EduData IA organiza desenvolvimento profissional,
-                registros pedagógicos, evidências e análise de dados
-                em um ecossistema educacional integrado.
+                A EduData IA organiza desenvolvimento profissional, registros
+                pedagógicos, evidências e análise de dados em um ecossistema
+                educacional integrado.
               </p>
 
               <div className="flex flex-wrap gap-4">
@@ -83,31 +81,23 @@ export default function Page() {
                 </h2>
 
                 <p className="mt-6 text-lg leading-8 text-slate-600">
-                  Uma plataforma criada a partir do Framework EDI para apoiar escolas,
-                  educadores e gestores na melhoria contínua da prática educacional.
+                  Uma plataforma criada a partir do Framework EDI para apoiar
+                  escolas, educadores e gestores na melhoria contínua da prática
+                  educacional.
                 </p>
               </div>
             </div>
-
           </div>
         </section>
 
         <FrameworkEDI />
-
         <ProfessorDigital />
-
         <AgendaInteligente />
-
         <InclusaoEDI />
-
         <LaboratorioExperimental />
-
         <EcossistemaFlow />
-
         <EduDataAnalytics />
-
         <SGPA />
-
         <Participacao />
       </main>
 
