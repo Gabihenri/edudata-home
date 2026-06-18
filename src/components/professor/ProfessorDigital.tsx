@@ -1,7 +1,7 @@
 export function ProfessorDigital() {
   const etapas = [
     {
-      titulo: 'Diagnóstico',
+      titulo: 'Uma jornada de evolução profissional EDI.,
       descricao: 'Compreensão do estágio atual de desenvolvimento profissional.',
     },
     {
