@@ -6,7 +6,7 @@ export default function Header() {
         <img
           src="/logo-edudata-ia-principal.png"
           alt="EduData IA"
-          className="h-24 w-auto md:h-28"
+          className="h-40 w-auto"
         />
 
         <a
