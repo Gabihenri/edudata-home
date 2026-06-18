@@ -9,7 +9,10 @@ import AccessibilityBar from '@/components/layout/AccessibilityBar'
 import InclusaoEDI from '@/components/home/InclusaoEDI'
 import LaboratorioExperimental from '@/components/home/LaboratorioExperimental'
 import Participacao from '@/components/home/Participacao'
+
 import EcossistemaFlow from '@/components/home/EcossistemaFlow'
+import EduDataAnalytics from '@/components/home/EduDataAnalytics'
+import SGPA from '@/components/home/SGPA'
 
 export default function Page() {
   return (
@@ -39,8 +42,9 @@ export default function Page() {
               </p>
 
               <p className="max-w-2xl text-lg leading-8 text-slate-500">
-                A EduData IA organiza desenvolvimento profissional, registros pedagógicos,
-                evidências e análise de dados em um ecossistema educacional integrado.
+                A EduData IA organiza desenvolvimento profissional,
+                registros pedagógicos, evidências e análise de dados
+                em um ecossistema educacional integrado.
               </p>
 
               <div className="flex flex-wrap gap-4">
@@ -65,7 +69,7 @@ export default function Page() {
               <div className="absolute right-10 top-28 h-24 w-24 clip-polygon-diamond bg-[#1B6B3A]/15" />
               <div className="absolute bottom-4 left-32 h-28 w-28 clip-polygon-hexagon bg-[#5C1A8C]/15" />
 
-              <div className="rounded-[2rem] border border-white/70 bg-white/60 p-10 shadow-xl backdrop-blur">
+              <div className="rounded-[2rem] border border-white/70 bg-white/70 p-10 shadow-xl backdrop-blur">
                 <p className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">
                   EduData IA
                 </p>
@@ -89,11 +93,21 @@ export default function Page() {
         </section>
 
         <FrameworkEDI />
+
         <ProfessorDigital />
+
         <AgendaInteligente />
+
         <InclusaoEDI />
+
         <LaboratorioExperimental />
+
         <EcossistemaFlow />
+
+        <EduDataAnalytics />
+
+        <SGPA />
+
         <Participacao />
       </main>
 
