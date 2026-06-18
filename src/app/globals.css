@@ -2,9 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
-.clip-polygon-triangle {
-  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+:root {
+  --edi-evidencias: #0A3A5E;
+  --edi-inclusao: #1B6B3A;
+  --edi-inteligencia: #5C1A8C;
+  --edi-fundo: #F5F6F8;
 }
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--edi-fundo);
+  color: #0f172a;
+}
+
+a {
+  text-decoration: none;
+}
+
 .clip-polygon-triangle {
   clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
 }
