@@ -9,10 +9,10 @@ export default function Footer() {
             <img
               src="/logo-edudata-ia-dark.png"
               alt="EduData IA"
-              className="h-24 w-auto"
+              className="h-40 w-auto"
             />
 
-            <p className="mt-8 max-w-xl text-lg leading-8 text-slate-300">
+            <p className="mt-8 max-w-xl text-xl leading-8 text-slate-300">
               Tecnologia, Dados e Inteligência para Transformar a Educação.
             </p>
           </div>
@@ -20,7 +20,7 @@ export default function Footer() {
           <div className="grid gap-8 sm:grid-cols-2">
 
             <div>
-              <h3 className="mb-4 text-lg font-semibold">
+              <h3 className="mb-4 text-xl font-semibold">
                 Ecossistema EDI
               </h3>
 
@@ -35,7 +35,7 @@ export default function Footer() {
             </div>
 
             <div>
-              <h3 className="mb-4 text-lg font-semibold">
+              <h3 className="mb-4 text-xl font-semibold">
                 Contato
               </h3>
 
