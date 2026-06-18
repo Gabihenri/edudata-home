@@ -1,20 +1,24 @@
 export function ProfessorDigital() {
   const etapas = [
     {
-      titulo: 'Uma jornada de evolução profissional EDI.,
-      descricao: 'Compreensão do estágio atual de desenvolvimento profissional.',
+      titulo: 'Diagnóstico',
+      descricao:
+        'Compreensão do estágio atual de desenvolvimento profissional.',
     },
     {
       titulo: 'Trilhas',
-      descricao: 'Percursos formativos conectados à prática educacional.',
+      descricao:
+        'Percursos formativos conectados à prática educacional.',
     },
     {
       titulo: 'Acompanhamento',
-      descricao: 'Evolução acompanhada por evidências, registros e indicadores.',
+      descricao:
+        'Evolução acompanhada por evidências, registros e indicadores.',
     },
     {
       titulo: 'Certificação',
-      descricao: 'Reconhecimento da trajetória e das competências desenvolvidas.',
+      descricao:
+        'Reconhecimento da trajetória e das competências desenvolvidas.',
     },
   ]
 
@@ -22,19 +26,20 @@ export function ProfessorDigital() {
     <section id="professor" className="bg-[#F5F6F8] px-6 py-32">
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-16 md:grid-cols-[0.9fr_1.1fr] md:items-center">
+          
           <div>
             <p className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-[#1B6B3A]">
               Professor Digital
             </p>
 
             <h2 className="text-5xl font-bold tracking-tight text-slate-950 md:text-6xl">
-              Uma jornada de evolução profissional.
+              Uma jornada de evolução profissional EDI.
             </h2>
 
             <p className="mt-8 text-xl leading-9 text-slate-600">
-              O Professor Digital é a porta de entrada da EduData IA. Ele organiza
-              o desenvolvimento profissional a partir de diagnóstico, prática,
-              acompanhamento e evidências de evolução.
+              O Professor Digital é a porta de entrada da EduData IA.
+              Ele organiza o desenvolvimento profissional por meio de
+              diagnóstico, prática, acompanhamento e evidências de evolução.
             </p>
 
             <div className="mt-10 h-16 w-16 clip-polygon-diamond bg-[#1B6B3A]" />
@@ -62,6 +67,7 @@ export function ProfessorDigital() {
               </div>
             ))}
           </div>
+
         </div>
       </div>
     </section>
