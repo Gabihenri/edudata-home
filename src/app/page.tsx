@@ -18,42 +18,73 @@ export default function Page() {
       <Header />
 
       <main>
-        <section className="min-h-screen flex items-center px-6 md:px-20 bg-[#F5F6F8]">
-          <div className="max-w-4xl mx-auto">
-            <div className="w-24 h-24 bg-[#0A3A5E] clip-polygon-triangle mb-8 opacity-20" />
+        <section className="min-h-screen bg-gradient-to-br from-[#F5F6F8] via-white to-[#E8EEF4] px-6 py-24 md:px-20">
+          <div className="mx-auto grid max-w-7xl gap-16 md:grid-cols-[1fr_1.1fr] md:items-center">
 
-            <h1 className="text-4xl md:text-7xl font-bold leading-tight">
-              <span className="text-[#0A3A5E]">Evidências.</span>
-              <br />
-              <span className="text-[#1B6B3A]">Inclusão.</span>
-              <br />
-              <span className="text-[#5C1A8C]">Inteligência.</span>
-            </h1>
+            <div className="space-y-8">
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">
+                Framework EDI
+              </p>
 
-            <p className="text-xl md:text-2xl mt-6 text-gray-700 max-w-2xl">
-              Transformando dados educacionais em decisões inteligentes.
-            </p>
+              <h1 className="text-5xl font-bold leading-tight md:text-7xl">
+                <span className="text-[#0A3A5E]">Evidências.</span>
+                <br />
+                <span className="text-[#1B6B3A]">Inclusão.</span>
+                <br />
+                <span className="text-[#5C1A8C]">Inteligência.</span>
+              </h1>
 
-            <p className="mt-4 text-lg text-gray-600 max-w-2xl">
-              A EduData IA é um ecossistema de desenvolvimento profissional docente
-              baseado em evidências, inclusão e inteligência.
-            </p>
+              <p className="max-w-2xl text-xl leading-9 text-slate-600">
+                Transformando dados educacionais em decisões inteligentes.
+              </p>
 
-            <div className="flex flex-wrap gap-4 mt-8">
-              <a
-                href="#framework"
-                className="px-8 py-4 bg-[#0A3A5E] text-white rounded-lg font-semibold hover:opacity-90 transition"
-              >
-                Conheça o Framework EDI
-              </a>
+              <p className="max-w-2xl text-lg leading-8 text-slate-500">
+                A EduData IA organiza desenvolvimento profissional, registros pedagógicos,
+                evidências e análise de dados em um ecossistema educacional integrado.
+              </p>
 
-              <a
-                href="#agenda"
-                className="px-8 py-4 border-2 border-[#5C1A8C] text-[#5C1A8C] rounded-lg font-semibold hover:bg-[#5C1A8C] hover:text-white transition"
-              >
-                Conheça a Agenda Inteligente EDI
-              </a>
+              <div className="flex flex-wrap gap-4">
+                <a
+                  href="#framework"
+                  className="rounded-full bg-[#0A3A5E] px-7 py-4 font-semibold text-white transition hover:opacity-90"
+                >
+                  Conheça o Framework EDI
+                </a>
+
+                <a
+                  href="#agenda"
+                  className="rounded-full border border-[#5C1A8C] px-7 py-4 font-semibold text-[#5C1A8C] transition hover:bg-[#5C1A8C] hover:text-white"
+                >
+                  Agenda Inteligente EDI
+                </a>
+              </div>
             </div>
+
+            <div className="relative hidden md:block">
+              <div className="absolute -left-10 top-8 h-28 w-28 clip-polygon-triangle bg-[#0A3A5E]/15" />
+              <div className="absolute right-10 top-28 h-24 w-24 clip-polygon-diamond bg-[#1B6B3A]/15" />
+              <div className="absolute bottom-4 left-32 h-28 w-28 clip-polygon-hexagon bg-[#5C1A8C]/15" />
+
+              <div className="rounded-[2rem] border border-white/70 bg-white/60 p-10 shadow-xl backdrop-blur">
+                <p className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">
+                  EduData IA
+                </p>
+
+                <h2 className="text-4xl font-bold leading-tight text-slate-950">
+                  Princípios que viram método.
+                  <br />
+                  Método que gera dados.
+                  <br />
+                  Dados que orientam decisões.
+                </h2>
+
+                <p className="mt-6 text-lg leading-8 text-slate-600">
+                  Uma plataforma criada a partir do Framework EDI para apoiar escolas,
+                  educadores e gestores na melhoria contínua da prática educacional.
+                </p>
+              </div>
+            </div>
+
           </div>
         </section>
 
