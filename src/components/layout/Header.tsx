@@ -9,7 +9,7 @@ export default function Header() {
         <nav className="hidden gap-6 text-sm font-medium text-slate-700 md:flex">
           <a href="#framework">Framework EDI</a>
           <a href="#professor">Professor Digital</a>
-          <a href="#agenda">Agenda EDI</a>
+          <a href="#agenda">Agenda Inteligente</a>
           <a href="#inclusao">Inclusão</a>
           <a href="#ecossistema">Ecossistema</a>
         </nav>
@@ -22,5 +22,5 @@ export default function Header() {
         </a>
       </div>
     </header>
-  )
+  );
 }
