@@ -1,5 +1,11 @@
 import './globals.css'
 
+export const metadata = {
+  title: 'EduData IA',
+  description:
+    'Ecossistema de desenvolvimento profissional docente baseado em Evidências, Inclusão e Inteligência.',
+}
+
 export default function RootLayout({
   children,
 }: {
