@@ -13,6 +13,7 @@ import EduDataAnalytics from '@/components/home/EduDataAnalytics'
 import SGPA from '@/components/home/SGPA'
 import EduDataAcademy from '@/components/home/EduDataAcademy'
 import SobreEduData from '@/components/home/SobreEduData'
+import ManifestoEDI from '@/components/home/ManifestoEDI'
 import Participacao from '@/components/home/Participacao'
 
 export default function Page() {
@@ -102,6 +103,7 @@ export default function Page() {
         <SGPA />
         <EduDataAcademy />
         <SobreEduData />
+        <ManifestoEDI />
         <Participacao />
       </main>
 
