@@ -2,17 +2,24 @@
 
 Repositório oficial de identidade visual da EduData IA.
 
-## Produtos Oficiais
+## EduData IA
 
-### SGPA
+Ecossistema de Inteligência Educacional orientado por Evidências, Inclusão e Inteligência.
+
+### Produtos Oficiais
+
+#### SGPA
 
 Sistema de Gestão Pedagógica Automatizada
 
-### Agenda Inteligente EDI
+Governança educacional baseada em evidências.
+
+#### Agenda Inteligente EDI
 
 Sistema Inteligente de Planejamento e Evidências Educacionais
+
+Planeje. Registre. Evidencie. Analise. Transforme.
 
 ---
 
 Powered by EduData IA.
-
