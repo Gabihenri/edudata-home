@@ -100,4 +100,3 @@ Educação orientada por evidências. Tecnologia com propósito.
 ---
 
 Powered by EduData IA.
-
