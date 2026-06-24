@@ -6,3 +6,6 @@ class UserBase(BaseModel):
 
 class UserResponse(UserBase):
     id: str
+
+    class Config:
+        from_attributes = True
