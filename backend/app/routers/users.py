@@ -3,5 +3,12 @@ from fastapi import APIRouter
 router = APIRouter()
 
 @router.get("/")
-def index():
-    return {"status": "ok"}
+def list_users():
+
+    return [
+        {
+            "id": "1",
+            "name": "Professor Exemplo",
+            "email": "professor@edudata.ai"
+        }
+    ]
