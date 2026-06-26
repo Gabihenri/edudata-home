@@ -6,6 +6,7 @@ from app.routers.users import router as users_router
 from app.routers.agenda import router as agenda_router
 from app.routers.actions import router as actions_router
 from app.routers.evidences import router as evidences_router
+from app.routers import database
 
 app = FastAPI(
     title="EduData IA API",
@@ -18,6 +19,7 @@ app.include_router(users_router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(agenda_router, prefix="/api/v1/agenda", tags=["Agenda EDI"])
 app.include_router(actions_router, prefix="/api/v1/actions", tags=["Pedagogical Actions"])
 app.include_router(evidences_router, prefix="/api/v1/evidences", tags=["Evidence Ledger"])
+app.include_router(database.router)
 
 @app.get("/")
 def root():
