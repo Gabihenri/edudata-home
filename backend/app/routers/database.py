@@ -9,7 +9,6 @@ router = APIRouter(
 
 @router.get("/status")
 def status():
-
     return {
         "database": "Supabase",
         "status": "connected"
