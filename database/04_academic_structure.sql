@@ -1,8 +1,14 @@
 -- =====================================================
+-- ACADEMIC STRUCTURE
+-- EduData IA Platform Core
+-- =====================================================
+
+-- =====================================================
 -- KNOWLEDGE AREAS
 -- =====================================================
 
 CREATE TABLE knowledge_areas (
+
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     school_id UUID NOT NULL,
@@ -11,9 +17,14 @@ CREATE TABLE knowledge_areas (
 
     code VARCHAR(50),
 
+    description TEXT,
+
+    color VARCHAR(20),
+
     active BOOLEAN DEFAULT TRUE,
 
     created_at TIMESTAMP DEFAULT NOW(),
+
     updated_at TIMESTAMP DEFAULT NOW(),
 
     CONSTRAINT fk_area_school
@@ -21,6 +32,12 @@ CREATE TABLE knowledge_areas (
         REFERENCES schools(id)
         ON DELETE CASCADE
 );
+
+CREATE INDEX idx_knowledge_area_school
+ON knowledge_areas(school_id);
+
+CREATE INDEX idx_knowledge_area_name
+ON knowledge_areas(name);
 
 CREATE TRIGGER trg_knowledge_areas_updated_at
 BEFORE UPDATE ON knowledge_areas
@@ -32,6 +49,7 @@ EXECUTE FUNCTION set_updated_at();
 -- =====================================================
 
 CREATE TABLE subjects (
+
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     school_id UUID NOT NULL,
@@ -42,9 +60,12 @@ CREATE TABLE subjects (
 
     code VARCHAR(50),
 
+    workload INTEGER,
+
     active BOOLEAN DEFAULT TRUE,
 
     created_at TIMESTAMP DEFAULT NOW(),
+
     updated_at TIMESTAMP DEFAULT NOW(),
 
     CONSTRAINT fk_subject_school
@@ -58,8 +79,56 @@ CREATE TABLE subjects (
         ON DELETE CASCADE
 );
 
+CREATE INDEX idx_subject_school
+ON subjects(school_id);
+
+CREATE INDEX idx_subject_area
+ON subjects(knowledge_area_id);
+
+CREATE INDEX idx_subject_name
+ON subjects(name);
+
 CREATE TRIGGER trg_subjects_updated_at
 BEFORE UPDATE ON subjects
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
+-- =====================================================
+-- SCHOOL YEARS
+-- =====================================================
+
+CREATE TABLE school_years (
+
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    school_id UUID NOT NULL,
+
+    year INTEGER NOT NULL,
+
+    start_date DATE,
+
+    end_date DATE,
+
+    active BOOLEAN DEFAULT TRUE,
+
+    created_at TIMESTAMP DEFAULT NOW(),
+
+    updated_at TIMESTAMP DEFAULT NOW(),
+
+    CONSTRAINT fk_school_year_school
+        FOREIGN KEY (school_id)
+        REFERENCES schools(id)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX idx_school_year_school
+ON school_years(school_id);
+
+CREATE INDEX idx_school_year
+ON school_years(year);
+
+CREATE TRIGGER trg_school_years_updated_at
+BEFORE UPDATE ON school_years
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
 
@@ -68,144 +137,48 @@ EXECUTE FUNCTION set_updated_at();
 -- =====================================================
 
 CREATE TABLE classes (
+
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     school_id UUID NOT NULL,
+
+    school_year_id UUID NOT NULL,
 
     name VARCHAR(100) NOT NULL,
 
     grade VARCHAR(50),
 
-    shift VARCHAR(50),
+    shift VARCHAR(30),
 
-    school_year INTEGER NOT NULL,
+    modality VARCHAR(50),
 
     active BOOLEAN DEFAULT TRUE,
 
     created_at TIMESTAMP DEFAULT NOW(),
+
     updated_at TIMESTAMP DEFAULT NOW(),
 
     CONSTRAINT fk_class_school
         FOREIGN KEY (school_id)
         REFERENCES schools(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_class_school_year
+        FOREIGN KEY (school_year_id)
+        REFERENCES school_years(id)
         ON DELETE CASCADE
 );
+
+CREATE INDEX idx_classes_school
+ON classes(school_id);
+
+CREATE INDEX idx_classes_school_year
+ON classes(school_year_id);
+
+CREATE INDEX idx_classes_name
+ON classes(name);
 
 CREATE TRIGGER trg_classes_updated_at
 BEFORE UPDATE ON classes
-FOR EACH ROW
-EXECUTE FUNCTION set_updated_at();
-
--- =====================================================
--- TEAMS
--- =====================================================
-
-CREATE TABLE teams (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    school_id UUID NOT NULL,
-
-    knowledge_area_id UUID,
-
-    name VARCHAR(150) NOT NULL,
-
-    description TEXT,
-
-    active BOOLEAN DEFAULT TRUE,
-
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-
-    CONSTRAINT fk_team_school
-        FOREIGN KEY (school_id)
-        REFERENCES schools(id)
-        ON DELETE CASCADE,
-
-    CONSTRAINT fk_team_area
-        FOREIGN KEY (knowledge_area_id)
-        REFERENCES knowledge_areas(id)
-        ON DELETE SET NULL
-);
-
-CREATE TRIGGER trg_teams_updated_at
-BEFORE UPDATE ON teams
-FOR EACH ROW
-EXECUTE FUNCTION set_updated_at();
-
--- =====================================================
--- TEAM MEMBERS
--- =====================================================
-
-CREATE TABLE team_members (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    team_id UUID NOT NULL,
-
-    user_id UUID NOT NULL,
-
-    role_name VARCHAR(100),
-
-    created_at TIMESTAMP DEFAULT NOW(),
-
-    CONSTRAINT fk_member_team
-        FOREIGN KEY (team_id)
-        REFERENCES teams(id)
-        ON DELETE CASCADE,
-
-    CONSTRAINT fk_member_user
-        FOREIGN KEY (user_id)
-        REFERENCES users(id)
-        ON DELETE CASCADE
-);
-
--- =====================================================
--- SCHEDULES
--- =====================================================
-
-CREATE TABLE schedules (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    school_id UUID NOT NULL,
-
-    teacher_id UUID NOT NULL,
-
-    class_id UUID NOT NULL,
-
-    subject_id UUID NOT NULL,
-
-    weekday INTEGER NOT NULL,
-
-    start_time TIME NOT NULL,
-
-    end_time TIME NOT NULL,
-
-    active BOOLEAN DEFAULT TRUE,
-
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-
-    CONSTRAINT fk_schedule_school
-        FOREIGN KEY (school_id)
-        REFERENCES schools(id)
-        ON DELETE CASCADE,
-
-    CONSTRAINT fk_schedule_teacher
-        FOREIGN KEY (teacher_id)
-        REFERENCES users(id)
-        ON DELETE CASCADE,
-
-    CONSTRAINT fk_schedule_class
-        FOREIGN KEY (class_id)
-        REFERENCES classes(id)
-        ON DELETE CASCADE,
-
-    CONSTRAINT fk_schedule_subject
-        FOREIGN KEY (subject_id)
-        REFERENCES subjects(id)
-        ON DELETE CASCADE
-);
-
-CREATE TRIGGER trg_schedules_updated_at
-BEFORE UPDATE ON schedules
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
