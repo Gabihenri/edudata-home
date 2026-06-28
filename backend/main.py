@@ -7,6 +7,7 @@ from app.routers.agenda import router as agenda_router
 from app.routers.actions import router as actions_router
 from app.routers.evidences import router as evidences_router
 from app.routers.database import router as database_router
+from app.routers.school_registry import router as school_registry_router
 
 app = FastAPI(
     title="EduData IA API",
@@ -14,6 +15,14 @@ app = FastAPI(
     description="API oficial da plataforma EDI (Educação, Dados e Inteligência)"
 )
 
+app.include_router(health_router)
+app.include_router(auth_router)
+app.include_router(users_router)
+app.include_router(agenda_router)
+app.include_router(actions_router)
+app.include_router(evidences_router)
+app.include_router(database_router)
+app.include_router(school_registry_router)
 # Rotas
 app.include_router(health_router)
 app.include_router(auth_router, prefix="/api/v1")
