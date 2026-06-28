@@ -15,15 +15,10 @@ app = FastAPI(
     description="API oficial da plataforma EDI (Educação, Dados e Inteligência)"
 )
 
-app.include_router(health_router)
-app.include_router(auth_router)
-app.include_router(users_router)
-app.include_router(agenda_router)
-app.include_router(actions_router)
-app.include_router(evidences_router)
-app.include_router(database_router)
-app.include_router(school_registry_router)
-# Rotas
+# ==========================================================
+# ROTAS DA API
+# ==========================================================
+
 app.include_router(health_router)
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
@@ -31,12 +26,29 @@ app.include_router(agenda_router, prefix="/api/v1")
 app.include_router(actions_router, prefix="/api/v1")
 app.include_router(evidences_router, prefix="/api/v1")
 app.include_router(database_router)
+app.include_router(school_registry_router)
 
+# ==========================================================
+# ROTA PRINCIPAL
+# ==========================================================
 
 @app.get("/")
 def root():
     return {
         "plataforma": "EduData IA",
         "status": "online",
-        "versao": "1.0.0"
+        "versao": "1.0.0",
+        "framework": "EDI",
+        "api": "Release 1.0"
+    }
+
+# ==========================================================
+# HEALTH CHECK
+# ==========================================================
+
+@app.get("/health")
+def health():
+    return {
+        "status": "healthy",
+        "service": "EduData IA API"
     }
