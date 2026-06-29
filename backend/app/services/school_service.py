@@ -1,12 +1,14 @@
 from typing import Any, Optional
 
-from app.services.supabase_service import supabase
+from app.repositories.school_repository import SchoolRepository
 
 
 class SchoolService:
     """
-    Serviço responsável pelo cadastro, busca e vínculo de escolas
-    dentro da Plataforma EduData IA.
+    Serviço responsável pelo School Registry da EduData IA.
+
+    Esta camada contém as regras de negócio relacionadas a escolas.
+    O acesso ao banco é feito exclusivamente pelo SchoolRepository.
     """
 
     @staticmethod
@@ -21,23 +23,9 @@ class SchoolService:
             }
 
         if query.isdigit():
-            response = (
-                supabase.table("schools")
-                .select("*")
-                .eq("inep_code", query)
-                .limit(limit)
-                .execute()
-            )
+            items = SchoolRepository.search_by_inep(query, limit)
         else:
-            response = (
-                supabase.table("schools")
-                .select("*")
-                .ilike("name", f"%{query}%")
-                .limit(limit)
-                .execute()
-            )
-
-        items = response.data or []
+            items = SchoolRepository.search_by_name(query, limit)
 
         return {
             "query": query,
@@ -47,103 +35,60 @@ class SchoolService:
 
     @staticmethod
     def find_by_id(school_id: str) -> Optional[dict[str, Any]]:
-        response = (
-            supabase.table("schools")
-            .select("*")
-            .eq("id", school_id)
-            .limit(1)
-            .execute()
-        )
-
-        if not response.data:
-            return None
-
-        return response.data[0]
+        return SchoolRepository.find_by_id(school_id)
 
     @staticmethod
     def find_by_inep(inep_code: str) -> Optional[dict[str, Any]]:
-        response = (
-            supabase.table("schools")
-            .select("*")
-            .eq("inep_code", inep_code)
-            .limit(1)
-            .execute()
+        return SchoolRepository.find_by_inep(inep_code)
+
+    @staticmethod
+    def list_by_organization(
+        organization_id: str,
+        limit: int = 100
+    ) -> list[dict[str, Any]]:
+
+        return SchoolRepository.list_by_organization(
+            organization_id=organization_id,
+            limit=limit
         )
 
-        if not response.data:
-            return None
+    @staticmethod
+    def create(data: dict[str, Any]) -> dict[str, Any]:
+        if data.get("inep_code"):
+            existing_school = SchoolRepository.find_by_inep(data["inep_code"])
 
-        return response.data[0]
+            if existing_school:
+                return existing_school
+
+        return SchoolRepository.create(data)
 
     @staticmethod
     def create_manual_school(data: dict[str, Any]) -> dict[str, Any]:
         payload = {
-            "organization_id": data["organization_id"],
-            "name": data["name"],
-            "short_name": data.get("short_name"),
-            "code": data.get("code"),
-            "inep_code": data.get("inep_code"),
-            "address": data.get("address"),
-            "neighborhood": data.get("neighborhood"),
-            "city": data.get("city"),
-            "state": data.get("state"),
-            "zip_code": data.get("zip_code"),
-            "latitude": data.get("latitude"),
-            "longitude": data.get("longitude"),
-            "administrative_dependency": data.get("administrative_dependency"),
-            "school_type": data.get("school_type"),
-            "location_type": data.get("location_type"),
-            "phone": data.get("phone"),
-            "email": data.get("email"),
-            "website": data.get("website"),
+            **data,
             "official_registry": False,
             "manually_created": True,
             "pending_validation": True,
             "active": True,
         }
 
-        response = (
-            supabase.table("schools")
-            .insert(payload)
-            .execute()
-        )
-
-        return response.data[0]
+        return SchoolRepository.create(payload)
 
     @staticmethod
-    def create(data: dict[str, Any]) -> dict[str, Any]:
-        response = (
-            supabase.table("schools")
-            .insert(data)
-            .execute()
+    def update(
+        school_id: str,
+        data: dict[str, Any]
+    ) -> Optional[dict[str, Any]]:
+
+        return SchoolRepository.update(
+            school_id=school_id,
+            data=data
         )
-
-        return response.data[0]
-
-    @staticmethod
-    def update(school_id: str, data: dict[str, Any]) -> Optional[dict[str, Any]]:
-        response = (
-            supabase.table("schools")
-            .update(data)
-            .eq("id", school_id)
-            .execute()
-        )
-
-        if not response.data:
-            return None
-
-        return response.data[0]
 
     @staticmethod
     def deactivate(school_id: str) -> Optional[dict[str, Any]]:
-        response = (
-            supabase.table("schools")
-            .update({"active": False})
-            .eq("id", school_id)
-            .execute()
-        )
+        return SchoolRepository.deactivate(school_id)
 
-        if not response.data:
-            return None
-
-        return response.data[0]
+    @staticmethod
+    def activate(school_id: str) -> Optional[dict[str, Any]]:
+        return SchoolRepository.activate(school_id)
