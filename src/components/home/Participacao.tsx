@@ -1,63 +1,64 @@
 export default function Participacao() {
   const caminhos = [
     {
-      titulo: 'Solicitar demonstração',
+      titulo: 'Programa Professor Digital',
       descricao:
-        'Conheça como a EduData IA pode apoiar sua escola, rede ou instituição.',
-      destaque: 'Para gestores e instituições',
+        'Participe das formações em Inteligência Artificial, Google Workspace, Canva, LaTeX, Dashboards e Framework EDI.',
+      destaque: 'Formação',
     },
     {
-      titulo: 'Participar da Academy',
+      titulo: 'Consultorias EduData IA',
       descricao:
-        'Inicie uma trilha de formação em IA, dados, inclusão e tecnologia educacional.',
-      destaque: 'Para educadores',
+        'Solicite diagnósticos institucionais, projetos de dados, consultorias e apoio à transformação digital.',
+      destaque: 'Escolas e Redes',
     },
     {
-      titulo: 'Conhecer o ecossistema',
+      titulo: 'Comunidade EduData IA',
       descricao:
-        'Entenda como Framework EDI, Agenda, Analytics, SGPA e Academy se conectam.',
-      destaque: 'Para parceiros',
+        'Acompanhe a evolução do Framework EDI, da Agenda Inteligente e participe da construção do ecossistema.',
+      destaque: 'Comunidade',
     },
     {
-      titulo: 'Desenvolver projetos',
+      titulo: 'Projetos de Inovação',
       descricao:
-        'Construa soluções educacionais com dados, automação, IA, maker e acessibilidade.',
-      destaque: 'Para inovação',
+        'Desenvolva projetos em IA, Ciência de Dados, Tecnologia Maker, Analytics e Tecnologia Assistiva.',
+      destaque: 'Parcerias',
     },
   ]
 
   return (
-    <section id="participar" className="bg-[#081C2E] px-6 py-28 text-white">
+    <section id="participacao" className="bg-[#081C2E] px-6 py-28 text-white">
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <div>
             <p className="mb-4 text-sm font-semibold uppercase tracking-[0.3em] text-slate-300">
-              Participar
+              Comunidade EduData IA
             </p>
 
             <h2 className="text-4xl font-bold leading-tight tracking-tight md:text-6xl">
-              Faça parte do ecossistema EduData IA.
+              Faça parte da construção do ecossistema EduData IA.
             </h2>
 
             <p className="mt-8 max-w-2xl text-lg leading-8 text-slate-300">
-              A EduData IA conecta educadores, gestores, instituições e parceiros
-              em torno de uma educação orientada por evidências, inclusão e
-              inteligência.
+              Acompanhe a evolução do Framework EDI, participe das formações,
+              conheça novos projetos e contribua para o desenvolvimento de
+              soluções educacionais baseadas em Evidências, Inclusão e
+              Inteligência.
             </p>
 
             <div className="mt-10 flex flex-wrap gap-4">
               <a
-                href="mailto:sabinohc@gmail.com?subject=Solicitar demonstração EduData IA"
+                href="mailto:sabinohc@gmail.com?subject=Comunidade EduData IA"
                 className="rounded-full bg-white px-8 py-4 font-semibold text-[#081C2E] transition hover:opacity-90"
               >
-                Solicitar demonstração
+                Entrar para a Comunidade
               </a>
 
               <a
-                href="#academy"
+                href="#professor-digital"
                 className="rounded-full border border-white/30 px-8 py-4 font-semibold text-white transition hover:bg-white hover:text-[#081C2E]"
               >
-                Conhecer a Academy
+                Conhecer o Professor Digital
               </a>
             </div>
           </div>
@@ -85,9 +86,10 @@ export default function Participacao() {
         </div>
 
         <div className="mt-20 border-t border-white/10 pt-10 text-center">
-          <p className="text-2xl font-light leading-relaxed text-slate-300">
-            Transformamos evidências em decisões, inclusão em oportunidades e
-            inteligência em ação.
+          <p className="mx-auto max-w-4xl text-2xl font-light leading-relaxed text-slate-300">
+            A EduData IA acredita que a transformação da educação acontece
+            quando metodologia, pessoas, tecnologia e evidências trabalham de
+            forma integrada.
           </p>
         </div>
       </div>
