@@ -4,13 +4,13 @@ export function ProfessorDigital() {
       numero: '01',
       titulo: 'Diagnóstico',
       descricao:
-        'Compreende o estágio atual do educador, suas práticas, necessidades e oportunidades de evolução.',
+        'Identifica o estágio atual do educador, suas práticas, necessidades formativas e oportunidades de evolução.',
     },
     {
       numero: '02',
       titulo: 'Planejamento',
       descricao:
-        'Organiza metas, prioridades e caminhos formativos conectados ao Framework EDI.',
+        'Organiza metas, prioridades e caminhos formativos conectados ao Framework EDI e à realidade escolar.',
     },
     {
       numero: '03',
@@ -22,19 +22,19 @@ export function ProfessorDigital() {
       numero: '04',
       titulo: 'Prática',
       descricao:
-        'Transforma aprendizagem em ação concreta no cotidiano educacional.',
+        'Transforma aprendizagem em ação concreta por meio de ferramentas digitais, IA e metodologias aplicadas.',
     },
     {
       numero: '05',
       titulo: 'Evidências',
       descricao:
-        'Registra práticas, experiências, resultados e produções relevantes.',
+        'Registra práticas, experiências, materiais, resultados e produções relevantes do percurso formativo.',
     },
     {
       numero: '06',
       titulo: 'Indicadores',
       descricao:
-        'Converte registros em dados para acompanhamento, análise e melhoria contínua.',
+        'Converte registros em dados para acompanhamento, análise e melhoria contínua da prática docente.',
     },
     {
       numero: '07',
@@ -44,8 +44,19 @@ export function ProfessorDigital() {
     },
   ]
 
+  const trilhas = [
+    'IA aplicada à Educação',
+    'Google Workspace',
+    'Canva Educacional',
+    'LaTeX',
+    'Dashboards Educacionais',
+    'Framework EDI',
+    'Comunidade de prática',
+    'Certificação',
+  ]
+
   return (
-    <section id="professor" className="bg-[#F5F6F8] px-6 py-24">
+    <section id="professor-digital" className="bg-[#F5F6F8] px-6 py-24">
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-16 md:grid-cols-[0.95fr_1.05fr] md:items-start">
           <div>
@@ -54,14 +65,33 @@ export function ProfessorDigital() {
             </p>
 
             <h2 className="text-4xl font-bold leading-tight tracking-tight text-slate-950 md:text-6xl">
-              Desenvolvimento profissional orientado por evidências.
+              Programa Professor Digital
             </h2>
 
             <p className="mt-8 max-w-2xl text-lg leading-8 text-slate-600">
-              O Professor Digital é a porta de entrada da EduData IA. Ele organiza
-              a evolução profissional por meio de diagnóstico, planejamento,
-              formação, prática, evidências, indicadores e certificação.
+              O Programa Professor Digital é a principal porta de entrada do
+              ecossistema EduData IA. Ele prepara educadores para utilizar
+              tecnologia, inteligência artificial, dados e metodologias
+              inovadoras de forma prática, ética e aplicada à realidade escolar.
             </p>
+
+            <div className="mt-8 flex flex-wrap gap-3">
+              {trilhas.map((trilha) => (
+                <span
+                  key={trilha}
+                  className="rounded-full border border-[#1B6B3A]/20 bg-white px-4 py-2 text-sm font-semibold text-[#1B6B3A]"
+                >
+                  {trilha}
+                </span>
+              ))}
+            </div>
+
+            <a
+              href="#participacao"
+              className="mt-10 inline-flex rounded-full bg-[#0A3A5E] px-7 py-4 font-semibold text-white transition hover:opacity-90"
+            >
+              Quero participar
+            </a>
 
             <div className="mt-10 rounded-[2rem] border border-white/70 bg-white/70 p-8 shadow-sm backdrop-blur">
               <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">
@@ -113,19 +143,19 @@ export function ProfessorDigital() {
         <div className="mt-16 grid gap-6 md:grid-cols-3">
           <div className="border-t border-[#0A3A5E] pt-6">
             <h3 className="text-xl font-bold text-[#0A3A5E]">
-              Cada ação gera evidências.
+              Cada formação gera prática.
             </h3>
           </div>
 
           <div className="border-t border-[#1B6B3A] pt-6">
             <h3 className="text-xl font-bold text-[#1B6B3A]">
-              Cada evidência gera dados.
+              Cada prática gera evidências.
             </h3>
           </div>
 
           <div className="border-t border-[#5C1A8C] pt-6">
             <h3 className="text-xl font-bold text-[#5C1A8C]">
-              Cada dado apoia decisões.
+              Cada evidência apoia decisões.
             </h3>
           </div>
         </div>
