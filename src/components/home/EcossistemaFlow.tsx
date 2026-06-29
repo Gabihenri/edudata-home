@@ -3,50 +3,58 @@ export default function EcossistemaFlow() {
     {
       numero: '01',
       titulo: 'Framework EDI',
-      papel: 'Metodologia',
+      papel: 'Fundamento metodológico',
       descricao:
-        'Organiza a EduData IA a partir de Evidências, Inclusão e Inteligência.',
+        'Integra Evidências, Inclusão e Inteligência como base de todo o ecossistema EduData IA.',
       cor: '#0A3A5E',
     },
     {
       numero: '02',
-      titulo: 'Professor Digital',
-      papel: 'Desenvolvimento Profissional',
+      titulo: 'Programa Professor Digital',
+      papel: 'Porta de entrada',
       descricao:
-        'Estrutura a jornada de evolução docente baseada em diagnóstico, prática e evidências.',
+        'Desenvolve educadores por meio de IA, ferramentas digitais, dados, prática pedagógica e Framework EDI.',
       cor: '#1B6B3A',
     },
     {
       numero: '03',
       titulo: 'Agenda Inteligente EDI',
-      papel: 'Operação e Evidências',
+      papel: 'Planejamento e evidências',
       descricao:
-        'Transforma ações educacionais em registros, evidências e dados estruturados.',
+        'Organiza planejamento, registros, evidências e acompanhamento pedagógico em uma plataforma em desenvolvimento.',
       cor: '#5C1A8C',
     },
     {
       numero: '04',
       titulo: 'EduData Analytics',
-      papel: 'Indicadores e Inteligência',
+      papel: 'Inteligência educacional',
       descricao:
-        'Converte dados educacionais em indicadores, painéis e apoio à tomada de decisão.',
+        'Transforma dados educacionais em indicadores, dashboards, diagnósticos e apoio à tomada de decisão.',
       cor: '#0A3A5E',
     },
     {
       numero: '05',
       titulo: 'SGPA',
-      papel: 'Governança e Conformidade',
+      papel: 'Governança pedagógica',
       descricao:
-        'Apoia monitoramento, organização documental, evidências e acompanhamento institucional.',
+        'Apoia organização, conformidade, monitoramento institucional, evidências e gestão educacional.',
       cor: '#1B6B3A',
     },
     {
       numero: '06',
-      titulo: 'EduData Academy',
-      papel: 'Formação Continuada',
+      titulo: 'Escolas e Redes de Ensino',
+      papel: 'Aplicação prática',
       descricao:
-        'Organiza trilhas, cursos, tutoriais e certificações para educadores e instituições.',
+        'Conectam formação, gestão, dados e tecnologia aos desafios reais da educação.',
       cor: '#5C1A8C',
+    },
+    {
+      numero: '07',
+      titulo: 'Transformação Educacional',
+      papel: 'Impacto esperado',
+      descricao:
+        'Resultado da integração entre metodologia, desenvolvimento profissional, inteligência e ação institucional.',
+      cor: '#0A3A5E',
     },
   ]
 
@@ -59,13 +67,15 @@ export default function EcossistemaFlow() {
           </p>
 
           <h2 className="text-4xl font-bold leading-tight tracking-tight text-slate-950 md:text-6xl">
-            Uma arquitetura integrada para transformar evidências em decisões.
+            Uma jornada integrada para transformar evidências em impacto
+            educacional.
           </h2>
 
           <p className="mt-8 max-w-3xl text-lg leading-8 text-slate-600">
             A EduData IA conecta metodologia, desenvolvimento profissional,
-            registros pedagógicos, inteligência analítica, governança e formação
-            continuada em um ecossistema único.
+            planejamento pedagógico, inteligência analítica, governança e ação
+            institucional em um ecossistema orientado por Evidências, Inclusão e
+            Inteligência.
           </p>
         </div>
 
@@ -119,19 +129,17 @@ export default function EcossistemaFlow() {
             </h3>
 
             <p className="mt-6 text-lg leading-8 text-slate-300">
-              É uma arquitetura educacional em camadas. Cada módulo fortalece o
-              próximo: o Framework orienta a jornada, a Agenda registra a prática,
-              o Analytics transforma dados em inteligência e o SGPA sustenta a
-              governança.
+              É uma arquitetura educacional em camadas. O Framework orienta a
+              metodologia, o Programa Professor Digital desenvolve pessoas, a
+              Agenda organiza evidências, o Analytics gera inteligência e o
+              SGPA fortalece a governança pedagógica.
             </p>
 
             <div className="mt-10 grid gap-4">
               <div className="border-t border-[#0A3A5E] pt-4">
-                <p className="font-semibold text-[#7DD3FC]">
-                  Método
-                </p>
+                <p className="font-semibold text-[#7DD3FC]">Método</p>
                 <p className="text-slate-300">
-                  Framework EDI
+                  Framework EDI como fundamento do ecossistema.
                 </p>
               </div>
 
@@ -140,16 +148,14 @@ export default function EcossistemaFlow() {
                   Desenvolvimento
                 </p>
                 <p className="text-slate-300">
-                  Professor Digital e Academy
+                  Professor Digital como porta de entrada.
                 </p>
               </div>
 
               <div className="border-t border-[#5C1A8C] pt-4">
-                <p className="font-semibold text-[#DDD6FE]">
-                  Inteligência
-                </p>
+                <p className="font-semibold text-[#DDD6FE]">Inteligência</p>
                 <p className="text-slate-300">
-                  Agenda, Analytics e SGPA
+                  Agenda, Analytics e SGPA conectando dados à decisão.
                 </p>
               </div>
             </div>
@@ -159,19 +165,19 @@ export default function EcossistemaFlow() {
         <div className="mt-16 grid gap-6 md:grid-cols-3">
           <div className="border-t border-[#0A3A5E] pt-6">
             <h3 className="text-xl font-bold text-[#0A3A5E]">
-              Metodologia organiza a prática.
+              Metodologia orienta pessoas.
             </h3>
           </div>
 
           <div className="border-t border-[#1B6B3A] pt-6">
             <h3 className="text-xl font-bold text-[#1B6B3A]">
-              Registros geram evidências.
+              Evidências estruturam decisões.
             </h3>
           </div>
 
           <div className="border-t border-[#5C1A8C] pt-6">
             <h3 className="text-xl font-bold text-[#5C1A8C]">
-              Dados sustentam governança.
+              Inteligência gera transformação.
             </h3>
           </div>
         </div>
