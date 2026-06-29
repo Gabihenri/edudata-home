@@ -15,6 +15,8 @@ import EduDataAcademy from '@/components/home/EduDataAcademy'
 import SobreEduData from '@/components/home/SobreEduData'
 import ManifestoEDI from '@/components/home/ManifestoEDI'
 import Participacao from '@/components/home/Participacao'
+import ComeceHoje from '@/components/home/ComeceHoje'
+import SolucoesEscolas from '@/components/home/SolucoesEscolas'
 
 export default function Page() {
   return (
@@ -30,22 +32,16 @@ export default function Page() {
                 Framework EDI
               </p>
 
-              <h1 className="text-5xl font-bold leading-tight md:text-7xl">
-                <span className="text-[#0A3A5E]">Evidências.</span>
-                <br />
-                <span className="text-[#1B6B3A]">Inclusão.</span>
-                <br />
-                <span className="text-[#5C1A8C]">Inteligência.</span>
+              <h1 className="text-4xl font-bold leading-tight text-[#0A3A5E] md:text-6xl">
+                Transformando a educação por meio de Dados, Inclusão e
+                Inteligência.
               </h1>
 
               <p className="max-w-2xl text-xl leading-9 text-slate-600">
-                Transformando dados educacionais em decisões inteligentes.
-              </p>
-
-              <p className="max-w-2xl text-lg leading-8 text-slate-500">
-                A EduData IA organiza desenvolvimento profissional, registros
-                pedagógicos, evidências e análise de dados em um ecossistema
-                educacional integrado.
+                A EduData IA desenvolve educadores, fortalece instituições e
+                cria soluções educacionais baseadas em evidências, conectando
+                tecnologia, formação e inteligência para apoiar a transformação
+                da educação.
               </p>
 
               <div className="flex flex-wrap gap-4">
@@ -54,6 +50,13 @@ export default function Page() {
                   className="rounded-full bg-[#0A3A5E] px-7 py-4 font-semibold text-white transition hover:opacity-90"
                 >
                   Conheça o Framework EDI
+                </a>
+
+                <a
+                  href="#professor-digital"
+                  className="rounded-full border border-[#1B6B3A] px-7 py-4 font-semibold text-[#1B6B3A] transition hover:bg-[#1B6B3A] hover:text-white"
+                >
+                  Programa Professor Digital
                 </a>
 
                 <a
@@ -78,23 +81,26 @@ export default function Page() {
                 <h2 className="text-4xl font-bold leading-tight text-slate-950">
                   Princípios que viram método.
                   <br />
-                  Método que gera dados.
+                  Método que gera evidências.
                   <br />
-                  Dados que orientam decisões.
+                  Evidências que orientam decisões.
                 </h2>
 
                 <p className="mt-6 text-lg leading-8 text-slate-600">
-                  Uma plataforma criada a partir do Framework EDI para apoiar
-                  escolas, educadores e gestores na melhoria contínua da prática
-                  educacional.
+                  Um ecossistema criado a partir do Framework EDI para apoiar
+                  professores, escolas e gestores na construção de práticas
+                  educacionais mais inteligentes, inclusivas e baseadas em
+                  dados.
                 </p>
               </div>
             </div>
           </div>
         </section>
 
+        <ComeceHoje />
         <FrameworkEDI />
         <ProfessorDigital />
+        <SolucoesEscolas />
         <AgendaInteligente />
         <InclusaoEDI />
         <LaboratorioExperimental />
