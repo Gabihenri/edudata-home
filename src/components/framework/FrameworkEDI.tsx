@@ -26,21 +26,37 @@ export function FrameworkEDI() {
   return (
     <section id="framework" className="bg-white px-6 py-32">
       <div className="mx-auto max-w-7xl">
-        <div className="max-w-3xl">
+        <div className="max-w-4xl">
           <p className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">
             Framework EDI
           </p>
 
           <h2 className="text-5xl font-bold tracking-tight text-slate-950 md:text-6xl">
-            A estrutura que orienta
-            <br />
-            toda a EduData IA.
+            O fundamento de todo o ecossistema EduData IA.
           </h2>
 
           <p className="mt-8 text-xl leading-9 text-slate-600">
-            O Framework EDI organiza a prática educacional a partir de três pilares
-            complementares: Evidências, Inclusão e Inteligência.
+            O Framework EDI constitui a base metodológica da EduData IA,
+            integrando <strong>Evidências</strong>, <strong>Inclusão</strong> e
+            <strong> Inteligência</strong> para orientar pessoas, instituições e
+            tecnologias na construção de uma educação mais eficiente,
+            acessível e inovadora.
           </p>
+
+          <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-500">
+            Todos os produtos, formações, consultorias e soluções da EduData IA
+            são desenvolvidos a partir dos princípios do Framework EDI,
+            garantindo coerência metodológica em todo o ecossistema.
+          </p>
+
+          <div className="mt-10">
+            <a
+              href="#professor-digital"
+              className="inline-flex rounded-full bg-[#0A3A5E] px-7 py-4 font-semibold text-white transition hover:opacity-90"
+            >
+              Conheça o Framework
+            </a>
+          </div>
         </div>
 
         <div className="mt-24 grid gap-12 md:grid-cols-3">
