@@ -1,64 +1,35 @@
 from typing import Any, Optional
 
-from app.services.supabase_service import supabase
+from app.repositories.organization_repository import OrganizationRepository
 
 
 class OrganizationService:
     """
-    Serviço responsável pelo gerenciamento das organizações
-    da plataforma EduData IA.
+    Serviço responsável pelas regras de negócio das organizações.
     """
 
     @staticmethod
-    def list() -> list[dict[str, Any]]:
-        response = (
-            supabase.table("organizations")
-            .select("*")
-            .order("name")
-            .execute()
-        )
-
-        return response.data or []
+    def list(limit: int = 100) -> list[dict[str, Any]]:
+        return OrganizationRepository.list(limit=limit)
 
     @staticmethod
     def find_by_id(organization_id: str) -> Optional[dict[str, Any]]:
-        response = (
-            supabase.table("organizations")
-            .select("*")
-            .eq("id", organization_id)
-            .limit(1)
-            .execute()
-        )
-
-        if not response.data:
-            return None
-
-        return response.data[0]
+        return OrganizationRepository.find_by_id(organization_id)
 
     @staticmethod
     def find_by_slug(slug: str) -> Optional[dict[str, Any]]:
-        response = (
-            supabase.table("organizations")
-            .select("*")
-            .eq("slug", slug)
-            .limit(1)
-            .execute()
-        )
-
-        if not response.data:
-            return None
-
-        return response.data[0]
+        return OrganizationRepository.find_by_slug(slug)
 
     @staticmethod
     def create(data: dict[str, Any]) -> dict[str, Any]:
-        response = (
-            supabase.table("organizations")
-            .insert(data)
-            .execute()
-        )
+        existing = OrganizationRepository.find_by_slug(data["slug"])
 
-        return response.data[0]
+        if existing:
+            raise ValueError(
+                "Já existe uma organização cadastrada com este slug."
+            )
+
+        return OrganizationRepository.create(data)
 
     @staticmethod
     def update(
@@ -66,31 +37,25 @@ class OrganizationService:
         data: dict[str, Any]
     ) -> Optional[dict[str, Any]]:
 
-        response = (
-            supabase.table("organizations")
-            .update(data)
-            .eq("id", organization_id)
-            .execute()
+        return OrganizationRepository.update(
+            organization_id=organization_id,
+            data=data,
         )
 
-        if not response.data:
-            return None
+    @staticmethod
+    def activate(
+        organization_id: str
+    ) -> Optional[dict[str, Any]]:
 
-        return response.data[0]
+        return OrganizationRepository.activate(
+            organization_id
+        )
 
     @staticmethod
     def deactivate(
         organization_id: str
     ) -> Optional[dict[str, Any]]:
 
-        response = (
-            supabase.table("organizations")
-            .update({"active": False})
-            .eq("id", organization_id)
-            .execute()
+        return OrganizationRepository.deactivate(
+            organization_id
         )
-
-        if not response.data:
-            return None
-
-        return response.data[0]
