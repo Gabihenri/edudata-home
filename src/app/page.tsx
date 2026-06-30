@@ -17,6 +17,7 @@ import ManifestoEDI from '@/components/home/ManifestoEDI'
 import Participacao from '@/components/home/Participacao'
 import ComeceHoje from '@/components/home/ComeceHoje'
 import SolucoesEscolas from '@/components/home/SolucoesEscolas'
+import PublicoAlvo from '@/components/home/PublicoAlvo'
 
 export default function Page() {
   return (
@@ -98,6 +99,7 @@ export default function Page() {
         </section>
 
         <ComeceHoje />
+        <PublicoAlvo />
         <FrameworkEDI />
         <ProfessorDigital />
         <SolucoesEscolas />
