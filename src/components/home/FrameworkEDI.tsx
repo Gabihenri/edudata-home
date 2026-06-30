@@ -26,9 +26,7 @@ export function FrameworkEDI() {
   return (
     <section id="framework" className="bg-white px-6 py-32">
       <div className="mx-auto max-w-7xl">
-
         <div className="max-w-4xl">
-
           <p className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">
             Framework EDI
           </p>
@@ -60,11 +58,9 @@ export function FrameworkEDI() {
               Ver o Ecossistema EDI
             </a>
           </div>
-
         </div>
 
         <div className="mt-24 grid gap-12 md:grid-cols-3">
-
           {pilares.map((pilar) => (
             <div
               key={pilar.titulo}
@@ -88,9 +84,7 @@ export function FrameworkEDI() {
               </p>
             </div>
           ))}
-
         </div>
-
       </div>
     </section>
   )
