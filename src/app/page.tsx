@@ -16,8 +16,9 @@ import SobreEduData from '@/components/home/SobreEduData'
 import ManifestoEDI from '@/components/home/ManifestoEDI'
 import Participacao from '@/components/home/Participacao'
 import ComeceHoje from '@/components/home/ComeceHoje'
-import SolucoesEscolas from '@/components/home/SolucoesEscolas'
 import PublicoAlvo from '@/components/home/PublicoAlvo'
+import NossosProdutos from '@/components/home/NossosProdutos'
+import SolucoesEscolas from '@/components/home/SolucoesEscolas'
 
 export default function Page() {
   return (
@@ -34,13 +35,12 @@ export default function Page() {
               </p>
 
               <h1 className="text-4xl font-bold leading-tight text-[#0A3A5E] md:text-6xl">
-                Transformando a educação por meio de Dados, Inclusão e
-                Inteligência.
+                Transformando a educação por meio de Dados, Inclusão e Inteligência.
               </h1>
 
               <p className="max-w-2xl text-xl leading-9 text-slate-600">
-                A EduData IA desenvolve educadores, fortalece instituições e
-                cria soluções educacionais baseadas em evidências, conectando
+                A EduData IA desenvolve educadores, fortalece instituições e cria
+                soluções educacionais baseadas em evidências, conectando
                 tecnologia, formação e inteligência para apoiar a transformação
                 da educação.
               </p>
@@ -90,8 +90,7 @@ export default function Page() {
                 <p className="mt-6 text-lg leading-8 text-slate-600">
                   Um ecossistema criado a partir do Framework EDI para apoiar
                   professores, escolas e gestores na construção de práticas
-                  educacionais mais inteligentes, inclusivas e baseadas em
-                  dados.
+                  educacionais mais inteligentes, inclusivas e baseadas em dados.
                 </p>
               </div>
             </div>
@@ -100,6 +99,7 @@ export default function Page() {
 
         <ComeceHoje />
         <PublicoAlvo />
+        <NossosProdutos />
         <FrameworkEDI />
         <ProfessorDigital />
         <SolucoesEscolas />
