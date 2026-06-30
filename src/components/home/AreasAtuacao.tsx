@@ -1,53 +1,17 @@
 export default function AreasAtuacao() {
   const areas = [
-    {
-      titulo: 'Inteligência Artificial na Educação',
-      grupo: 'Tecnologia',
-    },
-    {
-      titulo: 'Ciência de Dados Educacionais',
-      grupo: 'Dados',
-    },
-    {
-      titulo: 'Business Intelligence',
-      grupo: 'Dados',
-    },
-    {
-      titulo: 'Gestão Educacional',
-      grupo: 'Gestão',
-    },
-    {
-      titulo: 'Formação Continuada',
-      grupo: 'Formação',
-    },
-    {
-      titulo: 'Google Workspace',
-      grupo: 'Ferramentas',
-    },
-    {
-      titulo: 'Microsoft Office',
-      grupo: 'Ferramentas',
-    },
-    {
-      titulo: 'Canva Educacional',
-      grupo: 'Ferramentas',
-    },
-    {
-      titulo: 'LaTeX',
-      grupo: 'Produção Técnica',
-    },
-    {
-      titulo: 'Dashboards Educacionais',
-      grupo: 'Dados',
-    },
-    {
-      titulo: 'Tecnologia Maker',
-      grupo: 'Arduino • Raspberry Pi • Robótica',
-    },
-    {
-      titulo: 'Tecnologia Assistiva',
-      grupo: 'Inclusão',
-    },
+    'Inteligência Artificial na Educação',
+    'Ciência de Dados Educacionais',
+    'Business Intelligence',
+    'Gestão Educacional',
+    'Formação Continuada',
+    'Google Workspace',
+    'Microsoft Office',
+    'Canva Educacional',
+    'LaTeX',
+    'Dashboards Educacionais',
+    'Tecnologia Maker (Arduino, Raspberry Pi e Robótica)',
+    'Tecnologia Assistiva e Educação Inclusiva',
   ]
 
   return (
@@ -72,15 +36,11 @@ export default function AreasAtuacao() {
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {areas.map((area) => (
             <div
-              key={area.titulo}
+              key={area}
               className="rounded-3xl border border-slate-200 bg-[#F5F6F8] p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg"
             >
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                {area.grupo}
-              </p>
-
               <h3 className="text-lg font-bold text-[#0A3A5E]">
-                {area.titulo}
+                {area}
               </h3>
             </div>
           ))}
