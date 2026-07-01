@@ -13,16 +13,24 @@ import {
 
 export default function AcademySection() {
   const [selectedCategory, setSelectedCategory] = useState('Todos')
+  const [searchTerm, setSearchTerm] = useState('')
 
   const filteredCourses = useMemo(() => {
-    if (selectedCategory === 'Todos') {
-      return featuredAcademyCourses
-    }
+    return featuredAcademyCourses.filter((course) => {
+      const matchesCategory =
+        selectedCategory === 'Todos' || course.category === selectedCategory
 
-    return featuredAcademyCourses.filter(
-      (course) => course.category === selectedCategory,
-    )
-  }, [selectedCategory])
+      const matchesSearch =
+        course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        course.subtitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        course.tags.some((tag) =>
+          tag.toLowerCase().includes(searchTerm.toLowerCase()),
+        )
+
+      return matchesCategory && matchesSearch
+    })
+  }, [selectedCategory, searchTerm])
 
   return (
     <>
@@ -43,6 +51,16 @@ export default function AcademySection() {
               Escolha uma das formações desenvolvidas a partir do Framework EDI
               e inicie seu desenvolvimento profissional no ecossistema EduData IA.
             </p>
+          </div>
+
+          <div className="mb-8">
+            <input
+              type="text"
+              placeholder="Buscar curso, tecnologia ou trilha..."
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              className="w-full rounded-full border border-slate-300 bg-white px-6 py-4 text-slate-800 outline-none transition focus:border-[#0A3A5E] focus:ring-2 focus:ring-[#0A3A5E]/20"
+            />
           </div>
 
           <CategoryFilter
