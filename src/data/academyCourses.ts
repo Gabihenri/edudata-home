@@ -21,7 +21,6 @@ export const academyCourses: Course[] = [
     tags: ['IA', 'Educação', 'ChatGPT'],
     order: 1,
   },
-
   {
     id: '2',
     slug: 'google-workspace',
@@ -39,17 +38,16 @@ export const academyCourses: Course[] = [
     status: 'Inscrições Abertas',
     featured: true,
     launch: false,
-    tags: ['Google', 'Workspace'],
+    tags: ['Google', 'Workspace', 'Educação'],
     order: 2,
   },
-
   {
     id: '3',
     slug: 'canva-educacional',
     title: 'Canva Educacional',
     subtitle: 'Design para professores',
     description:
-      'Crie apresentações, infográficos, avaliações e materiais didáticos profissionais.',
+      'Crie apresentações, infográficos, avaliações e materiais didáticos profissionais para sala de aula.',
     category: 'Design Educacional',
     image: '/academy/canva.jpg',
     workload: 12,
@@ -60,19 +58,18 @@ export const academyCourses: Course[] = [
     status: 'Inscrições Abertas',
     featured: true,
     launch: false,
-    tags: ['Canva', 'Design'],
+    tags: ['Canva', 'Design', 'Materiais Didáticos'],
     order: 3,
   },
-
   {
     id: '4',
     slug: 'dashboards-educacionais',
     title: 'Dashboards Educacionais',
     subtitle: 'Indicadores para tomada de decisão',
     description:
-      'Aprenda a construir dashboards e indicadores educacionais utilizando dados reais.',
+      'Aprenda a construir dashboards e indicadores educacionais para apoiar decisões baseadas em evidências.',
     category: 'Ciência de Dados',
-    image: '/academy/dashboard.jpg',
+    image: '/academy/dashboards.jpg',
     workload: 20,
     level: 'Intermediário',
     mode: 'Online',
@@ -81,10 +78,9 @@ export const academyCourses: Course[] = [
     status: 'Em breve',
     featured: true,
     launch: false,
-    tags: ['Dashboard', 'BI', 'Dados'],
+    tags: ['Dashboards', 'BI', 'Indicadores'],
     order: 4,
   },
-
   {
     id: '5',
     slug: 'framework-edi',
@@ -102,7 +98,15 @@ export const academyCourses: Course[] = [
     status: 'Lançamento',
     featured: true,
     launch: true,
-    tags: ['EDI', 'Framework'],
+    tags: ['EDI', 'Framework', 'Metodologia'],
     order: 5,
   },
 ]
+
+export const featuredAcademyCourses = academyCourses
+  .filter((course) => course.featured)
+  .sort((a, b) => a.order - b.order)
+
+export const academyCategories = Array.from(
+  new Set(academyCourses.map((course) => course.category)),
+)
