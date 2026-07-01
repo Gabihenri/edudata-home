@@ -36,6 +36,10 @@ export interface Course {
 
   mode: CourseMode
 
+  price: string
+
+  vacancies: number
+
   certificate: boolean
 
   instructor: string
