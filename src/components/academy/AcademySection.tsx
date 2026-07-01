@@ -28,14 +28,9 @@ export default function AcademySection() {
     <>
       <AcademyHero />
 
-      <section
-        id="courses"
-        className="bg-white px-6 py-24 md:px-20"
-      >
+      <section id="courses" className="bg-white px-6 py-24 md:px-20">
         <div className="mx-auto max-w-7xl">
-
           <div className="mb-14">
-
             <p className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">
               Cursos em Destaque
             </p>
@@ -45,11 +40,9 @@ export default function AcademySection() {
             </h2>
 
             <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-600">
-              Escolha uma das formações desenvolvidas a partir do
-              Framework EDI e inicie seu desenvolvimento profissional
-              no ecossistema EduData IA.
+              Escolha uma das formações desenvolvidas a partir do Framework EDI
+              e inicie seu desenvolvimento profissional no ecossistema EduData IA.
             </p>
-
           </div>
 
           <CategoryFilter
@@ -58,21 +51,16 @@ export default function AcademySection() {
             onSelectCategory={setSelectedCategory}
           />
 
-          <CourseGrid
-            courses={filteredCourses}
-          />
+          <CourseGrid courses={filteredCourses} />
 
           <div className="mt-16 flex justify-center">
-
             <a
-              href="#participacao"
+              href="/#participacao"
               className="rounded-full bg-[#0A3A5E] px-8 py-4 font-semibold text-white transition hover:opacity-90"
             >
               Conheça a Academy
             </a>
-
           </div>
-
         </div>
       </section>
     </>
