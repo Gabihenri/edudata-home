@@ -3,20 +3,22 @@
 import { useState } from 'react'
 
 export default function EnrollmentForm() {
+  const [loading, setLoading] = useState(false)
+
   const [form, setForm] = useState({
-    nome: '',
+    fullName: '',
     email: '',
     whatsapp: '',
-    escola: '',
-    cidade: '',
-    estado: '',
-    cargo: '',
-    curso: '',
+    school: '',
+    city: '',
+    state: '',
+    role: '',
+    courseId: '',
     lgpd: false,
   })
 
   function handleChange(
-    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    event: React.ChangeEvent<HTMLInputElement>
   ) {
     const { name, value, type } = event.target
 
@@ -29,42 +31,62 @@ export default function EnrollmentForm() {
     }))
   }
 
-  function handleSubmit(event: React.FormEvent) {
+  async function handleSubmit(
+    event: React.FormEvent
+  ) {
     event.preventDefault()
 
-    console.log(form)
+    setLoading(true)
 
-    alert(
-      'Inscrição registrada! Em breve ela será integrada ao banco de dados da EduData IA.'
-    )
+    try {
+      const response = await fetch('/api/academy/enrollments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(form),
+      })
+
+      if (!response.ok) {
+        throw new Error()
+      }
+
+      alert('Inscrição realizada com sucesso!')
+
+      setForm({
+        fullName: '',
+        email: '',
+        whatsapp: '',
+        school: '',
+        city: '',
+        state: '',
+        role: '',
+        courseId: '',
+        lgpd: false,
+      })
+    } catch {
+      alert('Não foi possível realizar a inscrição.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
-    <section className="rounded-[2rem] bg-white p-10 shadow-xl">
-      <div className="mb-10">
-        <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">
-          EduData IA Academy
-        </p>
-
-        <h2 className="mt-3 text-4xl font-bold text-[#0A3A5E]">
-          Faça sua inscrição
-        </h2>
-
-        <p className="mt-4 text-slate-600">
-          Preencha os dados abaixo para entrar na lista de participantes.
-        </p>
-      </div>
+    <section className="rounded-3xl bg-white p-10 shadow-xl">
+      <h2 className="mb-8 text-3xl font-bold text-[#0A3A5E]">
+        Inscrição
+      </h2>
 
       <form
         onSubmit={handleSubmit}
-        className="space-y-6"
+        className="space-y-5"
       >
         <input
-          name="nome"
+          name="fullName"
           placeholder="Nome completo"
-          value={form.nome}
+          value={form.fullName}
           onChange={handleChange}
-          className="w-full rounded-xl border border-slate-300 px-5 py-4"
+          className="w-full rounded-xl border p-4"
         />
 
         <input
@@ -73,7 +95,7 @@ export default function EnrollmentForm() {
           placeholder="E-mail"
           value={form.email}
           onChange={handleChange}
-          className="w-full rounded-xl border border-slate-300 px-5 py-4"
+          className="w-full rounded-xl border p-4"
         />
 
         <input
@@ -81,49 +103,47 @@ export default function EnrollmentForm() {
           placeholder="WhatsApp"
           value={form.whatsapp}
           onChange={handleChange}
-          className="w-full rounded-xl border border-slate-300 px-5 py-4"
+          className="w-full rounded-xl border p-4"
         />
 
         <input
-          name="escola"
-          placeholder="Escola / Instituição"
-          value={form.escola}
+          name="school"
+          placeholder="Escola"
+          value={form.school}
           onChange={handleChange}
-          className="w-full rounded-xl border border-slate-300 px-5 py-4"
+          className="w-full rounded-xl border p-4"
         />
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <input
-            name="cidade"
-            placeholder="Cidade"
-            value={form.cidade}
-            onChange={handleChange}
-            className="rounded-xl border border-slate-300 px-5 py-4"
-          />
-
-          <input
-            name="estado"
-            placeholder="Estado"
-            value={form.estado}
-            onChange={handleChange}
-            className="rounded-xl border border-slate-300 px-5 py-4"
-          />
-        </div>
+        <input
+          name="city"
+          placeholder="Cidade"
+          value={form.city}
+          onChange={handleChange}
+          className="w-full rounded-xl border p-4"
+        />
 
         <input
-          name="cargo"
+          name="state"
+          placeholder="Estado"
+          value={form.state}
+          onChange={handleChange}
+          className="w-full rounded-xl border p-4"
+        />
+
+        <input
+          name="role"
           placeholder="Cargo"
-          value={form.cargo}
+          value={form.role}
           onChange={handleChange}
-          className="w-full rounded-xl border border-slate-300 px-5 py-4"
+          className="w-full rounded-xl border p-4"
         />
 
         <input
-          name="curso"
-          placeholder="Curso desejado"
-          value={form.curso}
+          name="courseId"
+          placeholder="ID do Curso"
+          value={form.courseId}
           onChange={handleChange}
-          className="w-full rounded-xl border border-slate-300 px-5 py-4"
+          className="w-full rounded-xl border p-4"
         />
 
         <label className="flex items-center gap-3">
@@ -134,18 +154,22 @@ export default function EnrollmentForm() {
             onChange={handleChange}
           />
 
-          <span className="text-sm text-slate-600">
-            Concordo com a Política de Privacidade e LGPD.
+          <span>
+            Concordo com a Política de Privacidade.
           </span>
         </label>
 
         <button
           type="submit"
-          className="w-full rounded-full bg-[#0A3A5E] px-8 py-4 text-lg font-semibold text-white transition hover:opacity-90"
+          disabled={loading}
+          className="w-full rounded-full bg-[#0A3A5E] py-4 font-semibold text-white"
         >
-          Finalizar inscrição
+          {loading
+            ? 'Enviando...'
+            : 'Finalizar inscrição'}
         </button>
       </form>
     </section>
   )
 }
+ 
