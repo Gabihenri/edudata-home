@@ -120,3 +120,6 @@ export const featuredAcademyCourses = academyCourses
 export const academyCategories = Array.from(
   new Set(academyCourses.map((course) => course.category)),
 )
+
+   
+ 
