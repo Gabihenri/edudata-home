@@ -127,12 +127,8 @@ export default function EcossistemaFlow() {
 
             <div className="mt-10 space-y-5">
               <div className="border-l-4 border-[#0A3A5E] pl-4">
-                <h4 className="font-semibold text-[#7DD3FC]">
-                  Método
-                </h4>
-                <p className="text-slate-300">
-                  Framework EDI
-                </p>
+                <h4 className="font-semibold text-[#7DD3FC]">Método</h4>
+                <p className="text-slate-300">Framework EDI</p>
               </div>
 
               <div className="border-l-4 border-[#1B6B3A] pl-4">
@@ -145,9 +141,7 @@ export default function EcossistemaFlow() {
               </div>
 
               <div className="border-l-4 border-[#5C1A8C] pl-4">
-                <h4 className="font-semibold text-[#DDD6FE]">
-                  Inteligência
-                </h4>
+                <h4 className="font-semibold text-[#DDD6FE]">Inteligência</h4>
                 <p className="text-slate-300">
                   Agenda Inteligente, Analytics e SGPA
                 </p>
