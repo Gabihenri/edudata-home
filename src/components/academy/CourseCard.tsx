@@ -8,9 +8,7 @@ interface CourseCardProps {
 export default function CourseCard({ course }: CourseCardProps) {
   return (
     <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-2 hover:shadow-xl">
-
       <div className="relative">
-
         <img
           src={course.image}
           alt={course.title}
@@ -24,11 +22,9 @@ export default function CourseCard({ course }: CourseCardProps) {
         <div className="absolute right-5 top-5 rounded-full bg-[#0A3A5E] px-4 py-2 text-xs font-bold text-white shadow">
           {course.status}
         </div>
-
       </div>
 
       <div className="p-7">
-
         <h3 className="text-2xl font-bold text-[#0A3A5E]">
           {course.title}
         </h3>
@@ -42,12 +38,10 @@ export default function CourseCard({ course }: CourseCardProps) {
         </p>
 
         <div className="mt-8 grid grid-cols-2 gap-4 text-sm">
-
           <div>
             <span className="font-semibold text-slate-500">
               Carga Horária
             </span>
-
             <p className="mt-1 font-bold text-slate-900">
               {course.workload}h
             </p>
@@ -57,7 +51,6 @@ export default function CourseCard({ course }: CourseCardProps) {
             <span className="font-semibold text-slate-500">
               Modalidade
             </span>
-
             <p className="mt-1 font-bold text-slate-900">
               {course.mode}
             </p>
@@ -67,7 +60,6 @@ export default function CourseCard({ course }: CourseCardProps) {
             <span className="font-semibold text-slate-500">
               Nível
             </span>
-
             <p className="mt-1 font-bold text-slate-900">
               {course.level}
             </p>
@@ -77,7 +69,6 @@ export default function CourseCard({ course }: CourseCardProps) {
             <span className="font-semibold text-slate-500">
               Certificado
             </span>
-
             <p className="mt-1 font-bold text-slate-900">
               {course.certificate ? 'Sim' : 'Não'}
             </p>
@@ -87,7 +78,6 @@ export default function CourseCard({ course }: CourseCardProps) {
             <span className="font-semibold text-slate-500">
               Valor
             </span>
-
             <p className="mt-1 font-bold text-[#1B6B3A]">
               {course.price}
             </p>
@@ -97,16 +87,13 @@ export default function CourseCard({ course }: CourseCardProps) {
             <span className="font-semibold text-slate-500">
               Vagas
             </span>
-
             <p className="mt-1 font-bold text-slate-900">
               {course.vacancies}
             </p>
           </div>
-
         </div>
 
         <div className="mt-8 border-t border-slate-200 pt-6">
-
           <p className="text-sm text-slate-500">
             Professor responsável
           </p>
@@ -114,18 +101,21 @@ export default function CourseCard({ course }: CourseCardProps) {
           <p className="mt-1 font-semibold text-slate-900">
             {course.instructor}
           </p>
-
         </div>
 
-        <Link
-          href={`/academy/${course.slug}`}
-          className="mt-8 flex justify-center rounded-full bg-[#0A3A5E] px-6 py-4 text-center font-semibold text-white transition hover:opacity-90"
-        >
-          Inscrever-se
-        </Link>
+        <div className="mt-8 grid gap-3">
+          <Link
+            href={`/academy/${course.slug}`}
+            className="flex justify-center rounded-full border border-[#0A3A5E] px-6 py-4 text-center font-semibold text-[#0A3A5E] transition hover:bg-[#0A3A5E] hover:text-white"
+          >
+            Ver detalhes
+          </Link>
 
+          <button className="rounded-full bg-[#1B6B3A] px-6 py-4 font-semibold text-white transition hover:opacity-90">
+            Quero me inscrever
+          </button>
+        </div>
       </div>
-
     </article>
   )
 }
