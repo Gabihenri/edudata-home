@@ -1,4 +1,4 @@
-export default function EcossistemaFlow() {
+function EcossistemaFlow() {
   const camadas = [
     {
       numero: '01',
@@ -120,33 +120,8 @@ export default function EcossistemaFlow() {
 
             <p className="mt-6 text-lg leading-8 text-slate-300">
               Cada módulo do ecossistema possui uma função específica, mas todos
-              compartilham a mesma base metodológica. Essa integração permite que
-              evidências gerem dados, dados produzam inteligência e a
-              inteligência fortaleça pessoas, instituições e decisões.
+              compartilham a mesma base metodológica.
             </p>
-
-            <div className="mt-10 space-y-5">
-              <div className="border-l-4 border-[#0A3A5E] pl-4">
-                <h4 className="font-semibold text-[#7DD3FC]">Método</h4>
-                <p className="text-slate-300">Framework EDI</p>
-              </div>
-
-              <div className="border-l-4 border-[#1B6B3A] pl-4">
-                <h4 className="font-semibold text-[#A7F3D0]">
-                  Desenvolvimento
-                </h4>
-                <p className="text-slate-300">
-                  Professor Digital e Academy
-                </p>
-              </div>
-
-              <div className="border-l-4 border-[#5C1A8C] pl-4">
-                <h4 className="font-semibold text-[#DDD6FE]">Inteligência</h4>
-                <p className="text-slate-300">
-                  Agenda Inteligente, Analytics e SGPA
-                </p>
-              </div>
-            </div>
 
             <a
               href="#professor-digital"
@@ -160,3 +135,6 @@ export default function EcossistemaFlow() {
     </section>
   )
 }
+
+export { EcossistemaFlow }
+export default EcossistemaFlow
