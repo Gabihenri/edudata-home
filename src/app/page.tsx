@@ -6,6 +6,8 @@ import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import AccessibilityBar from '@/components/layout/AccessibilityBar'
 
+import EngineSection from '@/components/home/EngineSection'
+import PlatformArchitecture from '@/components/home/PlatformArchitecture'
 import EcossistemaFlow from '@/components/home/EcossistemaFlow'
 import EduDataAnalytics from '@/components/home/EduDataAnalytics'
 import SGPA from '@/components/home/SGPA'
@@ -30,18 +32,18 @@ export default function Page() {
           <div className="mx-auto grid max-w-7xl gap-16 md:grid-cols-[1fr_1.1fr] md:items-center">
             <div className="space-y-8">
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">
-                Framework EDI
+                Plataforma Modular de Inteligência Educacional
               </p>
 
               <h1 className="text-4xl font-bold leading-tight text-[#0A3A5E] md:text-6xl">
-                Transformando a educação por meio de Dados, Inclusão e Inteligência.
+                Um único ecossistema, um único motor de inteligência, múltiplos produtos especializados.
               </h1>
 
               <p className="max-w-2xl text-xl leading-9 text-slate-600">
-                A EduData IA desenvolve educadores, fortalece instituições e
-                cria soluções educacionais baseadas em evidências, conectando
-                tecnologia, formação e inteligência para apoiar a transformação
-                da educação.
+                A EduData IA integra Framework EDI, EDI Intelligence Engine,
+                formação continuada, desenvolvimento profissional, gestão
+                pedagógica, analytics e governança educacional em uma única
+                plataforma.
               </p>
 
               <div className="flex flex-wrap gap-4">
@@ -53,17 +55,17 @@ export default function Page() {
                 </a>
 
                 <a
-                  href="#professor-digital"
+                  href="#academy"
                   className="rounded-full border border-[#1B6B3A] px-7 py-4 font-semibold text-[#1B6B3A] transition hover:bg-[#1B6B3A] hover:text-white"
                 >
-                  Programa Professor Digital
+                  EduData Academy
                 </a>
 
                 <a
-                  href="#agenda"
+                  href="#ecossistema"
                   className="rounded-full border border-[#5C1A8C] px-7 py-4 font-semibold text-[#5C1A8C] transition hover:bg-[#5C1A8C] hover:text-white"
                 >
-                  Agenda Inteligente EDI
+                  Ver Ecossistema
                 </a>
               </div>
             </div>
@@ -75,21 +77,21 @@ export default function Page() {
 
               <div className="rounded-[2rem] border border-white/70 bg-white/70 p-10 shadow-xl backdrop-blur">
                 <p className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">
-                  EduData IA
+                  EduData IA Platform
                 </p>
 
                 <h2 className="text-4xl font-bold leading-tight text-slate-950">
-                  Princípios que viram método.
+                  Framework EDI.
                   <br />
-                  Método que gera evidências.
+                  EDI Intelligence Engine.
                   <br />
-                  Evidências que orientam decisões.
+                  Produtos integrados.
                 </h2>
 
                 <p className="mt-6 text-lg leading-8 text-slate-600">
-                  Um ecossistema criado a partir do Framework EDI para apoiar
-                  professores, escolas e gestores na construção de práticas
-                  educacionais mais inteligentes, inclusivas e baseadas em dados.
+                  Uma arquitetura educacional modular em que todos os produtos
+                  compartilham o mesmo motor de inteligência, o mesmo core
+                  tecnológico e a mesma base metodológica.
                 </p>
               </div>
             </div>
@@ -98,6 +100,8 @@ export default function Page() {
 
         <ManifestoEDI />
         <FrameworkEDI />
+        <EngineSection />
+        <PlatformArchitecture />
         <EcossistemaFlow />
         <ProfessorDigital />
         <AgendaInteligente />
