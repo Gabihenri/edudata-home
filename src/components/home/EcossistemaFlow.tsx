@@ -1,4 +1,8 @@
+import { products } from '@/lib/data/products'
+
 function EcossistemaFlow() {
+  const colors = ['#0A3A5E', '#1B6B3A', '#5C1A8C']
+
   const camadas = [
     {
       numero: '01',
@@ -8,46 +12,13 @@ function EcossistemaFlow() {
         'Estabelece os princípios de Evidências, Inclusão e Inteligência que orientam todo o ecossistema EduData IA.',
       cor: '#0A3A5E',
     },
-    {
-      numero: '02',
-      titulo: 'Professor Digital',
-      papel: 'Desenvolvimento Profissional',
-      descricao:
-        'Organiza a jornada de desenvolvimento docente por meio de diagnóstico, formação, prática e evidências.',
-      cor: '#1B6B3A',
-    },
-    {
-      numero: '03',
-      titulo: 'Agenda Inteligente EDI',
-      papel: 'Operação Pedagógica',
-      descricao:
-        'Transforma o trabalho pedagógico em registros estruturados, evidências e dados.',
-      cor: '#5C1A8C',
-    },
-    {
-      numero: '04',
-      titulo: 'EduData Analytics',
-      papel: 'Inteligência',
-      descricao:
-        'Converte dados em indicadores, painéis e análises para apoiar decisões educacionais.',
-      cor: '#0A3A5E',
-    },
-    {
-      numero: '05',
-      titulo: 'SGPA',
-      papel: 'Governança',
-      descricao:
-        'Integra documentação, conformidade, monitoramento institucional e gestão pedagógica.',
-      cor: '#1B6B3A',
-    },
-    {
-      numero: '06',
-      titulo: 'EduData Academy',
-      papel: 'Formação Continuada',
-      descricao:
-        'Disponibiliza cursos, trilhas formativas, certificações e desenvolvimento permanente.',
-      cor: '#5C1A8C',
-    },
+    ...products.map((product, index) => ({
+      numero: String(index + 2).padStart(2, '0'),
+      titulo: product.name,
+      papel: product.featured ? 'Produto Estratégico' : 'Produto',
+      descricao: product.description,
+      cor: colors[index % colors.length],
+    })),
   ]
 
   return (
@@ -120,7 +91,8 @@ function EcossistemaFlow() {
 
             <p className="mt-6 text-lg leading-8 text-slate-300">
               Cada módulo do ecossistema possui uma função específica, mas todos
-              compartilham a mesma base metodológica.
+              compartilham a mesma base metodológica, o mesmo Core e o mesmo EDI
+              Intelligence Engine.
             </p>
 
             <a
