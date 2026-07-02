@@ -1,20 +1,3 @@
-export type CourseStatus =
-  | 'Lançamento'
-  | 'Inscrições Abertas'
-  | 'Em breve'
-  | 'Em andamento'
-  | 'Encerrado'
-
-export type CourseLevel =
-  | 'Básico'
-  | 'Intermediário'
-  | 'Avançado'
-
-export type CourseMode =
-  | 'Online'
-  | 'Presencial'
-  | 'Híbrido'
-
 export interface Course {
   id: string
 
@@ -32,9 +15,9 @@ export interface Course {
 
   workload: number
 
-  level: CourseLevel
+  level: string
 
-  mode: CourseMode
+  mode: string
 
   price: string
 
@@ -44,7 +27,7 @@ export interface Course {
 
   instructor: string
 
-  status: CourseStatus
+  status: string
 
   featured: boolean
 
