@@ -35,3 +35,8 @@ export const platformLayers: PlatformLayer[] = [
       'Professores, escolas, redes de ensino, universidades e instituições utilizam a mesma plataforma integrada.',
   },
 ]
+
+export const platform = {
+  title: 'Arquitetura da Plataforma',
+  layers: platformLayers,
+}
