@@ -11,21 +11,10 @@ export default function Header() {
         </a>
 
         <nav className="hidden items-center gap-8 text-sm font-semibold text-slate-200 md:flex">
-          <a href="#framework" className="transition hover:text-white">
-            Framework
-          </a>
-
-          <a href="#ecossistema" className="transition hover:text-white">
-            Ecossistema
-          </a>
-
-          <a href="#professor-digital" className="transition hover:text-white">
-            Professor Digital
-          </a>
-
-          <a href="#agenda" className="transition hover:text-white">
-            Agenda EDI
-          </a>
+          <a href="#framework" className="transition hover:text-white">Framework</a>
+          <a href="#ecossistema" className="transition hover:text-white">Ecossistema</a>
+          <a href="#professor-digital" className="transition hover:text-white">Professor Digital</a>
+          <a href="#agenda" className="transition hover:text-white">Agenda EDI</a>
         </nav>
 
         <a
