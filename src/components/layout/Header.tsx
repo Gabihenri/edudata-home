@@ -1,12 +1,12 @@
 export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#081C2E] text-white">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
         <a href="/" className="flex items-center" aria-label="EduData IA">
           <img
-            src="/logo-edudata-ia-dark.png"
+            src="/logo-header-dark.png"
             alt="EduData IA"
-            className="h-16 w-auto md:h-20"
+            className="h-12 w-auto object-contain"
           />
         </a>
 
