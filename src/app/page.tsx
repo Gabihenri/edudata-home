@@ -9,6 +9,7 @@ import AccessibilityBar from '@/components/layout/AccessibilityBar'
 import EngineSection from '@/components/home/EngineSection'
 import PlatformArchitecture from '@/components/home/PlatformArchitecture'
 import EcosystemProducts from '@/components/home/EcosystemProducts'
+import ClientsSection from '@/components/home/ClientsSection'
 import EcossistemaFlow from '@/components/home/EcossistemaFlow'
 import EduDataAnalytics from '@/components/home/EduDataAnalytics'
 import SGPA from '@/components/home/SGPA'
@@ -37,7 +38,8 @@ export default function Page() {
               </p>
 
               <h1 className="text-4xl font-bold leading-tight text-[#0A3A5E] md:text-6xl">
-                Um único ecossistema, um único motor de inteligência, múltiplos produtos especializados.
+                Um único ecossistema, um único motor de inteligência,
+                múltiplos produtos especializados.
               </h1>
 
               <p className="max-w-2xl text-xl leading-9 text-slate-600">
@@ -104,6 +106,7 @@ export default function Page() {
         <EngineSection />
         <PlatformArchitecture />
         <EcosystemProducts />
+        <ClientsSection />
         <EcossistemaFlow />
         <ProfessorDigital />
         <AgendaInteligente />
