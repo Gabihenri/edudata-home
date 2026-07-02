@@ -1,4 +1,4 @@
-import { Course } from '@/types/course'
+ import { Course } from '@/types/course'
 
 export const academyCourses: Course[] = [
   {
@@ -20,7 +20,7 @@ export const academyCourses: Course[] = [
     status: 'Inscrições Abertas',
     featured: true,
     launch: true,
-    tags: ['IA', 'Educação', 'ChatGPT'],
+    tags: ['IA', 'Educação', 'ChatGPT', 'Professor Digital'],
     order: 1,
   },
   {
@@ -42,7 +42,7 @@ export const academyCourses: Course[] = [
     status: 'Inscrições Abertas',
     featured: true,
     launch: false,
-    tags: ['Google', 'Workspace'],
+    tags: ['Google', 'Workspace', 'Educação', 'Ferramentas Digitais'],
     order: 2,
   },
   {
@@ -51,7 +51,7 @@ export const academyCourses: Course[] = [
     title: 'Canva Educacional',
     subtitle: 'Design para professores',
     description:
-      'Crie apresentações, infográficos e materiais didáticos profissionais.',
+      'Crie apresentações, infográficos, atividades, materiais didáticos e recursos visuais profissionais.',
     category: 'Design Educacional',
     image: '/academy/canva.jpg',
     workload: 12,
@@ -64,7 +64,7 @@ export const academyCourses: Course[] = [
     status: 'Inscrições Abertas',
     featured: true,
     launch: false,
-    tags: ['Canva', 'Design'],
+    tags: ['Canva', 'Design', 'Materiais Didáticos', 'Educação'],
     order: 3,
   },
   {
@@ -73,7 +73,7 @@ export const academyCourses: Course[] = [
     title: 'Dashboards Educacionais',
     subtitle: 'Indicadores para tomada de decisão',
     description:
-      'Aprenda a construir dashboards educacionais baseados em evidências.',
+      'Aprenda a construir dashboards educacionais, organizar indicadores e apoiar decisões baseadas em evidências.',
     category: 'Ciência de Dados',
     image: '/academy/dashboards.jpg',
     workload: 20,
@@ -86,7 +86,7 @@ export const academyCourses: Course[] = [
     status: 'Em breve',
     featured: true,
     launch: false,
-    tags: ['Dashboard', 'BI'],
+    tags: ['Dashboard', 'BI', 'Indicadores', 'Dados Educacionais'],
     order: 4,
   },
   {
@@ -95,7 +95,7 @@ export const academyCourses: Course[] = [
     title: 'Framework EDI',
     subtitle: 'Fundamentos da metodologia EduData IA',
     description:
-      'Conheça a metodologia Evidências, Inclusão e Inteligência que fundamenta todo o ecossistema.',
+      'Conheça a metodologia Evidências, Inclusão e Inteligência que fundamenta todo o ecossistema EduData IA.',
     category: 'Framework EDI',
     image: '/academy/framework-edi.jpg',
     workload: 20,
@@ -108,7 +108,7 @@ export const academyCourses: Course[] = [
     status: 'Lançamento',
     featured: true,
     launch: true,
-    tags: ['EDI', 'Framework'],
+    tags: ['EDI', 'Framework', 'Evidências', 'Inclusão', 'Inteligência'],
     order: 5,
   },
 ]
@@ -121,5 +121,23 @@ export const academyCategories = Array.from(
   new Set(academyCourses.map((course) => course.category)),
 )
 
-   
- 
+export function getAcademyCourseBySlug(slug: string) {
+  return academyCourses.find((course) => course.slug === slug)
+}
+
+export function getRelatedAcademyCourses(slug: string) {
+  const currentCourse = getAcademyCourseBySlug(slug)
+
+  if (!currentCourse) {
+    return featuredAcademyCourses.slice(0, 3)
+  }
+
+  return academyCourses
+    .filter(
+      (course) =>
+        course.slug !== slug &&
+        (course.category === currentCourse.category ||
+          course.tags.some((tag) => currentCourse.tags.includes(tag))),
+    )
+    .slice(0, 3)
+}
