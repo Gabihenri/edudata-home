@@ -1,4 +1,4 @@
-import { engine } from '@/lib/data/engine'
+import { engine, engineCapabilities } from '@/lib/data/engine'
 
 export default function EngineSection() {
   return (
@@ -30,13 +30,17 @@ export default function EngineSection() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            {engine.capabilities.map((capability) => (
+            {engineCapabilities.map((capability) => (
               <div
-                key={capability}
+                key={capability.id}
                 className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur"
               >
-                <p className="font-semibold text-slate-100">
-                  {capability}
+                <h3 className="font-semibold text-slate-100">
+                  {capability.title}
+                </h3>
+
+                <p className="mt-3 leading-7 text-slate-400">
+                  {capability.description}
                 </p>
               </div>
             ))}
