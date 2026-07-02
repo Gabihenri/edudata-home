@@ -42,3 +42,13 @@ export const engineCapabilities: EngineCapability[] = [
       'O Engine evolui continuamente utilizando os dados produzidos por todo o ecossistema.',
   },
 ]
+
+export const engine = {
+  title: 'EDI Intelligence Engine',
+  subtitle: 'O núcleo inteligente compartilhado da Plataforma EduData IA.',
+  description:
+    'O EDI Intelligence Engine conecta evidências, dados, formação, planejamento, governança e análise para apoiar decisões educacionais em todo o ecossistema.',
+  capabilities: engineCapabilities.map((capability) => capability.title),
+  principle:
+    'Nenhum produto possui IA isolada. Todos compartilham o mesmo motor de inteligência.',
+}
