@@ -1,43 +1,44 @@
 import { Course } from '@/types/course'
 
-type CourseModulesProps = {
+interface CourseModulesProps {
   course: Course
 }
 
-export default function CourseModules({ course }: CourseModulesProps) {
+export default function CourseModules({
+  course,
+}: CourseModulesProps) {
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-      <h2 className="text-2xl font-bold text-gray-900">
-        Módulos do curso
+    <section className="rounded-3xl bg-white p-10 shadow-sm">
+      <h2 className="text-3xl font-bold text-[#0A3A5E]">
+        Conteúdo Programático
       </h2>
 
-      <div className="mt-6 space-y-3">
-        <div className="rounded-xl bg-gray-50 p-4">
-          <p className="font-semibold text-gray-900">
-            Módulo 1 — Introdução
-          </p>
-          <p className="mt-1 text-sm text-gray-600">
-            Fundamentos e objetivos do curso {course.title}.
-          </p>
-        </div>
+      <p className="mt-4 text-slate-600">
+        Estrutura prevista para o curso <strong>{course.title}</strong>.
+      </p>
 
-        <div className="rounded-xl bg-gray-50 p-4">
-          <p className="font-semibold text-gray-900">
-            Módulo 2 — Aplicações práticas
-          </p>
-          <p className="mt-1 text-sm text-gray-600">
-            Estratégias, ferramentas e exemplos aplicados à educação.
-          </p>
-        </div>
+      <div className="mt-8 space-y-4">
+        {[
+          'Fundamentos',
+          'Aplicações Práticas',
+          'Estudos de Caso',
+          'Ferramentas',
+          'Projeto Final',
+          'Avaliação e Certificação',
+        ].map((module, index) => (
+          <div
+            key={module}
+            className="rounded-2xl border border-slate-200 bg-[#F8FAFC] p-5"
+          >
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#0A3A5E]">
+              Módulo {index + 1}
+            </p>
 
-        <div className="rounded-xl bg-gray-50 p-4">
-          <p className="font-semibold text-gray-900">
-            Módulo 3 — Projeto final
-          </p>
-          <p className="mt-1 text-sm text-gray-600">
-            Produção de uma atividade ou solução aplicada à prática docente.
-          </p>
-        </div>
+            <h3 className="mt-2 text-xl font-bold text-slate-900">
+              {module}
+            </h3>
+          </div>
+        ))}
       </div>
     </section>
   )
