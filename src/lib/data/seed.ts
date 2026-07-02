@@ -1,6 +1,6 @@
 import { academyCourses } from './academyCourses'
 import { database } from './database'
-import { AcademyInstructor } from './schema'
+import { AcademyCourse, AcademyInstructor } from './schema'
 
 const instructors: AcademyInstructor[] = [
   {
@@ -21,7 +21,7 @@ const instructors: AcademyInstructor[] = [
 ]
 
 export function seedDatabase() {
-  database.courses = academyCourses
+  database.courses = academyCourses as AcademyCourse[]
 
   database.instructors = instructors
 
