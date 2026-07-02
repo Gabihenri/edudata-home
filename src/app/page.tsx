@@ -8,6 +8,7 @@ import AccessibilityBar from '@/components/layout/AccessibilityBar'
 
 import EngineSection from '@/components/home/EngineSection'
 import PlatformArchitecture from '@/components/home/PlatformArchitecture'
+import EcosystemProducts from '@/components/home/EcosystemProducts'
 import EcossistemaFlow from '@/components/home/EcossistemaFlow'
 import EduDataAnalytics from '@/components/home/EduDataAnalytics'
 import SGPA from '@/components/home/SGPA'
@@ -102,6 +103,7 @@ export default function Page() {
         <FrameworkEDI />
         <EngineSection />
         <PlatformArchitecture />
+        <EcosystemProducts />
         <EcossistemaFlow />
         <ProfessorDigital />
         <AgendaInteligente />
