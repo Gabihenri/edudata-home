@@ -1,3 +1,5 @@
+import { Course } from '@/types/course'
+
 import CourseHero from './CourseHero'
 import CourseContent from './CourseContent'
 import CourseModules from './CourseModules'
@@ -7,32 +9,36 @@ import CourseRelated from './CourseRelated'
 import CourseSidebar from './CourseSidebar'
 import EnrollmentForm from './EnrollmentForm'
 
-export default function CoursePage() {
+interface CoursePageProps {
+  course: Course
+}
+
+export default function CoursePage({ course }: CoursePageProps) {
   return (
     <main className="bg-[#F8FAFC] py-20">
       <div className="mx-auto max-w-7xl px-6">
 
-        <CourseHero />
+        <CourseHero course={course} />
 
         <div className="mt-16 grid gap-10 lg:grid-cols-[1fr_360px]">
 
           <div className="space-y-10">
 
-            <CourseContent />
+            <CourseContent course={course} />
 
-            <CourseModules />
+            <CourseModules course={course} />
 
-            <CourseInstructor />
+            <CourseInstructor course={course} />
 
-            <CourseFAQ />
+            <CourseFAQ course={course} />
 
-            <CourseRelated />
+            <CourseRelated course={course} />
 
           </div>
 
-          <div className="space-y-8 lg:sticky lg:top-28 h-fit">
+          <div className="h-fit space-y-8 lg:sticky lg:top-28">
 
-            <CourseSidebar />
+            <CourseSidebar course={course} />
 
             <div id="inscricao">
               <EnrollmentForm />
@@ -41,7 +47,6 @@ export default function CoursePage() {
           </div>
 
         </div>
-
       </div>
     </main>
   )
