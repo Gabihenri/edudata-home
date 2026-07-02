@@ -1,42 +1,53 @@
-export default function CourseSidebar() {
+import { Course } from '@/types/course'
+
+type CourseSidebarProps = {
+  course: Course
+}
+
+export default function CourseSidebar({ course }: CourseSidebarProps) {
   return (
-    <aside className="rounded-3xl bg-[#081C2E] p-8 text-white shadow-xl">
-      <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-300">
-        Informações do Curso
-      </p>
+    <aside className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      <h2 className="text-xl font-bold text-gray-900">
+        Informações do curso
+      </h2>
 
-      <div className="mt-8 space-y-5">
+      <div className="mt-6 space-y-4 text-sm text-gray-700">
         <div>
-          <p className="text-sm text-slate-400">Carga Horária</p>
-          <p className="text-xl font-bold">20 horas</p>
+          <span className="font-semibold text-gray-900">Carga horária: </span>
+          {course.workload}h
         </div>
 
         <div>
-          <p className="text-sm text-slate-400">Modalidade</p>
-          <p className="text-xl font-bold">Online</p>
+          <span className="font-semibold text-gray-900">Nível: </span>
+          {course.level}
         </div>
 
         <div>
-          <p className="text-sm text-slate-400">Nível</p>
-          <p className="text-xl font-bold">Básico</p>
+          <span className="font-semibold text-gray-900">Modalidade: </span>
+          {course.mode}
         </div>
 
         <div>
-          <p className="text-sm text-slate-400">Certificado</p>
-          <p className="text-xl font-bold">Incluso</p>
+          <span className="font-semibold text-gray-900">Vagas: </span>
+          {course.vacancies}
         </div>
 
         <div>
-          <p className="text-sm text-slate-400">Vagas</p>
-          <p className="text-xl font-bold">50</p>
+          <span className="font-semibold text-gray-900">Investimento: </span>
+          {course.price}
+        </div>
+
+        <div>
+          <span className="font-semibold text-gray-900">Status: </span>
+          {course.status}
         </div>
       </div>
 
       <a
         href="#inscricao"
-        className="mt-10 inline-flex w-full justify-center rounded-full bg-white px-6 py-4 font-semibold text-[#081C2E] transition hover:opacity-90"
+        className="mt-6 block rounded-xl bg-blue-700 px-5 py-3 text-center font-semibold text-white transition hover:bg-blue-800"
       >
-        Fazer inscrição
+        Quero me inscrever
       </a>
     </aside>
   )
