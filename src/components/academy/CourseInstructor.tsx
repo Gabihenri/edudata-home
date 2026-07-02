@@ -1,34 +1,24 @@
-export default function CourseInstructor() {
+import { Course } from '@/types/course'
+
+type CourseInstructorProps = {
+  course: Course
+}
+
+export default function CourseInstructor({ course }: CourseInstructorProps) {
   return (
-    <section className="rounded-3xl bg-white p-10 shadow-sm">
-      <h2 className="text-3xl font-bold text-[#0A3A5E]">
-        Professor responsável
+    <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      <h2 className="text-2xl font-bold text-gray-900">
+        Instrutor
       </h2>
 
-      <div className="mt-8 rounded-2xl border border-slate-200 bg-[#F5F6F8] p-6">
-        <p className="text-2xl font-bold text-slate-950">
-          Equipe EduData IA
-        </p>
+      <p className="mt-4 text-gray-700">
+        {course.instructor || 'Equipe EduData IA'}
+      </p>
 
-        <p className="mt-4 leading-8 text-slate-600">
-          Formação conduzida por especialistas da EduData IA, com foco em
-          Evidências, Inclusão, Inteligência, tecnologia educacional e aplicação
-          prática na realidade escolar.
-        </p>
-
-        <div className="mt-6 flex flex-wrap gap-3">
-          {['Framework EDI', 'IA na Educação', 'Dados Educacionais'].map(
-            (item) => (
-              <span
-                key={item}
-                className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#0A3A5E]"
-              >
-                {item}
-              </span>
-            ),
-          )}
-        </div>
-      </div>
+      <p className="mt-2 text-gray-600">
+        Formação conduzida pela EduData IA, com foco em aplicação prática,
+        desenvolvimento profissional docente e Framework EDI.
+      </p>
     </section>
   )
 }
