@@ -1,32 +1,37 @@
-export const clients = [
+export interface Client {
+  title: string
+  description: string
+}
+
+export const clients: Client[] = [
   {
     title: 'Professores',
     description:
-      'Desenvolvimento profissional contínuo baseado em evidências.',
+      'Desenvolvimento profissional, formação continuada, planejamento pedagógico e apoio à prática docente.',
   },
   {
     title: 'Escolas',
     description:
-      'Gestão pedagógica, acompanhamento e melhoria dos resultados.',
+      'Gestão pedagógica baseada em evidências, indicadores, planejamento institucional e melhoria contínua.',
   },
   {
     title: 'Redes de Ensino',
     description:
-      'Monitoramento estratégico e inteligência educacional em escala.',
+      'Monitoramento estratégico, indicadores consolidados e apoio à tomada de decisão em larga escala.',
   },
   {
-    title: 'Secretarias',
+    title: 'Secretarias de Educação',
     description:
-      'Governança, indicadores, conformidade e apoio à decisão.',
+      'Inteligência educacional para formulação de políticas públicas, acompanhamento e governança.',
   },
   {
     title: 'Universidades',
     description:
-      'Pesquisa, inovação e formação baseada no Framework EDI.',
+      'Pesquisa, inovação, extensão, formação docente e produção de conhecimento baseada em dados.',
   },
   {
-    title: 'Instituições',
+    title: 'Instituições Educacionais',
     description:
-      'Implantação de soluções inteligentes para desenvolvimento educacional.',
+      'Transformação digital, cultura de dados, desenvolvimento institucional e inovação educacional.',
   },
 ]
