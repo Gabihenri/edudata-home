@@ -1,53 +1,69 @@
 import { Course } from '@/types/course'
 
-type CourseSidebarProps = {
+interface CourseSidebarProps {
   course: Course
 }
 
-export default function CourseSidebar({ course }: CourseSidebarProps) {
+export default function CourseSidebar({
+  course,
+}: CourseSidebarProps) {
   return (
-    <aside className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-      <h2 className="text-xl font-bold text-gray-900">
-        Informações do curso
-      </h2>
+    <aside className="rounded-3xl bg-[#081C2E] p-8 text-white shadow-xl">
+      <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-300">
+        Resumo do Curso
+      </p>
 
-      <div className="mt-6 space-y-4 text-sm text-gray-700">
-        <div>
-          <span className="font-semibold text-gray-900">Carga horária: </span>
-          {course.workload}h
+      <div className="mt-8 space-y-5">
+
+        <div className="flex justify-between">
+          <span className="text-slate-300">Categoria</span>
+          <strong>{course.category}</strong>
         </div>
 
-        <div>
-          <span className="font-semibold text-gray-900">Nível: </span>
-          {course.level}
+        <div className="flex justify-between">
+          <span className="text-slate-300">Carga Horária</span>
+          <strong>{course.workload}h</strong>
         </div>
 
-        <div>
-          <span className="font-semibold text-gray-900">Modalidade: </span>
-          {course.mode}
+        <div className="flex justify-between">
+          <span className="text-slate-300">Modalidade</span>
+          <strong>{course.mode}</strong>
         </div>
 
-        <div>
-          <span className="font-semibold text-gray-900">Vagas: </span>
-          {course.vacancies}
+        <div className="flex justify-between">
+          <span className="text-slate-300">Nível</span>
+          <strong>{course.level}</strong>
         </div>
 
-        <div>
-          <span className="font-semibold text-gray-900">Investimento: </span>
-          {course.price}
+        <div className="flex justify-between">
+          <span className="text-slate-300">Instrutor</span>
+          <strong>{course.instructor}</strong>
         </div>
 
-        <div>
-          <span className="font-semibold text-gray-900">Status: </span>
-          {course.status}
+        <div className="flex justify-between">
+          <span className="text-slate-300">Certificado</span>
+          <strong>
+            {course.certificate ? 'Sim' : 'Não'}
+          </strong>
         </div>
+
+        <div className="flex justify-between">
+          <span className="text-slate-300">Vagas</span>
+          <strong>{course.vacancies}</strong>
+        </div>
+
+        <div className="flex justify-between">
+          <span className="text-slate-300">Status</span>
+          <strong>{course.status}</strong>
+        </div>
+
       </div>
 
       <a
         href="#inscricao"
-        className="mt-6 block rounded-xl bg-blue-700 px-5 py-3 text-center font-semibold text-white transition hover:bg-blue-800"
+        className="mt-10 inline-flex w-full justify-center rounded-full bg-white px-6 py-4 font-semibold text-[#081C2E] transition hover:opacity-90"
       >
-        Quero me inscrever
+        Inscrever-se
       </a>
     </aside>
   )
