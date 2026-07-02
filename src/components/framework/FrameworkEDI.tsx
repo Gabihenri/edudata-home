@@ -1,26 +1,11 @@
+import { framework, frameworkPillars } from '@/lib/data/framework'
+
 export function FrameworkEDI() {
-  const pilares = [
-    {
-      titulo: 'Evidências',
-      cor: '#0A3A5E',
-      descricao:
-        'Observação, indicadores, evidências pedagógicas e tomada de decisão baseada em dados.',
-      forma: 'clip-polygon-triangle',
-    },
-    {
-      titulo: 'Inclusão',
-      cor: '#1B6B3A',
-      descricao:
-        'Acessibilidade, participação, diversidade e desenho universal para aprendizagem.',
-      forma: 'clip-polygon-diamond',
-    },
-    {
-      titulo: 'Inteligência',
-      cor: '#5C1A8C',
-      descricao:
-        'Análise, aprendizagem contínua, inovação e inteligência educacional.',
-      forma: 'clip-polygon-hexagon',
-    },
+  const colors = ['#0A3A5E', '#1B6B3A', '#5C1A8C']
+  const shapes = [
+    'clip-polygon-triangle',
+    'clip-polygon-diamond',
+    'clip-polygon-hexagon',
   ]
 
   return (
@@ -28,25 +13,23 @@ export function FrameworkEDI() {
       <div className="mx-auto max-w-7xl">
         <div className="max-w-4xl">
           <p className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">
-            Framework EDI
+            {framework.title}
           </p>
 
           <h2 className="text-5xl font-bold tracking-tight text-slate-950 md:text-6xl">
-            O fundamento de todo o ecossistema EduData IA.
+            {framework.subtitle}
           </h2>
 
           <p className="mt-8 text-xl leading-9 text-slate-600">
-            O Framework EDI constitui a base metodológica da EduData IA,
-            integrando <strong>Evidências</strong>, <strong>Inclusão</strong> e
-            <strong> Inteligência</strong> para orientar pessoas, instituições e
-            tecnologias na construção de uma educação mais eficiente,
-            acessível e inovadora.
+            O Framework EDI integra{' '}
+            <strong>Evidências</strong>,{' '}
+            <strong>Inclusão</strong> e{' '}
+            <strong>Inteligência</strong> como princípios que sustentam toda a
+            Plataforma EduData IA.
           </p>
 
           <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-500">
-            Todos os produtos, formações, consultorias e soluções da EduData IA
-            são desenvolvidos a partir dos princípios do Framework EDI,
-            garantindo coerência metodológica em todo o ecossistema.
+            {framework.principle}
           </p>
 
           <div className="mt-10">
@@ -60,26 +43,32 @@ export function FrameworkEDI() {
         </div>
 
         <div className="mt-24 grid gap-12 md:grid-cols-3">
-          {pilares.map((pilar) => (
+          {frameworkPillars.map((pillar, index) => (
             <div
-              key={pilar.titulo}
+              key={pillar.id}
               className="border-t pt-8"
-              style={{ borderColor: pilar.cor }}
+              style={{
+                borderColor: colors[index],
+              }}
             >
               <div
-                className={`mb-8 h-16 w-16 ${pilar.forma}`}
-                style={{ backgroundColor: pilar.cor }}
+                className={`mb-8 h-16 w-16 ${shapes[index]}`}
+                style={{
+                  backgroundColor: colors[index],
+                }}
               />
 
               <h3
                 className="mb-4 text-3xl font-bold"
-                style={{ color: pilar.cor }}
+                style={{
+                  color: colors[index],
+                }}
               >
-                {pilar.titulo}
+                {pillar.title}
               </h3>
 
               <p className="leading-8 text-slate-600">
-                {pilar.descricao}
+                {pillar.description}
               </p>
             </div>
           ))}
