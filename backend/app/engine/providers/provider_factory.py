@@ -1,16 +1,12 @@
-from abc import ABC, abstractmethod
-from typing import Any
+from app.engine.providers.claude_provider import ClaudeProvider
 
 
-class BaseProvider(ABC):
-    """
-    Classe base para todos os provedores de IA.
-    """
+class ProviderFactory:
 
-    @abstractmethod
-    def generate(
-        self,
-        system_prompt: str,
-        user_prompt: str,
-    ) -> dict[str, Any]:
-        pass
+    @staticmethod
+    def get(provider: str = "claude"):
+
+        if provider == "claude":
+            return ClaudeProvider()
+
+        raise ValueError("Provider não suportado.")
