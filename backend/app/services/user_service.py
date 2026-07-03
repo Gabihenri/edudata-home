@@ -1,60 +1,59 @@
 from typing import Any, Optional
 
+from app.core.exceptions.exceptions import ConflictException
+from app.core.services.base_service import BaseService
+from app.core.validators.validator import Validator
 from app.repositories.user_repository import UserRepository
 
 
-class UserService:
+class UserService(BaseService):
     """
     Serviço responsável pelas regras de negócio dos usuários.
     """
 
-    @staticmethod
-    def list(limit: int = 100) -> list[dict[str, Any]]:
-        return UserRepository.list(limit=limit)
+    repository = UserRepository
 
-    @staticmethod
-    def find_by_id(user_id: str) -> Optional[dict[str, Any]]:
-        return UserRepository.find_by_id(user_id)
+    @classmethod
+    def validate_create(cls, data: dict[str, Any]) -> None:
+        Validator.required(data.get("organization_id"), "organization_id")
+        Validator.required(data.get("school_id"), "school_id")
+        Validator.required(data.get("full_name"), "full_name")
+        Validator.email(data.get("email"))
 
-    @staticmethod
-    def find_by_email(email: str) -> Optional[dict[str, Any]]:
-        return UserRepository.find_by_email(email)
-
-    @staticmethod
-    def list_by_school(
-        school_id: str,
-        limit: int = 100
-    ) -> list[dict[str, Any]]:
-        return UserRepository.list_by_school(
-            school_id=school_id,
-            limit=limit,
-        )
-
-    @staticmethod
-    def create(data: dict[str, Any]) -> dict[str, Any]:
-        existing = UserRepository.find_by_email(data["email"])
+        existing = cls.repository.find_by_email(data["email"])
 
         if existing:
-            raise ValueError(
+            raise ConflictException(
                 "Já existe um usuário cadastrado com este e-mail."
             )
 
-        return UserRepository.create(data)
+    @classmethod
+    def validate_update(cls, data: dict[str, Any]) -> None:
+        if data.get("email"):
+            Validator.email(data["email"])
 
-    @staticmethod
-    def update(
-        user_id: str,
-        data: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:
-        return UserRepository.update(
-            user_id=user_id,
-            data=data,
+        if data.get("full_name"):
+            Validator.min_length(
+                data["full_name"],
+                2,
+                "full_name",
+            )
+
+    @classmethod
+    def find_by_email(cls, email: str) -> Optional[dict[str, Any]]:
+        Validator.email(email)
+
+        return cls.repository.find_by_email(email)
+
+    @classmethod
+    def list_by_school(
+        cls,
+        school_id: str,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        Validator.required(school_id, "school_id")
+
+        return cls.repository.list_by_school(
+            school_id=school_id,
+            limit=limit,
         )
-
-    @staticmethod
-    def activate(user_id: str) -> Optional[dict[str, Any]]:
-        return UserRepository.activate(user_id)
-
-    @staticmethod
-    def deactivate(user_id: str) -> Optional[dict[str, Any]]:
-        return UserRepository.deactivate(user_id)
