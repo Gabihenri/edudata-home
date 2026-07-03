@@ -1,17 +1,20 @@
 from typing import Any, Optional
 
+from app.core.database.base_repository import BaseRepository
 from app.services.supabase_service import supabase
 
 
-class OrganizationRepository:
+class OrganizationRepository(BaseRepository):
     """
     Repository responsável pela persistência das organizações.
     """
 
-    @staticmethod
-    def list(limit: int = 100) -> list[dict[str, Any]]:
+    table_name = "organizations"
+
+    @classmethod
+    def list(cls, limit: int = 100) -> list[dict[str, Any]]:
         response = (
-            supabase.table("organizations")
+            supabase.table(cls.table_name)
             .select("*")
             .order("name")
             .limit(limit)
@@ -20,25 +23,10 @@ class OrganizationRepository:
 
         return response.data or []
 
-    @staticmethod
-    def find_by_id(organization_id: str) -> Optional[dict[str, Any]]:
+    @classmethod
+    def find_by_slug(cls, slug: str) -> Optional[dict[str, Any]]:
         response = (
-            supabase.table("organizations")
-            .select("*")
-            .eq("id", organization_id)
-            .limit(1)
-            .execute()
-        )
-
-        if not response.data:
-            return None
-
-        return response.data[0]
-
-    @staticmethod
-    def find_by_slug(slug: str) -> Optional[dict[str, Any]]:
-        response = (
-            supabase.table("organizations")
+            supabase.table(cls.table_name)
             .select("*")
             .eq("slug", slug)
             .limit(1)
@@ -50,38 +38,10 @@ class OrganizationRepository:
 
         return response.data[0]
 
-    @staticmethod
-    def create(data: dict[str, Any]) -> dict[str, Any]:
+    @classmethod
+    def activate(cls, organization_id: str) -> Optional[dict[str, Any]]:
         response = (
-            supabase.table("organizations")
-            .insert(data)
-            .execute()
-        )
-
-        return response.data[0]
-
-    @staticmethod
-    def update(
-        organization_id: str,
-        data: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:
-
-        response = (
-            supabase.table("organizations")
-            .update(data)
-            .eq("id", organization_id)
-            .execute()
-        )
-
-        if not response.data:
-            return None
-
-        return response.data[0]
-
-    @staticmethod
-    def activate(organization_id: str) -> Optional[dict[str, Any]]:
-        response = (
-            supabase.table("organizations")
+            supabase.table(cls.table_name)
             .update({"active": True})
             .eq("id", organization_id)
             .execute()
@@ -92,10 +52,10 @@ class OrganizationRepository:
 
         return response.data[0]
 
-    @staticmethod
-    def deactivate(organization_id: str) -> Optional[dict[str, Any]]:
+    @classmethod
+    def deactivate(cls, organization_id: str) -> Optional[dict[str, Any]]:
         response = (
-            supabase.table("organizations")
+            supabase.table(cls.table_name)
             .update({"active": False})
             .eq("id", organization_id)
             .execute()
