@@ -1,43 +1,16 @@
 from datetime import datetime
 from typing import Any, Optional
 
+from app.core.database.base_repository import BaseRepository
 from app.services.supabase_service import supabase
 
 
-class AgendaRepository:
+class AgendaRepository(BaseRepository):
     """
-    Repository responsável pela persistência dos eventos da
-    Agenda Inteligente EDI.
+    Repository responsável pela persistência da Agenda Inteligente EDI.
     """
 
-    TABLE = "agenda_events"
-
-    @classmethod
-    def list(cls, limit: int = 100) -> list[dict[str, Any]]:
-        response = (
-            supabase.table(cls.TABLE)
-            .select("*")
-            .order("start_datetime")
-            .limit(limit)
-            .execute()
-        )
-
-        return response.data or []
-
-    @classmethod
-    def find_by_id(cls, event_id: str) -> Optional[dict[str, Any]]:
-        response = (
-            supabase.table(cls.TABLE)
-            .select("*")
-            .eq("id", event_id)
-            .limit(1)
-            .execute()
-        )
-
-        if not response.data:
-            return None
-
-        return response.data[0]
+    table_name = "agenda_events"
 
     @classmethod
     def list_by_school(
@@ -46,7 +19,7 @@ class AgendaRepository:
         limit: int = 100,
     ) -> list[dict[str, Any]]:
         response = (
-            supabase.table(cls.TABLE)
+            supabase.table(cls.table_name)
             .select("*")
             .eq("school_id", school_id)
             .order("start_datetime")
@@ -63,7 +36,7 @@ class AgendaRepository:
         limit: int = 100,
     ) -> list[dict[str, Any]]:
         response = (
-            supabase.table(cls.TABLE)
+            supabase.table(cls.table_name)
             .select("*")
             .eq("user_id", teacher_id)
             .order("start_datetime")
@@ -74,45 +47,6 @@ class AgendaRepository:
         return response.data or []
 
     @classmethod
-    def create(cls, data: dict[str, Any]) -> dict[str, Any]:
-        response = (
-            supabase.table(cls.TABLE)
-            .insert(data)
-            .execute()
-        )
-
-        return response.data[0]
-
-    @classmethod
-    def update(
-        cls,
-        event_id: str,
-        data: dict[str, Any],
-    ) -> Optional[dict[str, Any]]:
-        response = (
-            supabase.table(cls.TABLE)
-            .update(data)
-            .eq("id", event_id)
-            .execute()
-        )
-
-        if not response.data:
-            return None
-
-        return response.data[0]
-
-    @classmethod
-    def delete(cls, event_id: str) -> bool:
-        response = (
-            supabase.table(cls.TABLE)
-            .delete()
-            .eq("id", event_id)
-            .execute()
-        )
-
-        return bool(response.data)
-
-    @classmethod
     def events_between(
         cls,
         school_id: str,
@@ -120,7 +54,7 @@ class AgendaRepository:
         end: datetime,
     ) -> list[dict[str, Any]]:
         response = (
-            supabase.table(cls.TABLE)
+            supabase.table(cls.table_name)
             .select("*")
             .eq("school_id", school_id)
             .gte("start_datetime", start.isoformat())
@@ -138,7 +72,7 @@ class AgendaRepository:
         limit: int = 10,
     ) -> list[dict[str, Any]]:
         response = (
-            supabase.table(cls.TABLE)
+            supabase.table(cls.table_name)
             .select("*")
             .eq("school_id", school_id)
             .gte("start_datetime", datetime.now().isoformat())
