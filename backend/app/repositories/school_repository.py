@@ -1,20 +1,25 @@
 from typing import Any, Optional
 
+from app.core.database.base_repository import BaseRepository
 from app.services.supabase_service import supabase
 
 
-class SchoolRepository:
+class SchoolRepository(BaseRepository):
     """
-    Repository responsável pelo acesso à tabela schools.
-
-    Esta camada não possui regra de negócio.
-    Apenas executa operações de persistência.
+    Repository responsável pela persistência das escolas.
     """
 
-    @staticmethod
-    def search_by_inep(inep_code: str, limit: int = 20) -> list[dict[str, Any]]:
+    table_name = "schools"
+
+    @classmethod
+    def search_by_inep(
+        cls,
+        inep_code: str,
+        limit: int = 20,
+    ) -> list[dict[str, Any]]:
+
         response = (
-            supabase.table("schools")
+            supabase.table(cls.table_name)
             .select("*")
             .eq("inep_code", inep_code)
             .limit(limit)
@@ -23,10 +28,15 @@ class SchoolRepository:
 
         return response.data or []
 
-    @staticmethod
-    def search_by_name(name: str, limit: int = 20) -> list[dict[str, Any]]:
+    @classmethod
+    def search_by_name(
+        cls,
+        name: str,
+        limit: int = 20,
+    ) -> list[dict[str, Any]]:
+
         response = (
-            supabase.table("schools")
+            supabase.table(cls.table_name)
             .select("*")
             .ilike("name", f"%{name}%")
             .limit(limit)
@@ -35,25 +45,14 @@ class SchoolRepository:
 
         return response.data or []
 
-    @staticmethod
-    def find_by_id(school_id: str) -> Optional[dict[str, Any]]:
+    @classmethod
+    def find_by_inep(
+        cls,
+        inep_code: str,
+    ) -> Optional[dict[str, Any]]:
+
         response = (
-            supabase.table("schools")
-            .select("*")
-            .eq("id", school_id)
-            .limit(1)
-            .execute()
-        )
-
-        if not response.data:
-            return None
-
-        return response.data[0]
-
-    @staticmethod
-    def find_by_inep(inep_code: str) -> Optional[dict[str, Any]]:
-        response = (
-            supabase.table("schools")
+            supabase.table(cls.table_name)
             .select("*")
             .eq("inep_code", inep_code)
             .limit(1)
@@ -65,14 +64,15 @@ class SchoolRepository:
 
         return response.data[0]
 
-    @staticmethod
+    @classmethod
     def list_by_organization(
+        cls,
         organization_id: str,
-        limit: int = 100
+        limit: int = 100,
     ) -> list[dict[str, Any]]:
 
         response = (
-            supabase.table("schools")
+            supabase.table(cls.table_name)
             .select("*")
             .eq("organization_id", organization_id)
             .order("name")
@@ -82,53 +82,33 @@ class SchoolRepository:
 
         return response.data or []
 
-    @staticmethod
-    def create(data: dict[str, Any]) -> dict[str, Any]:
-        response = (
-            supabase.table("schools")
-            .insert(data)
-            .execute()
-        )
-
-        return response.data[0]
-
-    @staticmethod
-    def update(
+    @classmethod
+    def activate(
+        cls,
         school_id: str,
-        data: dict[str, Any]
     ) -> Optional[dict[str, Any]]:
 
         response = (
-            supabase.table("schools")
-            .update(data)
-            .eq("id", school_id)
-            .execute()
-        )
-
-        if not response.data:
-            return None
-
-        return response.data[0]
-
-    @staticmethod
-    def deactivate(school_id: str) -> Optional[dict[str, Any]]:
-        response = (
-            supabase.table("schools")
-            .update({"active": False})
-            .eq("id", school_id)
-            .execute()
-        )
-
-        if not response.data:
-            return None
-
-        return response.data[0]
-
-    @staticmethod
-    def activate(school_id: str) -> Optional[dict[str, Any]]:
-        response = (
-            supabase.table("schools")
+            supabase.table(cls.table_name)
             .update({"active": True})
+            .eq("id", school_id)
+            .execute()
+        )
+
+        if not response.data:
+            return None
+
+        return response.data[0]
+
+    @classmethod
+    def deactivate(
+        cls,
+        school_id: str,
+    ) -> Optional[dict[str, Any]]:
+
+        response = (
+            supabase.table(cls.table_name)
+            .update({"active": False})
             .eq("id", school_id)
             .execute()
         )
