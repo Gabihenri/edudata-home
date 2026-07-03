@@ -2,7 +2,9 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 
-from app.schemas.school import SchoolCreate, SchoolResponse, SchoolUpdate
+from app.core.exceptions.exceptions import EduDataException
+from app.core.responses.api_response import ApiResponse
+from app.schemas.school import SchoolCreate, SchoolUpdate
 from app.services.school_service import SchoolService
 
 
@@ -18,39 +20,49 @@ def search_schools(
     limit: int = Query(20, ge=1, le=50),
 ) -> dict[str, Any]:
     try:
-        return SchoolService.search(query=q, limit=limit)
+        result = SchoolService.search(query=q, limit=limit)
 
-    except Exception as exc:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erro ao pesquisar escolas: {str(exc)}",
+        return ApiResponse.success(
+            data=result,
+            message="Pesquisa de escolas realizada com sucesso.",
         )
+
+    except EduDataException as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message)
 
 
 @router.get("/inep/{inep_code}")
 def get_school_by_inep(inep_code: str) -> dict[str, Any]:
-    school = SchoolService.find_by_inep(inep_code)
+    try:
+        school = SchoolService.find_by_inep(inep_code)
 
-    if not school:
-        raise HTTPException(
-            status_code=404,
-            detail="Escola não encontrada.",
+        if not school:
+            raise HTTPException(status_code=404, detail="Escola não encontrada.")
+
+        return ApiResponse.success(
+            data=school,
+            message="Escola encontrada com sucesso.",
         )
 
-    return school
+    except EduDataException as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message)
 
 
 @router.get("/{school_id}")
 def get_school_by_id(school_id: str) -> dict[str, Any]:
-    school = SchoolService.find_by_id(school_id)
+    try:
+        school = SchoolService.find_by_id(school_id)
 
-    if not school:
-        raise HTTPException(
-            status_code=404,
-            detail="Escola não encontrada.",
+        if not school:
+            raise HTTPException(status_code=404, detail="Escola não encontrada.")
+
+        return ApiResponse.success(
+            data=school,
+            message="Escola encontrada com sucesso.",
         )
 
-    return school
+    except EduDataException as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message)
 
 
 @router.get("/organization/{organization_id}/schools")
@@ -58,89 +70,104 @@ def list_schools_by_organization(
     organization_id: str,
     limit: int = Query(100, ge=1, le=200),
 ) -> dict[str, Any]:
-    items = SchoolService.list_by_organization(
-        organization_id=organization_id,
-        limit=limit,
-    )
+    try:
+        schools = SchoolService.list_by_organization(
+            organization_id=organization_id,
+            limit=limit,
+        )
 
-    return {
-        "total": len(items),
-        "items": items,
-    }
+        return ApiResponse.success(
+            data={
+                "total": len(schools),
+                "items": schools,
+            },
+            message="Escolas da organização listadas com sucesso.",
+        )
+
+    except EduDataException as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message)
 
 
-@router.post("/", response_model=SchoolResponse)
+@router.post("/")
 def create_school(payload: SchoolCreate) -> dict[str, Any]:
     try:
-        return SchoolService.create(payload.model_dump())
+        school = SchoolService.create(payload.model_dump())
 
-    except Exception as exc:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erro ao criar escola: {str(exc)}",
+        return ApiResponse.created(
+            data=school,
+            message="Escola criada com sucesso.",
         )
 
+    except EduDataException as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message)
 
-@router.post("/manual", response_model=SchoolResponse)
+
+@router.post("/manual")
 def create_manual_school(payload: SchoolCreate) -> dict[str, Any]:
     try:
-        return SchoolService.create_manual_school(payload.model_dump())
+        school = SchoolService.create_manual_school(payload.model_dump())
 
-    except Exception as exc:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erro ao cadastrar escola manual: {str(exc)}",
+        return ApiResponse.created(
+            data=school,
+            message="Escola manual cadastrada com sucesso.",
         )
 
+    except EduDataException as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message)
 
-@router.put("/{school_id}", response_model=SchoolResponse)
+
+@router.put("/{school_id}")
 def update_school(
     school_id: str,
     payload: SchoolUpdate,
 ) -> dict[str, Any]:
-    data = payload.model_dump(exclude_unset=True)
-
-    school = SchoolService.update(
-        school_id=school_id,
-        data=data,
-    )
-
-    if not school:
-        raise HTTPException(
-            status_code=404,
-            detail="Escola não encontrada.",
+    try:
+        school = SchoolService.update(
+            record_id=school_id,
+            data=payload.model_dump(exclude_unset=True),
         )
 
-    return school
+        if not school:
+            raise HTTPException(status_code=404, detail="Escola não encontrada.")
+
+        return ApiResponse.updated(
+            data=school,
+            message="Escola atualizada com sucesso.",
+        )
+
+    except EduDataException as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message)
 
 
 @router.patch("/{school_id}/deactivate")
 def deactivate_school(school_id: str) -> dict[str, Any]:
-    school = SchoolService.deactivate(school_id)
+    try:
+        school = SchoolService.deactivate(school_id)
 
-    if not school:
-        raise HTTPException(
-            status_code=404,
-            detail="Escola não encontrada.",
+        if not school:
+            raise HTTPException(status_code=404, detail="Escola não encontrada.")
+
+        return ApiResponse.updated(
+            data=school,
+            message="Escola desativada com sucesso.",
         )
 
-    return {
-        "message": "Escola desativada com sucesso.",
-        "school": school,
-    }
+    except EduDataException as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message)
 
 
 @router.patch("/{school_id}/activate")
 def activate_school(school_id: str) -> dict[str, Any]:
-    school = SchoolService.activate(school_id)
+    try:
+        school = SchoolService.activate(school_id)
 
-    if not school:
-        raise HTTPException(
-            status_code=404,
-            detail="Escola não encontrada.",
+        if not school:
+            raise HTTPException(status_code=404, detail="Escola não encontrada.")
+
+        return ApiResponse.updated(
+            data=school,
+            message="Escola ativada com sucesso.",
         )
 
-    return {
-        "message": "Escola ativada com sucesso.",
-        "school": school,
-    }
+    except EduDataException as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message)
