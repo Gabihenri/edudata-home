@@ -6,39 +6,55 @@ from app.services.supabase_service import supabase
 
 class AgendaService:
     """
-    Serviço responsável pela Agenda Inteligente EDI.
-
-    Responsabilidades:
-    - gerenciamento dos eventos;
-    - planejamento pedagógico;
-    - calendário institucional;
-    - integração com ações pedagógicas;
-    - preparação para IA Institucional.
+    Serviço da Agenda Inteligente EDI.
     """
 
     @staticmethod
-    def list(
-        school_id: str,
-        user_id: Optional[str] = None
-    ) -> list[dict[str, Any]]:
+    def list(limit: int = 100) -> list[dict[str, Any]]:
+        response = (
+            supabase.table("agenda_events")
+            .select("*")
+            .order("start_datetime")
+            .limit(limit)
+            .execute()
+        )
 
-        query = (
+        return response.data or []
+
+    @staticmethod
+    def list_by_school(
+        school_id: str,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        response = (
             supabase.table("agenda_events")
             .select("*")
             .eq("school_id", school_id)
             .order("start_datetime")
+            .limit(limit)
+            .execute()
         )
 
-        if user_id:
-            query = query.eq("user_id", user_id)
+        return response.data or []
 
-        response = query.execute()
+    @staticmethod
+    def list_by_teacher(
+        teacher_id: str,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        response = (
+            supabase.table("agenda_events")
+            .select("*")
+            .eq("user_id", teacher_id)
+            .order("start_datetime")
+            .limit(limit)
+            .execute()
+        )
 
         return response.data or []
 
     @staticmethod
     def find_by_id(event_id: str) -> Optional[dict[str, Any]]:
-
         response = (
             supabase.table("agenda_events")
             .select("*")
@@ -54,7 +70,6 @@ class AgendaService:
 
     @staticmethod
     def create(data: dict[str, Any]) -> dict[str, Any]:
-
         response = (
             supabase.table("agenda_events")
             .insert(data)
@@ -66,9 +81,8 @@ class AgendaService:
     @staticmethod
     def update(
         event_id: str,
-        data: dict[str, Any]
+        data: dict[str, Any],
     ) -> Optional[dict[str, Any]]:
-
         response = (
             supabase.table("agenda_events")
             .update(data)
@@ -83,7 +97,6 @@ class AgendaService:
 
     @staticmethod
     def delete(event_id: str) -> bool:
-
         response = (
             supabase.table("agenda_events")
             .delete()
@@ -96,9 +109,8 @@ class AgendaService:
     @staticmethod
     def change_status(
         event_id: str,
-        status: str
+        status: str,
     ) -> Optional[dict[str, Any]]:
-
         response = (
             supabase.table("agenda_events")
             .update({"status": status})
@@ -115,9 +127,8 @@ class AgendaService:
     def events_between(
         school_id: str,
         start: datetime,
-        end: datetime
+        end: datetime,
     ) -> list[dict[str, Any]]:
-
         response = (
             supabase.table("agenda_events")
             .select("*")
@@ -131,41 +142,10 @@ class AgendaService:
         return response.data or []
 
     @staticmethod
-    def events_by_teacher(
-        teacher_id: str
-    ) -> list[dict[str, Any]]:
-
-        response = (
-            supabase.table("agenda_events")
-            .select("*")
-            .eq("user_id", teacher_id)
-            .order("start_datetime")
-            .execute()
-        )
-
-        return response.data or []
-
-    @staticmethod
-    def events_by_class(
-        class_id: str
-    ) -> list[dict[str, Any]]:
-
-        response = (
-            supabase.table("agenda_events")
-            .select("*")
-            .eq("class_id", class_id)
-            .order("start_datetime")
-            .execute()
-        )
-
-        return response.data or []
-
-    @staticmethod
     def upcoming_events(
         school_id: str,
-        limit: int = 10
+        limit: int = 10,
     ) -> list[dict[str, Any]]:
-
         response = (
             supabase.table("agenda_events")
             .select("*")
@@ -177,3 +157,27 @@ class AgendaService:
         )
 
         return response.data or []
+
+    @staticmethod
+    def dashboard_summary() -> dict[str, Any]:
+        response = (
+            supabase.table("agenda_events")
+            .select("*")
+            .execute()
+        )
+
+        events = response.data or []
+
+        return {
+            "total_events": len(events),
+            "planned": len([e for e in events if e.get("status") == "planned"]),
+            "completed": len([e for e in events if e.get("status") == "completed"]),
+            "cancelled": len([e for e in events if e.get("status") == "cancelled"]),
+            "upcoming": len(
+                [
+                    e for e in events
+                    if e.get("start_datetime")
+                    and e.get("start_datetime") >= datetime.now().isoformat()
+                ]
+            ),
+        }
