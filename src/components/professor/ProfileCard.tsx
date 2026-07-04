@@ -1,4 +1,12 @@
-export default function ProfileCard() {
+type ProfileCardProps = {
+  eiosData?: any
+}
+
+export default function ProfileCard({ eiosData }: ProfileCardProps) {
+  const profile =
+    eiosData?.data?.profile?.teacher_profile ||
+    eiosData?.profile?.teacher_profile
+
   return (
     <div className="rounded-3xl bg-white p-8 shadow-sm">
       <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-700">
@@ -10,15 +18,18 @@ export default function ProfileCard() {
       </h2>
 
       <div className="mt-8 space-y-4">
-
         <div>
           <p className="text-sm text-slate-500">Nível EDI</p>
-          <p className="text-xl font-semibold">Intermediário</p>
+          <p className="text-xl font-semibold">
+            {profile?.level || 'Inicial'}
+          </p>
         </div>
 
         <div>
-          <p className="text-sm text-slate-500">Maturidade Digital</p>
-          <p className="text-xl font-semibold">74%</p>
+          <p className="text-sm text-slate-500">Score EDI</p>
+          <p className="text-xl font-semibold">
+            {profile?.edi_score ?? 0}%
+          </p>
         </div>
 
         <div>
@@ -27,7 +38,6 @@ export default function ProfileCard() {
             Desenvolvimento Profissional
           </p>
         </div>
-
       </div>
     </div>
   )
