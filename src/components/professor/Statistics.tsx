@@ -1,9 +1,33 @@
-export default function Statistics() {
+type StatisticsProps = {
+  eiosData?: any
+}
+
+export default function Statistics({ eiosData }: StatisticsProps) {
+  const profile =
+    eiosData?.data?.profile?.teacher_profile ||
+    eiosData?.profile?.teacher_profile
+
+  const analytics =
+    eiosData?.data?.analytics?.summary ||
+    eiosData?.analytics?.summary
+
   const cards = [
-    { title: 'Evidências', value: '148' },
-    { title: 'Ações', value: '32' },
-    { title: 'Cursos', value: '12' },
-    { title: 'Recomendações', value: '18' },
+    {
+      title: 'Agenda',
+      value: `${profile?.agenda_score ?? 0}%`,
+    },
+    {
+      title: 'Evidências',
+      value: `${profile?.evidence_score ?? 0}%`,
+    },
+    {
+      title: 'Formações',
+      value: `${profile?.training_score ?? 0}%`,
+    },
+    {
+      title: 'Eventos',
+      value: analytics?.total_agenda_events ?? 0,
+    },
   ]
 
   return (
