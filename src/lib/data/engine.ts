@@ -7,48 +7,48 @@ export interface EngineCapability {
 export const engineCapabilities: EngineCapability[] = [
   {
     id: 1,
-    title: 'Recomendações Inteligentes',
+    title: 'EDI Intelligence Engine',
     description:
-      'Sugestões personalizadas para desenvolvimento profissional e melhoria contínua.',
+      'Motor interno do EIOS responsável por recomendações, análise de evidências e inteligência aplicada.',
   },
   {
     id: 2,
-    title: 'Análise de Evidências',
+    title: 'Knowledge Engine',
     description:
-      'Transformação de registros pedagógicos em indicadores e evidências estruturadas.',
+      'Organiza o conhecimento pedagógico, institucional e metodológico da EduData IA.',
   },
   {
     id: 3,
-    title: 'Perfil Inteligente',
+    title: 'Memory Engine',
     description:
-      'Construção contínua do perfil de desenvolvimento de professores e instituições.',
+      'Mantém memória institucional, histórico de interações e contexto educacional.',
   },
   {
     id: 4,
-    title: 'Apoio à Decisão',
+    title: 'Decision Engine',
     description:
-      'Insights estratégicos para gestores, coordenadores e redes de ensino.',
+      'Apoia decisões pedagógicas, formativas e institucionais orientadas por evidências.',
   },
   {
     id: 5,
-    title: 'Trilhas Adaptativas',
+    title: 'Learning Engine',
     description:
-      'Personalização automática da formação conforme necessidades identificadas.',
+      'Permite aprendizagem contínua a partir dos dados produzidos pelos produtos da plataforma.',
   },
   {
     id: 6,
-    title: 'Aprendizagem Contínua',
+    title: 'Provider Engine',
     description:
-      'O Engine evolui continuamente utilizando os dados produzidos por todo o ecossistema.',
+      'Permite integração futura com Claude, OpenAI, modelos locais e outros provedores de IA.',
   },
 ]
 
 export const engine = {
-  title: 'EDI Intelligence Engine',
-  subtitle: 'O núcleo inteligente compartilhado da Plataforma EduData IA.',
+  title: 'EIOS',
+  subtitle: 'Educational Intelligence Operating System',
   description:
-    'O EDI Intelligence Engine conecta evidências, dados, formação, planejamento, governança e análise para apoiar decisões educacionais em todo o ecossistema.',
+    'O EIOS é o sistema operacional de inteligência educacional da EduData IA. Ele concentra contexto, memória, conhecimento, recomendações, análise, aprendizagem e apoio à decisão para todos os produtos do ecossistema.',
   capabilities: engineCapabilities.map((capability) => capability.title),
   principle:
-    'Nenhum produto possui IA isolada. Todos compartilham o mesmo motor de inteligência.',
+    'Nenhum produto possui IA isolada. Todos consomem as capacidades inteligentes do mesmo EIOS.',
 }
