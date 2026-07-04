@@ -14,6 +14,8 @@ async function getProfessorDigitalData() {
       evidences: [],
       trainings: [],
       users: [],
+      actions: [],
+      analytics: {},
       interactions: [],
       accepted_recommendations: 0,
     })
