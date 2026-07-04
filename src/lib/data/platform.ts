@@ -9,34 +9,35 @@ export const platformLayers: PlatformLayer[] = [
   {
     id: 1,
     title: 'Framework EDI',
-    subtitle: 'Base metodológica',
+    subtitle: 'Patrimônio Metodológico',
     description:
-      'Evidências, Inclusão e Inteligência constituem os princípios que orientam toda a plataforma.',
+      'Metodologia científica da EduData IA baseada em Evidências, Desenvolvimento e Inteligência. Define os princípios que orientam toda a plataforma.',
   },
   {
     id: 2,
-    title: 'EDI Intelligence Engine',
-    subtitle: 'Motor compartilhado',
+    title: 'EIOS',
+    subtitle: 'Educational Intelligence Operating System',
     description:
-      'Todos os produtos utilizam o mesmo núcleo de inteligência para recomendações, análises, personalização e apoio à decisão.',
+      'Sistema Operacional de Inteligência Educacional responsável por contexto, memória, conhecimento, recomendações, análise, aprendizagem e apoio à decisão.',
   },
   {
     id: 3,
-    title: 'Produtos',
-    subtitle: 'Ecossistema integrado',
+    title: 'Core Compartilhado',
+    subtitle: 'Infraestrutura',
     description:
-      'Academy, Professor Digital, Agenda Inteligente EDI, Analytics, SGPA, Observatório e Comunidade compartilham o mesmo Core.',
+      'Autenticação, segurança, auditoria, cache, banco de dados, APIs e serviços compartilhados utilizados por todos os produtos da plataforma.',
   },
   {
     id: 4,
-    title: 'Clientes',
-    subtitle: 'Impacto educacional',
+    title: 'Produtos Inteligentes',
+    subtitle: 'Ecossistema EduData IA',
     description:
-      'Professores, escolas, redes de ensino, universidades e instituições utilizam a mesma plataforma integrada.',
+      'Professor Digital, Agenda Inteligente EDI, EduData Academy, EduData Analytics, SGPA, Observatório da Educação e Comunidade EduData IA utilizam os mesmos serviços inteligentes do EIOS.',
   },
 ]
 
 export const platform = {
-  title: 'Arquitetura da Plataforma',
+  title: 'Arquitetura Oficial da EduData IA',
+  subtitle: 'Framework EDI → EIOS → Core Compartilhado → Produtos',
   layers: platformLayers,
 }
