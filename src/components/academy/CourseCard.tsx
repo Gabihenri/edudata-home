@@ -9,30 +9,55 @@ function getCourseVisual(course: Course) {
   const title = course.title.toLowerCase()
 
   if (title.includes('ia')) {
-    return { initials: 'IA', label: 'Inteligência Artificial', gradient: 'from-cyan-400 via-blue-600 to-[#050816]' }
+    return {
+      initials: 'IA',
+      label: 'Inteligência Artificial',
+      gradient: 'from-cyan-400 via-blue-600 to-[#050816]',
+    }
   }
 
   if (title.includes('google')) {
-    return { initials: 'GW', label: 'Google Workspace', gradient: 'from-emerald-400 via-cyan-600 to-[#050816]' }
+    return {
+      initials: 'GW',
+      label: 'Google Workspace',
+      gradient: 'from-emerald-400 via-cyan-600 to-[#050816]',
+    }
   }
 
   if (title.includes('canva')) {
-    return { initials: 'CV', label: 'Design Educacional', gradient: 'from-purple-500 via-fuchsia-600 to-[#050816]' }
+    return {
+      initials: 'CV',
+      label: 'Design Educacional',
+      gradient: 'from-purple-500 via-fuchsia-600 to-[#050816]',
+    }
   }
 
   if (title.includes('dashboard')) {
-    return { initials: 'BI', label: 'Dashboards', gradient: 'from-amber-400 via-orange-600 to-[#050816]' }
+    return {
+      initials: 'BI',
+      label: 'Dashboards',
+      gradient: 'from-amber-400 via-orange-600 to-[#050816]',
+    }
   }
 
   if (title.includes('framework')) {
-    return { initials: 'EDI', label: 'Framework EDI', gradient: 'from-[#1B6B3A] via-cyan-700 to-[#050816]' }
+    return {
+      initials: 'EDI',
+      label: 'Framework EDI',
+      gradient: 'from-[#1B6B3A] via-cyan-700 to-[#050816]',
+    }
   }
 
-  return { initials: 'ED', label: 'EduData Academy', gradient: 'from-cyan-600 via-blue-700 to-[#050816]' }
+  return {
+    initials: 'ED',
+    label: 'EduData Academy',
+    gradient: 'from-cyan-600 via-blue-700 to-[#050816]',
+  }
 }
 
 export default function CourseCard({ course }: CourseCardProps) {
   const visual = getCourseVisual(course)
+  const enrollmentHref = `/academy/inscricao?curso=${course.slug}`
 
   return (
     <article className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-2 hover:shadow-xl">
@@ -54,9 +79,12 @@ export default function CourseCard({ course }: CourseCardProps) {
           {course.category}
         </div>
 
-        <div className="absolute right-5 top-5 rounded-full bg-[#0A3A5E] px-4 py-2 text-xs font-bold text-white shadow">
+        <Link
+          href={enrollmentHref}
+          className="absolute right-5 top-5 rounded-full bg-[#0A3A5E] px-4 py-2 text-xs font-bold text-white shadow transition hover:bg-[#1B6B3A]"
+        >
           {course.status}
-        </div>
+        </Link>
       </div>
 
       <div className="p-7">
@@ -121,9 +149,12 @@ export default function CourseCard({ course }: CourseCardProps) {
             Ver detalhes
           </Link>
 
-          <button className="rounded-full bg-[#1B6B3A] px-6 py-4 font-semibold text-white transition hover:opacity-90">
+          <Link
+            href={enrollmentHref}
+            className="rounded-full bg-[#1B6B3A] px-6 py-4 text-center font-semibold text-white transition hover:opacity-90"
+          >
             Quero me inscrever
-          </button>
+          </Link>
         </div>
       </div>
     </article>
