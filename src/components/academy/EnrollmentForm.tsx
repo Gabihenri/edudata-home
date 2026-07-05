@@ -1,9 +1,10 @@
-'use client'
+ 'use client'
 
 import { useState } from 'react'
 
 export default function EnrollmentForm() {
   const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState('')
 
   const [form, setForm] = useState({
     fullName: '',
@@ -17,26 +18,23 @@ export default function EnrollmentForm() {
     lgpd: false,
   })
 
-  function handleChange(
-    event: React.ChangeEvent<HTMLInputElement>
-  ) {
-    const { name, value, type } = event.target
+  function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const { name, value, type, checked } = event.target
 
     setForm((previous) => ({
       ...previous,
-      [name]:
-        type === 'checkbox'
-          ? (event.target as HTMLInputElement).checked
-          : value,
+      [name]: type === 'checkbox' ? checked : value,
     }))
   }
 
-  async function handleSubmit(
-    event: React.FormEvent
-  ) {
+  async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
 
     setLoading(true)
+    setMessage('Enviando inscrição...')
+
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15000)
 
     try {
       const response = await fetch('/api/academy/enrollments', {
@@ -45,13 +43,16 @@ export default function EnrollmentForm() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(form),
+        signal: controller.signal,
       })
 
+      const data = await response.json().catch(() => null)
+
       if (!response.ok) {
-        throw new Error()
+        throw new Error(data?.error || 'Erro ao enviar inscrição.')
       }
 
-      alert('Inscrição realizada com sucesso!')
+      setMessage('Inscrição realizada com sucesso!')
 
       setForm({
         fullName: '',
@@ -64,9 +65,14 @@ export default function EnrollmentForm() {
         courseId: '',
         lgpd: false,
       })
-    } catch {
-      alert('Não foi possível realizar a inscrição.')
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        setMessage('O envio demorou muito. Tente novamente.')
+      } else {
+        setMessage(error.message || 'Não foi possível realizar a inscrição.')
+      }
     } finally {
+      clearTimeout(timeout)
       setLoading(false)
     }
   }
@@ -77,99 +83,42 @@ export default function EnrollmentForm() {
         Inscrição
       </h2>
 
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-5"
-      >
-        <input
-          name="fullName"
-          placeholder="Nome completo"
-          value={form.fullName}
-          onChange={handleChange}
-          className="w-full rounded-xl border p-4"
-        />
+      {message && (
+        <div className="mb-6 rounded-2xl bg-emerald-100 px-6 py-4 text-center font-semibold text-emerald-800">
+          {message}
+        </div>
+      )}
 
-        <input
-          name="email"
-          type="email"
-          placeholder="E-mail"
-          value={form.email}
-          onChange={handleChange}
-          className="w-full rounded-xl border p-4"
-        />
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <input name="fullName" placeholder="Nome completo" value={form.fullName} onChange={handleChange} required className="w-full rounded-xl border p-4" />
 
-        <input
-          name="whatsapp"
-          placeholder="WhatsApp"
-          value={form.whatsapp}
-          onChange={handleChange}
-          className="w-full rounded-xl border p-4"
-        />
+        <input name="email" type="email" placeholder="E-mail" value={form.email} onChange={handleChange} required className="w-full rounded-xl border p-4" />
 
-        <input
-          name="school"
-          placeholder="Escola"
-          value={form.school}
-          onChange={handleChange}
-          className="w-full rounded-xl border p-4"
-        />
+        <input name="whatsapp" placeholder="WhatsApp" value={form.whatsapp} onChange={handleChange} className="w-full rounded-xl border p-4" />
 
-        <input
-          name="city"
-          placeholder="Cidade"
-          value={form.city}
-          onChange={handleChange}
-          className="w-full rounded-xl border p-4"
-        />
+        <input name="school" placeholder="Escola" value={form.school} onChange={handleChange} required className="w-full rounded-xl border p-4" />
 
-        <input
-          name="state"
-          placeholder="Estado"
-          value={form.state}
-          onChange={handleChange}
-          className="w-full rounded-xl border p-4"
-        />
+        <input name="city" placeholder="Cidade" value={form.city} onChange={handleChange} className="w-full rounded-xl border p-4" />
 
-        <input
-          name="role"
-          placeholder="Cargo"
-          value={form.role}
-          onChange={handleChange}
-          className="w-full rounded-xl border p-4"
-        />
+        <input name="state" placeholder="Estado" value={form.state} onChange={handleChange} className="w-full rounded-xl border p-4" />
 
-        <input
-          name="courseId"
-          placeholder="ID do Curso"
-          value={form.courseId}
-          onChange={handleChange}
-          className="w-full rounded-xl border p-4"
-        />
+        <input name="role" placeholder="Cargo" value={form.role} onChange={handleChange} required className="w-full rounded-xl border p-4" />
+
+        <input name="courseId" placeholder="ID do Curso" value={form.courseId} onChange={handleChange} className="w-full rounded-xl border p-4" />
 
         <label className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            name="lgpd"
-            checked={form.lgpd}
-            onChange={handleChange}
-          />
-
-          <span>
-            Concordo com a Política de Privacidade.
-          </span>
+          <input type="checkbox" name="lgpd" checked={form.lgpd} onChange={handleChange} required />
+          <span>Concordo com a Política de Privacidade.</span>
         </label>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-full bg-[#0A3A5E] py-4 font-semibold text-white"
+          className="w-full rounded-full bg-[#0A3A5E] py-4 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading
-            ? 'Enviando...'
-            : 'Finalizar inscrição'}
+          {loading ? 'Enviando...' : 'Finalizar inscrição'}
         </button>
       </form>
     </section>
   )
 }
- 
