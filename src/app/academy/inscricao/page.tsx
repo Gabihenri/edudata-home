@@ -1,38 +1,49 @@
 'use client'
 
-import { useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import AccessibilityBar from '@/components/layout/AccessibilityBar'
 
 export default function InscricaoAcademyPage() {
-  const searchParams = useSearchParams()
-  const curso = searchParams.get('curso') || 'curso-nao-informado'
+  const [curso, setCurso] = useState('curso-nao-informado')
+  const [status, setStatus] = useState('')
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    setCurso(params.get('curso') || 'curso-nao-informado')
+  }, [])
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    const formData = new FormData(event.currentTarget)
+    const form = event.currentTarget
+    const formData = new FormData(form)
 
     const enrollment = {
       curso,
-      nome: formData.get('nome'),
-      email: formData.get('email'),
-      telefone: formData.get('telefone'),
-      escola: formData.get('escola'),
-      cargo: formData.get('cargo'),
+      nome: String(formData.get('nome') || ''),
+      email: String(formData.get('email') || ''),
+      telefone: String(formData.get('telefone') || ''),
+      escola: String(formData.get('escola') || ''),
+      cargo: String(formData.get('cargo') || ''),
+      status: 'novo',
       createdAt: new Date().toISOString(),
     }
 
-    const saved = localStorage.getItem('academy_enrollments')
-    const enrollments = saved ? JSON.parse(saved) : []
+    const current = localStorage.getItem('academy_enrollments')
+    const list = current ? JSON.parse(current) : []
 
     localStorage.setItem(
       'academy_enrollments',
-      JSON.stringify([...enrollments, enrollment]),
+      JSON.stringify([...list, enrollment]),
     )
 
-    window.location.href = `/academy/inscricao/sucesso?curso=${curso}`
+    setStatus('Inscrição salva com sucesso. Redirecionando...')
+
+    setTimeout(() => {
+      window.location.href = `/academy/inscricao/sucesso?curso=${curso}`
+    }, 1000)
   }
 
   return (
@@ -54,42 +65,18 @@ export default function InscricaoAcademyPage() {
             Curso selecionado: <strong>{curso}</strong>
           </p>
 
+          {status && (
+            <div className="mt-6 rounded-2xl bg-emerald-100 px-5 py-4 font-semibold text-emerald-800">
+              {status}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-            <input
-              name="nome"
-              required
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-              placeholder="Nome completo"
-            />
-
-            <input
-              name="email"
-              type="email"
-              required
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-              placeholder="E-mail"
-            />
-
-            <input
-              name="telefone"
-              required
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-              placeholder="Telefone"
-            />
-
-            <input
-              name="escola"
-              required
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-              placeholder="Escola"
-            />
-
-            <input
-              name="cargo"
-              required
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-              placeholder="Cargo/Função"
-            />
+            <input name="nome" required className="w-full rounded-2xl border border-slate-300 px-4 py-3" placeholder="Nome completo" />
+            <input name="email" type="email" required className="w-full rounded-2xl border border-slate-300 px-4 py-3" placeholder="E-mail" />
+            <input name="telefone" required className="w-full rounded-2xl border border-slate-300 px-4 py-3" placeholder="Telefone" />
+            <input name="escola" required className="w-full rounded-2xl border border-slate-300 px-4 py-3" placeholder="Escola" />
+            <input name="cargo" required className="w-full rounded-2xl border border-slate-300 px-4 py-3" placeholder="Cargo/Função" />
 
             <button
               type="submit"
