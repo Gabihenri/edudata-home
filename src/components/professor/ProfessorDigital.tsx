@@ -55,10 +55,19 @@ export function ProfessorDigital() {
     'Certificação',
   ]
 
+  const links = [
+    { label: 'Abrir Professor Digital', href: '/professor-digital' },
+    { label: 'Perfil docente', href: '/professor-digital/perfil' },
+    { label: 'Plano de desenvolvimento', href: '/professor-digital/plano' },
+    { label: 'Evidências', href: '/professor-digital/evidencias' },
+    { label: 'Recomendações', href: '/professor-digital/recomendacoes' },
+    { label: 'Agenda integrada', href: '/professor-digital/agenda' },
+  ]
+
   return (
     <section id="professor-digital" className="bg-[#F5F6F8] px-6 py-24">
       <div className="mx-auto max-w-7xl">
-        <div className="grid gap-16 md:grid-cols-[0.95fr_1.05fr] md:items-start">
+        <div className="grid gap-16 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
           <div>
             <p className="mb-4 text-sm font-semibold uppercase tracking-[0.3em] text-[#1B6B3A]">
               Professor Digital
@@ -86,12 +95,17 @@ export function ProfessorDigital() {
               ))}
             </div>
 
-            <a
-              href="#participacao"
-              className="mt-10 inline-flex rounded-full bg-[#0A3A5E] px-7 py-4 font-semibold text-white transition hover:opacity-90"
-            >
-              Quero participar
-            </a>
+            <div className="mt-10 flex flex-wrap gap-3">
+              {links.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="rounded-full bg-[#0A3A5E] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+                >
+                  {link.label}
+                </a>
+              ))}
+            </div>
 
             <div className="mt-10 rounded-[2rem] border border-white/70 bg-white/70 p-8 shadow-sm backdrop-blur">
               <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">
@@ -111,7 +125,7 @@ export function ProfessorDigital() {
           </div>
 
           <div className="relative">
-            <div className="absolute left-7 top-8 hidden h-[calc(100%-4rem)] w-px bg-slate-300 md:block" />
+            <div className="absolute left-7 top-8 hidden h-[calc(100%-4rem)] w-px bg-slate-300 lg:block" />
 
             <div className="space-y-5">
               {etapas.map((etapa) => (
@@ -119,7 +133,7 @@ export function ProfessorDigital() {
                   key={etapa.numero}
                   className="relative rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
                 >
-                  <div className="grid gap-5 md:grid-cols-[72px_1fr]">
+                  <div className="grid gap-5 sm:grid-cols-[72px_1fr]">
                     <div className="flex h-14 w-14 items-center justify-center rounded-full border border-slate-300 bg-[#F5F6F8] text-sm font-bold text-[#0A3A5E]">
                       {etapa.numero}
                     </div>
