@@ -1,51 +1,70 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
-import {
-  createEnrollment,
-  getEnrollments,
-} from '@/lib/data/database'
+function getSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!url || !key) {
+    throw new Error('Variáveis do Supabase não configuradas.')
+  }
+
+  return createClient(url, key)
+}
 
 export async function GET() {
+  const supabase = getSupabase()
+
+  const { data, error } = await supabase
+    .from('matriculas_na_academia')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 },
+    )
+  }
+
   return NextResponse.json({
     success: true,
-    total: getEnrollments().length,
-    data: getEnrollments(),
+    total: data?.length ?? 0,
+    data,
   })
 }
 
 export async function POST(request: Request) {
   const body = await request.json()
+  const supabase = getSupabase()
 
-  const enrollment = createEnrollment({
-    id: crypto.randomUUID(),
-
-    courseId: body.courseId,
-
-    fullName: body.fullName,
-
+  const payload = {
+    course_slug: body.courseSlug || body.curso || body.courseId || null,
+    name: body.fullName || body.nome || body.name,
     email: body.email,
+    phone: body.whatsapp || body.telefone || body.phone,
+    school_name: body.school || body.escola,
+    role: body.role || body.cargo,
+    status: 'novo',
+    source: 'academy',
+    notes: body.notes || null,
+  }
 
-    whatsapp: body.whatsapp,
+  const { data, error } = await supabase
+    .from('matriculas_na_academia')
+    .insert(payload)
+    .select()
+    .single()
 
-    school: body.school,
-
-    city: body.city,
-
-    state: body.state,
-
-    role: body.role,
-
-    lgpd: body.lgpd,
-
-    status: 'Pendente',
-
-    createdAt: new Date().toISOString(),
-
-    updatedAt: new Date().toISOString(),
-  })
+  if (error) {
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 },
+    )
+  }
 
   return NextResponse.json({
     success: true,
-    data: enrollment,
+    data,
   })
 }
