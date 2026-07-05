@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 import ProfileCard from './ProfileCard'
 import Recommendations from './Recommendations'
 import DevelopmentPlan from './DevelopmentPlan'
@@ -29,6 +31,14 @@ async function getProfessorDigitalData() {
 export default async function Dashboard() {
   const eiosData = await getProfessorDigitalData()
 
+  const navigation = [
+    { label: 'Perfil docente', href: '/professor-digital/perfil' },
+    { label: 'Plano', href: '/professor-digital/plano' },
+    { label: 'Evidências', href: '/professor-digital/evidencias' },
+    { label: 'Recomendações', href: '/professor-digital/recomendacoes' },
+    { label: 'Agenda', href: '/professor-digital/agenda' },
+  ]
+
   return (
     <main className="min-h-screen bg-[#F8FAFC]">
       <section className="bg-[#081C2E] px-6 py-20 text-white">
@@ -45,6 +55,18 @@ export default async function Dashboard() {
             Perfil docente, recomendações inteligentes, plano de desenvolvimento
             e evidências conectadas ao EIOS da EduData IA.
           </p>
+
+          <div className="mt-8 flex flex-wrap gap-3">
+            {navigation.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#081C2E] transition hover:bg-cyan-100"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
 
           <div className="mt-8 inline-flex rounded-full border border-cyan-400/30 bg-cyan-400/10 px-5 py-2 text-sm font-semibold text-cyan-200">
             {eiosData ? 'EIOS conectado' : 'EIOS aguardando conexão'}
