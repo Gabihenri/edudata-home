@@ -5,15 +5,63 @@ interface CourseCardProps {
   course: Course
 }
 
+function getCourseVisual(course: Course) {
+  const title = course.title.toLowerCase()
+
+  if (title.includes('ia')) {
+    return {
+      initials: 'IA',
+      gradient: 'from-cyan-500 via-blue-600 to-[#081C2E]',
+    }
+  }
+
+  if (title.includes('google')) {
+    return {
+      initials: 'GW',
+      gradient: 'from-emerald-500 via-cyan-600 to-[#081C2E]',
+    }
+  }
+
+  if (title.includes('canva')) {
+    return {
+      initials: 'CV',
+      gradient: 'from-purple-500 via-fuchsia-600 to-[#081C2E]',
+    }
+  }
+
+  if (title.includes('dashboard')) {
+    return {
+      initials: 'BI',
+      gradient: 'from-amber-500 via-orange-600 to-[#081C2E]',
+    }
+  }
+
+  if (title.includes('framework')) {
+    return {
+      initials: 'EDI',
+      gradient: 'from-[#1B6B3A] via-cyan-700 to-[#081C2E]',
+    }
+  }
+
+  return {
+    initials: 'ED',
+    gradient: 'from-cyan-600 via-blue-700 to-[#081C2E]',
+  }
+}
+
 export default function CourseCard({ course }: CourseCardProps) {
+  const visual = getCourseVisual(course)
+
   return (
     <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-2 hover:shadow-xl">
-      <div className="relative">
-        <img
-          src={course.image}
-          alt={course.title}
-          className="h-56 w-full object-cover"
-        />
+      <div
+        className={`relative flex h-56 items-center justify-center bg-gradient-to-br ${visual.gradient}`}
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.25),transparent_35%)]" />
+
+        <div className="relative flex h-28 w-28 items-center justify-center rounded-3xl border border-white/20 bg-white/10 text-4xl font-black tracking-tight text-white shadow-2xl backdrop-blur">
+          {visual.initials}
+        </div>
 
         <div className="absolute left-5 top-5 rounded-full bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] text-[#0A3A5E] shadow">
           {course.category}
