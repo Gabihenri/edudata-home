@@ -73,10 +73,10 @@ export default function AcademySection() {
 
           <div className="mt-16 flex justify-center">
             <a
-              href="/#participacao"
+              href="/academy/inscricao"
               className="rounded-full bg-[#0A3A5E] px-8 py-4 font-semibold text-white transition hover:opacity-90"
             >
-              Conheça a Academy
+              Quero me inscrever
             </a>
           </div>
         </div>
