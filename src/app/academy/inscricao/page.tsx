@@ -8,42 +8,50 @@ import AccessibilityBar from '@/components/layout/AccessibilityBar'
 export default function InscricaoAcademyPage() {
   const [curso, setCurso] = useState('curso-nao-informado')
   const [status, setStatus] = useState('')
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     setCurso(params.get('curso') || 'curso-nao-informado')
   }, [])
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    setLoading(true)
+    setStatus('Enviando inscrição...')
 
-    const form = event.currentTarget
-    const formData = new FormData(form)
+    const formData = new FormData(event.currentTarget)
 
-    const enrollment = {
+    const payload = {
       curso,
       nome: String(formData.get('nome') || ''),
       email: String(formData.get('email') || ''),
       telefone: String(formData.get('telefone') || ''),
       escola: String(formData.get('escola') || ''),
       cargo: String(formData.get('cargo') || ''),
-      status: 'novo',
-      createdAt: new Date().toISOString(),
     }
 
-    const current = localStorage.getItem('academy_enrollments')
-    const list = current ? JSON.parse(current) : []
+    const response = await fetch('/api/academy/enrollments', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
 
-    localStorage.setItem(
-      'academy_enrollments',
-      JSON.stringify([...list, enrollment]),
-    )
+    const result = await response.json()
+
+    if (!response.ok || !result.success) {
+      setLoading(false)
+      setStatus(`Erro ao enviar inscrição: ${result.error || 'tente novamente.'}`)
+      return
+    }
 
     setStatus('Inscrição salva com sucesso. Redirecionando...')
 
     setTimeout(() => {
       window.location.href = `/academy/inscricao/sucesso?curso=${curso}`
-    }, 1000)
+    }, 900)
   }
 
   return (
@@ -80,9 +88,10 @@ export default function InscricaoAcademyPage() {
 
             <button
               type="submit"
-              className="w-full rounded-2xl bg-[#1B6B3A] px-6 py-4 font-semibold text-white transition hover:opacity-90"
+              disabled={loading}
+              className="w-full rounded-2xl bg-[#1B6B3A] px-6 py-4 font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
             >
-              Enviar inscrição
+              {loading ? 'Enviando...' : 'Enviar inscrição'}
             </button>
           </form>
         </section>
