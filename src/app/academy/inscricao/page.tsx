@@ -29,6 +29,7 @@ export default function InscricaoAcademyPage() {
       telefone: String(formData.get('telefone') || ''),
       escola: String(formData.get('escola') || ''),
       cargo: String(formData.get('cargo') || ''),
+      lgpd: formData.get('lgpd') === 'on',
     }
 
     const response = await fetch('/api/academy/enrollments', {
@@ -85,6 +86,19 @@ export default function InscricaoAcademyPage() {
             <input name="telefone" required className="w-full rounded-2xl border border-slate-300 px-4 py-3" placeholder="Telefone" />
             <input name="escola" required className="w-full rounded-2xl border border-slate-300 px-4 py-3" placeholder="Escola" />
             <input name="cargo" required className="w-full rounded-2xl border border-slate-300 px-4 py-3" placeholder="Cargo/Função" />
+
+            <label className="flex gap-3 rounded-2xl border border-slate-300 bg-white p-4 text-sm leading-6 text-slate-700">
+              <input
+                name="lgpd"
+                type="checkbox"
+                required
+                className="mt-1 h-5 w-5"
+              />
+              <span>
+                Aceito a Política de Privacidade e autorizo o uso dos meus dados
+                para fins de inscrição, contato e acompanhamento pela EduData IA.
+              </span>
+            </label>
 
             <button
               type="submit"
