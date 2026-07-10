@@ -1,0 +1,128 @@
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+
+export type AgendaPlanning = {
+  id: string
+  title: string
+  description: string | null
+  subject: string | null
+  class_name: string | null
+  objective: string | null
+  methodology: string | null
+  resources: string | null
+  evaluation: string | null
+  planned_date: string | null
+  status: string
+  school_id: string | null
+  user_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type CreateAgendaPlanningInput = {
+  title: string
+  description?: string | null
+  subject?: string | null
+  class_name?: string | null
+  objective?: string | null
+  methodology?: string | null
+  resources?: string | null
+  evaluation?: string | null
+  planned_date?: string | null
+  status?: string
+  school_id?: string | null
+  user_id?: string | null
+}
+
+export type UpdateAgendaPlanningInput =
+  Partial<CreateAgendaPlanningInput>
+
+function createSupabaseClient(): SupabaseClient {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!url || !key) {
+    throw new Error('Variáveis do Supabase não configuradas.')
+  }
+
+  return createClient(url, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  })
+}
+
+class PlanningRepository {
+  private get client(): SupabaseClient {
+    return createSupabaseClient()
+  }
+
+  async findAll(): Promise<AgendaPlanning[]> {
+    const { data, error } = await this.client
+      .from('agenda_planning')
+      .select('*')
+      .order('planned_date', { ascending: true })
+
+    if (error) throw new Error(error.message)
+
+    return (data ?? []) as AgendaPlanning[]
+  }
+
+  async findById(id: string): Promise<AgendaPlanning | null> {
+    const { data, error } = await this.client
+      .from('agenda_planning')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (error) throw new Error(error.message)
+
+    return data as AgendaPlanning | null
+  }
+
+  async create(
+    input: CreateAgendaPlanningInput,
+  ): Promise<AgendaPlanning> {
+    const { data, error } = await this.client
+      .from('agenda_planning')
+      .insert(input)
+      .select()
+      .single()
+
+    if (error) throw new Error(error.message)
+
+    return data as AgendaPlanning
+  }
+
+  async update(
+    id: string,
+    input: UpdateAgendaPlanningInput,
+  ): Promise<AgendaPlanning> {
+    const { data, error } = await this.client
+      .from('agenda_planning')
+      .update({
+        ...input,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw new Error(error.message)
+
+    return data as AgendaPlanning
+  }
+
+  async delete(id: string): Promise<void> {
+    const { error } = await this.client
+      .from('agenda_planning')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw new Error(error.message)
+  }
+}
+
+export const planningRepository = new PlanningRepository()
