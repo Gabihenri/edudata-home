@@ -1,81 +1,98 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import {
+  tasksService,
+  type CreateAgendaTaskInput,
+} from '@/lib/agenda'
 
-function getSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!url || !key) {
-    throw new Error('Variáveis do Supabase não configuradas.')
+function getErrorStatus(error: unknown): number {
+  if (!(error instanceof Error)) {
+    return 500
   }
 
-  return createClient(url, key)
+  const message = error.message.toLowerCase()
+
+  if (
+    message.includes('obrigatório') ||
+    message.includes('inválido') ||
+    message.includes('inválida')
+  ) {
+    return 400
+  }
+
+  if (message.includes('não encontrada')) {
+    return 404
+  }
+
+  return 500
 }
 
 export async function GET() {
-  const supabase = getSupabase()
+  try {
+    const data = await tasksService.listAll()
 
-  const { data, error } = await supabase
-    .from('agenda_tasks')
-    .select('*')
-    .order('due_date', { ascending: true })
+    return NextResponse.json({
+      success: true,
+      total: data.length,
+      data,
+    })
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Erro interno ao listar tarefas.'
 
-  if (error) {
     return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 },
+      {
+        success: false,
+        error: message,
+      },
+      {
+        status: getErrorStatus(error),
+      },
     )
   }
-
-  return NextResponse.json({
-    success: true,
-    total: data?.length ?? 0,
-    data,
-  })
 }
 
 export async function POST(request: Request) {
-  const body = await request.json()
-  const supabase = getSupabase()
+  try {
+    const body = await request.json()
 
-  const payload = {
-    title: body.title,
-    description: body.description ?? null,
-    status: body.status ?? 'pendente',
-    priority: body.priority ?? 'media',
-    due_date: body.dueDate ?? null,
-    event_id: body.eventId ?? null,
-    school_id: body.schoolId ?? null,
-    user_id: body.userId ?? null,
-  }
+    const input: CreateAgendaTaskInput = {
+      title: body.title,
+      description: body.description ?? null,
+      status: body.status ?? 'pendente',
+      priority: body.priority ?? 'media',
+      due_date: body.dueDate ?? null,
+      event_id: body.eventId ?? null,
+      school_id: body.schoolId ?? null,
+      user_id: body.userId ?? null,
+    }
 
-  if (!payload.title) {
+    const data = await tasksService.create(input)
+
     return NextResponse.json(
-      { success: false, error: 'Título é obrigatório.' },
-      { status: 400 },
+      {
+        success: true,
+        data,
+      },
+      {
+        status: 201,
+      },
+    )
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Erro interno ao criar tarefa.'
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: message,
+      },
+      {
+        status: getErrorStatus(error),
+      },
     )
   }
-
-  const { data, error } = await supabase
-    .from('agenda_tasks')
-    .insert(payload)
-    .select()
-    .single()
-
-  if (error) {
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 },
-    )
-  }
-
-  return NextResponse.json(
-    {
-      success: true,
-      data,
-    },
-    { status: 201 },
-  )
 }
