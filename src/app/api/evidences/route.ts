@@ -1,82 +1,118 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import {
+  evidencesService,
+  type CreateAgendaEvidenceInput,
+} from '@/lib/agenda'
 
-function getSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!url || !key) {
-    throw new Error('Variáveis do Supabase não configuradas.')
+function getErrorStatus(error: unknown): number {
+  if (!(error instanceof Error)) {
+    return 500
   }
 
-  return createClient(url, key)
+  const message = error.message.toLowerCase()
+
+  if (
+    message.includes('obrigatório') ||
+    message.includes('inválido') ||
+    message.includes('inválida')
+  ) {
+    return 400
+  }
+
+  if (message.includes('não encontrada')) {
+    return 404
+  }
+
+  return 500
 }
 
-export async function GET() {
-  const supabase = getSupabase()
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url)
 
-  const { data, error } = await supabase
-    .from('agenda_evidences')
-    .select('*')
-    .order('created_at', { ascending: false })
+    const userId = searchParams.get('userId')
+    const schoolId = searchParams.get('schoolId')
+    const planningId = searchParams.get('planningId')
+    const eventId = searchParams.get('eventId')
 
-  if (error) {
+    let data
+
+    if (userId) {
+      data = await evidencesService.listByUserId(userId)
+    } else if (schoolId) {
+      data = await evidencesService.listBySchoolId(schoolId)
+    } else if (planningId) {
+      data = await evidencesService.listByPlanningId(planningId)
+    } else if (eventId) {
+      data = await evidencesService.listByEventId(eventId)
+    } else {
+      data = await evidencesService.listAll()
+    }
+
+    return NextResponse.json({
+      success: true,
+      total: data.length,
+      data,
+    })
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Erro interno ao listar evidências.'
+
     return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 },
+      {
+        success: false,
+        error: message,
+      },
+      {
+        status: getErrorStatus(error),
+      },
     )
   }
-
-  return NextResponse.json({
-    success: true,
-    total: data?.length ?? 0,
-    data,
-  })
 }
 
 export async function POST(request: Request) {
-  const body = await request.json()
-  const supabase = getSupabase()
+  try {
+    const body = await request.json()
 
-  const payload = {
-    title: body.title,
-    description: body.description ?? null,
-    evidence_type: body.evidenceType ?? 'texto',
-    file_url: body.fileUrl ?? null,
-    external_url: body.externalUrl ?? null,
-    planning_id: body.planningId ?? null,
-    event_id: body.eventId ?? null,
-    school_id: body.schoolId ?? null,
-    user_id: body.userId ?? null,
-  }
+    const input: CreateAgendaEvidenceInput = {
+      title: body.title,
+      description: body.description ?? null,
+      evidence_type: body.evidenceType ?? 'texto',
+      file_url: body.fileUrl ?? null,
+      external_url: body.externalUrl ?? null,
+      planning_id: body.planningId ?? null,
+      event_id: body.eventId ?? null,
+      school_id: body.schoolId ?? null,
+      user_id: body.userId ?? null,
+    }
 
-  if (!payload.title) {
+    const data = await evidencesService.create(input)
+
     return NextResponse.json(
-      { success: false, error: 'Título é obrigatório.' },
-      { status: 400 },
+      {
+        success: true,
+        data,
+      },
+      {
+        status: 201,
+      },
+    )
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Erro interno ao criar evidência.'
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: message,
+      },
+      {
+        status: getErrorStatus(error),
+      },
     )
   }
-
-  const { data, error } = await supabase
-    .from('agenda_evidences')
-    .insert(payload)
-    .select()
-    .single()
-
-  if (error) {
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 },
-    )
-  }
-
-  return NextResponse.json(
-    {
-      success: true,
-      data,
-    },
-    { status: 201 },
-  )
 }
