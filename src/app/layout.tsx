@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 
 import './globals.css'
 
+import { AuthProvider } from '@/components/layout/AuthProvider'
 import { siteConfig } from '@/lib/data/site'
 
 export const metadata: Metadata = {
@@ -42,7 +43,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   )
 }
