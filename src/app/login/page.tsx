@@ -3,10 +3,10 @@ import LoginContent from './LoginContent'
 
 function LoginLoading() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6">
-      <div className="text-center text-sm text-slate-300">
+    <main className="flex min-h-screen items-center justify-center bg-[#081c2e] px-6">
+      <p className="text-sm text-slate-300">
         Carregando acesso...
-      </div>
+      </p>
     </main>
   )
 }
