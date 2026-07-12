@@ -1,85 +1,101 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import {
+  planningService,
+  type CreateAgendaPlanningInput,
+} from '@/lib/agenda'
 
-function getSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!url || !key) {
-    throw new Error('Variáveis do Supabase não configuradas.')
+function getErrorStatus(error: unknown): number {
+  if (!(error instanceof Error)) {
+    return 500
   }
 
-  return createClient(url, key)
+  const message = error.message.toLowerCase()
+
+  if (
+    message.includes('obrigatório') ||
+    message.includes('inválida')
+  ) {
+    return 400
+  }
+
+  if (message.includes('não encontrado')) {
+    return 404
+  }
+
+  return 500
 }
 
 export async function GET() {
-  const supabase = getSupabase()
+  try {
+    const data = await planningService.listAll()
 
-  const { data, error } = await supabase
-    .from('agenda_planning')
-    .select('*')
-    .order('planned_date', { ascending: true })
+    return NextResponse.json({
+      success: true,
+      total: data.length,
+      data,
+    })
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Erro interno ao listar planejamentos.'
 
-  if (error) {
     return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 },
+      {
+        success: false,
+        error: message,
+      },
+      {
+        status: getErrorStatus(error),
+      },
     )
   }
-
-  return NextResponse.json({
-    success: true,
-    total: data?.length ?? 0,
-    data,
-  })
 }
 
 export async function POST(request: Request) {
-  const body = await request.json()
-  const supabase = getSupabase()
+  try {
+    const body = await request.json()
 
-  const payload = {
-    title: body.title,
-    description: body.description ?? null,
-    subject: body.subject ?? null,
-    class_name: body.className ?? null,
-    objective: body.objective ?? null,
-    methodology: body.methodology ?? null,
-    resources: body.resources ?? null,
-    evaluation: body.evaluation ?? null,
-    planned_date: body.plannedDate ?? null,
-    status: body.status ?? 'rascunho',
-    school_id: body.schoolId ?? null,
-    user_id: body.userId ?? null,
-  }
+    const input: CreateAgendaPlanningInput = {
+      title: body.title,
+      description: body.description ?? null,
+      subject: body.subject ?? null,
+      class_name: body.className ?? null,
+      objective: body.objective ?? null,
+      methodology: body.methodology ?? null,
+      resources: body.resources ?? null,
+      evaluation: body.evaluation ?? null,
+      planned_date: body.plannedDate ?? null,
+      status: body.status ?? 'rascunho',
+      school_id: body.schoolId ?? null,
+      user_id: body.userId ?? null,
+    }
 
-  if (!payload.title) {
+    const data = await planningService.create(input)
+
     return NextResponse.json(
-      { success: false, error: 'Título é obrigatório.' },
-      { status: 400 },
+      {
+        success: true,
+        data,
+      },
+      {
+        status: 201,
+      },
+    )
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Erro interno ao criar planejamento.'
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: message,
+      },
+      {
+        status: getErrorStatus(error),
+      },
     )
   }
-
-  const { data, error } = await supabase
-    .from('agenda_planning')
-    .insert(payload)
-    .select()
-    .single()
-
-  if (error) {
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 },
-    )
-  }
-
-  return NextResponse.json(
-    {
-      success: true,
-      data,
-    },
-    { status: 201 },
-  )
 }
