@@ -1,3 +1,6 @@
+import 'server-only'
+
+import { randomUUID } from 'node:crypto'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 let storageClient: SupabaseClient | null = null
@@ -16,16 +19,26 @@ export function getStorageClient(): SupabaseClient {
     return storageClient
   }
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const supabaseUrl =
+    process.env.SUPABASE_URL ??
+    process.env.NEXT_PUBLIC_SUPABASE_URL
 
-  if (!url || !serviceRoleKey) {
+  const serviceRoleKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl) {
     throw new Error(
-      'Variáveis do Supabase Storage não configuradas.',
+      'A variável SUPABASE_URL ou NEXT_PUBLIC_SUPABASE_URL não está configurada.',
     )
   }
 
-  storageClient = createClient(url, serviceRoleKey, {
+  if (!serviceRoleKey) {
+    throw new Error(
+      'A variável SUPABASE_SERVICE_ROLE_KEY não está configurada.',
+    )
+  }
+
+  storageClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
@@ -36,7 +49,9 @@ export function getStorageClient(): SupabaseClient {
   return storageClient
 }
 
-export function sanitizeStorageFileName(fileName: string): string {
+export function sanitizeStorageFileName(
+  fileName: string,
+): string {
   const normalizedName = fileName
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -46,6 +61,16 @@ export function sanitizeStorageFileName(fileName: string): string {
     .toLowerCase()
 
   return normalizedName || 'arquivo'
+}
+
+export function sanitizeStorageFolder(
+  folder: string,
+): string {
+  return folder
+    .trim()
+    .replace(/^\/+|\/+$/g, '')
+    .replace(/[^a-zA-Z0-9/_-]/g, '-')
+    .replace(/-+/g, '-')
 }
 
 export function createStoragePath({
@@ -58,16 +83,25 @@ export function createStoragePath({
   fileName: string
 }): string {
   const safeUserId = userId.trim()
-  const safeFolder = folder
-    .trim()
-    .replace(/^\/+|\/+$/g, '')
-    .replace(/[^a-zA-Z0-9/_-]/g, '-')
+  const safeFolder = sanitizeStorageFolder(folder)
   const safeFileName = sanitizeStorageFileName(fileName)
-  const uniquePrefix = `${Date.now()}-${crypto.randomUUID()}`
+  const uniquePrefix = `${Date.now()}-${randomUUID()}`
 
   if (!safeUserId) {
     throw new Error('ID do usuário é obrigatório.')
   }
 
-  return `${safeUserId}/${safeFolder}/${uniquePrefix}-${safeFileName}`
+  if (!safeFolder) {
+    throw new Error('A pasta de armazenamento é obrigatória.')
+  }
+
+  if (!fileName.trim()) {
+    throw new Error('O nome do arquivo é obrigatório.')
+  }
+
+  return [
+    safeUserId,
+    safeFolder,
+    `${uniquePrefix}-${safeFileName}`,
+  ].join('/')
 }
