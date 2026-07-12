@@ -1,81 +1,111 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import {
+  classesService,
+  type CreateAgendaClassInput,
+} from '@/lib/agenda'
 
-function getSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!url || !key) {
-    throw new Error('Variáveis do Supabase não configuradas.')
+function getErrorStatus(error: unknown): number {
+  if (!(error instanceof Error)) {
+    return 500
   }
 
-  return createClient(url, key)
+  const message = error.message.toLowerCase()
+
+  if (
+    message.includes('obrigatório') ||
+    message.includes('inválido') ||
+    message.includes('inválida')
+  ) {
+    return 400
+  }
+
+  if (message.includes('não encontrada')) {
+    return 404
+  }
+
+  return 500
 }
 
-export async function GET() {
-  const supabase = getSupabase()
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url)
 
-  const { data, error } = await supabase
-    .from('agenda_classes')
-    .select('*')
-    .order('name', { ascending: true })
+    const teacherId = searchParams.get('teacherId')
+    const schoolId = searchParams.get('schoolId')
 
-  if (error) {
+    let data
+
+    if (teacherId) {
+      data = await classesService.listByTeacherId(teacherId)
+    } else if (schoolId) {
+      data = await classesService.listBySchoolId(schoolId)
+    } else {
+      data = await classesService.listAll()
+    }
+
+    return NextResponse.json({
+      success: true,
+      total: data.length,
+      data,
+    })
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Erro interno ao listar turmas.'
+
     return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 },
+      {
+        success: false,
+        error: message,
+      },
+      {
+        status: getErrorStatus(error),
+      },
     )
   }
-
-  return NextResponse.json({
-    success: true,
-    total: data?.length ?? 0,
-    data,
-  })
 }
 
 export async function POST(request: Request) {
-  const body = await request.json()
-  const supabase = getSupabase()
+  try {
+    const body = await request.json()
 
-  const payload = {
-    name: body.name,
-    school_year: body.schoolYear ?? null,
-    grade: body.grade ?? null,
-    subject: body.subject ?? null,
-    students_count: body.studentsCount ?? 0,
-    school_id: body.schoolId ?? null,
-    teacher_id: body.teacherId ?? null,
-    active: body.active ?? true,
-  }
+    const input: CreateAgendaClassInput = {
+      name: body.name,
+      school_year: body.schoolYear ?? null,
+      grade: body.grade ?? null,
+      subject: body.subject ?? null,
+      students_count: body.studentsCount ?? 0,
+      school_id: body.schoolId ?? null,
+      teacher_id: body.teacherId ?? null,
+      active: body.active ?? true,
+    }
 
-  if (!payload.name) {
+    const data = await classesService.create(input)
+
     return NextResponse.json(
-      { success: false, error: 'Nome da turma é obrigatório.' },
-      { status: 400 },
+      {
+        success: true,
+        data,
+      },
+      {
+        status: 201,
+      },
+    )
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Erro interno ao criar turma.'
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: message,
+      },
+      {
+        status: getErrorStatus(error),
+      },
     )
   }
-
-  const { data, error } = await supabase
-    .from('agenda_classes')
-    .insert(payload)
-    .select()
-    .single()
-
-  if (error) {
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 },
-    )
-  }
-
-  return NextResponse.json(
-    {
-      success: true,
-      data,
-    },
-    { status: 201 },
-  )
 }
