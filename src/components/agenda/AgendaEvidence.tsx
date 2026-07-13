@@ -1,31 +1,72 @@
-const evidencias = [
-  {
-    titulo: 'Registro de aula',
-    tipo: 'Prática pedagógica',
-    descricao:
-      'Documentação de aulas, metodologias, recursos utilizados, participação dos estudantes e encaminhamentos.',
-  },
-  {
-    titulo: 'Produção dos estudantes',
-    tipo: 'Aprendizagem',
-    descricao:
-      'Organização de produções, atividades, avaliações, registros fotográficos, links e arquivos.',
-  },
-  {
-    titulo: 'Ação de apoio',
-    tipo: 'Intervenção',
-    descricao:
-      'Evidências de acompanhamento individual, recuperação, adaptação, tutoria ou apoio pedagógico.',
-  },
-  {
-    titulo: 'Reunião pedagógica',
-    tipo: 'Gestão',
-    descricao:
-      'Registro de pautas, decisões, encaminhamentos, responsáveis, prazos e devolutivas institucionais.',
-  },
-]
+'use client'
+
+import { FormEvent, useState } from 'react'
+
+import { useEvidences } from '@/lib/agenda/hooks/useEvidences'
+
+type EvidenceFormState = {
+  title: string
+  description: string
+  evidenceType: string
+  fileUrl: string
+  externalUrl: string
+}
+
+const initialForm: EvidenceFormState = {
+  title: '',
+  description: '',
+  evidenceType: 'texto',
+  fileUrl: '',
+  externalUrl: '',
+}
 
 export function AgendaEvidence() {
+  const {
+    evidences,
+    loading,
+    error,
+    reload,
+    createEvidence,
+  } = useEvidences()
+
+  const [form, setForm] = useState<EvidenceFormState>(initialForm)
+  const [submitting, setSubmitting] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(
+    null,
+  )
+
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ): Promise<void> {
+    event.preventDefault()
+
+    setSubmitting(true)
+    setFormError(null)
+    setSuccessMessage(null)
+
+    try {
+      await createEvidence({
+        title: form.title,
+        description: form.description || null,
+        evidence_type: form.evidenceType,
+        file_url: form.fileUrl || null,
+        external_url: form.externalUrl || null,
+      })
+
+      setForm(initialForm)
+      setSuccessMessage('Evidência criada com sucesso.')
+    } catch (createError) {
+      setFormError(
+        createError instanceof Error
+          ? createError.message
+          : 'Não foi possível criar a evidência.',
+      )
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <section className="px-6 py-16">
       <div className="mx-auto max-w-7xl">
@@ -38,45 +79,253 @@ export function AgendaEvidence() {
         </h1>
 
         <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-600">
-          Registre práticas, ações, produções, reuniões e resultados em uma
-          estrutura preparada para análise pedagógica e tomada de decisão.
+          Registre práticas, produções, documentos e resultados utilizando
+          dados persistidos no Supabase.
         </p>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-2">
-          {evidencias.map((item) => (
-            <article
-              key={item.titulo}
-              className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm"
-            >
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#5C1A8C]">
-                {item.tipo}
-              </p>
+        <div className="mt-12 grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
+          <form
+            onSubmit={handleSubmit}
+            className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm"
+          >
+            <h2 className="text-2xl font-bold text-slate-950">
+              Nova evidência
+            </h2>
 
-              <h2 className="mt-4 text-2xl font-bold text-slate-950">
-                {item.titulo}
+            <div className="mt-6 space-y-5">
+              <div>
+                <label
+                  htmlFor="evidence-title"
+                  className="mb-2 block text-sm font-semibold text-slate-700"
+                >
+                  Título
+                </label>
+
+                <input
+                  id="evidence-title"
+                  type="text"
+                  required
+                  value={form.title}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      title: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-[#5C1A8C] focus:ring-2 focus:ring-[#5C1A8C]/20"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="evidence-description"
+                  className="mb-2 block text-sm font-semibold text-slate-700"
+                >
+                  Descrição
+                </label>
+
+                <textarea
+                  id="evidence-description"
+                  rows={4}
+                  value={form.description}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      description: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-[#5C1A8C] focus:ring-2 focus:ring-[#5C1A8C]/20"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="evidence-type"
+                  className="mb-2 block text-sm font-semibold text-slate-700"
+                >
+                  Tipo
+                </label>
+
+                <select
+                  id="evidence-type"
+                  value={form.evidenceType}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      evidenceType: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-[#5C1A8C] focus:ring-2 focus:ring-[#5C1A8C]/20"
+                >
+                  <option value="texto">Texto</option>
+                  <option value="imagem">Imagem</option>
+                  <option value="pdf">PDF</option>
+                  <option value="link">Link</option>
+                </select>
+              </div>
+
+              {(form.evidenceType === 'imagem' ||
+                form.evidenceType === 'pdf') && (
+                <div>
+                  <label
+                    htmlFor="evidence-file-url"
+                    className="mb-2 block text-sm font-semibold text-slate-700"
+                  >
+                    URL do arquivo
+                  </label>
+
+                  <input
+                    id="evidence-file-url"
+                    type="url"
+                    required
+                    value={form.fileUrl}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        fileUrl: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-[#5C1A8C] focus:ring-2 focus:ring-[#5C1A8C]/20"
+                    placeholder="https://..."
+                  />
+                </div>
+              )}
+
+              {form.evidenceType === 'link' && (
+                <div>
+                  <label
+                    htmlFor="evidence-external-url"
+                    className="mb-2 block text-sm font-semibold text-slate-700"
+                  >
+                    Link externo
+                  </label>
+
+                  <input
+                    id="evidence-external-url"
+                    type="url"
+                    required
+                    value={form.externalUrl}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        externalUrl: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-[#5C1A8C] focus:ring-2 focus:ring-[#5C1A8C]/20"
+                    placeholder="https://..."
+                  />
+                </div>
+              )}
+            </div>
+
+            {formError ? (
+              <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+                {formError}
+              </div>
+            ) : null}
+
+            {successMessage ? (
+              <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">
+                {successMessage}
+              </div>
+            ) : null}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="mt-6 w-full rounded-full bg-[#5C1A8C] px-6 py-4 font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {submitting ? 'Salvando...' : 'Criar evidência'}
+            </button>
+          </form>
+
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <h2 className="text-2xl font-bold text-slate-950">
+                Evidências cadastradas
               </h2>
 
-              <p className="mt-4 leading-7 text-slate-600">
-                {item.descricao}
-              </p>
-            </article>
-          ))}
-        </div>
-
-        <div className="mt-12 rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-slate-200">
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">
-            Tipos de evidência
-          </p>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-4">
-            {['Texto', 'Imagem', 'PDF', 'Link'].map((tipo) => (
-              <div
-                key={tipo}
-                className="rounded-2xl bg-[#081C2E] p-5 text-center font-bold text-white"
+              <button
+                type="button"
+                onClick={() => void reload()}
+                className="rounded-full border border-slate-300 px-5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
               >
-                {tipo}
+                Atualizar
+              </button>
+            </div>
+
+            {loading ? (
+              <p className="mt-8 text-slate-600">
+                Carregando evidências...
+              </p>
+            ) : null}
+
+            {error ? (
+              <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700">
+                {error}
               </div>
-            ))}
+            ) : null}
+
+            {!loading && !error && evidences.length === 0 ? (
+              <p className="mt-8 text-slate-500">
+                Nenhuma evidência cadastrada.
+              </p>
+            ) : null}
+
+            <div className="mt-8 space-y-5">
+              {evidences.map((evidence) => (
+                <article
+                  key={evidence.id}
+                  className="rounded-3xl border border-slate-200 bg-[#F5F6F8] p-6"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#5C1A8C]">
+                        {evidence.evidence_type}
+                      </p>
+
+                      <h3 className="mt-3 text-xl font-bold text-slate-950">
+                        {evidence.title}
+                      </h3>
+                    </div>
+
+                    <span className="rounded-full bg-[#081C2E] px-4 py-2 text-xs font-bold text-white">
+                      {new Date(evidence.created_at).toLocaleDateString(
+                        'pt-BR',
+                      )}
+                    </span>
+                  </div>
+
+                  {evidence.description ? (
+                    <p className="mt-4 leading-7 text-slate-600">
+                      {evidence.description}
+                    </p>
+                  ) : null}
+
+                  {evidence.file_url ? (
+                    <a
+                      href={evidence.file_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-5 inline-flex font-semibold text-[#5C1A8C] hover:underline"
+                    >
+                      Abrir arquivo
+                    </a>
+                  ) : null}
+
+                  {evidence.external_url ? (
+                    <a
+                      href={evidence.external_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-5 inline-flex font-semibold text-[#5C1A8C] hover:underline"
+                    >
+                      Abrir link
+                    </a>
+                  ) : null}
+                </article>
+              ))}
+            </div>
           </div>
         </div>
       </div>
