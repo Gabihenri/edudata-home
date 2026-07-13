@@ -1,15 +1,97 @@
-import { AgendaInteligente } from '@/components/agenda/AgendaInteligente'
+import type { Metadata } from 'next'
 
-export const metadata = {
+import { AgendaHero } from '@/components/products/AgendaHero'
+import { ProductHeader } from '@/components/products/ProductHeader'
+
+export const metadata: Metadata = {
   title: 'Agenda Inteligente EDI | EduData IA',
   description:
-    'Plataforma estratégica para planejamento, evidências e inteligência educacional.',
+    'Planejamento, registros, evidências e inteligência educacional integrados em um único ambiente.',
 }
+
+const recursos = [
+  {
+    numero: '01',
+    titulo: 'Planejamento',
+    descricao:
+      'Organize aulas, ações pedagógicas, reuniões, formações e compromissos institucionais.',
+  },
+  {
+    numero: '02',
+    titulo: 'Evidências',
+    descricao:
+      'Registre documentos, imagens e produções relacionadas ao trabalho pedagógico.',
+  },
+  {
+    numero: '03',
+    titulo: 'Calendário',
+    descricao:
+      'Visualize eventos, prazos, atividades e compromissos em uma agenda integrada.',
+  },
+  {
+    numero: '04',
+    titulo: 'Histórico',
+    descricao:
+      'Acompanhe registros realizados e mantenha a memória pedagógica organizada.',
+  },
+]
 
 export default function AgendaPage() {
   return (
-    <main className="min-h-screen bg-white">
-      <AgendaInteligente />
+    <main className="min-h-screen bg-slate-50">
+      <ProductHeader
+        logoSrc="/logo-agenda-inteligente-edi.png"
+        logoAlt="Agenda Inteligente EDI"
+        productName="Agenda Inteligente EDI"
+        accessHref="/agenda/dashboard"
+        accessLabel="Acessar Agenda"
+      />
+
+      <AgendaHero />
+
+      <section
+        id="recursos-agenda"
+        className="scroll-mt-24 bg-slate-50 px-6 py-20"
+      >
+        <div className="mx-auto max-w-7xl">
+          <div className="max-w-3xl">
+            <p className="text-sm font-bold uppercase tracking-[0.3em] text-violet-700">
+              Recursos da plataforma
+            </p>
+
+            <h2 className="mt-4 text-3xl font-bold tracking-tight text-slate-950 md:text-5xl">
+              Uma agenda construída para o trabalho educacional.
+            </h2>
+
+            <p className="mt-6 text-lg leading-8 text-slate-600">
+              A Agenda Inteligente EDI conecta organização, acompanhamento e
+              evidências para reduzir tarefas operacionais e fortalecer a
+              tomada de decisão.
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {recursos.map((recurso) => (
+              <article
+                key={recurso.numero}
+                className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm"
+              >
+                <span className="text-sm font-bold text-violet-700">
+                  {recurso.numero}
+                </span>
+
+                <h3 className="mt-5 text-xl font-bold text-slate-950">
+                  {recurso.titulo}
+                </h3>
+
+                <p className="mt-4 leading-7 text-slate-600">
+                  {recurso.descricao}
+                </p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
     </main>
   )
 }
