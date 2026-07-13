@@ -14,6 +14,16 @@ type EvidencesResponse = {
   error?: string
 }
 
+type UploadResponse = {
+  success: boolean
+  data: {
+    bucket: string
+    path: string
+    publicUrl: string
+  }
+  error?: string
+}
+
 export function useEvidences() {
   const [evidences, setEvidences] = useState<AgendaEvidence[]>([])
   const [loading, setLoading] = useState(true)
@@ -49,6 +59,34 @@ export function useEvidences() {
       setLoading(false)
     }
   }, [])
+
+  const uploadEvidence = useCallback(
+    async (file: File): Promise<string> => {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch(
+        '/api/agenda/evidences/upload',
+        {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        },
+      )
+
+      const result =
+        (await response.json()) as UploadResponse
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.error ?? 'Erro ao enviar arquivo.',
+        )
+      }
+
+      return result.data.publicUrl
+    },
+    [],
+  )
 
   const createEvidence = useCallback(
     async (
@@ -108,5 +146,6 @@ export function useEvidences() {
     error,
     reload: loadEvidences,
     createEvidence,
+    uploadEvidence,
   }
 }
