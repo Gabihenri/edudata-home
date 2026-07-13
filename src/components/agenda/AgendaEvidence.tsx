@@ -4,11 +4,12 @@ import { FormEvent, useState } from 'react'
 
 import { useEvidences } from '@/lib/agenda/hooks/useEvidences'
 
+type EvidenceType = 'texto' | 'imagem' | 'pdf' | 'link'
+
 type EvidenceFormState = {
   title: string
   description: string
-  evidenceType: string
-  fileUrl: string
+  evidenceType: EvidenceType
   externalUrl: string
 }
 
@@ -16,7 +17,6 @@ const initialForm: EvidenceFormState = {
   title: '',
   description: '',
   evidenceType: 'texto',
-  fileUrl: '',
   externalUrl: '',
 }
 
@@ -27,14 +27,30 @@ export function AgendaEvidence() {
     error,
     reload,
     createEvidence,
+    uploadEvidence,
   } = useEvidences()
 
   const [form, setForm] = useState<EvidenceFormState>(initialForm)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [fileInputKey, setFileInputKey] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(
     null,
   )
+
+  function handleEvidenceTypeChange(value: EvidenceType): void {
+    setForm((current) => ({
+      ...current,
+      evidenceType: value,
+      externalUrl: value === 'link' ? current.externalUrl : '',
+    }))
+
+    setSelectedFile(null)
+    setFileInputKey((current) => current + 1)
+    setFormError(null)
+    setSuccessMessage(null)
+  }
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
@@ -46,15 +62,46 @@ export function AgendaEvidence() {
     setSuccessMessage(null)
 
     try {
+      let fileUrl: string | null = null
+
+      if (
+        form.evidenceType === 'imagem' ||
+        form.evidenceType === 'pdf'
+      ) {
+        if (!selectedFile) {
+          throw new Error('Selecione um arquivo para enviar.')
+        }
+
+        fileUrl = await uploadEvidence(selectedFile)
+
+        if (!fileUrl) {
+          throw new Error(
+            'O arquivo foi enviado, mas nenhuma URL foi retornada.',
+          )
+        }
+      }
+
+      if (
+        form.evidenceType === 'link' &&
+        !form.externalUrl.trim()
+      ) {
+        throw new Error('Informe o link externo da evidência.')
+      }
+
       await createEvidence({
         title: form.title,
         description: form.description || null,
         evidence_type: form.evidenceType,
-        file_url: form.fileUrl || null,
-        external_url: form.externalUrl || null,
+        file_url: fileUrl,
+        external_url:
+          form.evidenceType === 'link'
+            ? form.externalUrl.trim()
+            : null,
       })
 
       setForm(initialForm)
+      setSelectedFile(null)
+      setFileInputKey((current) => current + 1)
       setSuccessMessage('Evidência criada com sucesso.')
     } catch (createError) {
       setFormError(
@@ -79,8 +126,8 @@ export function AgendaEvidence() {
         </h1>
 
         <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-600">
-          Registre práticas, produções, documentos e resultados utilizando
-          dados persistidos no Supabase.
+          Registre práticas, produções, documentos e resultados com
+          armazenamento seguro no Supabase.
         </p>
 
         <div className="mt-12 grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
@@ -150,10 +197,9 @@ export function AgendaEvidence() {
                   id="evidence-type"
                   value={form.evidenceType}
                   onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      evidenceType: event.target.value,
-                    }))
+                    handleEvidenceTypeChange(
+                      event.target.value as EvidenceType,
+                    )
                   }
                   className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-[#5C1A8C] focus:ring-2 focus:ring-[#5C1A8C]/20"
                 >
@@ -168,26 +214,41 @@ export function AgendaEvidence() {
                 form.evidenceType === 'pdf') && (
                 <div>
                   <label
-                    htmlFor="evidence-file-url"
+                    htmlFor="evidence-file"
                     className="mb-2 block text-sm font-semibold text-slate-700"
                   >
-                    URL do arquivo
+                    Arquivo
                   </label>
 
                   <input
-                    id="evidence-file-url"
-                    type="url"
+                    key={fileInputKey}
+                    id="evidence-file"
+                    type="file"
                     required
-                    value={form.fileUrl}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        fileUrl: event.target.value,
-                      }))
+                    accept={
+                      form.evidenceType === 'imagem'
+                        ? 'image/jpeg,image/png,image/webp'
+                        : 'application/pdf'
                     }
-                    className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-[#5C1A8C] focus:ring-2 focus:ring-[#5C1A8C]/20"
-                    placeholder="https://..."
+                    onChange={(event) =>
+                      setSelectedFile(
+                        event.target.files?.[0] ?? null,
+                      )
+                    }
+                    className="block w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 file:mr-4 file:rounded-full file:border-0 file:bg-[#5C1A8C] file:px-4 file:py-2 file:font-semibold file:text-white hover:file:opacity-90"
                   />
+
+                  <p className="mt-2 text-sm text-slate-500">
+                    {form.evidenceType === 'imagem'
+                      ? 'Formatos aceitos: JPG, PNG ou WEBP. Máximo de 10 MB.'
+                      : 'Formato aceito: PDF. Máximo de 10 MB.'}
+                  </p>
+
+                  {selectedFile ? (
+                    <p className="mt-3 rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700">
+                      Arquivo selecionado: {selectedFile.name}
+                    </p>
+                  ) : null}
                 </div>
               )}
 
@@ -235,7 +296,9 @@ export function AgendaEvidence() {
               disabled={submitting}
               className="mt-6 w-full rounded-full bg-[#5C1A8C] px-6 py-4 font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {submitting ? 'Salvando...' : 'Criar evidência'}
+              {submitting
+                ? 'Enviando e salvando...'
+                : 'Criar evidência'}
             </button>
           </form>
 
@@ -290,9 +353,9 @@ export function AgendaEvidence() {
                     </div>
 
                     <span className="rounded-full bg-[#081C2E] px-4 py-2 text-xs font-bold text-white">
-                      {new Date(evidence.created_at).toLocaleDateString(
-                        'pt-BR',
-                      )}
+                      {new Date(
+                        evidence.created_at,
+                      ).toLocaleDateString('pt-BR')}
                     </span>
                   </div>
 
