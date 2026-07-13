@@ -3,10 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 /**
  * Rotas públicas exatas.
  *
- * Somente o endereço exatamente igual será público.
- * Exemplo:
- * /agenda = público
- * /agenda/dashboard = protegido
+ * Apenas o endereço informado será público.
+ * As subrotas continuarão protegidas.
  */
 const EXACT_PUBLIC_ROUTES = [
   '/',
@@ -18,7 +16,7 @@ const EXACT_PUBLIC_ROUTES = [
 /**
  * Seções totalmente públicas.
  *
- * A rota principal e todas as suas subrotas permanecem públicas.
+ * A rota principal e todas as suas subrotas serão públicas.
  */
 const PUBLIC_ROUTE_PREFIXES = [
   '/academy',
@@ -36,6 +34,10 @@ function isPublicRoute(pathname: string): boolean {
   )
 }
 
+function isApiRoute(pathname: string): boolean {
+  return pathname.startsWith('/api/')
+}
+
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl
 
@@ -48,6 +50,18 @@ export function middleware(request: NextRequest) {
     request.cookies.get('access_token')?.value
 
   if (!accessToken) {
+    if (isApiRoute(pathname)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Não autenticado.',
+        },
+        {
+          status: 401,
+        },
+      )
+    }
+
     const loginUrl = new URL('/login', request.url)
 
     loginUrl.searchParams.set(
