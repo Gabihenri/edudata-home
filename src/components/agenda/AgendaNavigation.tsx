@@ -40,6 +40,10 @@ const navigationItems = [
     label: 'Indicadores',
     href: '/agenda/indicadores',
   },
+  {
+    label: 'Histórico',
+    href: '/agenda/historico',
+  },
 ]
 
 export function AgendaNavigation() {
