@@ -1,21 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const PUBLIC_ROUTES = [
+/**
+ * Rotas públicas exatas.
+ *
+ * Somente o endereço exatamente igual será público.
+ * Exemplo:
+ * /agenda = público
+ * /agenda/dashboard = protegido
+ */
+const EXACT_PUBLIC_ROUTES = [
   '/',
   '/login',
+  '/agenda',
+  '/professor-digital',
+]
+
+/**
+ * Seções totalmente públicas.
+ *
+ * A rota principal e todas as suas subrotas permanecem públicas.
+ */
+const PUBLIC_ROUTE_PREFIXES = [
   '/academy',
   '/participacao',
 ]
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+function isPublicRoute(pathname: string): boolean {
+  if (EXACT_PUBLIC_ROUTES.includes(pathname)) {
+    return true
+  }
 
-  const isPublicRoute = PUBLIC_ROUTES.some(
+  return PUBLIC_ROUTE_PREFIXES.some(
     (route) =>
       pathname === route || pathname.startsWith(`${route}/`),
   )
+}
 
-  if (isPublicRoute) {
+export function middleware(request: NextRequest) {
+  const { pathname, search } = request.nextUrl
+
+  if (isPublicRoute(pathname)) {
     return NextResponse.next()
   }
 
@@ -25,7 +49,11 @@ export function middleware(request: NextRequest) {
 
   if (!accessToken) {
     const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('redirectTo', pathname)
+
+    loginUrl.searchParams.set(
+      'redirectTo',
+      `${pathname}${search}`,
+    )
 
     return NextResponse.redirect(loginUrl)
   }
@@ -36,6 +64,7 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/agenda/:path*',
+    '/professor-digital/:path*',
     '/dashboard/:path*',
     '/analytics/:path*',
     '/professor/:path*',
