@@ -1,14 +1,46 @@
+import Link from 'next/link'
+
+const activeEcosystemLinks = [
+  {
+    label: 'Framework EDI',
+    href: '/#framework',
+  },
+  {
+    label: 'Professor Digital',
+    href: '/professor-digital',
+  },
+  {
+    label: 'Agenda Inteligente EDI',
+    href: '/agenda',
+  },
+  {
+    label: 'EduData Academy',
+    href: '/academy',
+  },
+]
+
+const upcomingProducts = [
+  'EduData Analytics',
+  'SGPA',
+]
+
 export default function Footer() {
   return (
     <footer className="bg-[#081C2E] text-white">
       <div className="mx-auto max-w-7xl px-6 py-20">
         <div className="grid gap-12 md:grid-cols-2 md:items-center">
           <div>
-            <img
-              src="/logo-edudata-ia-dark.png"
-              alt="EduData IA"
-              className="h-40 w-auto"
-            />
+            <Link
+              href="/"
+              aria-label="Ir para a página inicial da EduData IA"
+              className="inline-block"
+            >
+              <img
+                src="/logo-edudata-ia-dark.png"
+                alt="EduData IA"
+                className="h-40 w-auto object-contain"
+              />
+            </Link>
 
             <p className="mt-8 max-w-xl text-xl leading-8 text-slate-300">
               Ecossistema de Inteligência Educacional baseado em Evidências,
@@ -27,24 +59,66 @@ export default function Footer() {
             </div>
           </div>
 
-          <div className="grid gap-8 sm:grid-cols-2">
+          <div className="grid gap-10 sm:grid-cols-2">
             <div>
-              <h3 className="mb-4 text-xl font-semibold">
+              <h3 className="mb-5 text-xl font-semibold">
                 Ecossistema
               </h3>
 
-              <ul className="space-y-3 text-slate-300">
-                <li>Framework EDI</li>
-                <li>Professor Digital</li>
-                <li>Agenda Inteligente EDI</li>
-                <li>EduData Analytics</li>
-                <li>SGPA</li>
-                <li>EduData Academy</li>
+              <ul className="space-y-4">
+                {activeEcosystemLinks.slice(0, 3).map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      className="inline-flex items-center gap-2 text-slate-300 transition hover:translate-x-1 hover:text-white"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="text-cyan-400"
+                      >
+                        →
+                      </span>
+
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+
+                {upcomingProducts.map((product) => (
+                  <li
+                    key={product}
+                    className="flex flex-wrap items-center gap-2 text-slate-500"
+                  >
+                    <span>{product}</span>
+
+                    <span className="rounded-full border border-white/10 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      Em desenvolvimento
+                    </span>
+                  </li>
+                ))}
+
+                {activeEcosystemLinks.slice(3).map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      className="inline-flex items-center gap-2 text-slate-300 transition hover:translate-x-1 hover:text-white"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="text-cyan-400"
+                      >
+                        →
+                      </span>
+
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
 
             <div>
-              <h3 className="mb-4 text-xl font-semibold">
+              <h3 className="mb-5 text-xl font-semibold">
                 Conecte-se
               </h3>
 
@@ -53,26 +127,86 @@ export default function Footer() {
                   href="https://www.linkedin.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block text-slate-300 transition hover:text-white"
+                  className="inline-flex items-center gap-2 text-slate-300 transition hover:translate-x-1 hover:text-white"
                 >
+                  <span
+                    aria-hidden="true"
+                    className="text-cyan-400"
+                  >
+                    →
+                  </span>
+
                   LinkedIn
                 </a>
 
                 <a
                   href="mailto:sabinohc@gmail.com"
-                  className="block text-slate-300 transition hover:text-white"
+                  className="flex w-fit items-center gap-2 text-slate-300 transition hover:translate-x-1 hover:text-white"
                 >
+                  <span
+                    aria-hidden="true"
+                    className="text-cyan-400"
+                  >
+                    →
+                  </span>
+
                   Contato
                 </a>
+
+                <Link
+                  href="/academy"
+                  className="flex w-fit items-center gap-2 text-slate-300 transition hover:translate-x-1 hover:text-white"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="text-cyan-400"
+                  >
+                    →
+                  </span>
+
+                  Cursos e formações
+                </Link>
               </div>
             </div>
           </div>
         </div>
 
         <div className="mt-16 border-t border-white/10 pt-8 text-center">
-          <p className="text-slate-400">
-            Framework EDI • Professor Digital • Agenda Inteligente • EduData Analytics
-          </p>
+          <div className="flex flex-wrap justify-center gap-x-3 gap-y-2 text-slate-400">
+            <Link
+              href="/#framework"
+              className="transition hover:text-white"
+            >
+              Framework EDI
+            </Link>
+
+            <span aria-hidden="true">•</span>
+
+            <Link
+              href="/professor-digital"
+              className="transition hover:text-white"
+            >
+              Professor Digital
+            </Link>
+
+            <span aria-hidden="true">•</span>
+
+            <Link
+              href="/agenda"
+              className="transition hover:text-white"
+            >
+              Agenda Inteligente EDI
+            </Link>
+
+            <span aria-hidden="true">•</span>
+
+            <Link
+              href="/academy"
+              className="transition hover:text-white"
+            >
+              EduData Academy
+            </Link>
+          </div>
 
           <p className="mt-4 text-sm text-slate-500">
             © 2026 EduData IA — Todos os direitos reservados.
