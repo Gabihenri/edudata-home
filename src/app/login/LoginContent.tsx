@@ -17,11 +17,18 @@ import {
   type SupabaseClient,
 } from '@supabase/supabase-js'
 
-let supabaseClient: SupabaseClient | null = null
+type ScreenMode = 'login' | 'recovery'
 
-function getSupabaseClient(): SupabaseClient {
-  if (supabaseClient) {
-    return supabaseClient
+type LoginApiResponse = {
+  success: boolean
+  error?: string
+}
+
+let browserSupabaseClient: SupabaseClient | null = null
+
+function getBrowserSupabaseClient(): SupabaseClient {
+  if (browserSupabaseClient) {
+    return browserSupabaseClient
   }
 
   const supabaseUrl =
@@ -32,16 +39,32 @@ function getSupabaseClient(): SupabaseClient {
 
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error(
-      'As variáveis públicas do Supabase não estão configuradas.',
+      'A conexão com o Supabase não está configurada.',
     )
   }
 
-  supabaseClient = createClient(
+  if (
+    !supabaseUrl.startsWith('https://') ||
+    !supabaseUrl.includes('.supabase.co')
+  ) {
+    throw new Error(
+      'A URL configurada para o Supabase é inválida.',
+    )
+  }
+
+  browserSupabaseClient = createClient(
     supabaseUrl,
     supabaseAnonKey,
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    },
   )
 
-  return supabaseClient
+  return browserSupabaseClient
 }
 
 function getSafeRedirect(
@@ -58,7 +81,14 @@ function getSafeRedirect(
   return '/agenda'
 }
 
-type ScreenMode = 'login' | 'recovery'
+function getErrorMessage(
+  error: unknown,
+  fallback: string,
+): string {
+  return error instanceof Error
+    ? error.message
+    : fallback
+}
 
 export default function LoginContent() {
   const router = useRouter()
@@ -104,38 +134,84 @@ export default function LoginContent() {
   }, [searchParams])
 
   useEffect(() => {
-    const supabase = getSupabaseClient()
-
     const recoveryRequested =
       searchParams.get('recovery') === '1'
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (
-          event === 'PASSWORD_RECOVERY' ||
-          (recoveryRequested && session)
-        ) {
-          setMode('recovery')
-          setErrorMessage('')
-          setSuccessMessage('')
-        }
-      },
-    )
+    const recoveryHashDetected =
+      typeof window !== 'undefined' &&
+      window.location.hash.includes(
+        'type=recovery',
+      )
 
-    if (recoveryRequested) {
+    if (
+      !recoveryRequested &&
+      !recoveryHashDetected
+    ) {
+      return
+    }
+
+    let isMounted = true
+    let unsubscribe:
+      | (() => void)
+      | undefined
+
+    try {
+      const supabase =
+        getBrowserSupabaseClient()
+
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange(
+        (event, session) => {
+          if (!isMounted) {
+            return
+          }
+
+          if (
+            event === 'PASSWORD_RECOVERY' ||
+            session
+          ) {
+            setMode('recovery')
+            setErrorMessage('')
+            setSuccessMessage('')
+          }
+        },
+      )
+
+      unsubscribe = () =>
+        subscription.unsubscribe()
+
       void supabase.auth
         .getSession()
-        .then(({ data }) => {
+        .then(({ data, error }) => {
+          if (!isMounted) {
+            return
+          }
+
+          if (error) {
+            setErrorMessage(
+              'Não foi possível validar o link de recuperação.',
+            )
+
+            return
+          }
+
           if (data.session) {
             setMode('recovery')
           }
         })
+    } catch (error) {
+      setErrorMessage(
+        getErrorMessage(
+          error,
+          'Não foi possível iniciar a recuperação de senha.',
+        ),
+      )
     }
 
     return () => {
-      subscription.unsubscribe()
+      isMounted = false
+      unsubscribe?.()
     }
   }, [searchParams])
 
@@ -153,17 +229,29 @@ export default function LoginContent() {
     setIsLoading(true)
 
     try {
-      const supabase = getSupabaseClient()
+      const response = await fetch(
+        '/api/auth/login',
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type':
+              'application/json',
+          },
+          body: JSON.stringify({
+            email: email.trim(),
+            password,
+          }),
+        },
+      )
 
-      const { error } =
-        await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        })
+      const result =
+        (await response.json()) as LoginApiResponse
 
-      if (error) {
+      if (!response.ok || !result.success) {
         setErrorMessage(
-          'E-mail ou senha inválidos.',
+          result.error ??
+            'E-mail ou senha inválidos.',
         )
 
         return
@@ -171,11 +259,9 @@ export default function LoginContent() {
 
       router.replace(redirectTo)
       router.refresh()
-    } catch (error) {
+    } catch {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível realizar o acesso.',
+        'Não foi possível conectar ao serviço de autenticação.',
       )
     } finally {
       setIsLoading(false)
@@ -185,11 +271,12 @@ export default function LoginContent() {
   async function handleForgotPassword() {
     clearMessages()
 
-    const normalizedEmail = email.trim()
+    const normalizedEmail =
+      email.trim().toLowerCase()
 
     if (!normalizedEmail) {
       setErrorMessage(
-        'Digite seu e-mail antes de solicitar a recuperação da senha.',
+        'Digite seu e-mail antes de solicitar a recuperação.',
       )
 
       return
@@ -198,7 +285,8 @@ export default function LoginContent() {
     setIsSendingRecovery(true)
 
     try {
-      const supabase = getSupabaseClient()
+      const supabase =
+        getBrowserSupabaseClient()
 
       const recoveryUrl =
         `${window.location.origin}/login?recovery=1`
@@ -213,20 +301,21 @@ export default function LoginContent() {
 
       if (error) {
         setErrorMessage(
-          'Não foi possível enviar o e-mail de recuperação. Verifique o endereço informado e tente novamente.',
+          'Não foi possível enviar o e-mail de recuperação.',
         )
 
         return
       }
 
       setSuccessMessage(
-        'Enviamos as instruções de recuperação. Verifique sua caixa de entrada e também a pasta de spam.',
+        'Enviamos as instruções para seu e-mail. Verifique também a pasta de spam.',
       )
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível solicitar a recuperação da senha.',
+        getErrorMessage(
+          error,
+          'Não foi possível solicitar a recuperação da senha.',
+        ),
       )
     } finally {
       setIsSendingRecovery(false)
@@ -248,9 +337,11 @@ export default function LoginContent() {
       return
     }
 
-    if (newPassword !== confirmNewPassword) {
+    if (
+      newPassword !== confirmNewPassword
+    ) {
       setErrorMessage(
-        'A confirmação da senha não corresponde à nova senha.',
+        'A confirmação não corresponde à nova senha.',
       )
 
       return
@@ -259,7 +350,8 @@ export default function LoginContent() {
     setIsLoading(true)
 
     try {
-      const supabase = getSupabaseClient()
+      const supabase =
+        getBrowserSupabaseClient()
 
       const { error } =
         await supabase.auth.updateUser({
@@ -282,16 +374,17 @@ export default function LoginContent() {
       setMode('login')
 
       setSuccessMessage(
-        'Senha atualizada com sucesso. Entre novamente com sua nova senha.',
+        'Senha atualizada. Entre novamente com sua nova senha.',
       )
 
       router.replace('/login')
       router.refresh()
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível atualizar a senha.',
+        getErrorMessage(
+          error,
+          'Não foi possível atualizar a senha.',
+        ),
       )
     } finally {
       setIsLoading(false)
@@ -358,8 +451,13 @@ export default function LoginContent() {
 
                 <button
                   type="button"
-                  onClick={handleForgotPassword}
-                  disabled={isSendingRecovery}
+                  onClick={
+                    handleForgotPassword
+                  }
+                  disabled={
+                    isSendingRecovery ||
+                    isLoading
+                  }
                   className="text-sm font-semibold text-cyan-700 transition hover:text-cyan-900 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSendingRecovery
@@ -376,7 +474,9 @@ export default function LoginContent() {
                 required
                 value={password}
                 onChange={(event) =>
-                  setPassword(event.target.value)
+                  setPassword(
+                    event.target.value,
+                  )
                 }
                 placeholder="Digite sua senha"
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-600/20"
@@ -416,7 +516,9 @@ export default function LoginContent() {
           </form>
         ) : (
           <form
-            onSubmit={handleUpdatePassword}
+            onSubmit={
+              handleUpdatePassword
+            }
             className="space-y-5"
           >
             <div>
