@@ -1,114 +1,349 @@
-import { NextResponse } from 'next/server'
+import {
+  NextRequest,
+  NextResponse,
+} from 'next/server'
+
 import {
   eventsService,
   type CreateAgendaEventInput,
 } from '@/lib/agenda'
 
-function getErrorStatus(error: unknown): number {
+import { requireSessionUser } from '@/lib/auth/session'
+
+export const dynamic = 'force-dynamic'
+
+type CreateEventRequestBody = {
+  title?: string
+  description?: string | null
+
+  eventType?: string
+  startAt?: string
+  endAt?: string | null
+
+  status?: string
+  priority?: string
+
+  schoolId?: string | null
+  planningId?: string | null
+  evidenceId?: string | null
+
+  scheduleMode?:
+    | 'pontual'
+    | 'recorrente'
+
+  recurrenceFrequency?:
+    | 'none'
+    | 'weekly'
+
+  recurrenceInterval?: number
+  recurrenceUntil?: string | null
+
+  sourceTemplateId?: string | null
+  weekReference?: string | null
+}
+
+function getErrorStatus(
+  error: unknown,
+): number {
+  if (error instanceof SyntaxError) {
+    return 400
+  }
+
   if (!(error instanceof Error)) {
     return 500
   }
 
-  const message = error.message.toLowerCase()
+  const message =
+    error.message.toLowerCase()
+
+  if (
+    message.includes('não autenticado') ||
+    message.includes('não autorizado')
+  ) {
+    return 401
+  }
 
   if (
     message.includes('obrigatório') ||
+    message.includes('obrigatória') ||
     message.includes('inválida') ||
-    message.includes('anterior')
+    message.includes('inválido') ||
+    message.includes('anterior') ||
+    message.includes('intervalo') ||
+    message.includes('recorrência') ||
+    message.includes('ultrapassar')
   ) {
     return 400
   }
 
-  if (message.includes('não encontrado')) {
+  if (
+    message.includes('não encontrado')
+  ) {
     return 404
   }
 
   return 500
 }
 
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url)
+function createErrorResponse(
+  error: unknown,
+  fallbackMessage: string,
+) {
+  const message =
+    error instanceof Error
+      ? error.message
+      : fallbackMessage
 
-    const userId = searchParams.get('userId')
-    const schoolId = searchParams.get('schoolId')
+  return NextResponse.json(
+    {
+      success: false,
+      error: message,
+    },
+    {
+      status: getErrorStatus(error),
+      headers: {
+        'Cache-Control': 'no-store',
+      },
+    },
+  )
+}
+
+function normalizeOptionalText(
+  value: unknown,
+): string | null {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const normalizedValue = value.trim()
+
+  return normalizedValue || null
+}
+
+function normalizeScheduleMode(
+  value: unknown,
+): 'pontual' | 'recorrente' {
+  return value === 'recorrente'
+    ? 'recorrente'
+    : 'pontual'
+}
+
+function normalizeRecurrenceFrequency(
+  scheduleMode:
+    | 'pontual'
+    | 'recorrente',
+  value: unknown,
+): 'none' | 'weekly' {
+  if (scheduleMode === 'recorrente') {
+    return 'weekly'
+  }
+
+  return value === 'weekly'
+    ? 'weekly'
+    : 'none'
+}
+
+function normalizeRecurrenceInterval(
+  value: unknown,
+): number {
+  if (
+    value === undefined ||
+    value === null ||
+    value === ''
+  ) {
+    return 1
+  }
+
+  return Number(value)
+}
+
+export async function GET(
+  request: NextRequest,
+) {
+  try {
+    const user =
+      await requireSessionUser()
+
+    const { searchParams } =
+      request.nextUrl
+
+    const weekReference =
+      searchParams.get('weekReference') ??
+      searchParams.get('week')
+
+    const seriesId =
+      searchParams.get('seriesId')
 
     let data
 
-    if (userId) {
-      data = await eventsService.listByUserId(userId)
-    } else if (schoolId) {
-      data = await eventsService.listBySchoolId(schoolId)
+    if (seriesId) {
+      data =
+        await eventsService.listBySeriesId(
+          seriesId,
+        )
+    } else if (weekReference) {
+      data =
+        await eventsService.listByUserAndWeek(
+          user.id,
+          weekReference,
+        )
     } else {
-      data = await eventsService.listAll()
+      data =
+        await eventsService.listByUserId(
+          user.id,
+        )
     }
-
-    return NextResponse.json({
-      success: true,
-      total: data.length,
-      data,
-    })
-  } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : 'Erro interno ao listar eventos.'
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: message,
-      },
-      {
-        status: getErrorStatus(error),
-      },
-    )
-  }
-}
-
-export async function POST(request: Request) {
-  try {
-    const body = await request.json()
-
-    const input: CreateAgendaEventInput = {
-      title: body.title,
-      description: body.description ?? null,
-      event_type: body.eventType ?? 'pedagogico',
-      start_at: body.startAt,
-      end_at: body.endAt ?? null,
-      status: body.status ?? 'planejado',
-      priority: body.priority ?? 'media',
-      school_id: body.schoolId ?? null,
-      user_id: body.userId ?? null,
-      planning_id: body.planningId ?? null,
-      evidence_id: body.evidenceId ?? null,
-    }
-
-    const data = await eventsService.create(input)
 
     return NextResponse.json(
       {
         success: true,
+        total: data.length,
+        data,
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store',
+        },
+      },
+    )
+  } catch (error) {
+    return createErrorResponse(
+      error,
+      'Erro interno ao listar eventos.',
+    )
+  }
+}
+
+export async function POST(
+  request: NextRequest,
+) {
+  try {
+    const user =
+      await requireSessionUser()
+
+    const body =
+      (await request.json()) as CreateEventRequestBody
+
+    const scheduleMode =
+      normalizeScheduleMode(
+        body.scheduleMode,
+      )
+
+    const recurrenceFrequency =
+      normalizeRecurrenceFrequency(
+        scheduleMode,
+        body.recurrenceFrequency,
+      )
+
+    const input: CreateAgendaEventInput = {
+      title:
+        typeof body.title === 'string'
+          ? body.title
+          : '',
+
+      description:
+        normalizeOptionalText(
+          body.description,
+        ),
+
+      event_type:
+        normalizeOptionalText(
+          body.eventType,
+        ) ?? 'pedagogico',
+
+      start_at:
+        typeof body.startAt === 'string'
+          ? body.startAt
+          : '',
+
+      end_at:
+        normalizeOptionalText(
+          body.endAt,
+        ),
+
+      status:
+        normalizeOptionalText(
+          body.status,
+        ) ?? 'planejado',
+
+      priority:
+        normalizeOptionalText(
+          body.priority,
+        ) ?? 'media',
+
+      school_id:
+        normalizeOptionalText(
+          body.schoolId,
+        ),
+
+      user_id: user.id,
+
+      planning_id:
+        normalizeOptionalText(
+          body.planningId,
+        ),
+
+      evidence_id:
+        normalizeOptionalText(
+          body.evidenceId,
+        ),
+
+      schedule_mode: scheduleMode,
+
+      recurrence_frequency:
+        recurrenceFrequency,
+
+      recurrence_interval:
+        normalizeRecurrenceInterval(
+          body.recurrenceInterval,
+        ),
+
+      recurrence_until:
+        normalizeOptionalText(
+          body.recurrenceUntil,
+        ),
+
+      source_template_id:
+        normalizeOptionalText(
+          body.sourceTemplateId,
+        ),
+
+      week_reference:
+        normalizeOptionalText(
+          body.weekReference,
+        ),
+
+      is_exception: false,
+    }
+
+    const data =
+      await eventsService.createSchedule(
+        input,
+      )
+
+    return NextResponse.json(
+      {
+        success: true,
+
+        message:
+          scheduleMode === 'recorrente'
+            ? `${data.length} eventos semanais foram criados.`
+            : 'Evento criado com sucesso.',
+
+        total: data.length,
         data,
       },
       {
         status: 201,
+        headers: {
+          'Cache-Control': 'no-store',
+        },
       },
     )
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : 'Erro interno ao criar evento.'
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: message,
-      },
-      {
-        status: getErrorStatus(error),
-      },
+    return createErrorResponse(
+      error,
+      'Erro interno ao criar evento.',
     )
   }
 }
