@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server'
 
+import {
+  isAccessDeniedError,
+  requireFeatureAccess,
+  serializeAccessDeniedError,
+} from '@/lib/access/guards/require-feature-access'
 import { requireSessionUser } from '@/lib/auth/session'
-import { evidencesService } from '@/lib/agenda/services/evidences.service'
 import type {
   AgendaEvidenceType,
   CreateAgendaEvidenceInput,
 } from '@/lib/agenda/repository/evidences.repository'
+import { evidencesService } from '@/lib/agenda/services/evidences.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,6 +26,20 @@ type CreateEvidenceRequestBody = {
   planningId?: string | null
   eventId?: string | null
   schoolId?: string | null
+
+  containsIdentifiableMinor?: boolean
+
+  guardianAuthorizationConfirmed?: boolean
+  authorizationReference?: string | null
+
+  privacyNoticeVersion?: string | null
+
+  storageBucket?: string | null
+  storagePath?: string | null
+
+  originalFileName?: string | null
+  fileMimeType?: string | null
+  fileSizeBytes?: number | null
 }
 
 function normalizeOptionalText(
@@ -33,6 +52,29 @@ function normalizeOptionalText(
   const normalizedValue = value.trim()
 
   return normalizedValue || null
+}
+
+function normalizeBoolean(
+  value: unknown,
+): boolean {
+  return value === true
+}
+
+function normalizeFileSize(
+  value: unknown,
+): number | null {
+  if (
+    value === undefined ||
+    value === null
+  ) {
+    return null
+  }
+
+  if (typeof value !== 'number') {
+    return Number.NaN
+  }
+
+  return value
 }
 
 function normalizeEvidenceType(
@@ -68,12 +110,12 @@ function getErrorStatus(
     return 500
   }
 
-  const message = error.message.toLowerCase()
+  const message =
+    error.message.toLowerCase()
 
   if (
     message.includes('não autenticado') ||
-    message.includes('não autorizado') ||
-    message.includes('permissão')
+    message.includes('não autorizado')
   ) {
     return 401
   }
@@ -84,12 +126,19 @@ function getErrorStatus(
     message.includes('inválido') ||
     message.includes('inválida') ||
     message.includes('informe') ||
-    message.includes('envie')
+    message.includes('envie') ||
+    message.includes('confirme') ||
+    message.includes('autorização') ||
+    message.includes('bucket') ||
+    message.includes('caminho') ||
+    message.includes('tamanho')
   ) {
     return 400
   }
 
-  if (message.includes('não encontrada')) {
+  if (
+    message.includes('não encontrada')
+  ) {
     return 404
   }
 
@@ -100,6 +149,18 @@ function createErrorResponse(
   error: unknown,
   fallbackMessage: string,
 ) {
+  if (isAccessDeniedError(error)) {
+    return NextResponse.json(
+      serializeAccessDeniedError(error),
+      {
+        status: 403,
+        headers: {
+          'Cache-Control': 'no-store',
+        },
+      },
+    )
+  }
+
   const message =
     error instanceof Error
       ? error.message
@@ -123,11 +184,19 @@ export async function GET(
   request: Request,
 ) {
   try {
-    const user = await requireSessionUser()
+    const user =
+      await requireSessionUser()
 
-    const { searchParams } = new URL(
-      request.url,
-    )
+    await requireFeatureAccess({
+      userId: user.id,
+      featureCode: 'evidences.text',
+      options: {
+        includeUsage: false,
+      },
+    })
+
+    const { searchParams } =
+      new URL(request.url)
 
     const planningId =
       normalizeOptionalText(
@@ -144,11 +213,6 @@ export async function GET(
         searchParams.get('evidenceType'),
       )
 
-    /*
-     * A consulta começa sempre pelas evidências do
-     * usuário autenticado. Os filtros são aplicados
-     * somente dentro desse conjunto.
-     */
     let data =
       await evidencesService.listByUserId(
         user.id,
@@ -157,7 +221,8 @@ export async function GET(
     if (planningId) {
       data = data.filter(
         (evidence) =>
-          evidence.planning_id === planningId,
+          evidence.planning_id ===
+          planningId,
       )
     }
 
@@ -200,10 +265,52 @@ export async function POST(
   request: Request,
 ) {
   try {
-    const user = await requireSessionUser()
+    const user =
+      await requireSessionUser()
 
     const body =
       (await request.json()) as CreateEvidenceRequestBody
+
+    const evidenceType =
+      normalizeEvidenceType(
+        body.evidenceType,
+      )
+
+    const requiredFeature =
+      evidenceType === 'imagem' ||
+      evidenceType === 'pdf'
+        ? 'evidences.upload'
+        : 'evidences.text'
+
+    await requireFeatureAccess({
+      userId: user.id,
+      featureCode: requiredFeature,
+      options: {
+        includeUsage: true,
+      },
+    })
+
+    const containsIdentifiableMinor =
+      normalizeBoolean(
+        body.containsIdentifiableMinor,
+      )
+
+    const guardianAuthorizationConfirmed =
+      normalizeBoolean(
+        body.guardianAuthorizationConfirmed,
+      )
+
+    const authorizationConfirmedAt =
+      containsIdentifiableMinor &&
+      guardianAuthorizationConfirmed
+        ? new Date().toISOString()
+        : null
+
+    const authorizationConfirmedBy =
+      containsIdentifiableMinor &&
+      guardianAuthorizationConfirmed
+        ? user.id
+        : null
 
     const input: CreateAgendaEvidenceInput = {
       title:
@@ -217,9 +324,7 @@ export async function POST(
         ),
 
       evidence_type:
-        normalizeEvidenceType(
-          body.evidenceType,
-        ),
+        evidenceType,
 
       file_url:
         normalizeOptionalText(
@@ -246,21 +351,71 @@ export async function POST(
           body.schoolId,
         ),
 
-      /*
-       * O usuário vem exclusivamente da sessão.
-       * Não aceitamos userId enviado pelo navegador.
-       */
       user_id: user.id,
+
+      contains_identifiable_minor:
+        containsIdentifiableMinor,
+
+      guardian_authorization_confirmed:
+        guardianAuthorizationConfirmed,
+
+      authorization_reference:
+        normalizeOptionalText(
+          body.authorizationReference,
+        ),
+
+      authorization_confirmed_at:
+        authorizationConfirmedAt,
+
+      authorization_confirmed_by:
+        authorizationConfirmedBy,
+
+      privacy_notice_version:
+        normalizeOptionalText(
+          body.privacyNoticeVersion,
+        ) ??
+        'edi-protecao-menores-v1.0',
+
+      storage_bucket:
+        normalizeOptionalText(
+          body.storageBucket,
+        ),
+
+      storage_path:
+        normalizeOptionalText(
+          body.storagePath,
+        ),
+
+      original_file_name:
+        normalizeOptionalText(
+          body.originalFileName,
+        ),
+
+      file_mime_type:
+        normalizeOptionalText(
+          body.fileMimeType,
+        ),
+
+      file_size_bytes:
+        normalizeFileSize(
+          body.fileSizeBytes,
+        ),
     }
 
     const data =
-      await evidencesService.create(input)
+      await evidencesService.create(
+        input,
+      )
 
     return NextResponse.json(
       {
         success: true,
+
         message:
-          'Evidência criada com sucesso.',
+          containsIdentifiableMinor
+            ? 'Evidência criada com registro da autorização do responsável.'
+            : 'Evidência criada com sucesso.',
+
         data,
       },
       {
