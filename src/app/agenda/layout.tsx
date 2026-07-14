@@ -27,26 +27,26 @@ export default async function AgendaLayout({
     return (
       <div className="min-h-screen bg-[#F4F7FA]">
         <header className="border-b border-white/10 bg-[#071826] text-white">
-          <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+            <div className="flex flex-col items-center gap-6">
               <Link
                 href="/agenda/dashboard"
                 aria-label="Ir para o painel da Agenda Inteligente EDI"
-                className="block w-fit"
+                className="flex justify-center"
               >
-                <div className="relative h-20 w-[290px] sm:h-24 sm:w-[380px]">
+                <div className="relative h-24 w-[220px] sm:h-28 sm:w-[260px] md:h-32 md:w-[300px]">
                   <Image
                     src="/logo-agenda-inteligente-edi.png"
                     alt="Agenda Inteligente EDI"
                     fill
                     priority
-                    sizes="(max-width: 640px) 290px, 380px"
-                    className="object-contain object-left"
+                    sizes="(max-width: 640px) 220px, (max-width: 768px) 260px, 300px"
+                    className="object-contain"
                   />
                 </div>
               </Link>
 
-              <div className="w-full rounded-2xl border border-white/10 bg-white p-3 shadow-lg lg:w-auto lg:min-w-[360px]">
+              <div className="w-full max-w-3xl rounded-[28px] bg-white px-5 py-5 shadow-sm ring-1 ring-slate-200 sm:px-6">
                 <UserMenu
                   name={userName}
                   email={user.email}
@@ -54,23 +54,23 @@ export default async function AgendaLayout({
               </div>
             </div>
 
-            <div className="mt-5 border-t border-white/10 pt-4">
-              <div className="flex flex-col gap-3 text-sm text-slate-300 sm:flex-row sm:items-center sm:justify-between">
-                <p>
+            <div className="mt-6 border-t border-white/10 pt-6">
+              <div className="flex flex-col items-center gap-5 text-center">
+                <p className="max-w-3xl text-lg leading-9 text-slate-300 sm:text-xl">
                   Planeje, registre, evidencie e analise sua rotina pedagógica.
                 </p>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-center">
                   <Link
-                    href="/professor-digital/agenda"
-                    className="rounded-full border border-white/15 px-4 py-2 font-semibold text-white transition hover:bg-white/10"
+                    href="/professor-digital"
+                    className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-white/15 px-6 py-3 text-base font-semibold text-white transition hover:bg-white/10"
                   >
                     Professor Digital
                   </Link>
 
                   <Link
                     href="/"
-                    className="rounded-full border border-white/15 px-4 py-2 font-semibold text-white transition hover:bg-white/10"
+                    className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-white/15 px-6 py-3 text-base font-semibold text-white transition hover:bg-white/10"
                   >
                     Voltar para a Home
                   </Link>
