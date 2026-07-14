@@ -1,9 +1,12 @@
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
+
+import Image from 'next/image'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
-import { requireSessionUser } from '@/lib/auth/session'
-import { UserMenu } from '@/components/layout/UserMenu'
 import { AgendaNavigation } from '@/components/agenda/AgendaNavigation'
+import { UserMenu } from '@/components/layout/UserMenu'
+import { requireSessionUser } from '@/lib/auth/session'
 
 type AgendaLayoutProps = {
   children: ReactNode
@@ -15,28 +18,71 @@ export default async function AgendaLayout({
   try {
     const user = await requireSessionUser()
 
-    return (
-      <div className="min-h-screen bg-slate-100">
-        <header className="border-b bg-white">
-          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-            <h1 className="text-lg font-bold">
-              Agenda Inteligente EDI
-            </h1>
+    const userName =
+      user.user_metadata?.full_name ??
+      user.user_metadata?.name ??
+      user.email?.split('@')[0] ??
+      'Usuário'
 
-            <UserMenu
-              name={
-                user.user_metadata?.name ??
-                user.email?.split('@')[0] ??
-                'Usuário'
-              }
-              email={user.email}
-            />
+    return (
+      <div className="min-h-screen bg-[#F4F7FA]">
+        <header className="border-b border-white/10 bg-[#071826] text-white">
+          <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <Link
+                href="/agenda/dashboard"
+                aria-label="Ir para o painel da Agenda Inteligente EDI"
+                className="block w-fit"
+              >
+                <div className="relative h-20 w-[290px] sm:h-24 sm:w-[380px]">
+                  <Image
+                    src="/logo-agenda-inteligente-edi.png"
+                    alt="Agenda Inteligente EDI"
+                    fill
+                    priority
+                    sizes="(max-width: 640px) 290px, 380px"
+                    className="object-contain object-left"
+                  />
+                </div>
+              </Link>
+
+              <div className="w-full rounded-2xl border border-white/10 bg-white p-3 shadow-lg lg:w-auto lg:min-w-[360px]">
+                <UserMenu
+                  name={userName}
+                  email={user.email}
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 border-t border-white/10 pt-4">
+              <div className="flex flex-col gap-3 text-sm text-slate-300 sm:flex-row sm:items-center sm:justify-between">
+                <p>
+                  Planeje, registre, evidencie e analise sua rotina pedagógica.
+                </p>
+
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href="/professor-digital/agenda"
+                    className="rounded-full border border-white/15 px-4 py-2 font-semibold text-white transition hover:bg-white/10"
+                  >
+                    Professor Digital
+                  </Link>
+
+                  <Link
+                    href="/"
+                    className="rounded-full border border-white/15 px-4 py-2 font-semibold text-white transition hover:bg-white/10"
+                  >
+                    Voltar para a Home
+                  </Link>
+                </div>
+              </div>
+            </div>
           </div>
         </header>
 
         <AgendaNavigation />
 
-        <main className="mx-auto max-w-7xl p-6">
+        <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
           {children}
         </main>
       </div>
