@@ -22,7 +22,7 @@ export function ProfessorDigitalHero() {
 
           <div className="mt-10 flex flex-wrap gap-4">
             <Link
-              href="/professor-digital/dashboard"
+              href="/professor-digital/agenda"
               className="rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 px-7 py-4 font-semibold text-slate-950 transition hover:opacity-90"
             >
               Acessar o Professor Digital
