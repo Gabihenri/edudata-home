@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server'
 
+import {
+  isAccessDeniedError,
+  requireFeatureAccess,
+  serializeAccessDeniedError,
+} from '@/lib/access/guards/require-feature-access'
 import { requireSessionUser } from '@/lib/auth/session'
 import { scheduleTemplatesService } from '@/lib/agenda/services/schedule-templates.service'
 
@@ -49,8 +54,7 @@ function getErrorStatus(
 
   if (
     message.includes('não autenticado') ||
-    message.includes('não autorizado') ||
-    message.includes('permissão')
+    message.includes('não autorizado')
   ) {
     return 401
   }
@@ -78,6 +82,18 @@ function createErrorResponse(
   error: unknown,
   fallbackMessage: string,
 ) {
+  if (isAccessDeniedError(error)) {
+    return NextResponse.json(
+      serializeAccessDeniedError(error),
+      {
+        status: 403,
+        headers: {
+          'Cache-Control': 'no-store',
+        },
+      },
+    )
+  }
+
   const message =
     error instanceof Error
       ? error.message
@@ -102,6 +118,14 @@ export async function POST(
 ) {
   try {
     const user = await requireSessionUser()
+
+    await requireFeatureAccess({
+      userId: user.id,
+      featureCode: 'agenda.templates',
+      options: {
+        includeUsage: true,
+      },
+    })
 
     const body =
       (await request.json()) as ApplyScheduleTemplatesBody
