@@ -3,73 +3,51 @@ import {
   type SupabaseClient,
 } from '@supabase/supabase-js'
 
-export type AgendaScheduleMode =
-  | 'pontual'
-  | 'recorrente'
-  | 'modelo'
+export type AgendaEvidenceType =
+  | 'texto'
+  | 'imagem'
+  | 'pdf'
+  | 'link'
 
-export type AgendaRecurrenceFrequency =
-  | 'none'
-  | 'weekly'
-
-export type AgendaEvent = {
+export type AgendaEvidence = {
   id: string
+
   title: string
   description: string | null
-  event_type: string
-  start_at: string
-  end_at: string | null
-  status: string
-  priority: string
+
+  evidence_type: AgendaEvidenceType
+
+  file_url: string | null
+  external_url: string | null
+
+  planning_id: string | null
+  event_id: string | null
 
   school_id: string | null
   user_id: string | null
-  planning_id: string | null
-  evidence_id: string | null
-
-  schedule_mode: AgendaScheduleMode
-  recurrence_frequency: AgendaRecurrenceFrequency
-  recurrence_interval: number
-  recurrence_until: string | null
-
-  series_id: string | null
-  source_template_id: string | null
-  week_reference: string | null
-  original_start_at: string | null
-  is_exception: boolean
 
   created_at: string
   updated_at: string
 }
 
-export type CreateAgendaEventInput = {
+export type CreateAgendaEvidenceInput = {
   title: string
   description?: string | null
-  event_type?: string
-  start_at: string
-  end_at?: string | null
-  status?: string
-  priority?: string
+
+  evidence_type?: AgendaEvidenceType
+
+  file_url?: string | null
+  external_url?: string | null
+
+  planning_id?: string | null
+  event_id?: string | null
 
   school_id?: string | null
   user_id?: string | null
-  planning_id?: string | null
-  evidence_id?: string | null
-
-  schedule_mode?: AgendaScheduleMode
-  recurrence_frequency?: AgendaRecurrenceFrequency
-  recurrence_interval?: number
-  recurrence_until?: string | null
-
-  series_id?: string | null
-  source_template_id?: string | null
-  week_reference?: string | null
-  original_start_at?: string | null
-  is_exception?: boolean
 }
 
-export type UpdateAgendaEventInput =
-  Partial<CreateAgendaEventInput>
+export type UpdateAgendaEvidenceInput =
+  Partial<CreateAgendaEvidenceInput>
 
 function createSupabaseClient(): SupabaseClient {
   const url =
@@ -93,297 +71,247 @@ function createSupabaseClient(): SupabaseClient {
   })
 }
 
-function getWeekReference(
-  startAt: string,
-): string {
-  const date = new Date(startAt)
-
-  if (Number.isNaN(date.getTime())) {
-    throw new Error(
-      'Data inicial inválida para calcular a semana.',
-    )
-  }
-
-  const localDate = new Date(
-    date.toLocaleString('en-US', {
-      timeZone: 'America/Sao_Paulo',
-    }),
-  )
-
-  const day =
-    localDate.getDay() === 0
-      ? 7
-      : localDate.getDay()
-
-  localDate.setDate(
-    localDate.getDate() - day + 1,
-  )
-
-  const year = localDate.getFullYear()
-  const month = String(
-    localDate.getMonth() + 1,
-  ).padStart(2, '0')
-  const calendarDay = String(
-    localDate.getDate(),
-  ).padStart(2, '0')
-
-  return `${year}-${month}-${calendarDay}`
-}
-
 function buildCreatePayload(
-  input: CreateAgendaEventInput,
+  input: CreateAgendaEvidenceInput,
 ) {
   return {
     title: input.title,
+
     description:
       input.description ?? null,
 
-    event_type:
-      input.event_type ?? 'pedagogico',
+    evidence_type:
+      input.evidence_type ?? 'texto',
 
-    start_at: input.start_at,
-    end_at: input.end_at ?? null,
+    file_url:
+      input.file_url ?? null,
 
-    status:
-      input.status ?? 'planejado',
+    external_url:
+      input.external_url ?? null,
 
-    priority:
-      input.priority ?? 'media',
+    planning_id:
+      input.planning_id ?? null,
+
+    event_id:
+      input.event_id ?? null,
 
     school_id:
       input.school_id ?? null,
 
     user_id:
       input.user_id ?? null,
-
-    planning_id:
-      input.planning_id ?? null,
-
-    evidence_id:
-      input.evidence_id ?? null,
-
-    schedule_mode:
-      input.schedule_mode ?? 'pontual',
-
-    recurrence_frequency:
-      input.recurrence_frequency ?? 'none',
-
-    recurrence_interval:
-      input.recurrence_interval ?? 1,
-
-    recurrence_until:
-      input.recurrence_until ?? null,
-
-    series_id:
-      input.series_id ?? null,
-
-    source_template_id:
-      input.source_template_id ?? null,
-
-    week_reference:
-      input.week_reference ??
-      getWeekReference(input.start_at),
-
-    original_start_at:
-      input.original_start_at ?? null,
-
-    is_exception:
-      input.is_exception ?? false,
   }
 }
 
-class EventsRepository {
+function buildUpdatePayload(
+  input: UpdateAgendaEvidenceInput,
+): Record<string, unknown> {
+  const payload: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  }
+
+  if (input.title !== undefined) {
+    payload.title = input.title
+  }
+
+  if (input.description !== undefined) {
+    payload.description = input.description
+  }
+
+  if (input.evidence_type !== undefined) {
+    payload.evidence_type =
+      input.evidence_type
+  }
+
+  if (input.file_url !== undefined) {
+    payload.file_url = input.file_url
+  }
+
+  if (input.external_url !== undefined) {
+    payload.external_url =
+      input.external_url
+  }
+
+  if (input.planning_id !== undefined) {
+    payload.planning_id =
+      input.planning_id
+  }
+
+  if (input.event_id !== undefined) {
+    payload.event_id = input.event_id
+  }
+
+  if (input.school_id !== undefined) {
+    payload.school_id = input.school_id
+  }
+
+  if (input.user_id !== undefined) {
+    payload.user_id = input.user_id
+  }
+
+  return payload
+}
+
+class EvidencesRepository {
   private get client(): SupabaseClient {
     return createSupabaseClient()
   }
 
-  async findAll(): Promise<AgendaEvent[]> {
+  async findAll(): Promise<
+    AgendaEvidence[]
+  > {
     const { data, error } =
       await this.client
-        .from('agenda_events')
+        .from('agenda_evidences')
         .select('*')
-        .order('start_at', {
-          ascending: true,
+        .order('created_at', {
+          ascending: false,
         })
 
     if (error) {
       throw new Error(
-        `Erro ao listar eventos: ${error.message}`,
+        `Erro ao listar evidências: ${error.message}`,
       )
     }
 
-    return (data ?? []) as AgendaEvent[]
+    return (data ?? []) as AgendaEvidence[]
   }
 
   async findById(
     id: string,
-  ): Promise<AgendaEvent | null> {
+  ): Promise<AgendaEvidence | null> {
     const { data, error } =
       await this.client
-        .from('agenda_events')
+        .from('agenda_evidences')
         .select('*')
         .eq('id', id)
         .maybeSingle()
 
     if (error) {
       throw new Error(
-        `Erro ao buscar evento: ${error.message}`,
+        `Erro ao buscar evidência: ${error.message}`,
       )
     }
 
-    return data as AgendaEvent | null
+    return data as AgendaEvidence | null
   }
 
   async findByUserId(
     userId: string,
-  ): Promise<AgendaEvent[]> {
+  ): Promise<AgendaEvidence[]> {
     const { data, error } =
       await this.client
-        .from('agenda_events')
+        .from('agenda_evidences')
         .select('*')
         .eq('user_id', userId)
-        .order('start_at', {
-          ascending: true,
+        .order('created_at', {
+          ascending: false,
         })
 
     if (error) {
       throw new Error(
-        `Erro ao listar eventos do usuário: ${error.message}`,
+        `Erro ao listar evidências do usuário: ${error.message}`,
       )
     }
 
-    return (data ?? []) as AgendaEvent[]
-  }
-
-  async findByUserAndWeek(
-    userId: string,
-    weekReference: string,
-  ): Promise<AgendaEvent[]> {
-    const { data, error } =
-      await this.client
-        .from('agenda_events')
-        .select('*')
-        .eq('user_id', userId)
-        .eq(
-          'week_reference',
-          weekReference,
-        )
-        .order('start_at', {
-          ascending: true,
-        })
-
-    if (error) {
-      throw new Error(
-        `Erro ao listar eventos da semana: ${error.message}`,
-      )
-    }
-
-    return (data ?? []) as AgendaEvent[]
+    return (data ?? []) as AgendaEvidence[]
   }
 
   async findBySchoolId(
     schoolId: string,
-  ): Promise<AgendaEvent[]> {
+  ): Promise<AgendaEvidence[]> {
     const { data, error } =
       await this.client
-        .from('agenda_events')
+        .from('agenda_evidences')
         .select('*')
         .eq('school_id', schoolId)
-        .order('start_at', {
-          ascending: true,
+        .order('created_at', {
+          ascending: false,
         })
 
     if (error) {
       throw new Error(
-        `Erro ao listar eventos da escola: ${error.message}`,
+        `Erro ao listar evidências da escola: ${error.message}`,
       )
     }
 
-    return (data ?? []) as AgendaEvent[]
+    return (data ?? []) as AgendaEvidence[]
   }
 
-  async findBySeriesId(
-    seriesId: string,
-  ): Promise<AgendaEvent[]> {
+  async findByPlanningId(
+    planningId: string,
+  ): Promise<AgendaEvidence[]> {
     const { data, error } =
       await this.client
-        .from('agenda_events')
+        .from('agenda_evidences')
         .select('*')
-        .eq('series_id', seriesId)
-        .order('start_at', {
-          ascending: true,
+        .eq('planning_id', planningId)
+        .order('created_at', {
+          ascending: false,
         })
 
     if (error) {
       throw new Error(
-        `Erro ao listar série de eventos: ${error.message}`,
+        `Erro ao listar evidências do planejamento: ${error.message}`,
       )
     }
 
-    return (data ?? []) as AgendaEvent[]
+    return (data ?? []) as AgendaEvidence[]
+  }
+
+  async findByEventId(
+    eventId: string,
+  ): Promise<AgendaEvidence[]> {
+    const { data, error } =
+      await this.client
+        .from('agenda_evidences')
+        .select('*')
+        .eq('event_id', eventId)
+        .order('created_at', {
+          ascending: false,
+        })
+
+    if (error) {
+      throw new Error(
+        `Erro ao listar evidências do evento: ${error.message}`,
+      )
+    }
+
+    return (data ?? []) as AgendaEvidence[]
   }
 
   async create(
-    input: CreateAgendaEventInput,
-  ): Promise<AgendaEvent> {
+    input: CreateAgendaEvidenceInput,
+  ): Promise<AgendaEvidence> {
     const payload =
       buildCreatePayload(input)
 
     const { data, error } =
       await this.client
-        .from('agenda_events')
+        .from('agenda_evidences')
         .insert(payload)
         .select('*')
         .single()
 
     if (error) {
       throw new Error(
-        `Erro ao criar evento: ${error.message}`,
+        `Erro ao criar evidência: ${error.message}`,
       )
     }
 
-    return data as AgendaEvent
-  }
-
-  async createMany(
-    inputs: CreateAgendaEventInput[],
-  ): Promise<AgendaEvent[]> {
-    if (inputs.length === 0) {
-      return []
-    }
-
-    const payloads = inputs.map(
-      buildCreatePayload,
-    )
-
-    const { data, error } =
-      await this.client
-        .from('agenda_events')
-        .insert(payloads)
-        .select('*')
-
-    if (error) {
-      throw new Error(
-        `Erro ao criar eventos recorrentes: ${error.message}`,
-      )
-    }
-
-    return (data ?? []) as AgendaEvent[]
+    return data as AgendaEvidence
   }
 
   async update(
     id: string,
-    input: UpdateAgendaEventInput,
-  ): Promise<AgendaEvent> {
-    const payload = {
-      ...input,
-      updated_at:
-        new Date().toISOString(),
-    }
+    input: UpdateAgendaEvidenceInput,
+  ): Promise<AgendaEvidence> {
+    const payload =
+      buildUpdatePayload(input)
 
     const { data, error } =
       await this.client
-        .from('agenda_events')
+        .from('agenda_evidences')
         .update(payload)
         .eq('id', id)
         .select('*')
@@ -391,45 +319,29 @@ class EventsRepository {
 
     if (error) {
       throw new Error(
-        `Erro ao atualizar evento: ${error.message}`,
+        `Erro ao atualizar evidência: ${error.message}`,
       )
     }
 
-    return data as AgendaEvent
+    return data as AgendaEvidence
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(
+    id: string,
+  ): Promise<void> {
     const { error } =
       await this.client
-        .from('agenda_events')
+        .from('agenda_evidences')
         .delete()
         .eq('id', id)
 
     if (error) {
       throw new Error(
-        `Erro ao excluir evento: ${error.message}`,
-      )
-    }
-  }
-
-  async deleteSeriesFromDate(
-    seriesId: string,
-    startAt: string,
-  ): Promise<void> {
-    const { error } =
-      await this.client
-        .from('agenda_events')
-        .delete()
-        .eq('series_id', seriesId)
-        .gte('start_at', startAt)
-
-    if (error) {
-      throw new Error(
-        `Erro ao excluir eventos futuros da série: ${error.message}`,
+        `Erro ao excluir evidência: ${error.message}`,
       )
     }
   }
 }
 
-export const eventsRepository =
-  new EventsRepository()
+export const evidencesRepository =
+  new EvidencesRepository()
