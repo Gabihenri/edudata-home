@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 import { AgendaPageShell } from '@/components/agenda/AgendaPageShell'
 
 const stats = [
@@ -19,6 +21,29 @@ const stats = [
   },
 ]
 
+const quickActions = [
+  {
+    label: 'Novo evento',
+    href: '/agenda/calendario',
+    primary: true,
+  },
+  {
+    label: 'Novo planejamento',
+    href: '/agenda/planejamento',
+    primary: false,
+  },
+  {
+    label: 'Registrar evidência',
+    href: '/agenda/evidencias',
+    primary: false,
+  },
+  {
+    label: 'Ver histórico',
+    href: '/agenda/historico',
+    primary: false,
+  },
+]
+
 export default function AgendaDashboardPage() {
   return (
     <AgendaPageShell
@@ -27,21 +52,25 @@ export default function AgendaDashboardPage() {
       description="Visão consolidada dos eventos, planejamentos, evidências, tarefas e turmas registradas na Agenda Inteligente EDI."
     >
       <div className="grid gap-6">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section
+          aria-label="Indicadores da Agenda"
+          className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+        >
           {stats.map((item) => (
-            <div
+            <article
               key={item.label}
               className="rounded-3xl border border-slate-200 bg-slate-50 p-6"
             >
               <p className="text-sm font-semibold uppercase tracking-[0.15em] text-cyan-700">
                 {item.label}
               </p>
+
               <p className="mt-4 text-4xl font-bold text-[#081C2E]">
                 {item.value}
               </p>
-            </div>
+            </article>
           ))}
-        </div>
+        </section>
 
         <div className="grid gap-6 lg:grid-cols-2">
           <section className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8">
@@ -63,21 +92,20 @@ export default function AgendaDashboardPage() {
             </h2>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <button className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-[#6B21A8] px-6 py-3 text-base font-semibold text-white transition hover:opacity-95">
-                Novo evento
-              </button>
-
-              <button className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-base font-semibold text-slate-700 transition hover:bg-slate-50">
-                Novo planejamento
-              </button>
-
-              <button className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-base font-semibold text-slate-700 transition hover:bg-slate-50">
-                Registrar evidência
-              </button>
-
-              <button className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-base font-semibold text-slate-700 transition hover:bg-slate-50">
-                Ver histórico
-              </button>
+              {quickActions.map((action) => (
+                <Link
+                  key={action.href}
+                  href={action.href}
+                  className={[
+                    'inline-flex min-h-[56px] items-center justify-center rounded-full px-6 py-3 text-center text-base font-semibold transition',
+                    action.primary
+                      ? 'bg-[#6B21A8] text-white shadow-sm hover:bg-[#581C87]'
+                      : 'border border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50',
+                  ].join(' ')}
+                >
+                  {action.label}
+                </Link>
+              ))}
             </div>
           </section>
         </div>
