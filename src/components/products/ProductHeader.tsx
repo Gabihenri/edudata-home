@@ -35,14 +35,14 @@ export function ProductHeader({
           aria-label="Voltar para a página inicial da EduData IA"
           className="block shrink-0"
         >
-          <div className="relative h-20 w-[280px] overflow-hidden md:h-24 md:w-[380px]">
+          <div className="relative h-20 w-[300px] md:h-24 md:w-[380px]">
             <Image
               src={logoSrc}
               alt={logoAlt}
               fill
               priority
-              sizes="(max-width: 768px) 280px, 380px"
-              className="object-cover object-center"
+              sizes="(max-width: 768px) 300px, 380px"
+              className="object-contain object-left"
             />
           </div>
         </Link>
