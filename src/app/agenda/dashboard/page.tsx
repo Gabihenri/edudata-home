@@ -1,4 +1,6 @@
-import Link from 'next/link'
+'use client'
+
+import { useRouter } from 'next/navigation'
 
 import { AgendaPageShell } from '@/components/agenda/AgendaPageShell'
 
@@ -45,6 +47,12 @@ const quickActions = [
 ]
 
 export default function AgendaDashboardPage() {
+  const router = useRouter()
+
+  function navigateTo(href: string) {
+    router.push(href)
+  }
+
   return (
     <AgendaPageShell
       eyebrow="Agenda Inteligente EDI"
@@ -91,20 +99,24 @@ export default function AgendaDashboardPage() {
               Atalhos rápidos
             </h2>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
               {quickActions.map((action) => (
-                <Link
+                <button
                   key={action.href}
-                  href={action.href}
+                  type="button"
+                  onClick={() => navigateTo(action.href)}
                   className={[
-                    'inline-flex min-h-[56px] items-center justify-center rounded-full px-6 py-3 text-center text-base font-semibold transition',
+                    'inline-flex min-h-[58px] w-full cursor-pointer items-center justify-center rounded-full px-6 py-4',
+                    'text-center text-base font-semibold transition duration-200',
+                    'focus:outline-none focus:ring-4 focus:ring-purple-300',
+                    'active:scale-[0.98]',
                     action.primary
-                      ? 'bg-[#6B21A8] text-white shadow-sm hover:bg-[#581C87]'
-                      : 'border border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50',
+                      ? 'bg-[#6B21A8] text-white shadow-md hover:bg-[#581C87]'
+                      : 'border-2 border-slate-300 bg-white text-slate-700 shadow-sm hover:border-[#6B21A8] hover:bg-purple-50 hover:text-[#6B21A8]',
                   ].join(' ')}
                 >
                   {action.label}
-                </Link>
+                </button>
               ))}
             </div>
           </section>
