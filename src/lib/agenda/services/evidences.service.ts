@@ -1,110 +1,227 @@
 import {
   evidencesRepository,
   type AgendaEvidence,
+  type AgendaEvidenceType,
   type CreateAgendaEvidenceInput,
   type UpdateAgendaEvidenceInput,
 } from '@/lib/agenda/repository/evidences.repository'
+
+const ALLOWED_EVIDENCE_TYPES: AgendaEvidenceType[] = [
+  'texto',
+  'imagem',
+  'pdf',
+  'link',
+]
+
+function normalizeRequiredText(
+  value: string | undefined,
+  fieldName: string,
+): string {
+  const normalizedValue = value?.trim()
+
+  if (!normalizedValue) {
+    throw new Error(`${fieldName} é obrigatório.`)
+  }
+
+  return normalizedValue
+}
+
+function normalizeOptionalText(
+  value: string | null | undefined,
+): string | null {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  return value.trim() || null
+}
+
+function normalizeEvidenceType(
+  value: string | undefined,
+): AgendaEvidenceType {
+  const normalizedValue =
+    value?.trim().toLowerCase() || 'texto'
+
+  if (
+    !ALLOWED_EVIDENCE_TYPES.includes(
+      normalizedValue as AgendaEvidenceType,
+    )
+  ) {
+    throw new Error(
+      'Tipo de evidência inválido. Use texto, imagem, pdf ou link.',
+    )
+  }
+
+  return normalizedValue as AgendaEvidenceType
+}
+
+function validateEvidenceReferences(
+  evidenceType: AgendaEvidenceType,
+  fileUrl: string | null,
+  externalUrl: string | null,
+): void {
+  if (
+    (evidenceType === 'imagem' ||
+      evidenceType === 'pdf') &&
+    !fileUrl
+  ) {
+    throw new Error(
+      'Envie um arquivo para evidências de imagem ou PDF.',
+    )
+  }
+
+  if (evidenceType === 'link' && !externalUrl) {
+    throw new Error(
+      'Informe o endereço externo da evidência.',
+    )
+  }
+}
 
 class EvidencesService {
   async listAll(): Promise<AgendaEvidence[]> {
     return evidencesRepository.findAll()
   }
 
-  async getById(id: string): Promise<AgendaEvidence> {
-    if (!id?.trim()) {
-      throw new Error('ID da evidência é obrigatório.')
-    }
+  async getById(
+    id: string,
+  ): Promise<AgendaEvidence> {
+    const normalizedId = normalizeRequiredText(
+      id,
+      'ID da evidência',
+    )
 
-    const evidence = await evidencesRepository.findById(id)
+    const evidence =
+      await evidencesRepository.findById(
+        normalizedId,
+      )
 
     if (!evidence) {
-      throw new Error('Evidência não encontrada.')
+      throw new Error(
+        'Evidência não encontrada.',
+      )
     }
 
     return evidence
   }
 
-  async listByUserId(userId: string): Promise<AgendaEvidence[]> {
-    if (!userId?.trim()) {
-      throw new Error('ID do usuário é obrigatório.')
-    }
+  async listByUserId(
+    userId: string,
+  ): Promise<AgendaEvidence[]> {
+    const normalizedUserId =
+      normalizeRequiredText(
+        userId,
+        'ID do usuário',
+      )
 
-    return evidencesRepository.findByUserId(userId)
+    return evidencesRepository.findByUserId(
+      normalizedUserId,
+    )
   }
 
-  async listBySchoolId(schoolId: string): Promise<AgendaEvidence[]> {
-    if (!schoolId?.trim()) {
-      throw new Error('ID da escola é obrigatório.')
-    }
+  async listBySchoolId(
+    schoolId: string,
+  ): Promise<AgendaEvidence[]> {
+    const normalizedSchoolId =
+      normalizeRequiredText(
+        schoolId,
+        'ID da escola',
+      )
 
-    return evidencesRepository.findBySchoolId(schoolId)
+    return evidencesRepository.findBySchoolId(
+      normalizedSchoolId,
+    )
   }
 
   async listByPlanningId(
     planningId: string,
   ): Promise<AgendaEvidence[]> {
-    if (!planningId?.trim()) {
-      throw new Error('ID do planejamento é obrigatório.')
-    }
+    const normalizedPlanningId =
+      normalizeRequiredText(
+        planningId,
+        'ID do planejamento',
+      )
 
-    return evidencesRepository.findByPlanningId(planningId)
+    return evidencesRepository.findByPlanningId(
+      normalizedPlanningId,
+    )
   }
 
-  async listByEventId(eventId: string): Promise<AgendaEvidence[]> {
-    if (!eventId?.trim()) {
-      throw new Error('ID do evento é obrigatório.')
-    }
+  async listByEventId(
+    eventId: string,
+  ): Promise<AgendaEvidence[]> {
+    const normalizedEventId =
+      normalizeRequiredText(
+        eventId,
+        'ID do evento',
+      )
 
-    return evidencesRepository.findByEventId(eventId)
+    return evidencesRepository.findByEventId(
+      normalizedEventId,
+    )
   }
 
   async create(
     input: CreateAgendaEvidenceInput,
   ): Promise<AgendaEvidence> {
-    const title = input.title?.trim()
-
-    if (!title) {
-      throw new Error('Título da evidência é obrigatório.')
-    }
+    const title = normalizeRequiredText(
+      input.title,
+      'Título da evidência',
+    )
 
     const evidenceType =
-      input.evidence_type?.trim().toLowerCase() || 'texto'
-
-    const allowedTypes = ['texto', 'imagem', 'pdf', 'link']
-
-    if (!allowedTypes.includes(evidenceType)) {
-      throw new Error(
-        'Tipo de evidência inválido. Use texto, imagem, pdf ou link.',
+      normalizeEvidenceType(
+        input.evidence_type,
       )
-    }
 
-    const fileUrl = input.file_url?.trim() || null
-    const externalUrl = input.external_url?.trim() || null
-
-    if (
-      evidenceType === 'imagem' ||
-      evidenceType === 'pdf'
-    ) {
-      if (!fileUrl) {
-        throw new Error(
-          'Uma URL de arquivo é obrigatória para evidências de imagem ou PDF.',
-        )
-      }
-    }
-
-    if (evidenceType === 'link' && !externalUrl) {
-      throw new Error(
-        'Uma URL externa é obrigatória para evidências do tipo link.',
+    const description =
+      normalizeOptionalText(
+        input.description,
       )
-    }
+
+    const fileUrl =
+      normalizeOptionalText(
+        input.file_url,
+      )
+
+    const externalUrl =
+      normalizeOptionalText(
+        input.external_url,
+      )
+
+    validateEvidenceReferences(
+      evidenceType,
+      fileUrl,
+      externalUrl,
+    )
 
     return evidencesRepository.create({
-      ...input,
       title,
-      description: input.description?.trim() || null,
+      description,
+
       evidence_type: evidenceType,
+
       file_url: fileUrl,
       external_url: externalUrl,
+
+      planning_id:
+        normalizeOptionalText(
+          input.planning_id,
+        ),
+
+      event_id:
+        normalizeOptionalText(
+          input.event_id,
+        ),
+
+      school_id:
+        normalizeOptionalText(
+          input.school_id,
+        ),
+
+      user_id:
+        normalizeOptionalText(
+          input.user_id,
+        ),
     })
   }
 
@@ -112,57 +229,94 @@ class EvidencesService {
     id: string,
     input: UpdateAgendaEvidenceInput,
   ): Promise<AgendaEvidence> {
-    if (!id?.trim()) {
-      throw new Error('ID da evidência é obrigatório.')
-    }
+    const normalizedId =
+      normalizeRequiredText(
+        id,
+        'ID da evidência',
+      )
 
-    const existingEvidence = await evidencesRepository.findById(id)
+    const existingEvidence =
+      await evidencesRepository.findById(
+        normalizedId,
+      )
 
     if (!existingEvidence) {
-      throw new Error('Evidência não encontrada.')
+      throw new Error(
+        'Evidência não encontrada.',
+      )
     }
 
-    const normalizedInput: UpdateAgendaEvidenceInput = {
-      ...input,
-    }
+    const normalizedInput:
+      UpdateAgendaEvidenceInput = {}
 
     if (input.title !== undefined) {
-      const title = input.title.trim()
-
-      if (!title) {
-        throw new Error('Título da evidência não pode ficar vazio.')
-      }
-
-      normalizedInput.title = title
+      normalizedInput.title =
+        normalizeRequiredText(
+          input.title,
+          'Título da evidência',
+        )
     }
 
     if (input.description !== undefined) {
       normalizedInput.description =
-        input.description?.trim() || null
+        normalizeOptionalText(
+          input.description,
+        )
     }
 
-    if (input.evidence_type !== undefined) {
-      const evidenceType =
-        input.evidence_type.trim().toLowerCase() || 'texto'
-
-      const allowedTypes = ['texto', 'imagem', 'pdf', 'link']
-
-      if (!allowedTypes.includes(evidenceType)) {
-        throw new Error(
-          'Tipo de evidência inválido. Use texto, imagem, pdf ou link.',
+    if (
+      input.evidence_type !== undefined
+    ) {
+      normalizedInput.evidence_type =
+        normalizeEvidenceType(
+          input.evidence_type,
         )
-      }
-
-      normalizedInput.evidence_type = evidenceType
     }
 
     if (input.file_url !== undefined) {
-      normalizedInput.file_url = input.file_url?.trim() || null
+      normalizedInput.file_url =
+        normalizeOptionalText(
+          input.file_url,
+        )
     }
 
-    if (input.external_url !== undefined) {
+    if (
+      input.external_url !== undefined
+    ) {
       normalizedInput.external_url =
-        input.external_url?.trim() || null
+        normalizeOptionalText(
+          input.external_url,
+        )
+    }
+
+    if (
+      input.planning_id !== undefined
+    ) {
+      normalizedInput.planning_id =
+        normalizeOptionalText(
+          input.planning_id,
+        )
+    }
+
+    if (input.event_id !== undefined) {
+      normalizedInput.event_id =
+        normalizeOptionalText(
+          input.event_id,
+        )
+    }
+
+    if (input.school_id !== undefined) {
+      normalizedInput.school_id =
+        normalizeOptionalText(
+          input.school_id,
+        )
+    }
+
+    if (input.user_id !== undefined) {
+      normalizedInput.user_id =
+        normalizeOptionalText(
+          input.user_id,
+        )
     }
 
     const finalEvidenceType =
@@ -170,50 +324,52 @@ class EvidencesService {
       existingEvidence.evidence_type
 
     const finalFileUrl =
-      normalizedInput.file_url !== undefined
+      normalizedInput.file_url !==
+      undefined
         ? normalizedInput.file_url
         : existingEvidence.file_url
 
     const finalExternalUrl =
-      normalizedInput.external_url !== undefined
+      normalizedInput.external_url !==
+      undefined
         ? normalizedInput.external_url
         : existingEvidence.external_url
 
-    if (
-      (finalEvidenceType === 'imagem' ||
-        finalEvidenceType === 'pdf') &&
-      !finalFileUrl
-    ) {
-      throw new Error(
-        'Uma URL de arquivo é obrigatória para evidências de imagem ou PDF.',
-      )
-    }
+    validateEvidenceReferences(
+      finalEvidenceType,
+      finalFileUrl ?? null,
+      finalExternalUrl ?? null,
+    )
 
-    if (
-      finalEvidenceType === 'link' &&
-      !finalExternalUrl
-    ) {
-      throw new Error(
-        'Uma URL externa é obrigatória para evidências do tipo link.',
-      )
-    }
-
-    return evidencesRepository.update(id, normalizedInput)
+    return evidencesRepository.update(
+      normalizedId,
+      normalizedInput,
+    )
   }
 
   async delete(id: string): Promise<void> {
-    if (!id?.trim()) {
-      throw new Error('ID da evidência é obrigatório.')
-    }
+    const normalizedId =
+      normalizeRequiredText(
+        id,
+        'ID da evidência',
+      )
 
-    const existingEvidence = await evidencesRepository.findById(id)
+    const existingEvidence =
+      await evidencesRepository.findById(
+        normalizedId,
+      )
 
     if (!existingEvidence) {
-      throw new Error('Evidência não encontrada.')
+      throw new Error(
+        'Evidência não encontrada.',
+      )
     }
 
-    await evidencesRepository.delete(id)
+    await evidencesRepository.delete(
+      normalizedId,
+    )
   }
 }
 
-export const evidencesService = new EvidencesService()
+export const evidencesService =
+  new EvidencesService()
