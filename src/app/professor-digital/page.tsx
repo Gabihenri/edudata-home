@@ -43,7 +43,7 @@ export default function ProfessorDigitalPage() {
         logoSrc="/logo-professor-digital.png"
         logoAlt="Professor Digital"
         productName="Professor Digital"
-        accessHref="/professor-digital/dashboard"
+        accessHref="/professor-digital/agenda"
         accessLabel="Acessar plataforma"
       />
 
