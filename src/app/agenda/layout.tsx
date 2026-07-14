@@ -27,21 +27,21 @@ export default async function AgendaLayout({
     return (
       <div className="min-h-screen bg-[#F4F7FA]">
         <header className="border-b border-white/10 bg-[#071826] text-white">
-          <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-            <div className="flex flex-col items-center gap-6">
+          <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-8 lg:px-8">
+            <div className="flex flex-col items-center gap-7">
               <Link
                 href="/agenda/dashboard"
                 aria-label="Ir para o painel da Agenda Inteligente EDI"
-                className="flex justify-center"
+                className="flex w-full justify-center overflow-visible"
               >
-                <div className="relative h-24 w-[220px] sm:h-28 sm:w-[260px] md:h-32 md:w-[300px]">
+                <div className="relative h-28 w-full max-w-[360px] overflow-visible sm:h-32 sm:max-w-[440px] md:h-36 md:max-w-[520px]">
                   <Image
                     src="/logo-agenda-inteligente-edi.png"
                     alt="Agenda Inteligente EDI"
                     fill
                     priority
-                    sizes="(max-width: 640px) 220px, (max-width: 768px) 260px, 300px"
-                    className="object-contain"
+                    sizes="(max-width: 640px) 360px, (max-width: 768px) 440px, 520px"
+                    className="object-contain scale-[1.55] sm:scale-[1.65] md:scale-[1.75]"
                   />
                 </div>
               </Link>
@@ -54,7 +54,7 @@ export default async function AgendaLayout({
               </div>
             </div>
 
-            <div className="mt-6 border-t border-white/10 pt-6">
+            <div className="mt-7 border-t border-white/10 pt-7">
               <div className="flex flex-col items-center gap-5 text-center">
                 <p className="max-w-3xl text-lg leading-9 text-slate-300 sm:text-xl">
                   Planeje, registre, evidencie e analise sua rotina pedagógica.
