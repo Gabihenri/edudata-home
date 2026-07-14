@@ -35,6 +35,21 @@ type UploadResponse = {
   error?: string
 }
 
+type EvidenceFileApiData = {
+  signedUrl: string
+  expiresIn: number
+  evidenceId: string
+  fileName: string | null
+  mimeType: string | null
+}
+
+type EvidenceFileResponse = {
+  success: boolean
+  data?: EvidenceFileApiData
+  error?: string
+  code?: string
+}
+
 export type EvidenceUploadResult = {
   bucket: string
   path: string
@@ -404,6 +419,63 @@ export function useEvidences() {
       [],
     )
 
+  const getEvidenceFileUrl =
+    useCallback(
+      async (
+        evidenceId: string,
+      ): Promise<string> => {
+        const normalizedEvidenceId =
+          evidenceId.trim()
+
+        if (!normalizedEvidenceId) {
+          throw new Error(
+            'Identificador da evidência não informado.',
+          )
+        }
+
+        const response = await fetch(
+          `/api/agenda/evidences/${encodeURIComponent(normalizedEvidenceId)}/file`,
+          {
+            method: 'GET',
+            credentials: 'include',
+            cache: 'no-store',
+          },
+        )
+
+        const result =
+          await parseJsonResponse<EvidenceFileResponse>(
+            response,
+          )
+
+        if (
+          !response.ok ||
+          !result.success ||
+          !result.data?.signedUrl
+        ) {
+          throw new Error(
+            getResponseError(
+              response,
+              result.error,
+              'Não foi possível abrir o arquivo protegido.',
+            ),
+          )
+        }
+
+        if (
+          !result.data.signedUrl.startsWith(
+            'https://',
+          )
+        ) {
+          throw new Error(
+            'O servidor retornou um endereço de arquivo inválido.',
+          )
+        }
+
+        return result.data.signedUrl
+      },
+      [],
+    )
+
   useEffect(() => {
     void loadEvidences()
   }, [loadEvidences])
@@ -419,5 +491,6 @@ export function useEvidences() {
 
     uploadEvidence,
     uploadEvidenceFile,
+    getEvidenceFileUrl,
   }
 }
