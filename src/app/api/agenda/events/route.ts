@@ -8,15 +8,26 @@ import {
   type CreateAgendaEventInput,
 } from '@/lib/agenda'
 
+import {
+  isAccessDeniedError,
+  requireFeatureAccess,
+  serializeAccessDeniedError,
+} from '@/lib/access/guards/require-feature-access'
+
 import { requireSessionUser } from '@/lib/auth/session'
 
 export const dynamic = 'force-dynamic'
+
+type ScheduleMode =
+  | 'pontual'
+  | 'recorrente'
 
 type CreateEventRequestBody = {
   title?: string
   description?: string | null
 
   eventType?: string
+
   startAt?: string
   endAt?: string | null
 
@@ -27,9 +38,7 @@ type CreateEventRequestBody = {
   planningId?: string | null
   evidenceId?: string | null
 
-  scheduleMode?:
-    | 'pontual'
-    | 'recorrente'
+  scheduleMode?: ScheduleMode
 
   recurrenceFrequency?:
     | 'none'
@@ -40,6 +49,53 @@ type CreateEventRequestBody = {
 
   sourceTemplateId?: string | null
   weekReference?: string | null
+}
+
+function normalizeOptionalText(
+  value: unknown,
+): string | null {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const normalizedValue = value.trim()
+
+  return normalizedValue || null
+}
+
+function normalizeScheduleMode(
+  value: unknown,
+): ScheduleMode {
+  return value === 'recorrente'
+    ? 'recorrente'
+    : 'pontual'
+}
+
+function normalizeRecurrenceFrequency(
+  scheduleMode: ScheduleMode,
+  value: unknown,
+): 'none' | 'weekly' {
+  if (scheduleMode === 'recorrente') {
+    return 'weekly'
+  }
+
+  return value === 'weekly'
+    ? 'weekly'
+    : 'none'
+}
+
+function normalizeRecurrenceInterval(
+  value: unknown,
+): number {
+  if (
+    value === undefined ||
+    value === null ||
+    value === ''
+  ) {
+    return 1
+  }
+
+  return Number(value)
 }
 
 function getErrorStatus(
@@ -89,6 +145,18 @@ function createErrorResponse(
   error: unknown,
   fallbackMessage: string,
 ) {
+  if (isAccessDeniedError(error)) {
+    return NextResponse.json(
+      serializeAccessDeniedError(error),
+      {
+        status: 403,
+        headers: {
+          'Cache-Control': 'no-store',
+        },
+      },
+    )
+  }
+
   const message =
     error instanceof Error
       ? error.message
@@ -108,55 +176,6 @@ function createErrorResponse(
   )
 }
 
-function normalizeOptionalText(
-  value: unknown,
-): string | null {
-  if (typeof value !== 'string') {
-    return null
-  }
-
-  const normalizedValue = value.trim()
-
-  return normalizedValue || null
-}
-
-function normalizeScheduleMode(
-  value: unknown,
-): 'pontual' | 'recorrente' {
-  return value === 'recorrente'
-    ? 'recorrente'
-    : 'pontual'
-}
-
-function normalizeRecurrenceFrequency(
-  scheduleMode:
-    | 'pontual'
-    | 'recorrente',
-  value: unknown,
-): 'none' | 'weekly' {
-  if (scheduleMode === 'recorrente') {
-    return 'weekly'
-  }
-
-  return value === 'weekly'
-    ? 'weekly'
-    : 'none'
-}
-
-function normalizeRecurrenceInterval(
-  value: unknown,
-): number {
-  if (
-    value === undefined ||
-    value === null ||
-    value === ''
-  ) {
-    return 1
-  }
-
-  return Number(value)
-}
-
 export async function GET(
   request: NextRequest,
 ) {
@@ -164,11 +183,21 @@ export async function GET(
     const user =
       await requireSessionUser()
 
+    await requireFeatureAccess({
+      userId: user.id,
+      featureCode: 'agenda.events',
+      options: {
+        includeUsage: false,
+      },
+    })
+
     const { searchParams } =
       request.nextUrl
 
     const weekReference =
-      searchParams.get('weekReference') ??
+      searchParams.get(
+        'weekReference',
+      ) ??
       searchParams.get('week')
 
     const seriesId =
@@ -178,20 +207,23 @@ export async function GET(
 
     if (seriesId) {
       data =
-        await eventsService.listBySeriesId(
-          seriesId,
-        )
+        await eventsService
+          .listBySeriesId(
+            seriesId,
+          )
     } else if (weekReference) {
       data =
-        await eventsService.listByUserAndWeek(
-          user.id,
-          weekReference,
-        )
+        await eventsService
+          .listByUserAndWeek(
+            user.id,
+            weekReference,
+          )
     } else {
       data =
-        await eventsService.listByUserId(
-          user.id,
-        )
+        await eventsService
+          .listByUserId(
+            user.id,
+          )
     }
 
     return NextResponse.json(
@@ -228,6 +260,19 @@ export async function POST(
       normalizeScheduleMode(
         body.scheduleMode,
       )
+
+    const requiredFeature =
+      scheduleMode === 'recorrente'
+        ? 'agenda.recurring'
+        : 'agenda.events'
+
+    await requireFeatureAccess({
+      userId: user.id,
+      featureCode: requiredFeature,
+      options: {
+        includeUsage: true,
+      },
+    })
 
     const recurrenceFrequency =
       normalizeRecurrenceFrequency(
@@ -288,7 +333,8 @@ export async function POST(
           body.evidenceId,
         ),
 
-      schedule_mode: scheduleMode,
+      schedule_mode:
+        scheduleMode,
 
       recurrence_frequency:
         recurrenceFrequency,
@@ -317,9 +363,8 @@ export async function POST(
     }
 
     const data =
-      await eventsService.createSchedule(
-        input,
-      )
+      await eventsService
+        .createSchedule(input)
 
     return NextResponse.json(
       {
