@@ -19,11 +19,7 @@ type EvidenceFormState = {
   description: string
   evidenceType: EvidenceType
   externalUrl: string
-
-  containsIdentifiableMinor:
-    | boolean
-    | null
-
+  containsIdentifiableMinor: boolean | null
   guardianAuthorizationConfirmed: boolean
   authorizationReference: string
 }
@@ -36,30 +32,23 @@ const initialForm: EvidenceFormState = {
   description: '',
   evidenceType: 'texto',
   externalUrl: '',
-
   containsIdentifiableMinor: null,
-
   guardianAuthorizationConfirmed: false,
   authorizationReference: '',
 }
 
-function formatDate(
-  value: string,
-): string {
+function formatDate(value: string): string {
   const date = new Date(value)
 
   if (Number.isNaN(date.getTime())) {
     return 'Data indisponível'
   }
 
-  return date.toLocaleDateString(
-    'pt-BR',
-    {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    },
-  )
+  return date.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
 }
 
 function getEvidenceTypeLabel(
@@ -88,12 +77,10 @@ export function AgendaEvidence() {
     uploadEvidenceFile,
   } = useEvidences()
 
-  const [
-    form,
-    setForm,
-  ] = useState<EvidenceFormState>(
-    initialForm,
-  )
+  const [form, setForm] =
+    useState<EvidenceFormState>(
+      initialForm,
+    )
 
   const [
     selectedFile,
@@ -416,11 +403,10 @@ export function AgendaEvidence() {
           </h1>
 
           <p className="mt-4 max-w-3xl leading-7 text-slate-600">
-            Registre práticas,
-            produções, documentos e
-            resultados pedagógicos com
-            rastreabilidade e proteção de
-            dados.
+            Registre práticas, produções,
+            documentos e resultados
+            pedagógicos com rastreabilidade
+            e proteção de dados.
           </p>
         </header>
 
@@ -445,8 +431,8 @@ export function AgendaEvidence() {
                 <div>
                   <h3 className="text-lg font-bold text-amber-950">
                     Proteção da imagem e
-                    dos dados de crianças
-                    e adolescentes
+                    dos dados de crianças e
+                    adolescentes
                   </h3>
 
                   <div className="mt-3 space-y-3 text-sm leading-6 text-amber-950">
@@ -456,27 +442,22 @@ export function AgendaEvidence() {
                       matrícula, uniforme,
                       localização ou outro
                       dado que permita
-                      identificar uma
-                      criança ou adolescente
-                      sem observar as regras
-                      de proteção da
-                      instituição.
+                      identificar uma criança
+                      ou adolescente sem
+                      observar as regras de
+                      proteção da instituição.
                     </p>
 
                     <p>
-                      Por política de
-                      segurança da Agenda
-                      EDI, quando houver
-                      menor identificável, o
-                      envio somente será
-                      permitido após a
-                      confirmação de que a
-                      instituição possui
+                      Quando houver menor
+                      identificável, o envio
+                      somente será permitido
+                      após a confirmação de
+                      que a instituição possui
                       autorização expressa,
-                      específica, informada
-                      e vigente do
-                      responsável legal para
-                      a finalidade
+                      específica, informada e
+                      vigente do responsável
+                      legal para a finalidade
                       pedagógica registrada.
                     </p>
 
@@ -486,9 +467,8 @@ export function AgendaEvidence() {
                       original nem transfere
                       para a plataforma as
                       obrigações legais da
-                      instituição e do
-                      usuário responsável
-                      pelo envio.
+                      instituição e do usuário
+                      responsável pelo envio.
                     </p>
 
                     <p>
@@ -496,8 +476,8 @@ export function AgendaEvidence() {
                       utilize imagens sem
                       identificação,
                       enquadramentos sem
-                      rosto, desfoque facial
-                      e remoção de nomes ou
+                      rosto, desfoque facial e
+                      remoção de nomes ou
                       outros dados pessoais.
                     </p>
                   </div>
@@ -525,6 +505,7 @@ export function AgendaEvidence() {
                 <label
                   className={[
                     'flex cursor-pointer items-center gap-3 rounded-2xl border p-4 transition',
+
                     form
                       .containsIdentifiableMinor ===
                     false
@@ -557,6 +538,7 @@ export function AgendaEvidence() {
                 <label
                   className={[
                     'flex cursor-pointer items-center gap-3 rounded-2xl border p-4 transition',
+
                     form
                       .containsIdentifiableMinor ===
                     true
@@ -626,9 +608,9 @@ export function AgendaEvidence() {
 
                     <p className="mt-2 text-sm leading-6 text-slate-500">
                       Informe somente uma
-                      referência interna.
-                      Não anexe o termo
-                      completo neste campo.
+                      referência interna. Não
+                      anexe o termo completo
+                      neste campo.
                     </p>
                   </div>
 
@@ -660,10 +642,9 @@ export function AgendaEvidence() {
                       Declaro que a
                       instituição possui
                       autorização expressa,
-                      específica, informada
-                      e vigente do
-                      responsável legal
-                      para o registro,
+                      específica, informada e
+                      vigente do responsável
+                      legal para o registro,
                       armazenamento e uso
                       desta evidência na
                       finalidade pedagógica
@@ -692,6 +673,7 @@ export function AgendaEvidence() {
                     setForm(
                       (current) => ({
                         ...current,
+
                         title:
                           event.target.value,
                       }),
@@ -810,11 +792,8 @@ export function AgendaEvidence() {
                   {selectedFile ? (
                     <div className="mt-3 rounded-2xl bg-slate-100 px-4 py-3">
                       <p className="text-sm font-semibold text-slate-700">
-                        Arquivo
-                        selecionado:{' '}
-                        {
-                          selectedFile.name
-                        }
+                        Arquivo selecionado:{' '}
+                        {selectedFile.name}
                       </p>
 
                       <p className="mt-1 text-xs text-slate-500">
@@ -923,8 +902,7 @@ export function AgendaEvidence() {
 
             {loading ? (
               <p className="mt-8 text-slate-600">
-                Carregando
-                evidências...
+                Carregando evidências...
               </p>
             ) : null}
 
@@ -959,9 +937,7 @@ export function AgendaEvidence() {
                         </p>
 
                         <h3 className="mt-3 text-xl font-bold text-slate-950">
-                          {
-                            evidence.title
-                          }
+                          {evidence.title}
                         </h3>
                       </div>
 
@@ -984,8 +960,7 @@ export function AgendaEvidence() {
                       .contains_identifiable_minor ? (
                       <div className="mt-5 rounded-2xl border border-amber-300 bg-amber-50 p-4">
                         <p className="text-sm font-bold text-amber-950">
-                          Evidência com
-                          menor
+                          Evidência com menor
                           identificável
                         </p>
 
@@ -993,8 +968,7 @@ export function AgendaEvidence() {
                           Declaração de
                           autorização
                           registrada pelo
-                          usuário
-                          responsável.
+                          usuário responsável.
                         </p>
 
                         {evidence.authorization_reference ? (
