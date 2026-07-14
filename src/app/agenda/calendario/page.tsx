@@ -9,6 +9,7 @@ import {
 } from 'react'
 
 import { AgendaPageShell } from '@/components/agenda/AgendaPageShell'
+import { ScheduleTemplatesPanel } from '@/components/agenda/ScheduleTemplatesPanel'
 
 type ScheduleMode = 'pontual' | 'recorrente'
 
@@ -26,6 +27,7 @@ type AgendaEvent = {
   recurrence_interval: number
   recurrence_until: string | null
   series_id: string | null
+  source_template_id: string | null
   week_reference: string | null
 }
 
@@ -34,6 +36,12 @@ type EventsApiResponse = {
   total?: number
   message?: string
   data?: AgendaEvent[]
+  error?: string
+}
+
+type TemplateApiResponse = {
+  success: boolean
+  message?: string
   error?: string
 }
 
@@ -47,6 +55,8 @@ type EventFormData = {
   scheduleMode: ScheduleMode
   recurrenceInterval: string
   recurrenceUntil: string
+  saveAsTemplate: boolean
+  templateValidUntil: string
 }
 
 const TIMEZONE = 'America/Sao_Paulo'
@@ -154,6 +164,16 @@ function getWeekReference(
   return formatDateInput(result)
 }
 
+function getWeekdayFromDateInput(
+  dateInput: string,
+): number {
+  const date = parseDateInput(dateInput)
+
+  const weekday = date.getDay()
+
+  return weekday === 0 ? 7 : weekday
+}
+
 function formatWeekLabel(
   weekReference: string,
 ): string {
@@ -236,24 +256,35 @@ function createInitialForm(
     description: '',
     eventType: 'pedagogico',
     priority: 'media',
+
     startAt: `${weekReference}T14:20`,
     endAt: `${weekReference}T15:10`,
+
     scheduleMode,
     recurrenceInterval: '1',
+
     recurrenceUntil:
       addWeeksToDateInput(
         weekReference,
         8,
+      ),
+
+    saveAsTemplate: false,
+
+    templateValidUntil:
+      addWeeksToDateInput(
+        weekReference,
+        16,
       ),
   }
 }
 
 export default function AgendaCalendarPage() {
   const formSectionRef =
-    useRef<HTMLDivElement | null>(null)
+    useRef<HTMLElement | null>(null)
 
   const eventsSectionRef =
-    useRef<HTMLDivElement | null>(null)
+    useRef<HTMLElement | null>(null)
 
   const [selectedWeek, setSelectedWeek] =
     useState(() =>
@@ -286,10 +317,16 @@ export default function AgendaCalendarPage() {
   const [errorMessage, setErrorMessage] =
     useState('')
 
+  const [successMessage, setSuccessMessage] =
+    useState('')
+
+  const [warningMessage, setWarningMessage] =
+    useState('')
+
   const [
-    successMessage,
-    setSuccessMessage,
-  ] = useState('')
+    templatesRefreshKey,
+    setTemplatesRefreshKey,
+  ] = useState(0)
 
   const loadEvents = useCallback(
     async () => {
@@ -342,7 +379,10 @@ export default function AgendaCalendarPage() {
   }, [loadEvents])
 
   function updateFormField(
-    field: keyof EventFormData,
+    field: Exclude<
+      keyof EventFormData,
+      'saveAsTemplate'
+    >,
     value: string,
   ) {
     setFormData((current) => ({
@@ -357,6 +397,7 @@ export default function AgendaCalendarPage() {
     setSelectedWeek(weekReference)
     setErrorMessage('')
     setSuccessMessage('')
+    setWarningMessage('')
   }
 
   function selectCurrentWeek() {
@@ -399,6 +440,7 @@ export default function AgendaCalendarPage() {
 
     setErrorMessage('')
     setSuccessMessage('')
+    setWarningMessage('')
     setShowForm(true)
 
     window.setTimeout(() => {
@@ -427,9 +469,93 @@ export default function AgendaCalendarPage() {
 
     setFormData((current) => ({
       ...current,
-      startAt: `${selectedDate}T${startTime}`,
-      endAt: `${selectedDate}T${endTime}`,
+      startAt:
+        `${selectedDate}T${startTime}`,
+
+      endAt:
+        `${selectedDate}T${endTime}`,
     }))
+  }
+
+  async function saveScheduleTemplate() {
+    const eventDate =
+      formData.startAt.slice(0, 10)
+
+    const startTime =
+      formData.startAt.slice(11, 16)
+
+    const endTime =
+      formData.endAt
+        ? formData.endAt.slice(11, 16)
+        : null
+
+    const response = await fetch(
+      '/api/agenda/schedule-templates',
+      {
+        method: 'POST',
+        credentials: 'include',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body: JSON.stringify({
+          title:
+            formData.title.trim(),
+
+          description:
+            formData.description.trim() ||
+            null,
+
+          eventType:
+            formData.eventType,
+
+          priority:
+            formData.priority,
+
+          weekday:
+            getWeekdayFromDateInput(
+              eventDate,
+            ),
+
+          startTime,
+          endTime,
+
+          timezone: TIMEZONE,
+
+          repeatIntervalWeeks: 1,
+
+          validFrom: eventDate,
+
+          validUntil:
+            formData.templateValidUntil ||
+            null,
+        }),
+      },
+    )
+
+    const result =
+      (await response.json()) as TemplateApiResponse
+
+    if (
+      !response.ok ||
+      !result.success
+    ) {
+      throw new Error(
+        result.error ??
+          'Não foi possível guardar o horário-padrão.',
+      )
+    }
+
+    setTemplatesRefreshKey(
+      (current) => current + 1,
+    )
+
+    return (
+      result.message ??
+      'Horário-padrão salvo.'
+    )
   }
 
   async function handleCreateEvent(
@@ -439,6 +565,7 @@ export default function AgendaCalendarPage() {
 
     setErrorMessage('')
     setSuccessMessage('')
+    setWarningMessage('')
 
     if (!formData.title.trim()) {
       setErrorMessage(
@@ -522,6 +649,19 @@ export default function AgendaCalendarPage() {
       return
     }
 
+    if (
+      formData.saveAsTemplate &&
+      formData.templateValidUntil &&
+      formData.templateValidUntil <
+        formData.startAt.slice(0, 10)
+    ) {
+      setErrorMessage(
+        'A vigência do horário-padrão não pode terminar antes do primeiro evento.',
+      )
+
+      return
+    }
+
     setIsSaving(true)
 
     try {
@@ -530,10 +670,12 @@ export default function AgendaCalendarPage() {
         {
           method: 'POST',
           credentials: 'include',
+
           headers: {
             'Content-Type':
               'application/json',
           },
+
           body: JSON.stringify({
             title:
               formData.title.trim(),
@@ -597,11 +739,31 @@ export default function AgendaCalendarPage() {
         )
       }
 
-      setSuccessMessage(
+      let finalMessage =
         result.message ??
-          'Evento salvo com sucesso.',
-      )
+        'Evento salvo com sucesso.'
 
+      if (
+        formData.scheduleMode ===
+          'pontual' &&
+        formData.saveAsTemplate
+      ) {
+        try {
+          const templateMessage =
+            await saveScheduleTemplate()
+
+          finalMessage =
+            `${finalMessage} ${templateMessage}`
+        } catch (templateError) {
+          setWarningMessage(
+            templateError instanceof Error
+              ? `O evento foi salvo, mas o horário-padrão não foi criado: ${templateError.message}`
+              : 'O evento foi salvo, mas o horário-padrão não foi criado.',
+          )
+        }
+      }
+
+      setSuccessMessage(finalMessage)
       setShowForm(false)
 
       const eventWeek =
@@ -609,16 +771,16 @@ export default function AgendaCalendarPage() {
 
       setSelectedWeek(eventWeek)
 
+      if (eventWeek === selectedWeek) {
+        await loadEvents()
+      }
+
       window.setTimeout(() => {
         eventsSectionRef.current?.scrollIntoView({
           behavior: 'smooth',
           block: 'start',
         })
       }, 100)
-
-      if (eventWeek === selectedWeek) {
-        await loadEvents()
-      }
     } catch (error) {
       setErrorMessage(
         error instanceof Error
@@ -634,7 +796,7 @@ export default function AgendaCalendarPage() {
     <AgendaPageShell
       eyebrow="Agenda Inteligente EDI"
       title="Calendário pedagógico"
-      description="Planeje a semana atual ou prepare antecipadamente as ações da próxima semana."
+      description="Planeje a semana atual, organize antecipadamente a próxima semana e reutilize seus horários habituais."
     >
       <div className="grid gap-6">
         <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5 sm:p-7">
@@ -740,11 +902,11 @@ export default function AgendaCalendarPage() {
             </span>
 
             <h2 className="mt-4 text-xl font-bold text-[#081C2E]">
-              Guardar este horário
+              Repetir horário
             </h2>
 
             <p className="mt-2 leading-7 text-slate-600">
-              Repita o compromisso no mesmo dia e horário pelas próximas semanas.
+              Gere automaticamente o mesmo compromisso nas próximas semanas.
             </p>
           </button>
 
@@ -776,12 +938,27 @@ export default function AgendaCalendarPage() {
           </button>
         </section>
 
+        <ScheduleTemplatesPanel
+          selectedWeek={selectedWeek}
+          refreshKey={templatesRefreshKey}
+          onApplied={loadEvents}
+        />
+
         {successMessage ? (
           <div
             role="status"
             className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 leading-7 text-emerald-800"
           >
             {successMessage}
+          </div>
+        ) : null}
+
+        {warningMessage ? (
+          <div
+            role="status"
+            className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 leading-7 text-amber-800"
+          >
+            {warningMessage}
           </div>
         ) : null}
 
@@ -834,7 +1011,7 @@ export default function AgendaCalendarPage() {
               </h3>
 
               <p className="mt-3 leading-7 text-slate-600">
-                Adicione uma ação pontual ou guarde um horário para as próximas semanas.
+                Adicione uma ação pontual, um evento recorrente ou aplique seus horários-padrão.
               </p>
 
               <button
@@ -861,8 +1038,12 @@ export default function AgendaCalendarPage() {
                       )}
                     </span>
 
-                    {agendaEvent.schedule_mode ===
-                    'recorrente' ? (
+                    {agendaEvent.source_template_id ? (
+                      <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-emerald-800">
+                        Horário-padrão
+                      </span>
+                    ) : agendaEvent.schedule_mode ===
+                      'recorrente' ? (
                       <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[#6B21A8]">
                         Semanal
                       </span>
@@ -938,14 +1119,14 @@ export default function AgendaCalendarPage() {
                 <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#6B21A8]">
                   {formData.scheduleMode ===
                   'recorrente'
-                    ? 'Horário semanal'
+                    ? 'Evento semanal'
                     : 'Evento pontual'}
                 </p>
 
                 <h2 className="mt-2 text-3xl font-bold text-[#081C2E]">
                   {formData.scheduleMode ===
                   'recorrente'
-                    ? 'Guardar horário'
+                    ? 'Repetir horário'
                     : 'Novo evento'}
                 </h2>
               </div>
@@ -1036,31 +1217,24 @@ export default function AgendaCalendarPage() {
                     <option value="pedagogico">
                       Pedagógico
                     </option>
-
                     <option value="aula">
                       Aula
                     </option>
-
                     <option value="reuniao">
                       Reunião
                     </option>
-
                     <option value="formacao">
                       Formação
                     </option>
-
                     <option value="avaliacao">
                       Avaliação
                     </option>
-
                     <option value="prazo">
                       Prazo
                     </option>
-
                     <option value="acompanhamento">
                       Acompanhamento
                     </option>
-
                     <option value="outro">
                       Outro
                     </option>
@@ -1089,15 +1263,12 @@ export default function AgendaCalendarPage() {
                     <option value="baixa">
                       Baixa
                     </option>
-
                     <option value="media">
                       Média
                     </option>
-
                     <option value="alta">
                       Alta
                     </option>
-
                     <option value="urgente">
                       Urgente
                     </option>
@@ -1219,9 +1390,12 @@ export default function AgendaCalendarPage() {
                         'pontual'
                       }
                       onChange={() =>
-                        updateFormField(
-                          'scheduleMode',
-                          'pontual',
+                        setFormData(
+                          (current) => ({
+                            ...current,
+                            scheduleMode:
+                              'pontual',
+                          }),
                         )
                       }
                       className="mr-3"
@@ -1254,20 +1428,25 @@ export default function AgendaCalendarPage() {
                         'recorrente'
                       }
                       onChange={() =>
-                        updateFormField(
-                          'scheduleMode',
-                          'recorrente',
+                        setFormData(
+                          (current) => ({
+                            ...current,
+                            scheduleMode:
+                              'recorrente',
+                            saveAsTemplate:
+                              false,
+                          }),
                         )
                       }
                       className="mr-3"
                     />
 
                     <span className="font-bold text-[#081C2E]">
-                      Repetir nas próximas semanas
+                      Repetir automaticamente
                     </span>
 
                     <span className="mt-2 block leading-7 text-slate-600">
-                      Guarda o mesmo dia e horário pelo período escolhido.
+                      Gera eventos no mesmo dia e horário pelas próximas semanas.
                     </span>
                   </label>
                 </div>
@@ -1300,15 +1479,12 @@ export default function AgendaCalendarPage() {
                       <option value="1">
                         Toda semana
                       </option>
-
                       <option value="2">
                         A cada duas semanas
                       </option>
-
                       <option value="3">
                         A cada três semanas
                       </option>
-
                       <option value="4">
                         A cada quatro semanas
                       </option>
@@ -1346,7 +1522,70 @@ export default function AgendaCalendarPage() {
                     />
                   </div>
                 </div>
-              ) : null}
+              ) : (
+                <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+                  <label className="flex cursor-pointer items-start gap-4">
+                    <input
+                      type="checkbox"
+                      checked={
+                        formData.saveAsTemplate
+                      }
+                      onChange={(event) =>
+                        setFormData(
+                          (current) => ({
+                            ...current,
+                            saveAsTemplate:
+                              event.target.checked,
+                          }),
+                        )
+                      }
+                      className="mt-1 h-5 w-5 shrink-0 accent-[#6B21A8]"
+                    />
+
+                    <span>
+                      <span className="block font-bold text-[#081C2E]">
+                        Salvar também como horário-padrão
+                      </span>
+
+                      <span className="mt-2 block leading-7 text-slate-600">
+                        Este horário ficará disponível para ser aplicado manualmente às próximas semanas.
+                      </span>
+                    </span>
+                  </label>
+
+                  {formData.saveAsTemplate ? (
+                    <div className="mt-5">
+                      <label
+                        htmlFor="template-valid-until"
+                        className="mb-2 block text-sm font-bold text-slate-700"
+                      >
+                        Manter este horário disponível até
+                      </label>
+
+                      <input
+                        id="template-valid-until"
+                        type="date"
+                        min={
+                          formData.startAt.slice(
+                            0,
+                            10,
+                          ) || undefined
+                        }
+                        value={
+                          formData.templateValidUntil
+                        }
+                        onChange={(event) =>
+                          updateFormField(
+                            'templateValidUntil',
+                            event.target.value,
+                          )
+                        }
+                        className="min-h-[54px] w-full rounded-2xl border border-emerald-200 bg-white px-4 text-slate-900 outline-none transition focus:border-[#6B21A8] focus:ring-2 focus:ring-purple-200"
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              )}
 
               {errorMessage ? (
                 <div
@@ -1367,8 +1606,10 @@ export default function AgendaCalendarPage() {
                     ? 'Salvando...'
                     : formData.scheduleMode ===
                         'recorrente'
-                      ? 'Guardar horário semanal'
-                      : 'Salvar evento pontual'}
+                      ? 'Salvar eventos recorrentes'
+                      : formData.saveAsTemplate
+                        ? 'Salvar evento e horário-padrão'
+                        : 'Salvar evento pontual'}
                 </button>
 
                 <button
