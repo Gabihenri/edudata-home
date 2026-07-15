@@ -165,7 +165,8 @@ const ROLE_ALIASES:
 
     vice_principal: 'vice_principal',
     vice_diretor: 'vice_principal',
-    vice_diretor_escolar: 'vice_principal',
+    vice_diretor_escolar:
+      'vice_principal',
 
     principal: 'principal',
     director: 'principal',
@@ -297,7 +298,10 @@ function asRecords(
 }
 
 function readString(
-  record: DatabaseRecord | null,
+  record:
+    | DatabaseRecord
+    | null
+    | undefined,
   keys: string[],
 ): string | null {
   if (!record) {
@@ -319,7 +323,9 @@ function readString(
 }
 
 function readBoolean(
-  record: DatabaseRecord | null,
+  record:
+    | DatabaseRecord
+    | null,
   keys: string[],
   fallback = false,
 ): boolean {
@@ -330,7 +336,9 @@ function readBoolean(
   for (const key of keys) {
     const value = record[key]
 
-    if (typeof value === 'boolean') {
+    if (
+      typeof value === 'boolean'
+    ) {
       return value
     }
   }
@@ -339,7 +347,9 @@ function readBoolean(
 }
 
 function readNumber(
-  record: DatabaseRecord | null,
+  record:
+    | DatabaseRecord
+    | null,
   keys: string[],
   fallback = 0,
 ): number {
@@ -364,7 +374,9 @@ function readNumber(
       const parsed =
         Number(value)
 
-      if (Number.isFinite(parsed)) {
+      if (
+        Number.isFinite(parsed)
+      ) {
         return parsed
       }
     }
@@ -522,7 +534,8 @@ function parseMembership(
 }
 
 function isMembershipValid(
-  membership: PortalMembership,
+  membership:
+    PortalMembership,
 ): boolean {
   if (
     !isActiveStatus(
@@ -544,7 +557,9 @@ function isMembershipValid(
       ).getTime()
 
     if (
-      !Number.isNaN(startsAt) &&
+      !Number.isNaN(
+        startsAt,
+      ) &&
       startsAt > now
     ) {
       return false
@@ -560,7 +575,9 @@ function isMembershipValid(
       ).getTime()
 
     if (
-      !Number.isNaN(endsAt) &&
+      !Number.isNaN(
+        endsAt,
+      ) &&
       endsAt < now
     ) {
       return false
@@ -572,11 +589,12 @@ function isMembershipValid(
 
 function getOrganizationName(
   record:
-    DatabaseRecord | undefined,
+    | DatabaseRecord
+    | undefined,
 ): string {
   return (
     readString(
-      record ?? null,
+      record,
       [
         'name',
         'display_name',
@@ -589,11 +607,20 @@ function getOrganizationName(
 }
 
 function createCorporateContext(
-  membership: PortalMembership,
+  membership:
+    PortalMembership,
+
   organizations:
-    Map<string, DatabaseRecord>,
+    Map<
+      string,
+      DatabaseRecord
+    >,
+
   schools:
-    Map<string, DatabaseRecord>,
+    Map<
+      string,
+      DatabaseRecord
+    >,
 ): PortalContext {
   const organization =
     organizations.get(
@@ -609,7 +636,7 @@ function createCorporateContext(
 
   const schoolName =
     readString(
-      school ?? null,
+      school,
       [
         'name',
         'school_name',
@@ -773,7 +800,9 @@ function createPlatformContext(
 }
 
 function contextMatchesRequest(
-  context: PortalContext,
+  context:
+    PortalContext,
+
   requestedContext: {
     organizationId:
       string | null
@@ -817,9 +846,11 @@ function contextMatchesRequest(
 function createProducts(
   enabledCodes:
     Set<string>,
+
   options: {
     contextIsActive:
       boolean
+
     isSuperAdmin:
       boolean
   },
@@ -827,7 +858,8 @@ function createProducts(
   return PRODUCT_CATALOG.map(
     (product) => {
       const enabled =
-        product.code === 'home' ||
+        product.code ===
+          'home' ||
         (
           options.contextIsActive &&
           (
@@ -864,7 +896,8 @@ function getErrorStatus(
   }
 
   const message =
-    error.message.toLowerCase()
+    error.message
+      .toLowerCase()
 
   if (
     message.includes(
@@ -1023,7 +1056,8 @@ export async function GET(
       ...new Set(
         activeMemberships.map(
           (membership) =>
-            membership.organizationId,
+            membership
+              .organizationId,
         ),
       ),
     ]
@@ -1168,7 +1202,9 @@ export async function GET(
     const onboardingCompleted =
       readBoolean(
         profile,
-        ['onboarding_completed'],
+        [
+          'onboarding_completed',
+        ],
         false,
       )
 
@@ -1288,7 +1324,8 @@ export async function GET(
 
     if (
       allMemberships.length > 0 &&
-      activeMemberships.length === 0
+      activeMemberships.length ===
+        0
     ) {
       notices.push({
         level:
@@ -1388,7 +1425,8 @@ export async function GET(
     const metadataName =
       typeof user
         .user_metadata
-        ?.full_name === 'string'
+        ?.full_name ===
+        'string'
         ? user
             .user_metadata
             .full_name
