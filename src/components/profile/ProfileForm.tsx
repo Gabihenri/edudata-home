@@ -28,6 +28,41 @@ type ProfileApiResponse = {
   profile?: ProfileData
 }
 
+type AccountType =
+  | 'individual'
+  | 'corporate'
+
+type PortalContext = {
+  id: string
+  accountType: AccountType
+
+  organization: {
+    id: string
+    name: string
+  } | null
+
+  school: {
+    id: string
+    name: string
+    shortName: string | null
+    city: string | null
+    state: string | null
+  } | null
+
+  role: string
+  roleLabel: string
+  hierarchyLevel: number
+  scopeType: string
+  status: string
+  onboardingCompleted: boolean
+}
+
+type PortalApiResponse = {
+  success: boolean
+  activeContext?: PortalContext
+  error?: string
+}
+
 const ROLE_LABELS:
   Record<string, string> = {
     student: 'Estudante',
@@ -68,6 +103,30 @@ const ROLE_LABELS:
 
     super_admin:
       'Superadministrador EduData IA',
+  }
+
+const SCOPE_LABELS:
+  Record<string, string> = {
+    self:
+      'Somente os próprios registros',
+
+    team:
+      'Equipe sob responsabilidade',
+
+    area:
+      'Área sob responsabilidade',
+
+    school:
+      'Escola ou unidade',
+
+    organization:
+      'Instituição',
+
+    network:
+      'Rede institucional',
+
+    platform:
+      'Plataforma EduData IA',
   }
 
 function normalizeRole(
@@ -140,6 +199,38 @@ function getStatusLabel(
   return status
 }
 
+function getAccountTypeLabel(
+  accountType:
+    AccountType | null,
+): string {
+  if (
+    accountType === 'corporate'
+  ) {
+    return 'Conta institucional'
+  }
+
+  if (
+    accountType === 'individual'
+  ) {
+    return 'Conta individual'
+  }
+
+  return 'Não identificado'
+}
+
+function getScopeLabel(
+  scopeType: string | null,
+): string {
+  if (!scopeType) {
+    return 'Não identificado'
+  }
+
+  return (
+    SCOPE_LABELS[scopeType] ??
+    scopeType
+  )
+}
+
 export default function ProfileForm() {
   const [
     displayName,
@@ -174,6 +265,13 @@ export default function ProfileForm() {
   ] = useState(false)
 
   const [
+    activeContext,
+    setActiveContext,
+  ] = useState<PortalContext | null>(
+    null,
+  )
+
+  const [
     loading,
     setLoading,
   ] = useState(true)
@@ -191,6 +289,13 @@ export default function ProfileForm() {
   )
 
   const [
+    contextWarning,
+    setContextWarning,
+  ] = useState<string | null>(
+    null,
+  )
+
+  const [
     successMessage,
     setSuccessMessage,
   ] = useState<string | null>(
@@ -201,55 +306,92 @@ export default function ProfileForm() {
     try {
       setLoading(true)
       setError(null)
+      setContextWarning(null)
 
-      const response =
-        await fetch(
+      const [
+        profileResponse,
+        portalResponse,
+      ] = await Promise.all([
+        fetch(
           '/api/profile',
           {
             method: 'GET',
             cache: 'no-store',
           },
-        )
+        ),
 
-      const result =
-        (await response.json()) as ProfileApiResponse
+        fetch(
+          '/api/portal',
+          {
+            method: 'GET',
+            cache: 'no-store',
+          },
+        ),
+      ])
+
+      const profileResult =
+        (await profileResponse.json()) as
+          ProfileApiResponse
+
+      const portalResult =
+        (await portalResponse.json()) as
+          PortalApiResponse
 
       if (
-        !response.ok ||
-        !result.success ||
-        !result.profile
+        !profileResponse.ok ||
+        !profileResult.success ||
+        !profileResult.profile
       ) {
         throw new Error(
-          result.error ??
+          profileResult.error ??
           'Não foi possível carregar o perfil.',
         )
       }
 
       setDisplayName(
-        result.profile
+        profileResult.profile
           .displayName ?? '',
       )
 
       setPhone(
-        result.profile.phone ?? '',
+        profileResult.profile
+          .phone ?? '',
       )
 
       setRole(
-        result.profile.role,
+        profileResult.profile.role,
       )
 
       setStatus(
-        result.profile.status,
+        profileResult.profile.status,
       )
 
       setOnboardingCompleted(
-        result.profile
+        profileResult.profile
           .onboardingCompleted,
       )
 
       setEmail(
-        result.user?.email ?? null,
+        profileResult.user?.email ??
+        null,
       )
+
+      if (
+        portalResponse.ok &&
+        portalResult.success &&
+        portalResult.activeContext
+      ) {
+        setActiveContext(
+          portalResult.activeContext,
+        )
+      } else {
+        setActiveContext(null)
+
+        setContextWarning(
+          portalResult.error ??
+          'O contexto institucional não pôde ser carregado.',
+        )
+      }
     } catch (loadError) {
       setError(
         loadError instanceof Error
@@ -294,7 +436,8 @@ export default function ProfileForm() {
         )
 
       const result =
-        (await response.json()) as ProfileApiResponse
+        (await response.json()) as
+          ProfileApiResponse
 
       if (
         !response.ok ||
@@ -370,7 +513,10 @@ export default function ProfileForm() {
         </h1>
 
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Atualize seus dados pessoais. Perfil, instituição, hierarquia e permissões são administrados pela gestão responsável.
+          Atualize seus dados pessoais. Perfil,
+          instituição, hierarquia e permissões
+          são administrados pela gestão
+          responsável.
         </p>
       </div>
 
@@ -392,7 +538,8 @@ export default function ProfileForm() {
           </p>
 
           <p className="mt-2 text-sm font-semibold text-slate-950">
-            {getRoleLabel(role)}
+            {activeContext?.roleLabel ??
+              getRoleLabel(role)}
           </p>
         </div>
 
@@ -402,7 +549,10 @@ export default function ProfileForm() {
           </p>
 
           <p className="mt-2 text-sm font-semibold text-slate-950">
-            {getStatusLabel(status)}
+            {getStatusLabel(
+              activeContext?.status ??
+              status,
+            )}
           </p>
         </div>
 
@@ -419,10 +569,131 @@ export default function ProfileForm() {
         </div>
       </div>
 
+      <div className="border-t border-slate-200 px-6 py-7">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+          Contexto de acesso
+        </p>
+
+        <h2 className="mt-2 text-xl font-bold text-slate-950">
+          Dados institucionais
+        </h2>
+
+        <p className="mt-2 text-sm text-slate-600">
+          Essas informações são somente para
+          consulta e não podem ser alteradas pelo
+          usuário.
+        </p>
+
+        {contextWarning && (
+          <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            {contextWarning}
+          </div>
+        )}
+
+        <div className="mt-6 grid gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="bg-slate-50 p-5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Tipo de conta
+            </p>
+
+            <p className="mt-2 text-sm font-semibold text-slate-950">
+              {getAccountTypeLabel(
+                activeContext?.accountType ??
+                null,
+              )}
+            </p>
+          </div>
+
+          <div className="bg-slate-50 p-5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Instituição
+            </p>
+
+            <p className="mt-2 text-sm font-semibold text-slate-950">
+              {activeContext
+                ?.organization
+                ?.name ??
+                'Não se aplica'}
+            </p>
+          </div>
+
+          <div className="bg-slate-50 p-5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Escola ou unidade
+            </p>
+
+            <p className="mt-2 text-sm font-semibold text-slate-950">
+              {activeContext
+                ?.school
+                ?.name ??
+                'Não se aplica'}
+            </p>
+
+            {activeContext?.school?.city && (
+              <p className="mt-1 text-xs text-slate-500">
+                {activeContext.school.city}
+                {activeContext.school.state
+                  ? ` — ${activeContext.school.state}`
+                  : ''}
+              </p>
+            )}
+          </div>
+
+          <div className="bg-slate-50 p-5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Perfil ativo
+            </p>
+
+            <p className="mt-2 text-sm font-semibold text-slate-950">
+              {activeContext
+                ?.roleLabel ??
+                getRoleLabel(role)}
+            </p>
+          </div>
+
+          <div className="bg-slate-50 p-5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Nível hierárquico
+            </p>
+
+            <p className="mt-2 text-sm font-semibold text-slate-950">
+              {activeContext
+                ? activeContext
+                    .hierarchyLevel
+                : 'Não se aplica'}
+            </p>
+          </div>
+
+          <div className="bg-slate-50 p-5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Escopo de acesso
+            </p>
+
+            <p className="mt-2 text-sm font-semibold text-slate-950">
+              {getScopeLabel(
+                activeContext
+                  ?.scopeType ??
+                null,
+              )}
+            </p>
+          </div>
+        </div>
+      </div>
+
       <form
         onSubmit={handleSubmit}
-        className="space-y-6 px-6 py-7"
+        className="space-y-6 border-t border-slate-200 px-6 py-7"
       >
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Dados editáveis
+          </p>
+
+          <h2 className="mt-2 text-xl font-bold text-slate-950">
+            Informações pessoais
+          </h2>
+        </div>
+
         {error && (
           <div
             role="alert"
@@ -467,7 +738,8 @@ export default function ProfileForm() {
           />
 
           <p className="mt-2 text-xs text-slate-500">
-            Esse nome será exibido nas interfaces da plataforma.
+            Esse nome será exibido nas interfaces
+            da plataforma.
           </p>
         </div>
 
@@ -502,7 +774,12 @@ export default function ProfileForm() {
           </p>
 
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Perfil, cargo, instituição, escola, nível hierárquico e permissões não podem ser alterados nesta tela. Em contas corporativas, essas informações são definidas pela chefia ou pelo administrador institucional.
+            Perfil, cargo, instituição, escola,
+            nível hierárquico e permissões não
+            podem ser alterados nesta tela. Em
+            contas corporativas, essas informações
+            são definidas pela chefia ou pelo
+            administrador institucional.
           </p>
         </div>
 
