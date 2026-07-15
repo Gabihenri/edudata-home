@@ -13,10 +13,23 @@ export type AgendaDashboardSummary = {
     evidences: number
     classes: number
   }
-  upcomingEvents: Awaited<ReturnType<typeof eventsService.listAll>>
-  pendingTasks: Awaited<ReturnType<typeof tasksService.listAll>>
+
+  upcomingEvents: Awaited<
+    ReturnType<
+      typeof eventsService.listByUserId
+    >
+  >
+
+  pendingTasks: Awaited<
+    ReturnType<
+      typeof tasksService.listByUserId
+    >
+  >
+
   recentEvidences: Awaited<
-    ReturnType<typeof evidencesService.listAll>
+    ReturnType<
+      typeof evidencesService.listByUserId
+    >
   >
 }
 
@@ -36,21 +49,38 @@ function createEmptySummary(): AgendaDashboardSummary {
   }
 }
 
+function normalizeUserId(
+  userId?: string,
+): string | null {
+  const normalizedUserId =
+    userId?.trim()
+
+  return normalizedUserId || null
+}
+
 class DashboardService {
   async getSummary(
     userId?: string,
   ): Promise<AgendaDashboardSummary> {
-    const normalizedUserId = userId?.trim()
+    const normalizedUserId =
+      normalizeUserId(userId)
 
     /*
      * Segurança por padrão:
-     * se a rota não informar o usuário autenticado,
-     * nenhum dado será retornado.
+     * sem usuário autenticado, nenhum dado
+     * será consultado ou retornado.
      */
     if (!normalizedUserId) {
       return createEmptySummary()
     }
 
+    /*
+     * Cada consulta já é limitada no banco
+     * ao usuário autenticado.
+     *
+     * Nenhum registro de outro usuário é
+     * carregado no servidor.
+     */
     const [
       events,
       tasks,
@@ -58,61 +88,91 @@ class DashboardService {
       evidences,
       classes,
     ] = await Promise.all([
-      eventsService.listAll(),
-      tasksService.listAll(),
-      planningService.listAll(),
-      evidencesService.listAll(),
-      classesService.listAll(),
+      eventsService.listByUserId(
+        normalizedUserId,
+      ),
+
+      tasksService.listByUserId(
+        normalizedUserId,
+      ),
+
+      planningService.listByUserId(
+        normalizedUserId,
+      ),
+
+      evidencesService.listByUserId(
+        normalizedUserId,
+      ),
+
+      classesService.listByTeacherId(
+        normalizedUserId,
+      ),
     ])
 
-    const userEvents = events.filter(
-      (event) => event.user_id === normalizedUserId,
-    )
+    const now = Date.now()
 
-    const userTasks = tasks.filter(
-      (task) => task.user_id === normalizedUserId,
-    )
+    const upcomingEvents = events
+      .filter((event) => {
+        const startAt =
+          new Date(
+            event.start_at,
+          ).getTime()
 
-    const userPlanning = planning.filter(
-      (planningItem) =>
-        planningItem.user_id === normalizedUserId,
-    )
+        return (
+          !Number.isNaN(startAt) &&
+          startAt >= now
+        )
+      })
+      .sort((firstEvent, secondEvent) => {
+        return (
+          new Date(
+            firstEvent.start_at,
+          ).getTime() -
+          new Date(
+            secondEvent.start_at,
+          ).getTime()
+        )
+      })
+      .slice(0, 5)
 
-    const userEvidences = evidences.filter(
-      (evidence) =>
-        evidence.user_id === normalizedUserId,
-    )
+    const allPendingTasks =
+      tasks.filter(
+        (task) =>
+          task.status !== 'concluida',
+      )
 
-    const userClasses = classes.filter(
-      (agendaClass) =>
-        agendaClass.teacher_id === normalizedUserId,
-    )
+    const pendingTasks =
+      allPendingTasks.slice(0, 5)
 
-    const now = new Date()
-
-    const upcomingEvents = userEvents
-      .filter(
-        (event) =>
-          new Date(event.start_at).getTime() >= now.getTime(),
+    const recentEvidences = [
+      ...evidences,
+    ]
+      .sort(
+        (
+          firstEvidence,
+          secondEvidence,
+        ) => {
+          return (
+            new Date(
+              secondEvidence.created_at,
+            ).getTime() -
+            new Date(
+              firstEvidence.created_at,
+            ).getTime()
+          )
+        },
       )
       .slice(0, 5)
 
-    const pendingTasks = userTasks
-      .filter((task) => task.status !== 'concluida')
-      .slice(0, 5)
-
-    const recentEvidences = userEvidences.slice(0, 5)
-
     return {
       totals: {
-        events: userEvents.length,
-        tasks: userTasks.length,
-        pendingTasks: userTasks.filter(
-          (task) => task.status !== 'concluida',
-        ).length,
-        planning: userPlanning.length,
-        evidences: userEvidences.length,
-        classes: userClasses.length,
+        events: events.length,
+        tasks: tasks.length,
+        pendingTasks:
+          allPendingTasks.length,
+        planning: planning.length,
+        evidences: evidences.length,
+        classes: classes.length,
       },
       upcomingEvents,
       pendingTasks,
@@ -121,4 +181,5 @@ class DashboardService {
   }
 }
 
-export const dashboardService = new DashboardService()
+export const dashboardService =
+  new DashboardService()
