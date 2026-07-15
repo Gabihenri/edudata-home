@@ -183,89 +183,64 @@ const PRODUCT_CATALOG = [
   },
 ] as const
 
-const ROLE_ALIASES:
-  Record<string, string> = {
-    student: 'student',
-    aluno: 'student',
-    estudante: 'student',
+const ROLE_ALIASES: Record<string, string> = {
+  student: 'student',
+  aluno: 'student',
+  estudante: 'student',
 
-    teacher: 'teacher',
-    professor: 'teacher',
+  teacher: 'teacher',
+  professor: 'teacher',
 
-    coordinator: 'coordinator',
-    coordenador: 'coordinator',
+  coordinator: 'coordinator',
+  coordenador: 'coordinator',
 
-    vice_principal: 'vice_principal',
-    vice_diretor: 'vice_principal',
+  vice_principal: 'vice_principal',
+  vice_diretor: 'vice_principal',
 
-    principal: 'principal',
-    director: 'principal',
-    diretor: 'principal',
+  principal: 'principal',
+  director: 'principal',
+  diretor: 'principal',
 
-    supervisor: 'supervisor',
+  supervisor: 'supervisor',
 
-    regional_manager:
-      'regional_manager',
-    gestor_regional:
-      'regional_manager',
+  regional_manager: 'regional_manager',
+  gestor_regional: 'regional_manager',
 
-    institution_admin:
-      'institution_admin',
-    admin_institucional:
-      'institution_admin',
-    administrador_institucional:
-      'institution_admin',
+  institution_admin: 'institution_admin',
+  admin_institucional: 'institution_admin',
+  administrador_institucional:
+    'institution_admin',
 
-    platform_admin:
-      'platform_admin',
-    admin:
-      'platform_admin',
+  platform_admin: 'platform_admin',
+  admin: 'platform_admin',
 
-    super_admin:
-      'super_admin',
-  }
+  super_admin: 'super_admin',
+}
 
-const ROLE_LABELS:
-  Record<string, string> = {
-    student:
-      'Estudante',
-
-    teacher:
-      'Professor',
-
-    coordinator:
-      'Coordenador',
-
-    vice_principal:
-      'Vice-diretor',
-
-    principal:
-      'Diretor',
-
-    supervisor:
-      'Supervisor',
-
-    regional_manager:
-      'Gestor Regional',
-
-    institution_admin:
-      'Administrador Institucional',
-
-    platform_admin:
-      'Administrador da Plataforma',
-
-    super_admin:
-      'Superadministrador EduData IA',
-  }
+const ROLE_LABELS: Record<string, string> = {
+  student: 'Estudante',
+  teacher: 'Professor',
+  coordinator: 'Coordenador',
+  vice_principal: 'Vice-diretor',
+  principal: 'Diretor',
+  supervisor: 'Supervisor',
+  regional_manager: 'Gestor Regional',
+  institution_admin:
+    'Administrador Institucional',
+  platform_admin:
+    'Administrador da Plataforma',
+  super_admin:
+    'Superadministrador EduData IA',
+}
 
 const INDIVIDUAL_ROLES =
-  new Set([
+  new Set<string>([
     'student',
     'teacher',
   ])
 
 const PLATFORM_ROLES =
-  new Set([
+  new Set<string>([
     'platform_admin',
     'super_admin',
   ])
@@ -303,6 +278,20 @@ function createPortalClient():
       },
     },
   )
+}
+
+/*
+ * Converte respostas genéricas do Supabase
+ * em listas tipadas de forma segura para o TypeScript.
+ */
+function asRows<T>(
+  value: unknown,
+): T[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value as T[]
 }
 
 function normalizeOptionalText(
@@ -602,7 +591,7 @@ function contextMatchesRequest(
   context:
     AuthorizedContext,
 
-  request: {
+  requestedContext: {
     organizationId:
       string | null
 
@@ -614,29 +603,29 @@ function contextMatchesRequest(
   },
 ): boolean {
   if (
-    request
+    requestedContext
       .organizationId &&
     context
       .organization
       ?.id !==
-      request
+      requestedContext
         .organizationId
   ) {
     return false
   }
 
   if (
-    request.schoolId &&
+    requestedContext.schoolId &&
     context.school?.id !==
-      request.schoolId
+      requestedContext.schoolId
   ) {
     return false
   }
 
   if (
-    request.role &&
+    requestedContext.role &&
     context.role !==
-      request.role
+      requestedContext.role
   ) {
     return false
   }
@@ -945,10 +934,9 @@ export async function GET(
         | null
 
     const allMemberships =
-      (
-        membershipsResult.data ??
-        []
-      ) as PortalMembership[]
+      asRows<PortalMembership>(
+        membershipsResult.data,
+      )
 
     const activeMemberships =
       allMemberships.filter(
@@ -1018,11 +1006,14 @@ export async function GET(
         )
       }
 
+      const organizationRows =
+        asRows<PortalOrganization>(
+          data,
+        )
+
       for (
         const organization of
-        (
-          data ?? []
-        ) as PortalOrganization[]
+        organizationRows
       ) {
         organizations.set(
           organization.id,
@@ -1060,11 +1051,14 @@ export async function GET(
         )
       }
 
+      const schoolRows =
+        asRows<PortalSchool>(
+          data,
+        )
+
       for (
         const school of
-        (
-          data ?? []
-        ) as PortalSchool[]
+        schoolRows
       ) {
         schools.set(
           school.id,
@@ -1300,11 +1294,14 @@ export async function GET(
         )
       }
 
+      const permissionRows =
+        asRows<ProductPermissionRow>(
+          data,
+        )
+
       for (
         const permission of
-        (
-          data ?? []
-        ) as ProductPermissionRow[]
+        permissionRows
       ) {
         if (
           permission.can_access
