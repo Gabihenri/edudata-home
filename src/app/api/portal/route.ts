@@ -21,52 +21,20 @@ type NoticeLevel =
   | 'warning'
   | 'error'
 
-type PortalProfile = {
-  role: string | null
-  status: string | null
-  display_name: string | null
-}
-
-type IdentityUser = {
-  id: string
-  full_name: string | null
-  role: string | null
-  profile_status: string | null
-  onboarding_completed: boolean | null
-  active_organization_id: string | null
-  active_school_id: string | null
-}
+type DatabaseRecord =
+  Record<string, unknown>
 
 type PortalMembership = {
   id: string
-  organization_id: string
-  school_id: string | null
+  organizationId: string
+  schoolId: string | null
   role: string
   status: string
-  hierarchy_level: number
-  scope_type: string
-  onboarding_completed: boolean
-  access_starts_at: string | null
-  access_ends_at: string | null
-}
-
-type PortalOrganization = {
-  id: string
-  name: string
-}
-
-type PortalSchool = {
-  id: string
-  organization_id: string
-  name: string
-  short_name: string | null
-  city: string | null
-  state: string | null
-}
-
-type ProductPermissionRow = {
-  product_code: string
-  can_access: boolean
+  hierarchyLevel: number
+  scopeType: string
+  onboardingCompleted: boolean
+  accessStartsAt: string | null
+  accessEndsAt: string | null
 }
 
 type PortalNotice = {
@@ -76,7 +44,7 @@ type PortalNotice = {
   message: string
 }
 
-type AuthorizedContext = {
+type PortalContext = {
   id: string
   accountType: AccountType
 
@@ -183,55 +151,81 @@ const PRODUCT_CATALOG = [
   },
 ] as const
 
-const ROLE_ALIASES: Record<string, string> = {
-  student: 'student',
-  aluno: 'student',
-  estudante: 'student',
+const ROLE_ALIASES:
+  Record<string, string> = {
+    student: 'student',
+    aluno: 'student',
+    estudante: 'student',
 
-  teacher: 'teacher',
-  professor: 'teacher',
+    teacher: 'teacher',
+    professor: 'teacher',
 
-  coordinator: 'coordinator',
-  coordenador: 'coordinator',
+    coordinator: 'coordinator',
+    coordenador: 'coordinator',
 
-  vice_principal: 'vice_principal',
-  vice_diretor: 'vice_principal',
+    vice_principal: 'vice_principal',
+    vice_diretor: 'vice_principal',
+    vice_diretor_escolar: 'vice_principal',
 
-  principal: 'principal',
-  director: 'principal',
-  diretor: 'principal',
+    principal: 'principal',
+    director: 'principal',
+    diretor: 'principal',
 
-  supervisor: 'supervisor',
+    supervisor: 'supervisor',
 
-  regional_manager: 'regional_manager',
-  gestor_regional: 'regional_manager',
+    regional_manager:
+      'regional_manager',
+    gestor_regional:
+      'regional_manager',
 
-  institution_admin: 'institution_admin',
-  admin_institucional: 'institution_admin',
-  administrador_institucional:
-    'institution_admin',
+    institution_admin:
+      'institution_admin',
+    admin_institucional:
+      'institution_admin',
+    administrador_institucional:
+      'institution_admin',
 
-  platform_admin: 'platform_admin',
-  admin: 'platform_admin',
+    platform_admin:
+      'platform_admin',
+    admin:
+      'platform_admin',
 
-  super_admin: 'super_admin',
-}
+    super_admin:
+      'super_admin',
+  }
 
-const ROLE_LABELS: Record<string, string> = {
-  student: 'Estudante',
-  teacher: 'Professor',
-  coordinator: 'Coordenador',
-  vice_principal: 'Vice-diretor',
-  principal: 'Diretor',
-  supervisor: 'Supervisor',
-  regional_manager: 'Gestor Regional',
-  institution_admin:
-    'Administrador Institucional',
-  platform_admin:
-    'Administrador da Plataforma',
-  super_admin:
-    'Superadministrador EduData IA',
-}
+const ROLE_LABELS:
+  Record<string, string> = {
+    student:
+      'Estudante',
+
+    teacher:
+      'Professor',
+
+    coordinator:
+      'Coordenador',
+
+    vice_principal:
+      'Vice-diretor',
+
+    principal:
+      'Diretor',
+
+    supervisor:
+      'Supervisor',
+
+    regional_manager:
+      'Gestor Regional',
+
+    institution_admin:
+      'Administrador Institucional',
+
+    platform_admin:
+      'Administrador da Plataforma',
+
+    super_admin:
+      'Superadministrador EduData IA',
+  }
 
 const INDIVIDUAL_ROLES =
   new Set<string>([
@@ -280,18 +274,103 @@ function createPortalClient():
   )
 }
 
-/*
- * Converte respostas genéricas do Supabase
- * em listas tipadas de forma segura para o TypeScript.
- */
-function asRows<T>(
+function isRecord(
   value: unknown,
-): T[] {
+): value is DatabaseRecord {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value)
+  )
+}
+
+function asRecords(
+  value: unknown,
+): DatabaseRecord[] {
   if (!Array.isArray(value)) {
     return []
   }
 
-  return value as T[]
+  return value.filter(
+    isRecord,
+  )
+}
+
+function readString(
+  record: DatabaseRecord | null,
+  keys: string[],
+): string | null {
+  if (!record) {
+    return null
+  }
+
+  for (const key of keys) {
+    const value = record[key]
+
+    if (
+      typeof value === 'string' &&
+      value.trim()
+    ) {
+      return value.trim()
+    }
+  }
+
+  return null
+}
+
+function readBoolean(
+  record: DatabaseRecord | null,
+  keys: string[],
+  fallback = false,
+): boolean {
+  if (!record) {
+    return fallback
+  }
+
+  for (const key of keys) {
+    const value = record[key]
+
+    if (typeof value === 'boolean') {
+      return value
+    }
+  }
+
+  return fallback
+}
+
+function readNumber(
+  record: DatabaseRecord | null,
+  keys: string[],
+  fallback = 0,
+): number {
+  if (!record) {
+    return fallback
+  }
+
+  for (const key of keys) {
+    const value = record[key]
+
+    if (
+      typeof value === 'number' &&
+      Number.isFinite(value)
+    ) {
+      return value
+    }
+
+    if (
+      typeof value === 'string' &&
+      value.trim()
+    ) {
+      const parsed =
+        Number(value)
+
+      if (Number.isFinite(parsed)) {
+        return parsed
+      }
+    }
+  }
+
+  return fallback
 }
 
 function normalizeOptionalText(
@@ -317,6 +396,11 @@ function normalizeRole(
     value
       .trim()
       .toLowerCase()
+      .normalize('NFD')
+      .replace(
+        /[\u0300-\u036f]/g,
+        '',
+      )
       .replace(
         /[\s-]+/g,
         '_',
@@ -340,22 +424,105 @@ function getRoleLabel(
 }
 
 function isActiveStatus(
-  value:
+  status:
     | string
     | null
     | undefined,
 ): boolean {
   return (
-    value
+    status
       ?.trim()
       .toLowerCase() ===
     'active'
   )
 }
 
+function parseMembership(
+  record: DatabaseRecord,
+): PortalMembership | null {
+  const id =
+    readString(
+      record,
+      ['id'],
+    )
+
+  const organizationId =
+    readString(
+      record,
+      ['organization_id'],
+    )
+
+  const role =
+    normalizeRole(
+      readString(
+        record,
+        ['role'],
+      ),
+    )
+
+  if (
+    !id ||
+    !organizationId ||
+    !role
+  ) {
+    return null
+  }
+
+  return {
+    id,
+
+    organizationId,
+
+    schoolId:
+      readString(
+        record,
+        ['school_id'],
+      ),
+
+    role,
+
+    status:
+      readString(
+        record,
+        ['status'],
+      ) ?? 'pending',
+
+    hierarchyLevel:
+      readNumber(
+        record,
+        ['hierarchy_level'],
+        10,
+      ),
+
+    scopeType:
+      readString(
+        record,
+        ['scope_type'],
+      ) ?? 'self',
+
+    onboardingCompleted:
+      readBoolean(
+        record,
+        ['onboarding_completed'],
+        false,
+      ),
+
+    accessStartsAt:
+      readString(
+        record,
+        ['access_starts_at'],
+      ),
+
+    accessEndsAt:
+      readString(
+        record,
+        ['access_ends_at'],
+      ),
+  }
+}
+
 function isMembershipValid(
-  membership:
-    PortalMembership,
+  membership: PortalMembership,
 ): boolean {
   if (
     !isActiveStatus(
@@ -369,19 +536,15 @@ function isMembershipValid(
     Date.now()
 
   if (
-    membership
-      .access_starts_at
+    membership.accessStartsAt
   ) {
     const startsAt =
       new Date(
-        membership
-          .access_starts_at,
+        membership.accessStartsAt,
       ).getTime()
 
     if (
-      !Number.isNaN(
-        startsAt,
-      ) &&
+      !Number.isNaN(startsAt) &&
       startsAt > now
     ) {
       return false
@@ -389,19 +552,15 @@ function isMembershipValid(
   }
 
   if (
-    membership
-      .access_ends_at
+    membership.accessEndsAt
   ) {
     const endsAt =
       new Date(
-        membership
-          .access_ends_at,
+        membership.accessEndsAt,
       ).getTime()
 
     if (
-      !Number.isNaN(
-        endsAt,
-      ) &&
+      !Number.isNaN(endsAt) &&
       endsAt < now
     ) {
       return false
@@ -411,39 +570,52 @@ function isMembershipValid(
   return true
 }
 
+function getOrganizationName(
+  record:
+    DatabaseRecord | undefined,
+): string {
+  return (
+    readString(
+      record ?? null,
+      [
+        'name',
+        'display_name',
+        'legal_name',
+        'organization_name',
+      ],
+    ) ??
+    'Instituição não identificada'
+  )
+}
+
 function createCorporateContext(
-  membership:
-    PortalMembership,
-
+  membership: PortalMembership,
   organizations:
-    Map<
-      string,
-      PortalOrganization
-    >,
-
+    Map<string, DatabaseRecord>,
   schools:
-    Map<
-      string,
-      PortalSchool
-    >,
-): AuthorizedContext {
+    Map<string, DatabaseRecord>,
+): PortalContext {
   const organization =
     organizations.get(
-      membership
-        .organization_id,
+      membership.organizationId,
     )
 
   const school =
-    membership.school_id
+    membership.schoolId
       ? schools.get(
-          membership.school_id,
+          membership.schoolId,
         )
       : undefined
 
-  const role =
-    normalizeRole(
-      membership.role,
-    ) ?? 'teacher'
+  const schoolName =
+    readString(
+      school ?? null,
+      [
+        'name',
+        'school_name',
+        'display_name',
+      ],
+    )
 
   return {
     id:
@@ -454,53 +626,66 @@ function createCorporateContext(
 
     organization: {
       id:
-        membership
-          .organization_id,
+        membership.organizationId,
 
       name:
-        organization?.name ??
-        'Instituição não identificada',
+        getOrganizationName(
+          organization,
+        ),
     },
 
     school:
-      school
+      membership.schoolId &&
+      schoolName
         ? {
             id:
-              school.id,
+              membership.schoolId,
 
             name:
-              school.name,
+              schoolName,
 
             shortName:
-              school.short_name,
+              readString(
+                school,
+                [
+                  'short_name',
+                  'abbreviation',
+                ],
+              ),
 
             city:
-              school.city,
+              readString(
+                school,
+                ['city'],
+              ),
 
             state:
-              school.state,
+              readString(
+                school,
+                ['state'],
+              ),
           }
         : null,
 
-    role,
+    role:
+      membership.role,
 
     roleLabel:
-      getRoleLabel(role),
+      getRoleLabel(
+        membership.role,
+      ),
 
     hierarchyLevel:
-      membership
-        .hierarchy_level,
+      membership.hierarchyLevel,
 
     scopeType:
-      membership
-        .scope_type,
+      membership.scopeType,
 
     status:
       membership.status,
 
     onboardingCompleted:
-      membership
-        .onboarding_completed,
+      membership.onboardingCompleted,
   }
 }
 
@@ -509,7 +694,7 @@ function createIndividualContext(
   role: string,
   status: string,
   onboardingCompleted: boolean,
-): AuthorizedContext {
+): PortalContext {
   return {
     id:
       `individual:${userId}`,
@@ -549,7 +734,7 @@ function createPlatformContext(
   role: string,
   status: string,
   onboardingCompleted: boolean,
-): AuthorizedContext {
+): PortalContext {
   return {
     id:
       `platform:${userId}`,
@@ -588,9 +773,7 @@ function createPlatformContext(
 }
 
 function contextMatchesRequest(
-  context:
-    AuthorizedContext,
-
+  context: PortalContext,
   requestedContext: {
     organizationId:
       string | null
@@ -605,9 +788,7 @@ function contextMatchesRequest(
   if (
     requestedContext
       .organizationId &&
-    context
-      .organization
-      ?.id !==
+    context.organization?.id !==
       requestedContext
         .organizationId
   ) {
@@ -633,67 +814,12 @@ function contextMatchesRequest(
   return true
 }
 
-function selectPreferredContext(
-  contexts:
-    AuthorizedContext[],
-
-  identityUser:
-    IdentityUser | null,
-): AuthorizedContext | null {
-  if (
-    contexts.length === 0
-  ) {
-    return null
-  }
-
-  const preferred =
-    contexts.find(
-      (context) => {
-        if (
-          identityUser
-            ?.active_organization_id &&
-          context.organization
-            ?.id !==
-            identityUser
-              .active_organization_id
-        ) {
-          return false
-        }
-
-        if (
-          identityUser
-            ?.active_school_id &&
-          context.school
-            ?.id !==
-            identityUser
-              .active_school_id
-        ) {
-          return false
-        }
-
-        return Boolean(
-          identityUser
-            ?.active_organization_id ||
-          identityUser
-            ?.active_school_id,
-        )
-      },
-    )
-
-  return (
-    preferred ??
-    contexts[0]
-  )
-}
-
 function createProducts(
   enabledCodes:
     Set<string>,
-
   options: {
     contextIsActive:
       boolean
-
     isSuperAdmin:
       boolean
   },
@@ -701,36 +827,28 @@ function createProducts(
   return PRODUCT_CATALOG.map(
     (product) => {
       const enabled =
-        product.code ===
-          'home' ||
+        product.code === 'home' ||
         (
-          options
-            .contextIsActive &&
+          options.contextIsActive &&
           (
-            options
-              .isSuperAdmin ||
+            options.isSuperAdmin ||
             enabledCodes.has(
               product.code,
             )
           )
         )
 
-      let unavailableReason:
-        string | null =
-          null
-
-      if (!enabled) {
-        unavailableReason =
-          options
-            .contextIsActive
-            ? 'Produto não liberado para o perfil ativo.'
-            : 'Perfil ou vínculo institucional pendente.'
-      }
-
       return {
         ...product,
+
         enabled,
-        unavailableReason,
+
+        unavailableReason:
+          enabled
+            ? null
+            : options.contextIsActive
+              ? 'Produto não liberado para o perfil ativo.'
+              : 'Perfil ou vínculo institucional pendente.',
       }
     },
   )
@@ -746,8 +864,7 @@ function getErrorStatus(
   }
 
   const message =
-    error.message
-      .toLowerCase()
+    error.message.toLowerCase()
 
   if (
     message.includes(
@@ -829,41 +946,15 @@ export async function GET(
 
     const [
       profileResult,
-      identityUserResult,
       membershipsResult,
     ] = await Promise.all([
       client
         .from(
           'user_profiles',
         )
-        .select(
-          [
-            'role',
-            'status',
-            'display_name',
-          ].join(','),
-        )
+        .select('*')
         .eq(
           'user_id',
-          user.id,
-        )
-        .maybeSingle(),
-
-      client
-        .from('users')
-        .select(
-          [
-            'id',
-            'full_name',
-            'role',
-            'profile_status',
-            'onboarding_completed',
-            'active_organization_id',
-            'active_school_id',
-          ].join(','),
-        )
-        .eq(
-          'id',
           user.id,
         )
         .maybeSingle(),
@@ -872,20 +963,7 @@ export async function GET(
         .from(
           'organization_members',
         )
-        .select(
-          [
-            'id',
-            'organization_id',
-            'school_id',
-            'role',
-            'status',
-            'hierarchy_level',
-            'scope_type',
-            'onboarding_completed',
-            'access_starts_at',
-            'access_ends_at',
-          ].join(','),
-        )
+        .select('*')
         .eq(
           'user_id',
           user.id,
@@ -908,35 +986,33 @@ export async function GET(
     }
 
     if (
-      identityUserResult.error
-    ) {
-      throw new Error(
-        `Erro ao consultar identidade: ${identityUserResult.error.message}`,
-      )
-    }
-
-    if (
       membershipsResult.error
     ) {
       throw new Error(
-        `Erro ao consultar vínculos institucionais: ${membershipsResult.error.message}`,
+        `Erro ao consultar vínculos: ${membershipsResult.error.message}`,
       )
     }
 
     const profile =
-      profileResult.data as
-        | PortalProfile
-        | null
-
-    const identityUser =
-      identityUserResult.data as
-        | IdentityUser
-        | null
+      isRecord(
+        profileResult.data,
+      )
+        ? profileResult.data
+        : null
 
     const allMemberships =
-      asRows<PortalMembership>(
+      asRecords(
         membershipsResult.data,
       )
+        .map(
+          parseMembership,
+        )
+        .filter(
+          (
+            membership,
+          ): membership is PortalMembership =>
+            membership !== null,
+        )
 
     const activeMemberships =
       allMemberships.filter(
@@ -947,8 +1023,7 @@ export async function GET(
       ...new Set(
         activeMemberships.map(
           (membership) =>
-            membership
-              .organization_id,
+            membership.organizationId,
         ),
       ),
     ]
@@ -958,7 +1033,7 @@ export async function GET(
         activeMemberships
           .map(
             (membership) =>
-              membership.school_id,
+              membership.schoolId,
           )
           .filter(
             (
@@ -972,18 +1047,17 @@ export async function GET(
     const organizations =
       new Map<
         string,
-        PortalOrganization
+        DatabaseRecord
       >()
 
     const schools =
       new Map<
         string,
-        PortalSchool
+        DatabaseRecord
       >()
 
     if (
-      organizationIds.length >
-      0
+      organizationIds.length > 0
     ) {
       const {
         data,
@@ -992,9 +1066,7 @@ export async function GET(
         .from(
           'organizations',
         )
-        .select(
-          'id, name',
-        )
+        .select('*')
         .in(
           'id',
           organizationIds,
@@ -1006,19 +1078,22 @@ export async function GET(
         )
       }
 
-      const organizationRows =
-        asRows<PortalOrganization>(
-          data,
-        )
-
       for (
         const organization of
-        organizationRows
+        asRecords(data)
       ) {
-        organizations.set(
-          organization.id,
-          organization,
-        )
+        const id =
+          readString(
+            organization,
+            ['id'],
+          )
+
+        if (id) {
+          organizations.set(
+            id,
+            organization,
+          )
+        }
       }
     }
 
@@ -1030,16 +1105,7 @@ export async function GET(
         error,
       } = await client
         .from('schools')
-        .select(
-          [
-            'id',
-            'organization_id',
-            'name',
-            'short_name',
-            'city',
-            'state',
-          ].join(','),
-        )
+        .select('*')
         .in(
           'id',
           schoolIds,
@@ -1051,50 +1117,66 @@ export async function GET(
         )
       }
 
-      const schoolRows =
-        asRows<PortalSchool>(
-          data,
-        )
-
       for (
         const school of
-        schoolRows
+        asRecords(data)
       ) {
-        schools.set(
-          school.id,
-          school,
-        )
+        const id =
+          readString(
+            school,
+            ['id'],
+          )
+
+        if (id) {
+          schools.set(
+            id,
+            school,
+          )
+        }
       }
     }
 
+    const registeredRole =
+      normalizeRole(
+        readString(
+          profile,
+          [
+            'role',
+            'requested_role',
+          ],
+        ),
+      )
+
     const profileStatus =
       (
-        profile?.status ??
-        identityUser
-          ?.profile_status ??
-        'pending'
+        readString(
+          profile,
+          [
+            'status',
+            'profile_status',
+          ],
+        ) ??
+        (
+          profile
+            ? 'active'
+            : 'pending'
+        )
       )
         .trim()
         .toLowerCase()
 
     const onboardingCompleted =
-      Boolean(
-        identityUser
-          ?.onboarding_completed ??
+      readBoolean(
+        profile,
+        ['onboarding_completed'],
         false,
-      )
-
-    const registeredRole =
-      normalizeRole(
-        profile?.role ??
-        identityUser?.role,
       )
 
     const notices:
       PortalNotice[] = []
 
     const contexts:
-      AuthorizedContext[] =
+      PortalContext[] =
         activeMemberships.map(
           (membership) =>
             createCorporateContext(
@@ -1152,7 +1234,7 @@ export async function GET(
             'Perfil institucional não autorizado',
 
           message:
-            'O perfil informado depende de um vínculo institucional ativo. Acesso mantido como usuário individual.',
+            'O perfil informado exige vínculo institucional ativo. O acesso foi mantido como usuário individual.',
         })
 
         individualRole =
@@ -1170,10 +1252,7 @@ export async function GET(
     }
 
     let activeContext =
-      selectPreferredContext(
-        contexts,
-        identityUser,
-      )
+      contexts[0] ?? null
 
     if (
       hasContextRequest
@@ -1208,10 +1287,8 @@ export async function GET(
     }
 
     if (
-      allMemberships.length >
-        0 &&
-      activeMemberships.length ===
-        0
+      allMemberships.length > 0 &&
+      activeMemberships.length === 0
     ) {
       notices.push({
         level:
@@ -1228,32 +1305,9 @@ export async function GET(
       })
     }
 
-    if (
-      !isActiveStatus(
-        profileStatus,
-      ) &&
-      activeContext
-        ?.accountType ===
-        'individual'
-    ) {
-      notices.push({
-        level:
-          'warning',
-
-        code:
-          'PROFILE_PENDING',
-
-        title:
-          'Perfil pendente',
-
-        message:
-          'Conclua ou aguarde a aprovação do cadastro para liberar todos os recursos do plano individual.',
-      })
-    }
-
     if (!activeContext) {
       throw new Error(
-        'Não foi possível determinar o contexto de acesso.',
+        'Contexto de acesso não identificado.',
       )
     }
 
@@ -1266,8 +1320,7 @@ export async function GET(
       new Set<string>()
 
     if (
-      contextIsActive &&
-      activeContext.role
+      contextIsActive
     ) {
       const {
         data,
@@ -1276,9 +1329,7 @@ export async function GET(
         .from(
           'identity_product_permissions',
         )
-        .select(
-          'product_code, can_access',
-        )
+        .select('*')
         .eq(
           'role_code',
           activeContext.role,
@@ -1290,25 +1341,33 @@ export async function GET(
 
       if (error) {
         throw new Error(
-          `Erro ao consultar permissões dos produtos: ${error.message}`,
+          `Erro ao consultar permissões: ${error.message}`,
         )
       }
 
-      const permissionRows =
-        asRows<ProductPermissionRow>(
-          data,
-        )
-
       for (
         const permission of
-        permissionRows
+        asRecords(data)
       ) {
+        const productCode =
+          readString(
+            permission,
+            ['product_code'],
+          )
+
+        const canAccess =
+          readBoolean(
+            permission,
+            ['can_access'],
+            false,
+          )
+
         if (
-          permission.can_access
+          productCode &&
+          canAccess
         ) {
           enabledCodes.add(
-            permission
-              .product_code,
+            productCode,
           )
         }
       }
@@ -1326,12 +1385,27 @@ export async function GET(
         },
       )
 
+    const metadataName =
+      typeof user
+        .user_metadata
+        ?.full_name === 'string'
+        ? user
+            .user_metadata
+            .full_name
+            .trim()
+        : null
+
     const displayName =
-      profile
-        ?.display_name?.trim() ||
-      identityUser
-        ?.full_name?.trim() ||
-      user.email ||
+      readString(
+        profile,
+        [
+          'display_name',
+          'full_name',
+          'name',
+        ],
+      ) ??
+      metadataName ??
+      user.email ??
       'Usuário EduData IA'
 
     return NextResponse.json(
@@ -1387,10 +1461,15 @@ export async function GET(
       error,
     )
 
+    const status =
+      getErrorStatus(error)
+
     const message =
-      error instanceof Error
-        ? error.message
-        : 'Erro interno ao carregar o portal.'
+      status === 401
+        ? 'Usuário não autenticado.'
+        : status === 403
+          ? 'Você não possui permissão para acessar este ambiente.'
+          : 'Não foi possível carregar o contexto de acesso. Tente novamente.'
 
     return NextResponse.json(
       {
@@ -1407,10 +1486,7 @@ export async function GET(
           [],
       },
       {
-        status:
-          getErrorStatus(
-            error,
-          ),
+        status,
 
         headers: {
           'Cache-Control':
