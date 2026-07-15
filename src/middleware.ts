@@ -3,12 +3,6 @@ import {
   NextResponse,
 } from 'next/server'
 
-/**
- * Rotas públicas exatas.
- *
- * Apenas o endereço informado será público.
- * As subrotas continuarão protegidas.
- */
 const EXACT_PUBLIC_ROUTES = [
   '/',
   '/login',
@@ -16,12 +10,6 @@ const EXACT_PUBLIC_ROUTES = [
   '/professor-digital',
 ]
 
-/**
- * Seções totalmente públicas.
- *
- * A rota principal e todas as suas subrotas
- * permanecem públicas.
- */
 const PUBLIC_ROUTE_PREFIXES = [
   '/academy',
   '/participacao',
@@ -77,9 +65,7 @@ export function middleware(
     search,
   } = request.nextUrl
 
-  if (
-    isPublicRoute(pathname)
-  ) {
+  if (isPublicRoute(pathname)) {
     return NextResponse.next()
   }
 
@@ -87,9 +73,7 @@ export function middleware(
     getAccessToken(request)
 
   if (!accessToken) {
-    if (
-      isApiRoute(pathname)
-    ) {
+    if (isApiRoute(pathname)) {
       return NextResponse.json(
         {
           success: false,
@@ -128,6 +112,7 @@ export function middleware(
 export const config = {
   matcher: [
     '/portal/:path*',
+    '/perfil/:path*',
     '/agenda/:path*',
     '/professor-digital/:path*',
     '/dashboard/:path*',
@@ -138,6 +123,7 @@ export const config = {
     '/experience-manager/:path*',
 
     '/api/portal/:path*',
+    '/api/profile/:path*',
     '/api/agenda/:path*',
   ],
 }
