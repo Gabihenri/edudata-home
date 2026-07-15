@@ -5,6 +5,7 @@ import {
 
 import {
   eventsService,
+  type AgendaEvent,
   type CreateAgendaEventInput,
 } from '@/lib/agenda'
 
@@ -114,9 +115,18 @@ function getErrorStatus(
 
   if (
     message.includes('não autenticado') ||
-    message.includes('não autorizado')
+    message.includes('não autorizado') ||
+    message.includes('unauthorized')
   ) {
     return 401
+  }
+
+  if (
+    message.includes('sem permissão') ||
+    message.includes('proibido') ||
+    message.includes('forbidden')
+  ) {
+    return 403
   }
 
   if (
@@ -151,7 +161,8 @@ function createErrorResponse(
       {
         status: 403,
         headers: {
-          'Cache-Control': 'no-store',
+          'Cache-Control':
+            'no-store, no-cache, must-revalidate',
         },
       },
     )
@@ -170,7 +181,8 @@ function createErrorResponse(
     {
       status: getErrorStatus(error),
       headers: {
-        'Cache-Control': 'no-store',
+        'Cache-Control':
+          'no-store, no-cache, must-revalidate',
       },
     },
   )
@@ -201,16 +213,31 @@ export async function GET(
       searchParams.get('week')
 
     const seriesId =
-      searchParams.get('seriesId')
+      normalizeOptionalText(
+        searchParams.get('seriesId'),
+      )
 
-    let data
+    let data: AgendaEvent[]
 
     if (seriesId) {
-      data =
-        await eventsService
-          .listBySeriesId(
-            seriesId,
-          )
+      /*
+       * Segurança:
+       * primeiro busca apenas os eventos pertencentes
+       * ao usuário autenticado e, depois, filtra a série.
+       *
+       * Isso impede que um usuário consulte uma série
+       * pertencente a outra conta informando o seriesId
+       * diretamente na URL.
+       */
+      const userEvents =
+        await eventsService.listByUserId(
+          user.id,
+        )
+
+      data = userEvents.filter(
+        (event) =>
+          event.series_id === seriesId,
+      )
     } else if (weekReference) {
       data =
         await eventsService
@@ -233,12 +260,19 @@ export async function GET(
         data,
       },
       {
+        status: 200,
         headers: {
-          'Cache-Control': 'no-store',
+          'Cache-Control':
+            'no-store, no-cache, must-revalidate',
         },
       },
     )
   } catch (error) {
+    console.error(
+      '[AGENDA_EVENTS_GET_ERROR]',
+      error,
+    )
+
     return createErrorResponse(
       error,
       'Erro interno ao listar eventos.',
@@ -321,6 +355,12 @@ export async function POST(
           body.schoolId,
         ),
 
+      /*
+       * O proprietário do registro sempre será
+       * o usuário autenticado no servidor.
+       *
+       * Nunca aceitar user_id enviado pelo navegador.
+       */
       user_id: user.id,
 
       planning_id:
@@ -381,11 +421,17 @@ export async function POST(
       {
         status: 201,
         headers: {
-          'Cache-Control': 'no-store',
+          'Cache-Control':
+            'no-store, no-cache, must-revalidate',
         },
       },
     )
   } catch (error) {
+    console.error(
+      '[AGENDA_EVENTS_POST_ERROR]',
+      error,
+    )
+
     return createErrorResponse(
       error,
       'Erro interno ao criar evento.',
