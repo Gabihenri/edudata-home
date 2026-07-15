@@ -30,11 +30,15 @@ export async function uploadFile({
   upsert = false,
 }: UploadFileInput): Promise<UploadFileResult> {
   if (!contentType.trim()) {
-    throw new Error('Tipo do arquivo é obrigatório.')
+    throw new Error(
+      'Tipo do arquivo é obrigatório.',
+    )
   }
 
   if (file.byteLength === 0) {
-    throw new Error('O arquivo está vazio.')
+    throw new Error(
+      'O arquivo está vazio.',
+    )
   }
 
   const storage = getStorageClient()
@@ -54,16 +58,14 @@ export async function uploadFile({
     })
 
   if (error) {
-    throw new Error(`Erro ao enviar arquivo: ${error.message}`)
+    throw new Error(
+      `Erro ao enviar arquivo: ${error.message}`,
+    )
   }
-
-  const {
-    data: { publicUrl },
-  } = storage.storage.from(bucket).getPublicUrl(path)
 
   return {
     bucket,
     path,
-    publicUrl: publicUrl || null,
+    publicUrl: null,
   }
 }
