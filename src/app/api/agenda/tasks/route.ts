@@ -1,6 +1,10 @@
-import { NextResponse } from 'next/server'
+import {
+  NextRequest,
+  NextResponse,
+} from 'next/server'
 
 import { requireSessionUser } from '@/lib/auth/session'
+
 import type { CreateAgendaTaskInput } from '@/lib/agenda/repository/tasks.repository'
 import { tasksService } from '@/lib/agenda/services/tasks.service'
 
@@ -28,7 +32,9 @@ function normalizeOptionalText(
   return normalizedValue || null
 }
 
-function getErrorStatus(error: unknown): number {
+function getErrorStatus(
+  error: unknown,
+): number {
   if (error instanceof SyntaxError) {
     return 400
   }
@@ -37,14 +43,23 @@ function getErrorStatus(error: unknown): number {
     return 500
   }
 
-  const message = error.message.toLowerCase()
+  const message =
+    error.message.toLowerCase()
 
   if (
     message.includes('não autenticado') ||
     message.includes('não autorizado') ||
-    message.includes('permissão')
+    message.includes('unauthorized')
   ) {
     return 401
+  }
+
+  if (
+    message.includes('sem permissão') ||
+    message.includes('proibido') ||
+    message.includes('forbidden')
+  ) {
+    return 403
   }
 
   if (
@@ -57,7 +72,9 @@ function getErrorStatus(error: unknown): number {
     return 400
   }
 
-  if (message.includes('não encontrada')) {
+  if (
+    message.includes('não encontrada')
+  ) {
     return 404
   }
 
@@ -81,7 +98,8 @@ function createErrorResponse(
     {
       status: getErrorStatus(error),
       headers: {
-        'Cache-Control': 'no-store',
+        'Cache-Control':
+          'no-store, no-cache, must-revalidate',
       },
     },
   )
@@ -89,12 +107,17 @@ function createErrorResponse(
 
 export async function GET() {
   try {
-    const user = await requireSessionUser()
-    const allTasks = await tasksService.listAll()
+    const user =
+      await requireSessionUser()
 
-    const data = allTasks.filter(
-      (task) => task.user_id === user.id,
-    )
+    /*
+     * A consulta já é filtrada no banco pelo
+     * proprietário autenticado.
+     */
+    const data =
+      await tasksService.listByUserId(
+        user.id,
+      )
 
     return NextResponse.json(
       {
@@ -103,12 +126,19 @@ export async function GET() {
         data,
       },
       {
+        status: 200,
         headers: {
-          'Cache-Control': 'no-store',
+          'Cache-Control':
+            'no-store, no-cache, must-revalidate',
         },
       },
     )
   } catch (error) {
+    console.error(
+      '[AGENDA_TASKS_GET_ERROR]',
+      error,
+    )
+
     return createErrorResponse(
       error,
       'Não foi possível carregar as tarefas.',
@@ -116,9 +146,13 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(
+  request: NextRequest,
+) {
   try {
-    const user = await requireSessionUser()
+    const user =
+      await requireSessionUser()
+
     const body =
       (await request.json()) as CreateTaskRequestBody
 
@@ -128,49 +162,69 @@ export async function POST(request: Request) {
           ? body.title
           : '',
 
-      description: normalizeOptionalText(
-        body.description,
-      ),
+      description:
+        normalizeOptionalText(
+          body.description,
+        ),
 
       status:
-        normalizeOptionalText(body.status) ??
-        'pendente',
+        normalizeOptionalText(
+          body.status,
+        ) ?? 'pendente',
 
       priority:
-        normalizeOptionalText(body.priority) ??
-        'media',
+        normalizeOptionalText(
+          body.priority,
+        ) ?? 'media',
 
-      due_date: normalizeOptionalText(
-        body.dueDate,
-      ),
+      due_date:
+        normalizeOptionalText(
+          body.dueDate,
+        ),
 
-      event_id: normalizeOptionalText(
-        body.eventId,
-      ),
+      event_id:
+        normalizeOptionalText(
+          body.eventId,
+        ),
 
-      school_id: normalizeOptionalText(
-        body.schoolId,
-      ),
-
-      user_id: user.id,
+      school_id:
+        normalizeOptionalText(
+          body.schoolId,
+        ),
     }
 
-    const data = await tasksService.create(input)
+    /*
+     * O user_id é definido pelo servidor.
+     * Nenhum proprietário enviado pelo navegador
+     * será aceito.
+     */
+    const data =
+      await tasksService.createOwned(
+        user.id,
+        input,
+      )
 
     return NextResponse.json(
       {
         success: true,
-        message: 'Tarefa criada com sucesso.',
+        message:
+          'Tarefa criada com sucesso.',
         data,
       },
       {
         status: 201,
         headers: {
-          'Cache-Control': 'no-store',
+          'Cache-Control':
+            'no-store, no-cache, must-revalidate',
         },
       },
     )
   } catch (error) {
+    console.error(
+      '[AGENDA_TASKS_POST_ERROR]',
+      error,
+    )
+
     return createErrorResponse(
       error,
       'Não foi possível criar a tarefa.',
