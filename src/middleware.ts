@@ -1,4 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import {
+  NextRequest,
+  NextResponse,
+} from 'next/server'
 
 /**
  * Rotas públicas exatas.
@@ -16,60 +19,107 @@ const EXACT_PUBLIC_ROUTES = [
 /**
  * Seções totalmente públicas.
  *
- * A rota principal e todas as suas subrotas serão públicas.
+ * A rota principal e todas as suas subrotas
+ * permanecem públicas.
  */
 const PUBLIC_ROUTE_PREFIXES = [
   '/academy',
   '/participacao',
 ]
 
-function isPublicRoute(pathname: string): boolean {
-  if (EXACT_PUBLIC_ROUTES.includes(pathname)) {
+function isPublicRoute(
+  pathname: string,
+): boolean {
+  if (
+    EXACT_PUBLIC_ROUTES.includes(
+      pathname,
+    )
+  ) {
     return true
   }
 
   return PUBLIC_ROUTE_PREFIXES.some(
     (route) =>
-      pathname === route || pathname.startsWith(`${route}/`),
+      pathname === route ||
+      pathname.startsWith(
+        `${route}/`,
+      ),
   )
 }
 
-function isApiRoute(pathname: string): boolean {
-  return pathname.startsWith('/api/')
+function isApiRoute(
+  pathname: string,
+): boolean {
+  return pathname.startsWith(
+    '/api/',
+  )
 }
 
-export function middleware(request: NextRequest) {
-  const { pathname, search } = request.nextUrl
+function getAccessToken(
+  request: NextRequest,
+): string | null {
+  return (
+    request.cookies.get(
+      'sb-access-token',
+    )?.value ??
+    request.cookies.get(
+      'access_token',
+    )?.value ??
+    null
+  )
+}
 
-  if (isPublicRoute(pathname)) {
+export function middleware(
+  request: NextRequest,
+) {
+  const {
+    pathname,
+    search,
+  } = request.nextUrl
+
+  if (
+    isPublicRoute(pathname)
+  ) {
     return NextResponse.next()
   }
 
   const accessToken =
-    request.cookies.get('sb-access-token')?.value ??
-    request.cookies.get('access_token')?.value
+    getAccessToken(request)
 
   if (!accessToken) {
-    if (isApiRoute(pathname)) {
+    if (
+      isApiRoute(pathname)
+    ) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Não autenticado.',
+          error:
+            'Usuário não autenticado.',
         },
         {
           status: 401,
+          headers: {
+            'Cache-Control':
+              'no-store, no-cache, must-revalidate',
+          },
         },
       )
     }
 
-    const loginUrl = new URL('/login', request.url)
+    const loginUrl =
+      new URL(
+        '/login',
+        request.url,
+      )
 
     loginUrl.searchParams.set(
       'redirectTo',
       `${pathname}${search}`,
     )
 
-    return NextResponse.redirect(loginUrl)
+    return NextResponse.redirect(
+      loginUrl,
+    )
   }
 
   return NextResponse.next()
@@ -77,12 +127,17 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/portal/:path*',
     '/agenda/:path*',
     '/professor-digital/:path*',
     '/dashboard/:path*',
     '/analytics/:path*',
     '/professor/:path*',
     '/admin/:path*',
+    '/backoffice/:path*',
+    '/experience-manager/:path*',
+
+    '/api/portal/:path*',
     '/api/agenda/:path*',
   ],
 }
