@@ -2,6 +2,8 @@ import Link from 'next/link'
 
 import ProfileForm from '@/components/profile/ProfileForm'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Meu Perfil | EduData IA',
   description:
