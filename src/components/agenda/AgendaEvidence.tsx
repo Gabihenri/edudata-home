@@ -75,6 +75,7 @@ export function AgendaEvidence() {
     reload,
     createEvidence,
     uploadEvidenceFile,
+    getEvidenceFileUrl,
   } = useEvidences()
 
   const [form, setForm] =
@@ -105,6 +106,16 @@ export function AgendaEvidence() {
   const [
     successMessage,
     setSuccessMessage,
+  ] = useState<string | null>(null)
+
+  const [
+    openingEvidenceId,
+    setOpeningEvidenceId,
+  ] = useState<string | null>(null)
+
+  const [
+    fileAccessError,
+    setFileAccessError,
   ] = useState<string | null>(null)
 
   const usesFile =
@@ -237,6 +248,50 @@ export function AgendaEvidence() {
     clearMessages()
   }
 
+  async function handleOpenProtectedFile(
+    evidenceId: string,
+  ): Promise<void> {
+    setOpeningEvidenceId(evidenceId)
+    setFileAccessError(null)
+
+    const fileWindow = window.open(
+      'about:blank',
+      '_blank',
+    )
+
+    if (!fileWindow) {
+      setOpeningEvidenceId(null)
+      setFileAccessError(
+        'O navegador bloqueou a abertura do arquivo. Permita novas janelas e tente novamente.',
+      )
+
+      return
+    }
+
+    fileWindow.opener = null
+
+    try {
+      const signedUrl =
+        await getEvidenceFileUrl(
+          evidenceId,
+        )
+
+      fileWindow.location.replace(
+        signedUrl,
+      )
+    } catch (openError) {
+      fileWindow.close()
+
+      setFileAccessError(
+        openError instanceof Error
+          ? openError.message
+          : 'Não foi possível abrir o arquivo protegido.',
+      )
+    } finally {
+      setOpeningEvidenceId(null)
+    }
+  }
+
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
   ): Promise<void> {
@@ -329,9 +384,7 @@ export function AgendaEvidence() {
         evidence_type:
           form.evidenceType,
 
-        file_url:
-          uploadedFile?.publicUrl ??
-          null,
+        file_url: null,
 
         external_url:
           form.evidenceType === 'link'
@@ -523,9 +576,7 @@ export function AgendaEvidence() {
                       false
                     }
                     onChange={() =>
-                      handleMinorAnswer(
-                        false,
-                      )
+                      handleMinorAnswer(false)
                     }
                     className="h-5 w-5 accent-emerald-600"
                   />
@@ -556,9 +607,7 @@ export function AgendaEvidence() {
                       true
                     }
                     onChange={() =>
-                      handleMinorAnswer(
-                        true,
-                      )
+                      handleMinorAnswer(true)
                     }
                     className="h-5 w-5 accent-amber-600"
                   />
@@ -593,10 +642,8 @@ export function AgendaEvidence() {
                         setForm(
                           (current) => ({
                             ...current,
-
                             authorizationReference:
-                              event.target
-                                .value,
+                              event.target.value,
                           }),
                         )
 
@@ -626,10 +673,8 @@ export function AgendaEvidence() {
                         setForm(
                           (current) => ({
                             ...current,
-
                             guardianAuthorizationConfirmed:
-                              event.target
-                                .checked,
+                              event.target.checked,
                           }),
                         )
 
@@ -673,7 +718,6 @@ export function AgendaEvidence() {
                     setForm(
                       (current) => ({
                         ...current,
-
                         title:
                           event.target.value,
                       }),
@@ -701,7 +745,6 @@ export function AgendaEvidence() {
                     setForm(
                       (current) => ({
                         ...current,
-
                         description:
                           event.target.value,
                       }),
@@ -828,10 +871,8 @@ export function AgendaEvidence() {
                       setForm(
                         (current) => ({
                           ...current,
-
                           externalUrl:
-                            event.target
-                              .value,
+                            event.target.value,
                         }),
                       )
 
@@ -909,6 +950,15 @@ export function AgendaEvidence() {
             {error ? (
               <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700">
                 {error}
+              </div>
+            ) : null}
+
+            {fileAccessError ? (
+              <div
+                role="alert"
+                className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700"
+              >
+                {fileAccessError}
               </div>
             ) : null}
 
@@ -1015,9 +1065,24 @@ export function AgendaEvidence() {
 
                       {!evidence.file_url &&
                       evidence.storage_path ? (
-                        <span className="inline-flex rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600">
-                          Arquivo protegido
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void handleOpenProtectedFile(
+                              evidence.id,
+                            )
+                          }
+                          disabled={
+                            openingEvidenceId !==
+                            null
+                          }
+                          className="inline-flex rounded-full bg-[#6B21A8] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#581C87] disabled:cursor-wait disabled:bg-slate-400"
+                        >
+                          {openingEvidenceId ===
+                          evidence.id
+                            ? 'Abrindo arquivo...'
+                            : 'Abrir arquivo protegido'}
+                        </button>
                       ) : null}
 
                       {evidence.external_url ? (
