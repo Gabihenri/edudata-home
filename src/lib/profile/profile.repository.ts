@@ -8,6 +8,9 @@ import type {
   UserProfileDto,
 } from './profile.dto'
 
+type DatabaseRecord =
+  Record<string, unknown>
+
 function createProfileClient(): SupabaseClient {
   const url =
     process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -40,6 +43,111 @@ function createProfileClient(): SupabaseClient {
   )
 }
 
+function isRecord(
+  value: unknown,
+): value is DatabaseRecord {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value)
+  )
+}
+
+function readRequiredString(
+  record: DatabaseRecord,
+  key: string,
+): string {
+  const value = record[key]
+
+  if (
+    typeof value !== 'string' ||
+    !value.trim()
+  ) {
+    throw new Error(
+      `Campo obrigatório ausente no perfil: ${key}.`,
+    )
+  }
+
+  return value.trim()
+}
+
+function readOptionalString(
+  record: DatabaseRecord,
+  key: string,
+): string | null {
+  const value = record[key]
+
+  if (
+    typeof value !== 'string' ||
+    !value.trim()
+  ) {
+    return null
+  }
+
+  return value.trim()
+}
+
+function readBoolean(
+  record: DatabaseRecord,
+  key: string,
+  fallback = false,
+): boolean {
+  const value = record[key]
+
+  if (typeof value === 'boolean') {
+    return value
+  }
+
+  return fallback
+}
+
+function parseUserProfile(
+  value: unknown,
+): UserProfileDto | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  return {
+    user_id:
+      readRequiredString(
+        value,
+        'user_id',
+      ),
+
+    display_name:
+      readOptionalString(
+        value,
+        'display_name',
+      ),
+
+    phone:
+      readOptionalString(
+        value,
+        'phone',
+      ),
+
+    role:
+      readRequiredString(
+        value,
+        'role',
+      ),
+
+    status:
+      readRequiredString(
+        value,
+        'status',
+      ),
+
+    onboarding_completed:
+      readBoolean(
+        value,
+        'onboarding_completed',
+        false,
+      ),
+  }
+}
+
 class ProfileRepository {
   private get client(): SupabaseClient {
     return createProfileClient()
@@ -70,7 +178,7 @@ class ProfileRepository {
       )
     }
 
-    return data as UserProfileDto | null
+    return parseUserProfile(data)
   }
 
   async createDefault(
@@ -84,9 +192,11 @@ class ProfileRepository {
           user_id: userId,
           role: 'professor',
           status: 'active',
-          display_name: displayName,
+          display_name:
+            displayName,
           phone: null,
-          onboarding_completed: false,
+          onboarding_completed:
+            false,
         })
         .select(
           [
@@ -106,7 +216,16 @@ class ProfileRepository {
       )
     }
 
-    return data as UserProfileDto
+    const profile =
+      parseUserProfile(data)
+
+    if (!profile) {
+      throw new Error(
+        'O perfil foi criado, mas os dados retornados são inválidos.',
+      )
+    }
+
+    return profile
   }
 
   async updateByUserId(
@@ -119,8 +238,10 @@ class ProfileRepository {
         .update({
           display_name:
             input.display_name,
+
           phone:
             input.phone || null,
+
           onboarding_completed:
             input.onboarding_completed ??
             true,
@@ -144,7 +265,16 @@ class ProfileRepository {
       )
     }
 
-    return data as UserProfileDto
+    const profile =
+      parseUserProfile(data)
+
+    if (!profile) {
+      throw new Error(
+        'O perfil foi atualizado, mas os dados retornados são inválidos.',
+      )
+    }
+
+    return profile
   }
 }
 
