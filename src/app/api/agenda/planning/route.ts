@@ -1,6 +1,10 @@
-import { NextResponse } from 'next/server'
+import {
+  NextRequest,
+  NextResponse,
+} from 'next/server'
 
 import { requireSessionUser } from '@/lib/auth/session'
+
 import type { CreateAgendaPlanningInput } from '@/lib/agenda/repository/planning.repository'
 import { planningService } from '@/lib/agenda/services/planning.service'
 
@@ -32,7 +36,9 @@ function normalizeOptionalText(
   return normalizedValue || null
 }
 
-function getErrorStatus(error: unknown): number {
+function getErrorStatus(
+  error: unknown,
+): number {
   if (error instanceof SyntaxError) {
     return 400
   }
@@ -41,14 +47,23 @@ function getErrorStatus(error: unknown): number {
     return 500
   }
 
-  const message = error.message.toLowerCase()
+  const message =
+    error.message.toLowerCase()
 
   if (
     message.includes('não autenticado') ||
     message.includes('não autorizado') ||
-    message.includes('permissão')
+    message.includes('unauthorized')
   ) {
     return 401
+  }
+
+  if (
+    message.includes('sem permissão') ||
+    message.includes('proibido') ||
+    message.includes('forbidden')
+  ) {
+    return 403
   }
 
   if (
@@ -61,7 +76,9 @@ function getErrorStatus(error: unknown): number {
     return 400
   }
 
-  if (message.includes('não encontrado')) {
+  if (
+    message.includes('não encontrado')
+  ) {
     return 404
   }
 
@@ -85,7 +102,8 @@ function createErrorResponse(
     {
       status: getErrorStatus(error),
       headers: {
-        'Cache-Control': 'no-store',
+        'Cache-Control':
+          'no-store, no-cache, must-revalidate',
       },
     },
   )
@@ -93,15 +111,17 @@ function createErrorResponse(
 
 export async function GET() {
   try {
-    const user = await requireSessionUser()
+    const user =
+      await requireSessionUser()
 
-    const allPlanning =
-      await planningService.listAll()
-
-    const data = allPlanning.filter(
-      (planning) =>
-        planning.user_id === user.id,
-    )
+    /*
+     * A consulta ocorre diretamente no banco,
+     * limitada ao proprietário autenticado.
+     */
+    const data =
+      await planningService.listByUserId(
+        user.id,
+      )
 
     return NextResponse.json(
       {
@@ -110,12 +130,19 @@ export async function GET() {
         data,
       },
       {
+        status: 200,
         headers: {
-          'Cache-Control': 'no-store',
+          'Cache-Control':
+            'no-store, no-cache, must-revalidate',
         },
       },
     )
   } catch (error) {
+    console.error(
+      '[AGENDA_PLANNING_GET_ERROR]',
+      error,
+    )
+
     return createErrorResponse(
       error,
       'Não foi possível carregar os planejamentos.',
@@ -124,10 +151,11 @@ export async function GET() {
 }
 
 export async function POST(
-  request: Request,
+  request: NextRequest,
 ) {
   try {
-    const user = await requireSessionUser()
+    const user =
+      await requireSessionUser()
 
     const body =
       (await request.json()) as CreatePlanningRequestBody
@@ -187,12 +215,17 @@ export async function POST(
         normalizeOptionalText(
           body.schoolId,
         ),
-
-      user_id: user.id,
     }
 
+    /*
+     * O proprietário é definido pelo servidor.
+     * O navegador não pode escolher outro user_id.
+     */
     const data =
-      await planningService.create(input)
+      await planningService.createOwned(
+        user.id,
+        input,
+      )
 
     return NextResponse.json(
       {
@@ -204,11 +237,17 @@ export async function POST(
       {
         status: 201,
         headers: {
-          'Cache-Control': 'no-store',
+          'Cache-Control':
+            'no-store, no-cache, must-revalidate',
         },
       },
     )
   } catch (error) {
+    console.error(
+      '[AGENDA_PLANNING_POST_ERROR]',
+      error,
+    )
+
     return createErrorResponse(
       error,
       'Não foi possível criar o planejamento.',
