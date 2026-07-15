@@ -4,7 +4,8 @@ import type {
   UpdateOrganizationDto,
 } from './organization.dto'
 
-type UnknownRecord = Record<string, unknown>
+type UnknownRecord =
+  Record<string, unknown>
 
 const ORGANIZATION_STATUSES:
   OrganizationStatus[] = [
@@ -42,7 +43,8 @@ function readRequiredText(
     )
   }
 
-  const normalized = value.trim()
+  const normalized =
+    value.trim()
 
   if (
     normalized.length >
@@ -72,13 +74,16 @@ function readOptionalText(
     return undefined
   }
 
-  if (typeof value !== 'string') {
+  if (
+    typeof value !== 'string'
+  ) {
     throw new Error(
       `${label} deve ser um texto válido.`,
     )
   }
 
-  const normalized = value.trim()
+  const normalized =
+    value.trim()
 
   if (!normalized) {
     return undefined
@@ -100,12 +105,13 @@ function readOptionalEmail(
   record: UnknownRecord,
   key: string,
 ): string | undefined {
-  const value = readOptionalText(
-    record,
-    key,
-    'E-mail',
-    254,
-  )
+  const value =
+    readOptionalText(
+      record,
+      key,
+      'E-mail',
+      254,
+    )
 
   if (!value) {
     return undefined
@@ -114,7 +120,9 @@ function readOptionalEmail(
   const emailPattern =
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-  if (!emailPattern.test(value)) {
+  if (
+    !emailPattern.test(value)
+  ) {
     throw new Error(
       'E-mail inválido.',
     )
@@ -128,19 +136,21 @@ function readOptionalUrl(
   key: string,
   label: string,
 ): string | undefined {
-  const value = readOptionalText(
-    record,
-    key,
-    label,
-    500,
-  )
+  const value =
+    readOptionalText(
+      record,
+      key,
+      label,
+      500,
+    )
 
   if (!value) {
     return undefined
   }
 
   try {
-    const url = new URL(value)
+    const url =
+      new URL(value)
 
     if (
       url.protocol !== 'http:' &&
@@ -160,7 +170,8 @@ function readOptionalUrl(
 function readOptionalStatus(
   record: UnknownRecord,
 ): OrganizationStatus | undefined {
-  const value = record.status
+  const value =
+    record.status
 
   if (
     value === undefined ||
@@ -184,16 +195,6 @@ function readOptionalStatus(
   return value as OrganizationStatus
 }
 
-function assignOptionalText(
-  target: Record<string, unknown>,
-  key: string,
-  value: string | undefined,
-): void {
-  if (value !== undefined) {
-    target[key] = value
-  }
-}
-
 export function validateOrganizationId(
   id: unknown,
 ): string {
@@ -206,12 +207,15 @@ export function validateOrganizationId(
     )
   }
 
-  const normalized = id.trim()
+  const normalized =
+    id.trim()
 
   const uuidPattern =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
-  if (!uuidPattern.test(normalized)) {
+  if (
+    !uuidPattern.test(normalized)
+  ) {
     throw new Error(
       'Identificador da organização inválido.',
     )
@@ -229,150 +233,170 @@ export function validateCreateOrganization(
     )
   }
 
-  const name = readRequiredText(
-    value,
-    'name',
-    'Nome da organização',
-    200,
-  )
-
-  const organizationType =
-    readRequiredText(
-      value,
-      'organization_type',
-      'Tipo da organização',
-      100,
-    )
-
   const result:
     CreateOrganizationDto = {
-      name,
+      name:
+        readRequiredText(
+          value,
+          'name',
+          'Nome da organização',
+          200,
+        ),
+
       organization_type:
-        organizationType,
+        readRequiredText(
+          value,
+          'organization_type',
+          'Tipo da organização',
+          100,
+        ),
     }
 
-  assignOptionalText(
-    result as Record<string, unknown>,
-    'short_name',
+  const shortName =
     readOptionalText(
       value,
       'short_name',
       'Nome curto',
       100,
-    ),
-  )
+    )
 
-  assignOptionalText(
-    result as Record<string, unknown>,
-    'document',
+  if (shortName !== undefined) {
+    result.short_name =
+      shortName
+  }
+
+  const document =
     readOptionalText(
       value,
       'document',
       'Documento',
       50,
-    ),
-  )
+    )
 
-  assignOptionalText(
-    result as Record<string, unknown>,
-    'email',
+  if (document !== undefined) {
+    result.document =
+      document
+  }
+
+  const email =
     readOptionalEmail(
       value,
       'email',
-    ),
-  )
+    )
 
-  assignOptionalText(
-    result as Record<string, unknown>,
-    'phone',
+  if (email !== undefined) {
+    result.email =
+      email
+  }
+
+  const phone =
     readOptionalText(
       value,
       'phone',
       'Telefone',
       30,
-    ),
-  )
+    )
 
-  assignOptionalText(
-    result as Record<string, unknown>,
-    'website',
+  if (phone !== undefined) {
+    result.phone =
+      phone
+  }
+
+  const website =
     readOptionalUrl(
       value,
       'website',
       'Site',
-    ),
-  )
+    )
 
-  assignOptionalText(
-    result as Record<string, unknown>,
-    'logo_url',
+  if (website !== undefined) {
+    result.website =
+      website
+  }
+
+  const logoUrl =
     readOptionalUrl(
       value,
       'logo_url',
       'URL do logotipo',
-    ),
-  )
+    )
 
-  assignOptionalText(
-    result as Record<string, unknown>,
-    'address',
+  if (logoUrl !== undefined) {
+    result.logo_url =
+      logoUrl
+  }
+
+  const address =
     readOptionalText(
       value,
       'address',
       'Endereço',
       300,
-    ),
-  )
+    )
 
-  assignOptionalText(
-    result as Record<string, unknown>,
-    'city',
+  if (address !== undefined) {
+    result.address =
+      address
+  }
+
+  const city =
     readOptionalText(
       value,
       'city',
       'Cidade',
       120,
-    ),
-  )
+    )
 
-  assignOptionalText(
-    result as Record<string, unknown>,
-    'state',
+  if (city !== undefined) {
+    result.city =
+      city
+  }
+
+  const state =
     readOptionalText(
       value,
       'state',
       'Estado',
       100,
-    ),
-  )
+    )
 
-  assignOptionalText(
-    result as Record<string, unknown>,
-    'zip_code',
+  if (state !== undefined) {
+    result.state =
+      state
+  }
+
+  const zipCode =
     readOptionalText(
       value,
       'zip_code',
       'CEP',
       20,
-    ),
-  )
+    )
 
-  assignOptionalText(
-    result as Record<string, unknown>,
-    'country',
+  if (zipCode !== undefined) {
+    result.zip_code =
+      zipCode
+  }
+
+  const country =
     readOptionalText(
       value,
       'country',
       'País',
       100,
-    ),
-  )
+    )
+
+  if (country !== undefined) {
+    result.country =
+      country
+  }
 
   const status =
     readOptionalStatus(value)
 
   if (status !== undefined) {
-    result.status = status
+    result.status =
+      status
   }
 
   return result
@@ -390,7 +414,9 @@ export function validateUpdateOrganization(
   const result:
     UpdateOrganizationDto = {}
 
-  if (value.name !== undefined) {
+  if (
+    value.name !== undefined
+  ) {
     result.name =
       readRequiredText(
         value,
@@ -413,74 +439,33 @@ export function validateUpdateOrganization(
       )
   }
 
-  const optionalFields = [
-    {
-      key: 'short_name',
-      label: 'Nome curto',
-      maximumLength: 100,
-    },
-    {
-      key: 'document',
-      label: 'Documento',
-      maximumLength: 50,
-    },
-    {
-      key: 'phone',
-      label: 'Telefone',
-      maximumLength: 30,
-    },
-    {
-      key: 'address',
-      label: 'Endereço',
-      maximumLength: 300,
-    },
-    {
-      key: 'city',
-      label: 'Cidade',
-      maximumLength: 120,
-    },
-    {
-      key: 'state',
-      label: 'Estado',
-      maximumLength: 100,
-    },
-    {
-      key: 'zip_code',
-      label: 'CEP',
-      maximumLength: 20,
-    },
-    {
-      key: 'country',
-      label: 'País',
-      maximumLength: 100,
-    },
-  ] as const
-
-  for (
-    const field of optionalFields
+  if (
+    value.short_name !== undefined
   ) {
-    if (
-      value[field.key] !== undefined
-    ) {
-      const parsed =
-        readOptionalText(
-          value,
-          field.key,
-          field.label,
-          field.maximumLength,
-        )
-
-      ;(
-        result as Record<
-          string,
-          unknown
-        >
-      )[field.key] =
-        parsed ?? ''
-    }
+    result.short_name =
+      readOptionalText(
+        value,
+        'short_name',
+        'Nome curto',
+        100,
+      ) ?? ''
   }
 
-  if (value.email !== undefined) {
+  if (
+    value.document !== undefined
+  ) {
+    result.document =
+      readOptionalText(
+        value,
+        'document',
+        'Documento',
+        50,
+      ) ?? ''
+  }
+
+  if (
+    value.email !== undefined
+  ) {
     result.email =
       readOptionalEmail(
         value,
@@ -488,7 +473,21 @@ export function validateUpdateOrganization(
       ) ?? ''
   }
 
-  if (value.website !== undefined) {
+  if (
+    value.phone !== undefined
+  ) {
+    result.phone =
+      readOptionalText(
+        value,
+        'phone',
+        'Telefone',
+        30,
+      ) ?? ''
+  }
+
+  if (
+    value.website !== undefined
+  ) {
     result.website =
       readOptionalUrl(
         value,
@@ -497,7 +496,9 @@ export function validateUpdateOrganization(
       ) ?? ''
   }
 
-  if (value.logo_url !== undefined) {
+  if (
+    value.logo_url !== undefined
+  ) {
     result.logo_url =
       readOptionalUrl(
         value,
@@ -506,7 +507,69 @@ export function validateUpdateOrganization(
       ) ?? ''
   }
 
-  if (value.status !== undefined) {
+  if (
+    value.address !== undefined
+  ) {
+    result.address =
+      readOptionalText(
+        value,
+        'address',
+        'Endereço',
+        300,
+      ) ?? ''
+  }
+
+  if (
+    value.city !== undefined
+  ) {
+    result.city =
+      readOptionalText(
+        value,
+        'city',
+        'Cidade',
+        120,
+      ) ?? ''
+  }
+
+  if (
+    value.state !== undefined
+  ) {
+    result.state =
+      readOptionalText(
+        value,
+        'state',
+        'Estado',
+        100,
+      ) ?? ''
+  }
+
+  if (
+    value.zip_code !== undefined
+  ) {
+    result.zip_code =
+      readOptionalText(
+        value,
+        'zip_code',
+        'CEP',
+        20,
+      ) ?? ''
+  }
+
+  if (
+    value.country !== undefined
+  ) {
+    result.country =
+      readOptionalText(
+        value,
+        'country',
+        'País',
+        100,
+      ) ?? ''
+  }
+
+  if (
+    value.status !== undefined
+  ) {
     const status =
       readOptionalStatus(value)
 
@@ -516,7 +579,8 @@ export function validateUpdateOrganization(
       )
     }
 
-    result.status = status
+    result.status =
+      status
   }
 
   if (
