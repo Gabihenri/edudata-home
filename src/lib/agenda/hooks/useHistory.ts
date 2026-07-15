@@ -1,6 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 
 import type {
   AgendaHistoryFilters,
@@ -17,40 +22,80 @@ type HistoryResponse = {
 export function useHistory(
   initialFilters: AgendaHistoryFilters = {},
 ) {
-  const [history, setHistory] = useState<AgendaHistoryItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const initialFiltersRef =
+    useRef<AgendaHistoryFilters>(
+      initialFilters,
+    )
+
+  const [history, setHistory] =
+    useState<AgendaHistoryItem[]>([])
+
+  const [loading, setLoading] =
+    useState(true)
+
+  const [error, setError] =
+    useState<string | null>(null)
 
   const loadHistory = useCallback(
     async (
-      filters: AgendaHistoryFilters = initialFilters,
+      filters: AgendaHistoryFilters =
+        initialFiltersRef.current,
     ): Promise<void> => {
       setLoading(true)
       setError(null)
 
       try {
-        const params = new URLSearchParams()
+        const params =
+          new URLSearchParams()
 
-        if (filters.userId)
-          params.set('userId', filters.userId)
+        if (filters.userId) {
+          params.set(
+            'userId',
+            filters.userId,
+          )
+        }
 
-        if (filters.schoolId)
-          params.set('schoolId', filters.schoolId)
+        if (filters.schoolId) {
+          params.set(
+            'schoolId',
+            filters.schoolId,
+          )
+        }
 
-        if (filters.type)
-          params.set('type', filters.type)
+        if (filters.type) {
+          params.set(
+            'type',
+            filters.type,
+          )
+        }
 
-        if (filters.search)
-          params.set('search', filters.search)
+        if (filters.search) {
+          params.set(
+            'search',
+            filters.search,
+          )
+        }
 
-        if (filters.startDate)
-          params.set('startDate', filters.startDate)
+        if (filters.startDate) {
+          params.set(
+            'startDate',
+            filters.startDate,
+          )
+        }
 
-        if (filters.endDate)
-          params.set('endDate', filters.endDate)
+        if (filters.endDate) {
+          params.set(
+            'endDate',
+            filters.endDate,
+          )
+        }
 
-        if (filters.limit)
-          params.set('limit', String(filters.limit))
+        if (filters.limit) {
+          params.set(
+            'limit',
+            String(filters.limit),
+          )
+        }
 
         const response = await fetch(
           `/api/agenda/history?${params.toString()}`,
@@ -63,7 +108,10 @@ export function useHistory(
         const result =
           (await response.json()) as HistoryResponse
 
-        if (!response.ok || !result.success) {
+        if (
+          !response.ok ||
+          !result.success
+        ) {
           throw new Error(
             result.error ??
               'Não foi possível carregar o histórico.',
@@ -81,7 +129,7 @@ export function useHistory(
         setLoading(false)
       }
     },
-    [initialFilters],
+    [],
   )
 
   useEffect(() => {
