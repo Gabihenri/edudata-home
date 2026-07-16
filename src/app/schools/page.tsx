@@ -5,9 +5,9 @@ import SchoolTable from '@/components/school/SchoolTable'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Escolas | EduData IA',
+  title: 'Instituições | EduData IA',
   description:
-    'Gestão das escolas e unidades educacionais vinculadas às organizações da EduData IA.',
+    'Gestão das instituições e unidades educacionais vinculadas às organizações da EduData IA.',
 }
 
 export default function SchoolsPage() {
@@ -18,16 +18,19 @@ export default function SchoolsPage() {
           <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-300">
-                EIOS — School Core
+                EIOS — Institution Core
               </p>
 
               <h1 className="mt-3 text-3xl font-bold tracking-tight">
-                Escolas
+                Instituições
               </h1>
 
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-                Gerencie as escolas e unidades educacionais
-                vinculadas às organizações da plataforma.
+                Gerencie escolas, institutos,
+                faculdades, universidades,
+                empresas e demais unidades
+                vinculadas às organizações da
+                plataforma.
               </p>
             </div>
 
@@ -50,7 +53,7 @@ export default function SchoolsPage() {
                 href="/schools/new"
                 className="inline-flex items-center justify-center rounded-lg bg-[#0B7491] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#09657e]"
               >
-                Nova escola
+                Nova instituição
               </Link>
             </div>
           </div>
