@@ -2,36 +2,63 @@ import type {
   AdministrativeType,
   CreateSchoolDto,
   EducationNetwork,
+  InstitutionType,
+  RegistrationOrigin,
   SchoolStatus,
   UpdateSchoolDto,
 } from './school.dto'
 
-type UnknownRecord = Record<string, unknown>
+type UnknownRecord =
+  Record<string, unknown>
 
-const SCHOOL_STATUSES: SchoolStatus[] = [
-  'active',
-  'inactive',
-  'pending',
-  'suspended',
-  'archived',
-]
+const SCHOOL_STATUSES:
+  SchoolStatus[] = [
+    'active',
+    'inactive',
+    'pending',
+    'suspended',
+    'archived',
+  ]
 
-const EDUCATION_NETWORKS: EducationNetwork[] = [
-  'municipal',
-  'state',
-  'federal',
-  'private',
-  'community',
-  'other',
-]
+const EDUCATION_NETWORKS:
+  EducationNetwork[] = [
+    'municipal',
+    'state',
+    'federal',
+    'private',
+    'community',
+    'other',
+  ]
 
-const ADMINISTRATIVE_TYPES: AdministrativeType[] = [
-  'public',
-  'private',
-  'philanthropic',
-  'community',
-  'other',
-]
+const ADMINISTRATIVE_TYPES:
+  AdministrativeType[] = [
+    'public',
+    'private',
+    'philanthropic',
+    'community',
+    'other',
+  ]
+
+const INSTITUTION_TYPES:
+  InstitutionType[] = [
+    'school',
+    'institute',
+    'college',
+    'university',
+    'company',
+    'training_center',
+    'ngo',
+    'government_agency',
+    'education_department',
+    'research_center',
+    'other',
+  ]
+
+const REGISTRATION_ORIGINS:
+  RegistrationOrigin[] = [
+    'inep',
+    'manual',
+  ]
 
 function isRecord(
   value: unknown,
@@ -51,16 +78,21 @@ function validateUuid(
     typeof value !== 'string' ||
     !value.trim()
   ) {
-    throw new Error(`${label} é obrigatório.`)
+    throw new Error(
+      `${label} é obrigatório.`,
+    )
   }
 
-  const normalized = value.trim()
+  const normalized =
+    value.trim()
 
   const uuidPattern =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
   if (!uuidPattern.test(normalized)) {
-    throw new Error(`${label} inválido.`)
+    throw new Error(
+      `${label} inválido.`,
+    )
   }
 
   return normalized
@@ -78,12 +110,18 @@ function readRequiredText(
     typeof value !== 'string' ||
     !value.trim()
   ) {
-    throw new Error(`${label} é obrigatório.`)
+    throw new Error(
+      `${label} é obrigatório.`,
+    )
   }
 
-  const normalized = value.trim()
+  const normalized =
+    value.trim()
 
-  if (normalized.length > maximumLength) {
+  if (
+    normalized.length >
+    maximumLength
+  ) {
     throw new Error(
       `${label} deve possuir no máximo ${maximumLength} caracteres.`,
     )
@@ -108,19 +146,25 @@ function readOptionalText(
     return undefined
   }
 
-  if (typeof value !== 'string') {
+  if (
+    typeof value !== 'string'
+  ) {
     throw new Error(
       `${label} deve ser um texto válido.`,
     )
   }
 
-  const normalized = value.trim()
+  const normalized =
+    value.trim()
 
   if (!normalized) {
     return undefined
   }
 
-  if (normalized.length > maximumLength) {
+  if (
+    normalized.length >
+    maximumLength
+  ) {
     throw new Error(
       `${label} deve possuir no máximo ${maximumLength} caracteres.`,
     )
@@ -132,12 +176,13 @@ function readOptionalText(
 function readOptionalEmail(
   record: UnknownRecord,
 ): string | undefined {
-  const email = readOptionalText(
-    record,
-    'email',
-    'E-mail',
-    254,
-  )
+  const email =
+    readOptionalText(
+      record,
+      'email',
+      'E-mail',
+      254,
+    )
 
   if (!email) {
     return undefined
@@ -146,8 +191,12 @@ function readOptionalEmail(
   const emailPattern =
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-  if (!emailPattern.test(email)) {
-    throw new Error('E-mail inválido.')
+  if (
+    !emailPattern.test(email)
+  ) {
+    throw new Error(
+      'E-mail inválido.',
+    )
   }
 
   return email.toLowerCase()
@@ -156,19 +205,21 @@ function readOptionalEmail(
 function readOptionalUrl(
   record: UnknownRecord,
 ): string | undefined {
-  const website = readOptionalText(
-    record,
-    'website',
-    'Site',
-    500,
-  )
+  const website =
+    readOptionalText(
+      record,
+      'website',
+      'Site',
+      500,
+    )
 
   if (!website) {
     return undefined
   }
 
   try {
-    const url = new URL(website)
+    const url =
+      new URL(website)
 
     if (
       url.protocol !== 'http:' &&
@@ -188,30 +239,44 @@ function readOptionalUrl(
 function readOptionalInepCode(
   record: UnknownRecord,
 ): string | undefined {
-  const inepCode = readOptionalText(
-    record,
-    'inep_code',
-    'Código INEP',
-    8,
-  )
+  const value =
+    record.inep_code
 
-  if (!inepCode) {
+  if (
+    value === undefined ||
+    value === null ||
+    value === ''
+  ) {
     return undefined
   }
 
-  if (!/^\d{8}$/.test(inepCode)) {
+  if (
+    typeof value !== 'string'
+  ) {
+    throw new Error(
+      'Código INEP inválido.',
+    )
+  }
+
+  const digits =
+    value.replace(/\D/g, '')
+
+  if (
+    digits.length !== 8
+  ) {
     throw new Error(
       'Código INEP deve possuir exatamente 8 números.',
     )
   }
 
-  return inepCode
+  return digits
 }
 
 function readEducationNetwork(
   record: UnknownRecord,
 ): EducationNetwork {
-  const value = record.education_network
+  const value =
+    record.education_network
 
   if (
     typeof value !== 'string' ||
@@ -230,7 +295,8 @@ function readEducationNetwork(
 function readAdministrativeType(
   record: UnknownRecord,
 ): AdministrativeType {
-  const value = record.administrative_type
+  const value =
+    record.administrative_type
 
   if (
     typeof value !== 'string' ||
@@ -246,10 +312,71 @@ function readAdministrativeType(
   return value as AdministrativeType
 }
 
+function readInstitutionType(
+  record: UnknownRecord,
+  fallback: InstitutionType =
+    'school',
+): InstitutionType {
+  const value =
+    record.institution_type
+
+  if (
+    value === undefined ||
+    value === null ||
+    value === ''
+  ) {
+    return fallback
+  }
+
+  if (
+    typeof value !== 'string' ||
+    !INSTITUTION_TYPES.includes(
+      value as InstitutionType,
+    )
+  ) {
+    throw new Error(
+      'Tipo de instituição inválido.',
+    )
+  }
+
+  return value as InstitutionType
+}
+
+function readRegistrationOrigin(
+  record: UnknownRecord,
+  fallback: RegistrationOrigin =
+    'manual',
+): RegistrationOrigin {
+  const value =
+    record.registration_origin
+
+  if (
+    value === undefined ||
+    value === null ||
+    value === ''
+  ) {
+    return fallback
+  }
+
+  if (
+    typeof value !== 'string' ||
+    !REGISTRATION_ORIGINS.includes(
+      value as RegistrationOrigin,
+    )
+  ) {
+    throw new Error(
+      'Origem do cadastro inválida.',
+    )
+  }
+
+  return value as RegistrationOrigin
+}
+
 function readOptionalStatus(
   record: UnknownRecord,
 ): SchoolStatus | undefined {
-  const value = record.status
+  const value =
+    record.status
 
   if (
     value === undefined ||
@@ -266,14 +393,34 @@ function readOptionalStatus(
     )
   ) {
     throw new Error(
-      'Status da escola inválido.',
+      'Status da instituição inválido.',
     )
   }
 
   return value as SchoolStatus
 }
 
-function assignOptionalField(
+function readOptionalRegistryId(
+  record: UnknownRecord,
+): string | undefined {
+  const value =
+    record.registry_id
+
+  if (
+    value === undefined ||
+    value === null ||
+    value === ''
+  ) {
+    return undefined
+  }
+
+  return validateUuid(
+    value,
+    'Identificador do cadastro nacional',
+  )
+}
+
+function assignOptionalText(
   target: UpdateSchoolDto,
   key: keyof UpdateSchoolDto,
   value: string | undefined,
@@ -290,7 +437,7 @@ export function validateSchoolId(
 ): string {
   return validateUuid(
     value,
-    'Identificador da escola',
+    'Identificador da instituição',
   )
 }
 
@@ -303,41 +450,99 @@ export function validateOrganizationId(
   )
 }
 
+export function validateRegistryId(
+  value: unknown,
+): string {
+  return validateUuid(
+    value,
+    'Identificador do cadastro nacional',
+  )
+}
+
 export function validateCreateSchool(
   value: unknown,
 ): CreateSchoolDto {
   if (!isRecord(value)) {
     throw new Error(
-      'Dados da escola inválidos.',
+      'Dados da instituição inválidos.',
     )
   }
 
-  const result: CreateSchoolDto = {
-    organization_id:
-      validateOrganizationId(
-        value.organization_id,
-      ),
+  const registrationOrigin =
+    readRegistrationOrigin(value)
 
-    name:
-      readRequiredText(
-        value,
-        'name',
-        'Nome da escola',
-        200,
-      ),
+  const institutionType =
+    readInstitutionType(value)
 
-    education_network:
-      readEducationNetwork(value),
+  const registryId =
+    readOptionalRegistryId(value)
 
-    administrative_type:
-      readAdministrativeType(value),
+  if (
+    registrationOrigin === 'inep' &&
+    !registryId
+  ) {
+    throw new Error(
+      'Selecione uma instituição do cadastro nacional.',
+    )
+  }
+
+  if (
+    registrationOrigin === 'manual' &&
+    registryId
+  ) {
+    throw new Error(
+      'Cadastro manual não pode possuir vínculo com o cadastro nacional.',
+    )
+  }
+
+  if (
+    registrationOrigin === 'inep' &&
+    institutionType !== 'school'
+  ) {
+    throw new Error(
+      'Instituições selecionadas no INEP devem utilizar o tipo escola.',
+    )
+  }
+
+  const result:
+    CreateSchoolDto = {
+      organization_id:
+        validateOrganizationId(
+          value.organization_id,
+        ),
+
+      registration_origin:
+        registrationOrigin,
+
+      institution_type:
+        institutionType,
+
+      name:
+        readRequiredText(
+          value,
+          'name',
+          'Nome da instituição',
+          200,
+        ),
+
+      education_network:
+        readEducationNetwork(value),
+
+      administrative_type:
+        readAdministrativeType(value),
+    }
+
+  if (registryId) {
+    result.registry_id =
+      registryId
   }
 
   const inepCode =
     readOptionalInepCode(value)
 
   if (inepCode !== undefined) {
-    result.inep_code = inepCode
+    result.inep_code =
+      inepCode
   }
 
   const shortName =
@@ -349,14 +554,15 @@ export function validateCreateSchool(
     )
 
   if (shortName !== undefined) {
-    result.short_name = shortName
+    result.short_name =
+      shortName
   }
 
   const principalName =
     readOptionalText(
       value,
       'principal_name',
-      'Nome do diretor',
+      'Nome do responsável',
       200,
     )
 
@@ -369,7 +575,8 @@ export function validateCreateSchool(
     readOptionalEmail(value)
 
   if (email !== undefined) {
-    result.email = email
+    result.email =
+      email
   }
 
   const phone =
@@ -381,14 +588,16 @@ export function validateCreateSchool(
     )
 
   if (phone !== undefined) {
-    result.phone = phone
+    result.phone =
+      phone
   }
 
   const website =
     readOptionalUrl(value)
 
   if (website !== undefined) {
-    result.website = website
+    result.website =
+      website
   }
 
   const postalCode =
@@ -400,7 +609,8 @@ export function validateCreateSchool(
     )
 
   if (postalCode !== undefined) {
-    result.postal_code = postalCode
+    result.postal_code =
+      postalCode
   }
 
   const address =
@@ -412,7 +622,8 @@ export function validateCreateSchool(
     )
 
   if (address !== undefined) {
-    result.address = address
+    result.address =
+      address
   }
 
   const number =
@@ -424,7 +635,8 @@ export function validateCreateSchool(
     )
 
   if (number !== undefined) {
-    result.number = number
+    result.number =
+      number
   }
 
   const complement =
@@ -436,7 +648,8 @@ export function validateCreateSchool(
     )
 
   if (complement !== undefined) {
-    result.complement = complement
+    result.complement =
+      complement
   }
 
   const district =
@@ -448,7 +661,8 @@ export function validateCreateSchool(
     )
 
   if (district !== undefined) {
-    result.district = district
+    result.district =
+      district
   }
 
   const city =
@@ -460,7 +674,8 @@ export function validateCreateSchool(
     )
 
   if (city !== undefined) {
-    result.city = city
+    result.city =
+      city
   }
 
   const state =
@@ -472,7 +687,8 @@ export function validateCreateSchool(
     )
 
   if (state !== undefined) {
-    result.state = state
+    result.state =
+      state
   }
 
   const country =
@@ -484,14 +700,16 @@ export function validateCreateSchool(
     )
 
   if (country !== undefined) {
-    result.country = country
+    result.country =
+      country
   }
 
   const status =
     readOptionalStatus(value)
 
   if (status !== undefined) {
-    result.status = status
+    result.status =
+      status
   }
 
   return result
@@ -502,17 +720,52 @@ export function validateUpdateSchool(
 ): UpdateSchoolDto {
   if (!isRecord(value)) {
     throw new Error(
-      'Dados da escola inválidos.',
+      'Dados da instituição inválidos.',
     )
   }
 
-  const result: UpdateSchoolDto = {}
+  const result:
+    UpdateSchoolDto = {}
 
-  if (value.organization_id !== undefined) {
+  if (
+    value.organization_id !==
+    undefined
+  ) {
     result.organization_id =
       validateOrganizationId(
         value.organization_id,
       )
+  }
+
+  if (
+    value.registry_id !==
+    undefined
+  ) {
+    const registryId =
+      readOptionalRegistryId(value)
+
+    if (registryId) {
+      result.registry_id =
+        registryId
+    } else {
+      result.registry_id = ''
+    }
+  }
+
+  if (
+    value.registration_origin !==
+    undefined
+  ) {
+    result.registration_origin =
+      readRegistrationOrigin(value)
+  }
+
+  if (
+    value.institution_type !==
+    undefined
+  ) {
+    result.institution_type =
+      readInstitutionType(value)
   }
 
   if (value.name !== undefined) {
@@ -520,7 +773,7 @@ export function validateUpdateSchool(
       readRequiredText(
         value,
         'name',
-        'Nome da escola',
+        'Nome da instituição',
         200,
       )
   }
@@ -541,12 +794,15 @@ export function validateUpdateSchool(
       readAdministrativeType(value)
   }
 
-  if (value.inep_code !== undefined) {
+  if (
+    value.inep_code !== undefined
+  ) {
     result.inep_code =
-      readOptionalInepCode(value) ?? ''
+      readOptionalInepCode(value) ??
+      ''
   }
 
-  assignOptionalField(
+  assignOptionalText(
     result,
     'short_name',
     value.short_name === undefined
@@ -559,7 +815,7 @@ export function validateUpdateSchool(
         ) ?? '',
   )
 
-  assignOptionalField(
+  assignOptionalText(
     result,
     'principal_name',
     value.principal_name === undefined
@@ -567,7 +823,7 @@ export function validateUpdateSchool(
       : readOptionalText(
           value,
           'principal_name',
-          'Nome do diretor',
+          'Nome do responsável',
           200,
         ) ?? '',
   )
@@ -577,7 +833,7 @@ export function validateUpdateSchool(
       readOptionalEmail(value) ?? ''
   }
 
-  assignOptionalField(
+  assignOptionalText(
     result,
     'phone',
     value.phone === undefined
@@ -595,7 +851,7 @@ export function validateUpdateSchool(
       readOptionalUrl(value) ?? ''
   }
 
-  assignOptionalField(
+  assignOptionalText(
     result,
     'postal_code',
     value.postal_code === undefined
@@ -608,7 +864,7 @@ export function validateUpdateSchool(
         ) ?? '',
   )
 
-  assignOptionalField(
+  assignOptionalText(
     result,
     'address',
     value.address === undefined
@@ -621,7 +877,7 @@ export function validateUpdateSchool(
         ) ?? '',
   )
 
-  assignOptionalField(
+  assignOptionalText(
     result,
     'number',
     value.number === undefined
@@ -634,7 +890,7 @@ export function validateUpdateSchool(
         ) ?? '',
   )
 
-  assignOptionalField(
+  assignOptionalText(
     result,
     'complement',
     value.complement === undefined
@@ -647,7 +903,7 @@ export function validateUpdateSchool(
         ) ?? '',
   )
 
-  assignOptionalField(
+  assignOptionalText(
     result,
     'district',
     value.district === undefined
@@ -660,7 +916,7 @@ export function validateUpdateSchool(
         ) ?? '',
   )
 
-  assignOptionalField(
+  assignOptionalText(
     result,
     'city',
     value.city === undefined
@@ -673,7 +929,7 @@ export function validateUpdateSchool(
         ) ?? '',
   )
 
-  assignOptionalField(
+  assignOptionalText(
     result,
     'state',
     value.state === undefined
@@ -686,7 +942,7 @@ export function validateUpdateSchool(
         ) ?? '',
   )
 
-  assignOptionalField(
+  assignOptionalText(
     result,
     'country',
     value.country === undefined
@@ -705,14 +961,39 @@ export function validateUpdateSchool(
 
     if (!status) {
       throw new Error(
-        'Status da escola é obrigatório.',
+        'Status da instituição é obrigatório.',
       )
     }
 
-    result.status = status
+    result.status =
+      status
   }
 
-  if (Object.keys(result).length === 0) {
+  if (
+    result.registration_origin ===
+      'manual' &&
+    result.registry_id
+  ) {
+    throw new Error(
+      'Cadastro manual não pode possuir vínculo com o cadastro nacional.',
+    )
+  }
+
+  if (
+    result.registration_origin ===
+      'inep' &&
+    result.institution_type &&
+    result.institution_type !==
+      'school'
+  ) {
+    throw new Error(
+      'Instituições selecionadas no INEP devem utilizar o tipo escola.',
+    )
+  }
+
+  if (
+    Object.keys(result).length === 0
+  ) {
     throw new Error(
       'Nenhum campo foi informado para atualização.',
     )
