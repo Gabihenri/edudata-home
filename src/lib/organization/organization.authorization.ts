@@ -48,16 +48,15 @@ const INSTITUTION_MANAGEMENT_ROLES =
 
 const ROLE_ALIASES:
   Record<string, string> = {
-    admin: 'platform_admin',
-    administrator:
-      'platform_admin',
-    administrador:
+    platform_admin:
       'platform_admin',
     admin_plataforma:
       'platform_admin',
     administrador_plataforma:
       'platform_admin',
 
+    super_admin:
+      'super_admin',
     superadmin:
       'super_admin',
     super_administrator:
@@ -69,9 +68,23 @@ const ROLE_ALIASES:
     superadministrador_edudata_ia:
       'super_admin',
 
+    admin:
+      'institution_admin',
+    administrator:
+      'institution_admin',
+    administrador:
+      'institution_admin',
     institution_admin:
       'institution_admin',
     institutional_admin:
+      'institution_admin',
+    organization_admin:
+      'institution_admin',
+    organizational_admin:
+      'institution_admin',
+    org_admin:
+      'institution_admin',
+    school_admin:
       'institution_admin',
     admin_institucional:
       'institution_admin',
@@ -350,6 +363,7 @@ function parseMembership(
 
   return {
     id,
+
     organizationId,
 
     schoolId:
@@ -541,13 +555,20 @@ export async function requireOrganizationAdministrator():
     PLATFORM_ROLES.has(role)
   ) {
     return {
-      userId: user.id,
+      userId:
+        user.id,
+
       role,
+
       status,
+
       isPlatformAdministrator:
         true,
+
       organizationIds: [],
+
       schoolIds: [],
+
       memberships: [],
     }
   }
@@ -565,13 +586,14 @@ export async function requireOrganizationAdministrator():
 
   membershipSources.forEach(
     (source) => {
+      if (!isRecord(source)) {
+        return
+      }
+
       const membership =
         parseMembership(source)
 
-      if (
-        !membership ||
-        !isRecord(source)
-      ) {
+      if (!membership) {
         return
       }
 
@@ -597,9 +619,13 @@ export async function requireOrganizationAdministrator():
   }
 
   return {
-    userId: user.id,
+    userId:
+      user.id,
+
     role,
+
     status,
+
     isPlatformAdministrator:
       false,
 
