@@ -1,3 +1,7 @@
+'use client'
+
+import { useId, useState } from 'react'
+
 interface RestrictedProduct {
   code: string
   title: string
@@ -12,6 +16,9 @@ interface RestrictedProductsSummaryProps {
 export default function RestrictedProductsSummary({
   products,
 }: RestrictedProductsSummaryProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const contentId = useId()
+
   if (products.length === 0) {
     return null
   }
@@ -22,39 +29,50 @@ export default function RestrictedProductsSummary({
       : `${products.length} produtos não estão liberados para o contexto ativo.`
 
   return (
-    <section className="mt-8 rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <details className="group">
-        <summary className="cursor-pointer list-none p-6">
-          <div className="flex items-start justify-between gap-5">
-            <div>
-              <div className="h-1 w-16 bg-slate-400" />
+    <section className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="p-6">
+        <div className="flex items-start justify-between gap-5">
+          <div>
+            <div className="h-1 w-16 bg-slate-400" />
 
-              <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                Outros produtos
-              </p>
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+              Outros produtos
+            </p>
 
-              <h2 className="mt-2 text-xl font-bold text-slate-950">
-                Produtos não disponíveis
-              </h2>
+            <h2 className="mt-2 text-xl font-bold text-slate-950">
+              Produtos não disponíveis
+            </h2>
 
-              <p className="mt-3 text-sm leading-6 text-slate-600">
-                {productCountMessage}
-              </p>
-            </div>
-
-            <span className="shrink-0 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition group-open:border-slate-950 group-open:bg-slate-950 group-open:text-white">
-              <span className="group-open:hidden">
-                Ver produtos
-              </span>
-
-              <span className="hidden group-open:inline">
-                Ocultar produtos
-              </span>
-            </span>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              {productCountMessage}
+            </p>
           </div>
-        </summary>
 
-        <div className="border-t border-slate-200 px-6 pb-6">
+          <button
+            type="button"
+            aria-expanded={isOpen}
+            aria-controls={contentId}
+            onClick={() => {
+              setIsOpen((current) => !current)
+            }}
+            className={`shrink-0 rounded-lg border px-4 py-2 text-sm font-semibold transition ${
+              isOpen
+                ? 'border-slate-950 bg-slate-950 text-white'
+                : 'border-slate-300 bg-white text-slate-700 hover:border-slate-500 hover:bg-slate-50'
+            }`}
+          >
+            {isOpen
+              ? 'Ocultar produtos'
+              : 'Ver produtos'}
+          </button>
+        </div>
+      </div>
+
+      {isOpen ? (
+        <div
+          id={contentId}
+          className="border-t border-slate-200 px-6 pb-6"
+        >
           <div className="divide-y divide-slate-200">
             {products.map((product) => (
               <article
@@ -77,7 +95,7 @@ export default function RestrictedProductsSummary({
             ))}
           </div>
         </div>
-      </details>
+      ) : null}
     </section>
   )
 }
