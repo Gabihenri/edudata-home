@@ -193,6 +193,19 @@ function getContextName(
   return 'Acesso individual'
 }
 
+function getProductHref(
+  product: PortalProduct,
+): string {
+  if (
+    product.code ===
+    'agenda_edi'
+  ) {
+    return '/agenda/dashboard'
+  }
+
+  return product.href
+}
+
 function createNavigationItems(
   portal: PortalResponse,
 ): NavigationItem[] {
@@ -265,7 +278,9 @@ function createNavigationItems(
           ] ?? product.title,
 
         href:
-          product.href,
+          getProductHref(
+            product,
+          ),
 
         group:
           product.code ===
