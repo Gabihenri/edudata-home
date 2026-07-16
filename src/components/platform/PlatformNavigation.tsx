@@ -817,7 +817,7 @@ export function PlatformNavigation() {
               className="mt-6 inline-flex w-full items-center justify-center rounded-lg border border-red-300/40 px-5 py-3 text-sm font-semibold text-red-100 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loggingOut
-                ? 'Saindo...'
+                ?Saindo...'
                 : 'Sair da plataforma'}
             </button>
           </div>
