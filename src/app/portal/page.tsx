@@ -8,6 +8,7 @@ import {
 } from 'react'
 
 import ProfileCompletionNotice from '@/components/profile/ProfileCompletionNotice'
+import RestrictedProductsSummary from '@/components/portal/RestrictedProductsSummary'
 
 type AccountType =
   | 'individual'
@@ -365,6 +366,18 @@ export default function PortalPage() {
   const products =
     portal.products ?? []
 
+  const availableProducts =
+    products.filter(
+      (product) =>
+        product.enabled,
+    )
+
+  const restrictedProducts =
+    products.filter(
+      (product) =>
+        !product.enabled,
+    )
+
   return (
     <main className="min-h-screen bg-slate-100 text-slate-950">
       <header className="border-b border-white/10 bg-[#071827] text-white">
@@ -572,43 +585,11 @@ export default function PortalPage() {
             perfil, plano e vínculo ativo.
           </p>
 
-          <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {products.map(
-              (product) => {
-                if (!product.enabled) {
-                  return (
-                    <article
-                      key={product.code}
-                      className="rounded-2xl border border-slate-200 bg-slate-100 p-6"
-                    >
-                      <div className="h-1 w-16 bg-slate-400" />
-
-                      <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                        Acesso restrito
-                      </p>
-
-                      <h3 className="mt-2 text-xl font-bold text-slate-700">
-                        {product.title}
-                      </h3>
-
-                      <p className="mt-3 text-sm leading-6 text-slate-600">
-                        {
-                          product.description
-                        }
-                      </p>
-
-                      {product.unavailableReason ? (
-                        <p className="mt-4 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-                          {
-                            product.unavailableReason
-                          }
-                        </p>
-                      ) : null}
-                    </article>
-                  )
-                }
-
-                return (
+          {availableProducts.length >
+          0 ? (
+            <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {availableProducts.map(
+                (product) => (
                   <article
                     key={product.code}
                     className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
@@ -636,10 +617,30 @@ export default function PortalPage() {
                       Acessar produto
                     </Link>
                   </article>
-                )
-              },
-            )}
-          </div>
+                ),
+              )}
+            </div>
+          ) : (
+            <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="h-1 w-16 bg-slate-400" />
+
+              <h3 className="mt-5 text-lg font-bold text-slate-950">
+                Nenhum produto disponível
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Não existem produtos
+                liberados para o perfil,
+                plano e contexto ativos.
+              </p>
+            </section>
+          )}
+
+          <RestrictedProductsSummary
+            products={
+              restrictedProducts
+            }
+          />
         </section>
       </div>
     </main>
