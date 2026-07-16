@@ -16,6 +16,11 @@ export default function RestrictedProductsSummary({
     return null
   }
 
+  const productCountMessage =
+    products.length === 1
+      ? '1 produto não está liberado para o contexto ativo.'
+      : `${products.length} produtos não estão liberados para o contexto ativo.`
+
   return (
     <section className="mt-8 rounded-2xl border border-slate-200 bg-white shadow-sm">
       <details className="group">
@@ -33,14 +38,18 @@ export default function RestrictedProductsSummary({
               </h2>
 
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                {products.length === 1
-                  ? '1 produto não está liberado para o contexto ativo.'
-                  : `${products.length} produtos não estão liberados para o contexto ativo.`}
+                {productCountMessage}
               </p>
             </div>
 
-            <span className="shrink-0 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition group-open:bg-slate-950 group-open:text-white">
-              Ver produtos
+            <span className="shrink-0 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition group-open:border-slate-950 group-open:bg-slate-950 group-open:text-white">
+              <span className="group-open:hidden">
+                Ver produtos
+              </span>
+
+              <span className="hidden group-open:inline">
+                Ocultar produtos
+              </span>
             </span>
           </div>
         </summary>
