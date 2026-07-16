@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build --no-lint",
-    "start": "next start"
+    "start": "next start",
+    "import:school-registry": "tsx src/scripts/import-school-registry.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.0",
@@ -20,6 +21,7 @@
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.23.1",
     "typescript": "^5"
   }
 }
