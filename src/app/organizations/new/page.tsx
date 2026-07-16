@@ -6,18 +6,18 @@ import { requireOrganizationAdministrator } from '@/lib/organization/organizatio
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Nova organização | EduDatahdhdhdh IA',
+  title: 'Nova organização | EduData IA',
   description:
     'Cadastro de uma nova organização institucional no EIOS.',
 }
 
-interface CreateOrganizationAccess {
+interface OrganizationCreationAccess {
   allowed: boolean
   message: string
 }
 
-async function resolveCreateOrganizationAccess():
-  Promise<CreateOrganizationAccess> {
+async function resolveOrganizationCreationAccess():
+  Promise<OrganizationCreationAccess> {
   try {
     const authorization =
       await requireOrganizationAdministrator()
@@ -36,18 +36,41 @@ async function resolveCreateOrganizationAccess():
       allowed: true,
       message: '',
     }
-  } catch {
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : ''
+
+    const normalizedMessage =
+      message.toLowerCase()
+
+    if (
+      normalizedMessage.includes(
+        'não autenticado',
+      ) ||
+      normalizedMessage.includes(
+        'não autorizado',
+      )
+    ) {
+      return {
+        allowed: false,
+        message:
+          'Sua sessão não está ativa. Entre novamente na plataforma para continuar.',
+      }
+    }
+
     return {
       allowed: false,
       message:
-        'Seu perfil não possui permissão para cadastrar organizações.',
+        'Seu perfil não possui permissão para cadastrar novas organizações.',
     }
   }
 }
 
 export default async function NewOrganizationPage() {
   const access =
-    await resolveCreateOrganizationAccess()
+    await resolveOrganizationCreationAccess()
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-950">
@@ -73,12 +96,14 @@ export default async function NewOrganizationPage() {
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/organizations"
-                className="inline-flex items-center justify-center rounded-lg border border-white/20 px-5 py-3 text-sm font-semibold text-white transition hover:border-white/40 hover:bg-white/10"
-              >
-                Voltar para organizações
-              </Link>
+              {access.allowed ? (
+                <Link
+                  href="/organizations"
+                  className="inline-flex items-center justify-center rounded-lg border border-white/20 px-5 py-3 text-sm font-semibold text-white transition hover:border-white/40 hover:bg-white/10"
+                >
+                  Voltar para organizações
+                </Link>
+              ) : null}
 
               <Link
                 href="/portal"
