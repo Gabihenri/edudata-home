@@ -2,9 +2,12 @@
 
 import {
   type FormEvent,
+  useCallback,
   useEffect,
+  useRef,
   useState,
 } from 'react'
+import { useRouter } from 'next/navigation'
 
 type ProfileData = {
   userId: string
@@ -95,10 +98,10 @@ const ROLE_LABELS:
     admin_institucional:
       'Administrador Institucional',
 
-    platform_admin:
-      'Administrador da Plataforma',
-
     admin:
+      'Administrador Institucional',
+
+    platform_admin:
       'Administrador da Plataforma',
 
     super_admin:
@@ -153,8 +156,9 @@ function getRoleLabel(
     normalizeRole(role)
 
   return (
-    ROLE_LABELS[normalizedRole] ??
-    role
+    ROLE_LABELS[
+      normalizedRole
+    ] ?? role
   )
 }
 
@@ -167,31 +171,36 @@ function getStatusLabel(
       .toLowerCase()
 
   if (
-    normalizedStatus === 'active'
+    normalizedStatus ===
+    'active'
   ) {
     return 'Ativo'
   }
 
   if (
-    normalizedStatus === 'pending'
+    normalizedStatus ===
+    'pending'
   ) {
     return 'Pendente'
   }
 
   if (
-    normalizedStatus === 'suspended'
+    normalizedStatus ===
+    'suspended'
   ) {
     return 'Suspenso'
   }
 
   if (
-    normalizedStatus === 'rejected'
+    normalizedStatus ===
+    'rejected'
   ) {
     return 'Rejeitado'
   }
 
   if (
-    normalizedStatus === 'archived'
+    normalizedStatus ===
+    'archived'
   ) {
     return 'Arquivado'
   }
@@ -201,16 +210,19 @@ function getStatusLabel(
 
 function getAccountTypeLabel(
   accountType:
-    AccountType | null,
+    | AccountType
+    | null,
 ): string {
   if (
-    accountType === 'corporate'
+    accountType ===
+    'corporate'
   ) {
     return 'Conta institucional'
   }
 
   if (
-    accountType === 'individual'
+    accountType ===
+    'individual'
   ) {
     return 'Conta individual'
   }
@@ -219,19 +231,59 @@ function getAccountTypeLabel(
 }
 
 function getScopeLabel(
-  scopeType: string | null,
+  scopeType:
+    | string
+    | null,
 ): string {
   if (!scopeType) {
     return 'Não identificado'
   }
 
   return (
-    SCOPE_LABELS[scopeType] ??
-    scopeType
+    SCOPE_LABELS[
+      scopeType
+    ] ?? scopeType
   )
 }
 
+function getSafeReturnTo():
+  | string
+  | null {
+  if (
+    typeof window ===
+    'undefined'
+  ) {
+    return null
+  }
+
+  const params =
+    new URLSearchParams(
+      window.location.search,
+    )
+
+  const returnTo =
+    params.get('returnTo')
+
+  if (
+    !returnTo ||
+    !returnTo.startsWith('/') ||
+    returnTo.startsWith('//')
+  ) {
+    return null
+  }
+
+  return returnTo
+}
+
 export default function ProfileForm() {
+  const router =
+    useRouter()
+
+  const redirectTimeoutRef =
+    useRef<number | null>(
+      null,
+    )
+
   const [
     displayName,
     setDisplayName,
@@ -245,9 +297,9 @@ export default function ProfileForm() {
   const [
     email,
     setEmail,
-  ] = useState<string | null>(
-    null,
-  )
+  ] = useState<
+    string | null
+  >(null)
 
   const [
     role,
@@ -267,9 +319,10 @@ export default function ProfileForm() {
   const [
     activeContext,
     setActiveContext,
-  ] = useState<PortalContext | null>(
-    null,
-  )
+  ] =
+    useState<PortalContext | null>(
+      null,
+    )
 
   const [
     loading,
@@ -282,138 +335,166 @@ export default function ProfileForm() {
   ] = useState(false)
 
   const [
+    redirecting,
+    setRedirecting,
+  ] = useState(false)
+
+  const [
     error,
     setError,
-  ] = useState<string | null>(
-    null,
-  )
+  ] =
+    useState<string | null>(
+      null,
+    )
 
   const [
     contextWarning,
     setContextWarning,
-  ] = useState<string | null>(
-    null,
-  )
+  ] =
+    useState<string | null>(
+      null,
+    )
 
   const [
     successMessage,
     setSuccessMessage,
-  ] = useState<string | null>(
-    null,
-  )
+  ] =
+    useState<string | null>(
+      null,
+    )
 
-  async function loadProfile() {
-    try {
-      setLoading(true)
-      setError(null)
-      setContextWarning(null)
+  const loadProfile =
+    useCallback(
+      async () => {
+        try {
+          setLoading(true)
+          setError(null)
+          setContextWarning(null)
 
-      const [
-        profileResponse,
-        portalResponse,
-      ] = await Promise.all([
-        fetch(
-          '/api/profile',
-          {
-            method: 'GET',
-            cache: 'no-store',
-          },
-        ),
+          const [
+            profileResponse,
+            portalResponse,
+          ] = await Promise.all([
+            fetch(
+              '/api/profile',
+              {
+                method: 'GET',
+                cache: 'no-store',
+              },
+            ),
 
-        fetch(
-          '/api/portal',
-          {
-            method: 'GET',
-            cache: 'no-store',
-          },
-        ),
-      ])
+            fetch(
+              '/api/portal',
+              {
+                method: 'GET',
+                cache: 'no-store',
+              },
+            ),
+          ])
 
-      const profileResult =
-        (await profileResponse.json()) as
-          ProfileApiResponse
+          const profileResult =
+            (await profileResponse.json()) as
+              ProfileApiResponse
 
-      const portalResult =
-        (await portalResponse.json()) as
-          PortalApiResponse
+          const portalResult =
+            (await portalResponse.json()) as
+              PortalApiResponse
 
-      if (
-        !profileResponse.ok ||
-        !profileResult.success ||
-        !profileResult.profile
-      ) {
-        throw new Error(
-          profileResult.error ??
-          'Não foi possível carregar o perfil.',
-        )
-      }
+          if (
+            !profileResponse.ok ||
+            !profileResult.success ||
+            !profileResult.profile
+          ) {
+            throw new Error(
+              profileResult.error ??
+                'Não foi possível carregar o perfil.',
+            )
+          }
 
-      setDisplayName(
-        profileResult.profile
-          .displayName ?? '',
-      )
+          setDisplayName(
+            profileResult.profile
+              .displayName ?? '',
+          )
 
-      setPhone(
-        profileResult.profile
-          .phone ?? '',
-      )
+          setPhone(
+            profileResult.profile
+              .phone ?? '',
+          )
 
-      setRole(
-        profileResult.profile.role,
-      )
+          setRole(
+            profileResult.profile
+              .role,
+          )
 
-      setStatus(
-        profileResult.profile.status,
-      )
+          setStatus(
+            profileResult.profile
+              .status,
+          )
 
-      setOnboardingCompleted(
-        profileResult.profile
-          .onboardingCompleted,
-      )
+          setOnboardingCompleted(
+            profileResult.profile
+              .onboardingCompleted,
+          )
 
-      setEmail(
-        profileResult.user?.email ??
-        null,
-      )
+          setEmail(
+            profileResult.user
+              ?.email ?? null,
+          )
 
-      if (
-        portalResponse.ok &&
-        portalResult.success &&
-        portalResult.activeContext
-      ) {
-        setActiveContext(
-          portalResult.activeContext,
-        )
-      } else {
-        setActiveContext(null)
+          if (
+            portalResponse.ok &&
+            portalResult.success &&
+            portalResult.activeContext
+          ) {
+            setActiveContext(
+              portalResult.activeContext,
+            )
+          } else {
+            setActiveContext(null)
 
-        setContextWarning(
-          portalResult.error ??
-          'O contexto institucional não pôde ser carregado.',
-        )
-      }
-    } catch (loadError) {
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : 'Não foi possível carregar o perfil.',
-      )
-    } finally {
-      setLoading(false)
-    }
-  }
+            setContextWarning(
+              portalResult.error ??
+                'O contexto institucional não pôde ser carregado.',
+            )
+          }
+        } catch (loadError) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : 'Não foi possível carregar o perfil.',
+          )
+        } finally {
+          setLoading(false)
+        }
+      },
+      [],
+    )
 
   useEffect(() => {
     void loadProfile()
+  }, [loadProfile])
+
+  useEffect(() => {
+    return () => {
+      if (
+        redirectTimeoutRef.current !==
+        null
+      ) {
+        window.clearTimeout(
+          redirectTimeoutRef.current,
+        )
+      }
+    }
   }, [])
 
   async function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
+    event: FormEvent,
   ) {
     event.preventDefault()
 
     try {
       setSaving(true)
+      setRedirecting(false)
       setError(null)
       setSuccessMessage(null)
 
@@ -428,10 +509,11 @@ export default function ProfileForm() {
                 'application/json',
             },
 
-            body: JSON.stringify({
-              displayName,
-              phone,
-            }),
+            body:
+              JSON.stringify({
+                displayName,
+                phone,
+              }),
           },
         )
 
@@ -446,7 +528,7 @@ export default function ProfileForm() {
       ) {
         throw new Error(
           result.error ??
-          'Não foi possível atualizar o perfil.',
+            'Não foi possível atualizar o perfil.',
         )
       }
 
@@ -474,8 +556,27 @@ export default function ProfileForm() {
 
       setSuccessMessage(
         result.message ??
-        'Perfil atualizado com sucesso.',
+          'Perfil atualizado com sucesso.',
       )
+
+      const returnTo =
+        getSafeReturnTo()
+
+      if (returnTo) {
+        setRedirecting(true)
+
+        redirectTimeoutRef.current =
+          window.setTimeout(
+            () => {
+              router.replace(
+                returnTo,
+              )
+
+              router.refresh()
+            },
+            800,
+          )
+      }
     } catch (saveError) {
       setError(
         saveError instanceof Error
@@ -490,11 +591,9 @@ export default function ProfileForm() {
   if (loading) {
     return (
       <section className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-          Meu Perfil
-        </p>
+        <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-[#0B7491]" />
 
-        <p className="mt-4 text-base font-semibold text-slate-900">
+        <p className="mt-5 text-center text-sm font-semibold text-slate-700">
           Carregando informações do usuário...
         </p>
       </section>
@@ -502,301 +601,314 @@ export default function ProfileForm() {
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-200 px-6 py-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 p-6">
+        <div className="h-1 w-16 bg-[#0B7491]" />
+
+        <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
           Identidade do usuário
         </p>
 
-        <h1 className="mt-2 text-2xl font-bold text-slate-950">
+        <h2 className="mt-2 text-2xl font-bold text-slate-950">
           Meu Perfil
-        </h1>
+        </h2>
 
-        <p className="mt-2 text-sm leading-6 text-slate-600">
-          Atualize seus dados pessoais. Perfil,
-          instituição, hierarquia e permissões
-          são administrados pela gestão
-          responsável.
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+          Atualize seus dados pessoais.
+          Perfil, instituição, hierarquia
+          e permissões são administrados
+          pela gestão responsável.
         </p>
       </div>
 
-      <div className="grid gap-px bg-slate-200 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="bg-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+      <dl className="divide-y divide-slate-200">
+        <div className="p-6">
+          <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
             E-mail
-          </p>
+          </dt>
 
-          <p className="mt-2 break-all text-sm font-semibold text-slate-950">
+          <dd className="mt-3 break-all text-base font-semibold text-slate-950">
             {email ??
               'Não informado'}
-          </p>
+          </dd>
         </div>
 
-        <div className="bg-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <div className="p-6">
+          <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
             Perfil
-          </p>
+          </dt>
 
-          <p className="mt-2 text-sm font-semibold text-slate-950">
-            {activeContext?.roleLabel ??
+          <dd className="mt-3 text-base font-semibold text-slate-950">
+            {activeContext
+              ?.roleLabel ??
               getRoleLabel(role)}
-          </p>
+          </dd>
         </div>
 
-        <div className="bg-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <div className="p-6">
+          <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
             Status
-          </p>
+          </dt>
 
-          <p className="mt-2 text-sm font-semibold text-slate-950">
+          <dd className="mt-3 text-base font-semibold text-slate-950">
             {getStatusLabel(
-              activeContext?.status ??
-              status,
+              activeContext
+                ?.status ??
+                status,
             )}
-          </p>
+          </dd>
         </div>
 
-        <div className="bg-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <div className="p-6">
+          <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
             Cadastro
-          </p>
+          </dt>
 
-          <p className="mt-2 text-sm font-semibold text-slate-950">
+          <dd className="mt-3 text-base font-semibold text-slate-950">
             {onboardingCompleted
               ? 'Concluído'
               : 'Incompleto'}
-          </p>
+          </dd>
         </div>
-      </div>
+      </dl>
 
-      <div className="border-t border-slate-200 px-6 py-7">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+      <div className="border-t border-slate-200 p-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
           Contexto de acesso
         </p>
 
-        <h2 className="mt-2 text-xl font-bold text-slate-950">
+        <h2 className="mt-2 text-2xl font-bold text-slate-950">
           Dados institucionais
         </h2>
 
-        <p className="mt-2 text-sm text-slate-600">
-          Essas informações são somente para
-          consulta e não podem ser alteradas pelo
-          usuário.
+        <p className="mt-3 text-sm leading-6 text-slate-600">
+          Essas informações são somente
+          para consulta e não podem ser
+          alteradas pelo usuário.
         </p>
 
-        {contextWarning && (
-          <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        {contextWarning ? (
+          <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
             {contextWarning}
           </div>
-        )}
+        ) : null}
 
-        <div className="mt-6 grid gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="bg-slate-50 p-5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <dl className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+          <div className="border-b border-slate-200 p-5">
+            <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
               Tipo de conta
-            </p>
+            </dt>
 
-            <p className="mt-2 text-sm font-semibold text-slate-950">
+            <dd className="mt-3 font-semibold text-slate-950">
               {getAccountTypeLabel(
-                activeContext?.accountType ??
-                null,
+                activeContext
+                  ?.accountType ??
+                  null,
               )}
-            </p>
+            </dd>
           </div>
 
-          <div className="bg-slate-50 p-5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <div className="border-b border-slate-200 p-5">
+            <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
               Instituição
-            </p>
+            </dt>
 
-            <p className="mt-2 text-sm font-semibold text-slate-950">
+            <dd className="mt-3 font-semibold text-slate-950">
               {activeContext
                 ?.organization
                 ?.name ??
                 'Não se aplica'}
-            </p>
+            </dd>
           </div>
 
-          <div className="bg-slate-50 p-5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <div className="border-b border-slate-200 p-5">
+            <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
               Escola ou unidade
-            </p>
+            </dt>
 
-            <p className="mt-2 text-sm font-semibold text-slate-950">
+            <dd className="mt-3 font-semibold text-slate-950">
               {activeContext
                 ?.school
                 ?.name ??
                 'Não se aplica'}
-            </p>
+            </dd>
 
-            {activeContext?.school?.city && (
-              <p className="mt-1 text-xs text-slate-500">
-                {activeContext.school.city}
-                {activeContext.school.state
+            {activeContext
+              ?.school
+              ?.city ? (
+              <p className="mt-2 text-sm text-slate-500">
+                {
+                  activeContext
+                    .school.city
+                }
+
+                {activeContext
+                  .school.state
                   ? ` — ${activeContext.school.state}`
                   : ''}
               </p>
-            )}
+            ) : null}
           </div>
 
-          <div className="bg-slate-50 p-5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <div className="border-b border-slate-200 p-5">
+            <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
               Perfil ativo
-            </p>
+            </dt>
 
-            <p className="mt-2 text-sm font-semibold text-slate-950">
+            <dd className="mt-3 font-semibold text-slate-950">
               {activeContext
                 ?.roleLabel ??
                 getRoleLabel(role)}
-            </p>
+            </dd>
           </div>
 
-          <div className="bg-slate-50 p-5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <div className="border-b border-slate-200 p-5">
+            <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
               Nível hierárquico
-            </p>
+            </dt>
 
-            <p className="mt-2 text-sm font-semibold text-slate-950">
+            <dd className="mt-3 font-semibold text-slate-950">
               {activeContext
                 ? activeContext
                     .hierarchyLevel
                 : 'Não se aplica'}
-            </p>
+            </dd>
           </div>
 
-          <div className="bg-slate-50 p-5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <div className="p-5">
+            <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
               Escopo de acesso
-            </p>
+            </dt>
 
-            <p className="mt-2 text-sm font-semibold text-slate-950">
+            <dd className="mt-3 font-semibold text-slate-950">
               {getScopeLabel(
                 activeContext
                   ?.scopeType ??
-                null,
+                  null,
               )}
-            </p>
+            </dd>
           </div>
-        </div>
+        </dl>
       </div>
 
       <form
         onSubmit={handleSubmit}
-        className="space-y-6 border-t border-slate-200 px-6 py-7"
+        className="border-t border-slate-200 p-6"
       >
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-            Dados editáveis
-          </p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+          Dados editáveis
+        </p>
 
-          <h2 className="mt-2 text-xl font-bold text-slate-950">
-            Informações pessoais
-          </h2>
-        </div>
+        <h2 className="mt-2 text-2xl font-bold text-slate-950">
+          Informações pessoais
+        </h2>
 
-        {error && (
+        {error ? (
           <div
             role="alert"
-            className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900"
+            className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700"
           >
             {error}
           </div>
-        )}
+        ) : null}
 
-        {successMessage && (
+        {successMessage ? (
           <div
             role="status"
-            className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"
+            className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-700"
           >
-            {successMessage}
+            {redirecting
+              ? `${successMessage} Retornando à Central da Plataforma...`
+              : successMessage}
           </div>
-        )}
+        ) : null}
 
-        <div>
-          <label
-            htmlFor="display-name"
-            className="block text-sm font-semibold text-slate-800"
-          >
-            Nome de exibição
+        <div className="mt-6 grid gap-5">
+          <label>
+            <span className="text-sm font-semibold text-slate-700">
+              Nome de exibição
+            </span>
+
+            <input
+              type="text"
+              value={displayName}
+              onChange={(event) =>
+                setDisplayName(
+                  event.target.value,
+                )
+              }
+              minLength={3}
+              maxLength={120}
+              required
+              autoComplete="name"
+              className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+            />
+
+            <span className="mt-2 block text-sm text-slate-500">
+              Esse nome será exibido nas
+              interfaces da plataforma.
+            </span>
           </label>
 
-          <input
-            id="display-name"
-            name="displayName"
-            type="text"
-            value={displayName}
-            onChange={(event) => {
-              setDisplayName(
-                event.target.value,
-              )
-            }}
-            minLength={3}
-            maxLength={120}
-            required
-            autoComplete="name"
-            className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
-          />
+          <label>
+            <span className="text-sm font-semibold text-slate-700">
+              Telefone
+            </span>
 
-          <p className="mt-2 text-xs text-slate-500">
-            Esse nome será exibido nas interfaces
-            da plataforma.
-          </p>
-        </div>
-
-        <div>
-          <label
-            htmlFor="phone"
-            className="block text-sm font-semibold text-slate-800"
-          >
-            Telefone
+            <input
+              type="tel"
+              value={phone}
+              onChange={(event) =>
+                setPhone(
+                  event.target.value,
+                )
+              }
+              maxLength={24}
+              autoComplete="tel"
+              placeholder="(11) 99999-9999"
+              className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+            />
           </label>
-
-          <input
-            id="phone"
-            name="phone"
-            type="tel"
-            value={phone}
-            onChange={(event) => {
-              setPhone(
-                event.target.value,
-              )
-            }}
-            maxLength={24}
-            autoComplete="tel"
-            placeholder="(11) 99999-9999"
-            className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
-          />
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-          <p className="text-sm font-semibold text-slate-900">
+        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 px-4 py-4">
+          <p className="font-semibold text-blue-950">
             Dados institucionais protegidos
           </p>
 
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            Perfil, cargo, instituição, escola,
-            nível hierárquico e permissões não
-            podem ser alterados nesta tela. Em
-            contas corporativas, essas informações
+          <p className="mt-2 text-sm leading-6 text-blue-900">
+            Perfil, cargo, instituição,
+            escola, nível hierárquico e
+            permissões não podem ser
+            alterados nesta tela. Em contas
+            corporativas, essas informações
             são definidas pela chefia ou pelo
             administrador institucional.
           </p>
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center">
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <button
             type="submit"
-            disabled={saving}
-            className="rounded-lg bg-[#071827] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#0B2A40] disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={
+              saving ||
+              redirecting
+            }
+            className="rounded-lg bg-[#0B7491] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#09657e] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {saving
-              ? 'Salvando...'
-              : 'Salvar alterações'}
+            {redirecting
+              ? 'Retornando à Central...'
+              : saving
+                ? 'Salvando...'
+                : 'Salvar alterações'}
           </button>
 
           <button
             type="button"
-            disabled={saving}
+            disabled={
+              saving ||
+              redirecting
+            }
             onClick={() => {
               void loadProfile()
             }}
