@@ -7,6 +7,8 @@ import type {
   AdministrativeType,
   CreateSchoolDto,
   EducationNetwork,
+  InstitutionType,
+  RegistrationOrigin,
   SchoolDto,
   SchoolStatus,
   UpdateSchoolDto,
@@ -18,6 +20,9 @@ type DatabaseRecord =
 const SCHOOL_SELECT = [
   'id',
   'organization_id',
+  'registry_id',
+  'registration_origin',
+  'institution_type',
   'inep_code',
   'name',
   'short_name',
@@ -66,6 +71,27 @@ const ADMINISTRATIVE_TYPES:
     'philanthropic',
     'community',
     'other',
+  ]
+
+const INSTITUTION_TYPES:
+  InstitutionType[] = [
+    'school',
+    'institute',
+    'college',
+    'university',
+    'company',
+    'training_center',
+    'ngo',
+    'government_agency',
+    'education_department',
+    'research_center',
+    'other',
+  ]
+
+const REGISTRATION_ORIGINS:
+  RegistrationOrigin[] = [
+    'inep',
+    'manual',
   ]
 
 function createSchoolClient():
@@ -122,7 +148,7 @@ function readRequiredString(
     !value.trim()
   ) {
     throw new Error(
-      `Campo obrigatório ausente na escola: ${key}.`,
+      `Campo obrigatório ausente na instituição: ${key}.`,
     )
   }
 
@@ -157,7 +183,7 @@ function readSchoolStatus(
     )
   ) {
     throw new Error(
-      'Status inválido retornado para a escola.',
+      'Status inválido retornado para a instituição.',
     )
   }
 
@@ -177,7 +203,7 @@ function readEducationNetwork(
     )
   ) {
     throw new Error(
-      'Rede de ensino inválida retornada para a escola.',
+      'Rede de ensino inválida retornada para a instituição.',
     )
   }
 
@@ -197,11 +223,51 @@ function readAdministrativeType(
     )
   ) {
     throw new Error(
-      'Tipo administrativo inválido retornado para a escola.',
+      'Tipo administrativo inválido retornado para a instituição.',
     )
   }
 
   return value as AdministrativeType
+}
+
+function readInstitutionType(
+  record: DatabaseRecord,
+): InstitutionType {
+  const value =
+    record.institution_type
+
+  if (
+    typeof value !== 'string' ||
+    !INSTITUTION_TYPES.includes(
+      value as InstitutionType,
+    )
+  ) {
+    throw new Error(
+      'Tipo de instituição inválido retornado pelo banco.',
+    )
+  }
+
+  return value as InstitutionType
+}
+
+function readRegistrationOrigin(
+  record: DatabaseRecord,
+): RegistrationOrigin {
+  const value =
+    record.registration_origin
+
+  if (
+    typeof value !== 'string' ||
+    !REGISTRATION_ORIGINS.includes(
+      value as RegistrationOrigin,
+    )
+  ) {
+    throw new Error(
+      'Origem do cadastro inválida retornada pelo banco.',
+    )
+  }
+
+  return value as RegistrationOrigin
 }
 
 function parseSchool(
@@ -223,6 +289,18 @@ function parseSchool(
         value,
         'organization_id',
       ),
+
+    registry_id:
+      readOptionalString(
+        value,
+        'registry_id',
+      ),
+
+    registration_origin:
+      readRegistrationOrigin(value),
+
+    institution_type:
+      readInstitutionType(value),
 
     inep_code:
       readOptionalString(
@@ -351,7 +429,7 @@ function parseSchoolList(
 
       if (!school) {
         throw new Error(
-          `Escola inválida retornada na posição ${index}.`,
+          `Instituição inválida retornada na posição ${index}.`,
         )
       }
 
@@ -400,7 +478,7 @@ class SchoolRepository {
 
     if (error) {
       throw new Error(
-        `Erro ao listar escolas: ${error.message}`,
+        `Erro ao listar instituições: ${error.message}`,
       )
     }
 
@@ -424,7 +502,7 @@ class SchoolRepository {
 
     if (error) {
       throw new Error(
-        `Erro ao listar escolas da organização: ${error.message}`,
+        `Erro ao listar instituições da organização: ${error.message}`,
       )
     }
 
@@ -443,7 +521,7 @@ class SchoolRepository {
 
     if (error) {
       throw new Error(
-        `Erro ao consultar escola: ${error.message}`,
+        `Erro ao consultar instituição: ${error.message}`,
       )
     }
 
@@ -462,7 +540,34 @@ class SchoolRepository {
 
     if (error) {
       throw new Error(
-        `Erro ao consultar escola pelo INEP: ${error.message}`,
+        `Erro ao consultar instituição pelo INEP: ${error.message}`,
+      )
+    }
+
+    return parseSchool(data)
+  }
+
+  async findByOrganizationAndRegistry(
+    organizationId: string,
+    registryId: string,
+  ): Promise<SchoolDto | null> {
+    const { data, error } =
+      await this.client
+        .from('schools')
+        .select(SCHOOL_SELECT)
+        .eq(
+          'organization_id',
+          organizationId,
+        )
+        .eq(
+          'registry_id',
+          registryId,
+        )
+        .maybeSingle()
+
+    if (error) {
+      throw new Error(
+        `Erro ao verificar vínculo com o cadastro nacional: ${error.message}`,
       )
     }
 
@@ -472,9 +577,27 @@ class SchoolRepository {
   async create(
     input: CreateSchoolDto,
   ): Promise<SchoolDto> {
+    const registrationOrigin =
+      input.registration_origin ??
+      'manual'
+
     const payload: DatabaseRecord = {
       organization_id:
         input.organization_id,
+
+      registry_id:
+        registrationOrigin === 'inep'
+          ? normalizeNullableText(
+              input.registry_id,
+            )
+          : null,
+
+      registration_origin:
+        registrationOrigin,
+
+      institution_type:
+        input.institution_type ??
+        'school',
 
       inep_code:
         normalizeNullableText(
@@ -568,7 +691,7 @@ class SchoolRepository {
 
     if (error) {
       throw new Error(
-        `Erro ao criar escola: ${error.message}`,
+        `Erro ao criar instituição: ${error.message}`,
       )
     }
 
@@ -577,7 +700,7 @@ class SchoolRepository {
 
     if (!school) {
       throw new Error(
-        'A escola foi criada, mas os dados retornados são inválidos.',
+        'A instituição foi criada, mas os dados retornados são inválidos.',
       )
     }
 
@@ -598,6 +721,45 @@ class SchoolRepository {
     ) {
       payload.organization_id =
         input.organization_id
+    }
+
+    if (
+      hasOwnField(
+        input,
+        'registry_id',
+      )
+    ) {
+      payload.registry_id =
+        normalizeNullableText(
+          input.registry_id,
+        )
+    }
+
+    if (
+      hasOwnField(
+        input,
+        'registration_origin',
+      )
+    ) {
+      payload.registration_origin =
+        input.registration_origin
+
+      if (
+        input.registration_origin ===
+        'manual'
+      ) {
+        payload.registry_id = null
+      }
+    }
+
+    if (
+      hasOwnField(
+        input,
+        'institution_type',
+      )
+    ) {
+      payload.institution_type =
+        input.institution_type
     }
 
     if (
@@ -784,7 +946,7 @@ class SchoolRepository {
 
     if (error) {
       throw new Error(
-        `Erro ao atualizar escola: ${error.message}`,
+        `Erro ao atualizar instituição: ${error.message}`,
       )
     }
 
@@ -793,7 +955,7 @@ class SchoolRepository {
 
     if (!school) {
       throw new Error(
-        'A escola foi atualizada, mas os dados retornados são inválidos.',
+        'A instituição foi atualizada, mas os dados retornados são inválidos.',
       )
     }
 
@@ -815,7 +977,7 @@ class SchoolRepository {
 
     if (error) {
       throw new Error(
-        `Erro ao arquivar escola: ${error.message}`,
+        `Erro ao arquivar instituição: ${error.message}`,
       )
     }
 
@@ -824,7 +986,7 @@ class SchoolRepository {
 
     if (!school) {
       throw new Error(
-        'A escola foi arquivada, mas os dados retornados são inválidos.',
+        'A instituição foi arquivada, mas os dados retornados são inválidos.',
       )
     }
 
