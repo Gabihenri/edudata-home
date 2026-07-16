@@ -20,9 +20,29 @@ export type AdministrativeType =
   | 'community'
   | 'other'
 
+export type InstitutionType =
+  | 'school'
+  | 'institute'
+  | 'college'
+  | 'university'
+  | 'company'
+  | 'training_center'
+  | 'ngo'
+  | 'government_agency'
+  | 'education_department'
+  | 'research_center'
+  | 'other'
+
+export type RegistrationOrigin =
+  | 'inep'
+  | 'manual'
+
 export interface SchoolDto {
   id: string
   organization_id: string
+  registry_id?: string | null
+  registration_origin?: RegistrationOrigin
+  institution_type?: InstitutionType
   inep_code: string | null
   name: string
   short_name: string | null
@@ -47,6 +67,9 @@ export interface SchoolDto {
 
 export interface CreateSchoolDto {
   organization_id: string
+  registry_id?: string
+  registration_origin?: RegistrationOrigin
+  institution_type?: InstitutionType
   name: string
   inep_code?: string
   short_name?: string
