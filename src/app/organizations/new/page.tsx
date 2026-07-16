@@ -6,7 +6,7 @@ import { requireOrganizationAdministrator } from '@/lib/organization/organizatio
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Nova organização | EduData IA',
+  title: 'Nova organização | EduDatahdhdhdh IA',
   description:
     'Cadastro de uma nova organização institucional no EIOS.',
 }
