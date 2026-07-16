@@ -36,30 +36,7 @@ async function resolveOrganizationCreationAccess():
       allowed: true,
       message: '',
     }
-  } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : ''
-
-    const normalizedMessage =
-      message.toLowerCase()
-
-    if (
-      normalizedMessage.includes(
-        'não autenticado',
-      ) ||
-      normalizedMessage.includes(
-        'não autorizado',
-      )
-    ) {
-      return {
-        allowed: false,
-        message:
-          'Sua sessão não está ativa. Entre novamente na plataforma para continuar.',
-      }
-    }
-
+  } catch {
     return {
       allowed: false,
       message:
