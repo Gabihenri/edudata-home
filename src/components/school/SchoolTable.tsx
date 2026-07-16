@@ -189,6 +189,11 @@ export default function SchoolTable() {
   const [search, setSearch] =
     useState('')
 
+  const [
+    showArchived,
+    setShowArchived,
+  ] = useState(false)
+
   const [loading, setLoading] =
     useState(true)
 
@@ -301,6 +306,28 @@ export default function SchoolTable() {
       )
     }, [organizations])
 
+  const activeInstitutionsCount =
+    useMemo(
+      () =>
+        institutions.filter(
+          (institution) =>
+            institution.status !==
+            'archived',
+        ).length,
+      [institutions],
+    )
+
+  const archivedInstitutionsCount =
+    useMemo(
+      () =>
+        institutions.filter(
+          (institution) =>
+            institution.status ===
+            'archived',
+        ).length,
+      [institutions],
+    )
+
   const filteredInstitutions =
     useMemo(() => {
       const normalizedSearch =
@@ -308,12 +335,20 @@ export default function SchoolTable() {
           .trim()
           .toLowerCase()
 
-      if (!normalizedSearch) {
-        return institutions
-      }
-
       return institutions.filter(
         (institution) => {
+          if (
+            !showArchived &&
+            institution.status ===
+              'archived'
+          ) {
+            return false
+          }
+
+          if (!normalizedSearch) {
+            return true
+          }
+
           const organizationName =
             organizationNames.get(
               institution.organization_id,
@@ -363,6 +398,7 @@ export default function SchoolTable() {
       institutions,
       organizationNames,
       search,
+      showArchived,
     ])
 
   if (loading) {
@@ -401,10 +437,20 @@ export default function SchoolTable() {
             </h2>
 
             <p className="mt-2 text-sm text-slate-600">
-              {institutions.length}{' '}
-              {institutions.length === 1
-                ? 'instituição cadastrada'
-                : 'instituições cadastradas'}
+              {activeInstitutionsCount}{' '}
+              {activeInstitutionsCount === 1
+                ? 'instituição disponível'
+                : 'instituições disponíveis'}
+
+              {archivedInstitutionsCount >
+              0
+                ? ` · ${archivedInstitutionsCount} arquivada${
+                    archivedInstitutionsCount ===
+                    1
+                      ? ''
+                      : 's'
+                  }`
+                : ''}
             </p>
           </div>
 
@@ -416,23 +462,43 @@ export default function SchoolTable() {
           </Link>
         </div>
 
-        <label className="mt-6 block">
-          <span className="text-sm font-semibold text-slate-700">
-            Pesquisar
-          </span>
+        <div className="mt-6 grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
+          <label className="block">
+            <span className="text-sm font-semibold text-slate-700">
+              Pesquisar
+            </span>
 
-          <input
-            type="search"
-            value={search}
-            onChange={(event) =>
-              setSearch(
-                event.target.value,
-              )
-            }
-            placeholder="Nome, INEP, tipo, cidade, organização ou status"
-            className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
-          />
-        </label>
+            <input
+              type="search"
+              value={search}
+              onChange={(event) =>
+                setSearch(
+                  event.target.value,
+                )
+              }
+              placeholder="Nome, INEP, tipo, cidade, organização ou status"
+              className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+            />
+          </label>
+
+          {archivedInstitutionsCount >
+          0 ? (
+            <button
+              type="button"
+              onClick={() =>
+                setShowArchived(
+                  (current) =>
+                    !current,
+                )
+              }
+              className="inline-flex min-h-12 items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-[#0B7491] hover:text-[#0B7491]"
+            >
+              {showArchived
+                ? 'Ocultar arquivadas'
+                : `Mostrar arquivadas (${archivedInstitutionsCount})`}
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {filteredInstitutions.length ===
@@ -441,7 +507,7 @@ export default function SchoolTable() {
           <p className="text-sm font-medium text-slate-600">
             {institutions.length === 0
               ? 'Nenhuma instituição cadastrada.'
-              : 'Nenhuma instituição corresponde à pesquisa.'}
+              : 'Nenhuma instituição corresponde aos filtros selecionados.'}
           </p>
         </div>
       ) : (
