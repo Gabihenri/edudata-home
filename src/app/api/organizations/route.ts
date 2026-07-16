@@ -3,7 +3,11 @@ import {
   NextResponse,
 } from 'next/server'
 
-import { requireOrganizationAdministrator } from '@/lib/organization/organization.authorization'
+import {
+  requireOrganizationAdministrator,
+  type OrganizationAuthorizationContext,
+} from '@/lib/organization/organization.authorization'
+import type { OrganizationDto } from '@/lib/organization/organization.dto'
 import { organizationService } from '@/lib/organization/organization.service'
 
 export const dynamic = 'force-dynamic'
@@ -39,6 +43,8 @@ function getErrorStatus(
     message.includes('sem permissão') ||
     message.includes('perfil inativo') ||
     message.includes('perfil de acesso') ||
+    message.includes('fora do escopo') ||
+    message.includes('escopo autorizado') ||
     message.includes('proibido') ||
     message.includes('forbidden')
   ) {
@@ -63,7 +69,9 @@ function getErrorStatus(
     return 400
   }
 
-  if (message.includes('não encontrada')) {
+  if (
+    message.includes('não encontrada')
+  ) {
     return 404
   }
 
@@ -96,12 +104,106 @@ function createErrorResponse(
   )
 }
 
+function sortOrganizations(
+  organizations: OrganizationDto[],
+): OrganizationDto[] {
+  return [...organizations].sort(
+    (first, second) =>
+      first.name.localeCompare(
+        second.name,
+        'pt-BR',
+        {
+          sensitivity: 'base',
+        },
+      ),
+  )
+}
+
+async function loadScopedOrganization(
+  organizationId: string,
+): Promise<OrganizationDto | null> {
+  try {
+    const organization =
+      await organizationService.getById(
+        organizationId,
+      )
+
+    if (
+      organization.status ===
+      'archived'
+    ) {
+      return null
+    }
+
+    return organization
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message
+        .toLowerCase()
+        .includes('não encontrada')
+    ) {
+      return null
+    }
+
+    throw error
+  }
+}
+
+async function listScopedOrganizations(
+  context:
+    OrganizationAuthorizationContext,
+): Promise<OrganizationDto[]> {
+  if (
+    context.isPlatformAdministrator
+  ) {
+    return organizationService.listAll()
+  }
+
+  const organizations =
+    await Promise.all(
+      context.organizationIds.map(
+        (organizationId) =>
+          loadScopedOrganization(
+            organizationId,
+          ),
+      ),
+    )
+
+  return sortOrganizations(
+    organizations.filter(
+      (
+        organization,
+      ): organization is OrganizationDto =>
+        organization !== null,
+    ),
+  )
+}
+
+function assertCanCreateOrganization(
+  context:
+    OrganizationAuthorizationContext,
+): void {
+  if (
+    context.isPlatformAdministrator
+  ) {
+    return
+  }
+
+  throw new Error(
+    'Sem permissão para cadastrar novas organizações.',
+  )
+}
+
 export async function GET() {
   try {
-    await requireOrganizationAdministrator()
+    const authorization =
+      await requireOrganizationAdministrator()
 
     const organizations =
-      await organizationService.listAll()
+      await listScopedOrganizations(
+        authorization,
+      )
 
     return NextResponse.json(
       {
@@ -131,7 +233,12 @@ export async function POST(
   request: NextRequest,
 ) {
   try {
-    await requireOrganizationAdministrator()
+    const authorization =
+      await requireOrganizationAdministrator()
+
+    assertCanCreateOrganization(
+      authorization,
+    )
 
     const body: unknown =
       await request.json()
