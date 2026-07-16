@@ -5,12 +5,10 @@ import {
   useEffect,
   useState,
 } from 'react'
-
 import {
   useRouter,
   useSearchParams,
 } from 'next/navigation'
-
 import {
   createClient,
   type Session,
@@ -32,38 +30,55 @@ function getSafeRedirect(
     return redirectValue
   }
 
-  return '/agenda'
+  return '/portal'
 }
 
 function OAuthCallbackContent() {
   const router = useRouter()
-  const searchParams = useSearchParams()
+  const searchParams =
+    useSearchParams()
 
-  const [errorMessage, setErrorMessage] =
-    useState('')
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState('')
 
-  const code = searchParams.get('code')
+  const code =
+    searchParams.get('code')
 
   const oauthError =
-    searchParams.get('error_description') ??
+    searchParams.get(
+      'error_description',
+    ) ??
     searchParams.get('error')
 
-  const redirectTo = getSafeRedirect(
-    searchParams.get('redirectTo'),
-  )
+  const redirectTo =
+    getSafeRedirect(
+      searchParams.get(
+        'redirectTo',
+      ),
+    )
 
   useEffect(() => {
     let isCancelled = false
     let isCompleted = false
-    let timeoutId: number | undefined
+
+    let timeoutId:
+      | number
+      | undefined
 
     const supabaseUrl =
-      process.env.NEXT_PUBLIC_SUPABASE_URL
+      process.env
+        .NEXT_PUBLIC_SUPABASE_URL
 
     const supabaseAnonKey =
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      process.env
+        .NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (
+      !supabaseUrl ||
+      !supabaseAnonKey
+    ) {
       setErrorMessage(
         'A conexão com o Supabase não está configurada.',
       )
@@ -79,48 +94,59 @@ function OAuthCallbackContent() {
       return
     }
 
-    const supabase = createClient(
-      supabaseUrl,
-      supabaseAnonKey,
-      {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: true,
+    const supabase =
+      createClient(
+        supabaseUrl,
+        supabaseAnonKey,
+        {
+          auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+          },
         },
-      },
-    )
+      )
 
     async function completeSession(
       session: Session,
     ) {
-      if (isCancelled || isCompleted) {
+      if (
+        isCancelled ||
+        isCompleted
+      ) {
         return
       }
 
       isCompleted = true
 
       try {
-        const response = await fetch(
-          '/api/auth/oauth',
-          {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-              'Content-Type':
-                'application/json',
+        const response =
+          await fetch(
+            '/api/auth/oauth',
+            {
+              method: 'POST',
+              credentials:
+                'include',
+
+              headers: {
+                'Content-Type':
+                  'application/json',
+              },
+
+              body:
+                JSON.stringify({
+                  accessToken:
+                    session.access_token,
+
+                  refreshToken:
+                    session.refresh_token,
+                }),
             },
-            body: JSON.stringify({
-              accessToken:
-                session.access_token,
-              refreshToken:
-                session.refresh_token,
-            }),
-          },
-        )
+          )
 
         const result =
-          (await response.json()) as OAuthApiResponse
+          (await response.json()) as
+            OAuthApiResponse
 
         if (
           !response.ok ||
@@ -136,7 +162,10 @@ function OAuthCallbackContent() {
           return
         }
 
-        router.replace(redirectTo)
+        router.replace(
+          redirectTo,
+        )
+
         router.refresh()
       } catch (error) {
         if (isCancelled) {
@@ -154,54 +183,78 @@ function OAuthCallbackContent() {
     }
 
     const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (!session || isCancelled) {
-          return
-        }
-
-        window.setTimeout(() => {
-          void completeSession(session)
-        }, 0)
+      data: {
+        subscription,
       },
-    )
+    } =
+      supabase.auth
+        .onAuthStateChange(
+          (
+            _event,
+            session,
+          ) => {
+            if (
+              !session ||
+              isCancelled
+            ) {
+              return
+            }
+
+            window.setTimeout(
+              () => {
+                void completeSession(
+                  session,
+                )
+              },
+              0,
+            )
+          },
+        )
 
     async function processCallback() {
       try {
         /*
          * Fluxo PKCE:
-         * o Supabase retorna um código na URL.
+         * o Supabase retorna um código
+         * de autorização na URL.
          */
         if (code) {
           const {
             data,
             error,
           } =
-            await supabase.auth.exchangeCodeForSession(
-              code,
-            )
+            await supabase.auth
+              .exchangeCodeForSession(
+                code,
+              )
 
-          if (error || !data.session) {
+          if (
+            error ||
+            !data.session
+          ) {
             throw new Error(
               'Não foi possível trocar o código de acesso pela sessão.',
             )
           }
 
-          await completeSession(data.session)
+          await completeSession(
+            data.session,
+          )
 
           return
         }
 
         /*
          * Fluxo implícito:
-         * detectSessionInUrl processa os tokens
-         * recebidos na URL.
+         * detectSessionInUrl processa
+         * os tokens recebidos na URL.
          */
         const {
           data,
           error,
-        } = await supabase.auth.getSession()
+        } =
+          await supabase.auth
+            .getSession()
 
         if (error) {
           throw new Error(
@@ -210,7 +263,9 @@ function OAuthCallbackContent() {
         }
 
         if (data.session) {
-          await completeSession(data.session)
+          await completeSession(
+            data.session,
+          )
         }
       } catch (error) {
         if (isCancelled) {
@@ -227,23 +282,30 @@ function OAuthCallbackContent() {
 
     void processCallback()
 
-    timeoutId = window.setTimeout(() => {
-      if (
-        !isCancelled &&
-        !isCompleted
-      ) {
-        setErrorMessage(
-          'O acesso demorou mais do que o esperado. Volte ao login e tente novamente.',
-        )
-      }
-    }, 20000)
+    timeoutId =
+      window.setTimeout(
+        () => {
+          if (
+            !isCancelled &&
+            !isCompleted
+          ) {
+            setErrorMessage(
+              'O acesso demorou mais do que o esperado. Volte ao login e tente novamente.',
+            )
+          }
+        },
+        20000,
+      )
 
     return () => {
       isCancelled = true
+
       subscription.unsubscribe()
 
       if (timeoutId) {
-        window.clearTimeout(timeoutId)
+        window.clearTimeout(
+          timeoutId,
+        )
       }
     }
   }, [
@@ -276,7 +338,9 @@ function OAuthCallbackContent() {
             <button
               type="button"
               onClick={() =>
-                router.replace('/login')
+                router.replace(
+                  '/login',
+                )
               }
               className="mt-6 w-full rounded-xl bg-[#081C2E] px-5 py-3 font-semibold text-white transition hover:bg-[#0D2B45]"
             >
@@ -299,7 +363,9 @@ function OAuthCallbackContent() {
               aria-live="polite"
               className="mt-3 leading-7 text-slate-600"
             >
-              Estamos validando sua conta Google e preparando seu ambiente.
+              Estamos validando sua
+              conta Google e preparando
+              sua Central da Plataforma.
             </p>
           </>
         )}
@@ -331,7 +397,11 @@ function CallbackLoading() {
 
 export default function OAuthCallbackPage() {
   return (
-    <Suspense fallback={<CallbackLoading />}>
+    <Suspense
+      fallback={
+        <CallbackLoading />
+      }
+    >
       <OAuthCallbackContent />
     </Suspense>
   )
