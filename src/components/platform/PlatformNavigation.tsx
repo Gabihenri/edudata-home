@@ -1,0 +1,813 @@
+'use client'
+
+import Link from 'next/link'
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
+import {
+  usePathname,
+  useRouter,
+} from 'next/navigation'
+
+type AccountType =
+  | 'individual'
+  | 'corporate'
+
+interface PortalUser {
+  id: string
+  email: string | null
+  displayName: string
+  profileStatus: string
+  onboardingCompleted: boolean
+}
+
+interface PortalContext {
+  id: string
+  accountType: AccountType
+
+  organization: {
+    id: string
+    name: string
+  } | null
+
+  school: {
+    id: string
+    name: string
+    shortName: string | null
+    city: string | null
+    state: string | null
+  } | null
+
+  role: string
+  roleLabel: string
+  hierarchyLevel: number
+  scopeType: string
+  status: string
+  onboardingCompleted: boolean
+}
+
+interface PortalProduct {
+  code: string
+  title: string
+  description: string
+  href: string
+  enabled: boolean
+  unavailableReason: string | null
+}
+
+interface PortalResponse {
+  success: boolean
+  user?: PortalUser
+  accountType?: AccountType
+  activeContext?: PortalContext
+  products?: PortalProduct[]
+  error?: string
+}
+
+interface NavigationItem {
+  key: string
+  label: string
+  href: string
+  group:
+    | 'core'
+    | 'product'
+    | 'management'
+    | 'account'
+}
+
+const PLATFORM_ROLES =
+  new Set([
+    'platform_admin',
+    'super_admin',
+  ])
+
+const INSTITUTION_CORE_ROLES =
+  new Set([
+    'platform_admin',
+    'super_admin',
+    'institution_admin',
+    'regional_manager',
+    'supervisor',
+    'principal',
+    'vice_principal',
+  ])
+
+const ORGANIZATION_CORE_ROLES =
+  new Set([
+    'platform_admin',
+    'super_admin',
+    'institution_admin',
+    'regional_manager',
+    'supervisor',
+  ])
+
+const PRODUCT_ORDER = [
+  'professor_digital',
+  'agenda_edi',
+  'academy',
+  'analytics',
+  'sgpa',
+  'observatory',
+  'community',
+  'backoffice',
+  'experience_manager',
+]
+
+const PRODUCT_LABELS:
+  Record<string, string> = {
+    professor_digital:
+      'Professor Digital',
+
+    agenda_edi:
+      'Agenda EDI',
+
+    academy:
+      'Academy',
+
+    analytics:
+      'Analytics',
+
+    sgpa:
+      'SGPA',
+
+    observatory:
+      'Observatório',
+
+    community:
+      'Comunidade',
+
+    backoffice:
+      'BackOffice',
+
+    experience_manager:
+      'Experience Manager',
+  }
+
+const GROUP_LABELS:
+  Record<
+    NavigationItem['group'],
+    string
+  > = {
+    core: 'Central',
+    product: 'Produtos',
+    management: 'Gestão',
+    account: 'Conta',
+  }
+
+function isActivePath(
+  pathname: string,
+  href: string,
+): boolean {
+  if (href === '/') {
+    return pathname === '/'
+  }
+
+  if (href === '/portal') {
+    return pathname === '/portal'
+  }
+
+  return (
+    pathname === href ||
+    pathname.startsWith(
+      `${href}/`,
+    )
+  )
+}
+
+function getContextName(
+  context: PortalContext,
+): string {
+  if (context.school) {
+    return (
+      context.school.shortName ??
+      context.school.name
+    )
+  }
+
+  if (context.organization) {
+    return context.organization.name
+  }
+
+  return 'Acesso individual'
+}
+
+function createNavigationItems(
+  portal: PortalResponse,
+): NavigationItem[] {
+  const context =
+    portal.activeContext
+
+  if (!context) {
+    return [
+      {
+        key: 'portal',
+        label:
+          'Central da Plataforma',
+        href: '/portal',
+        group: 'core',
+      },
+
+      {
+        key: 'profile',
+        label: 'Meu perfil',
+        href: '/perfil',
+        group: 'account',
+      },
+    ]
+  }
+
+  const items:
+    NavigationItem[] = [
+      {
+        key: 'portal',
+        label:
+          'Central da Plataforma',
+        href: '/portal',
+        group: 'core',
+      },
+    ]
+
+  const enabledProducts =
+    new Map(
+      (portal.products ?? [])
+        .filter(
+          (product) =>
+            product.enabled,
+        )
+        .map(
+          (product) => [
+            product.code,
+            product,
+          ],
+        ),
+    )
+
+  PRODUCT_ORDER.forEach(
+    (productCode) => {
+      const product =
+        enabledProducts.get(
+          productCode,
+        )
+
+      if (!product) {
+        return
+      }
+
+      items.push({
+        key:
+          `product:${product.code}`,
+
+        label:
+          PRODUCT_LABELS[
+            product.code
+          ] ?? product.title,
+
+        href:
+          product.href,
+
+        group:
+          product.code ===
+            'backoffice' ||
+          product.code ===
+            'experience_manager'
+            ? 'management'
+            : 'product',
+      })
+    },
+  )
+
+  if (
+    INSTITUTION_CORE_ROLES.has(
+      context.role,
+    )
+  ) {
+    items.push({
+      key:
+        'institution-core',
+
+      label:
+        'Instituições',
+
+      href:
+        '/schools',
+
+      group:
+        'management',
+    })
+  }
+
+  if (
+    ORGANIZATION_CORE_ROLES.has(
+      context.role,
+    )
+  ) {
+    items.push({
+      key:
+        'organization-core',
+
+      label:
+        'Organizações',
+
+      href:
+        '/organizations',
+
+      group:
+        'management',
+    })
+  }
+
+  items.push(
+    {
+      key: 'profile',
+      label: 'Meu perfil',
+      href: '/perfil',
+      group: 'account',
+    },
+
+    {
+      key: 'home',
+      label: 'Home EduData IA',
+      href: '/',
+      group: 'account',
+    },
+  )
+
+  const uniqueItems =
+    new Map<
+      string,
+      NavigationItem
+    >()
+
+  items.forEach((item) => {
+    uniqueItems.set(
+      item.href,
+      item,
+    )
+  })
+
+  return [
+    ...uniqueItems.values(),
+  ]
+}
+
+function groupNavigationItems(
+  items: NavigationItem[],
+) {
+  return items.reduce(
+    (
+      groups,
+      item,
+    ) => {
+      groups[item.group].push(
+        item,
+      )
+
+      return groups
+    },
+    {
+      core: [] as NavigationItem[],
+      product:
+        [] as NavigationItem[],
+      management:
+        [] as NavigationItem[],
+      account:
+        [] as NavigationItem[],
+    },
+  )
+}
+
+export function PlatformNavigation() {
+  const pathname =
+    usePathname()
+
+  const router =
+    useRouter()
+
+  const [
+    portal,
+    setPortal,
+  ] =
+    useState<PortalResponse | null>(
+      null,
+    )
+
+  const [
+    loading,
+    setLoading,
+  ] =
+    useState(true)
+
+  const [
+    menuOpen,
+    setMenuOpen,
+  ] =
+    useState(false)
+
+  const [
+    loggingOut,
+    setLoggingOut,
+  ] =
+    useState(false)
+
+  useEffect(() => {
+    let active = true
+
+    const controller =
+      new AbortController()
+
+    async function loadPortal() {
+      try {
+        const response =
+          await fetch(
+            '/api/portal',
+            {
+              method: 'GET',
+              cache: 'no-store',
+              signal:
+                controller.signal,
+            },
+          )
+
+        if (
+          response.status === 401
+        ) {
+          router.replace('/login')
+          return
+        }
+
+        const result =
+          (await response.json()) as
+            PortalResponse
+
+        if (
+          !response.ok ||
+          !result.success
+        ) {
+          throw new Error(
+            result.error ??
+              'Não foi possível carregar a navegação.',
+          )
+        }
+
+        if (active) {
+          setPortal(result)
+        }
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.name ===
+            'AbortError'
+        ) {
+          return
+        }
+
+        if (active) {
+          setPortal(null)
+        }
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
+    void loadPortal()
+
+    return () => {
+      active = false
+      controller.abort()
+    }
+  }, [router])
+
+  useEffect(() => {
+    setMenuOpen(false)
+  }, [pathname])
+
+  const navigationItems =
+    useMemo(
+      () =>
+        portal
+          ? createNavigationItems(
+              portal,
+            )
+          : [
+              {
+                key: 'portal',
+                label:
+                  'Central da Plataforma',
+                href: '/portal',
+                group:
+                  'core' as const,
+              },
+
+              {
+                key: 'profile',
+                label:
+                  'Meu perfil',
+                href: '/perfil',
+                group:
+                  'account' as const,
+              },
+            ],
+      [portal],
+    )
+
+  const groupedItems =
+    useMemo(
+      () =>
+        groupNavigationItems(
+          navigationItems,
+        ),
+      [navigationItems],
+    )
+
+  const primaryItems =
+    useMemo(() => {
+      const preferredKeys =
+        new Set([
+          'portal',
+          'product:professor_digital',
+          'product:agenda_edi',
+          'institution-core',
+          'organization-core',
+          'profile',
+        ])
+
+      return navigationItems.filter(
+        (item) =>
+          preferredKeys.has(
+            item.key,
+          ),
+      )
+    }, [navigationItems])
+
+  async function handleLogout() {
+    if (loggingOut) {
+      return
+    }
+
+    setLoggingOut(true)
+
+    try {
+      await fetch(
+        '/api/auth/logout',
+        {
+          method: 'POST',
+        },
+      )
+    } finally {
+      router.replace('/login')
+      router.refresh()
+    }
+  }
+
+  const user =
+    portal?.user
+
+  const activeContext =
+    portal?.activeContext
+
+  const isPlatformAdministrator =
+    activeContext
+      ? PLATFORM_ROLES.has(
+          activeContext.role,
+        )
+      : false
+
+  return (
+    <header className="sticky top-0 z-[70] border-b border-white/10 bg-[#071827] text-white shadow-lg shadow-slate-950/10">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="flex min-h-20 items-center justify-between gap-4">
+          <Link
+            href="/portal"
+            className="min-w-0"
+            aria-label="Abrir a Central da Plataforma"
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
+              EIOS
+            </p>
+
+            <p className="truncate text-base font-bold text-white">
+              Central da Plataforma
+            </p>
+
+            {!loading &&
+            activeContext ? (
+              <p className="mt-1 truncate text-xs text-slate-300">
+                {getContextName(
+                  activeContext,
+                )}
+                {' — '}
+                {
+                  activeContext.roleLabel
+                }
+              </p>
+            ) : null}
+          </Link>
+
+          <nav className="hidden items-center gap-2 xl:flex">
+            {primaryItems.map(
+              (item) => {
+                const activePath =
+                  isActivePath(
+                    pathname,
+                    item.href,
+                  )
+
+                return (
+                  <Link
+                    key={item.key}
+                    href={item.href}
+                    aria-current={
+                      activePath
+                        ? 'page'
+                        : undefined
+                    }
+                    className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                      activePath
+                        ? 'bg-white text-[#071827]'
+                        : 'text-slate-200 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                )
+              },
+            )}
+          </nav>
+
+          <div className="hidden shrink-0 items-center gap-4 xl:flex">
+            <div className="max-w-48 text-right">
+              <p className="truncate text-sm font-semibold text-white">
+                {user?.displayName ??
+                  'Usuário EduData IA'}
+              </p>
+
+              <p className="truncate text-xs text-slate-300">
+                {isPlatformAdministrator
+                  ? 'Administração da plataforma'
+                  : activeContext?.roleLabel ??
+                    'Perfil ativo'}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={
+                handleLogout
+              }
+              disabled={
+                loggingOut
+              }
+              className="rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loggingOut
+                ? 'Saindo...'
+                : 'Sair'}
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() =>
+              setMenuOpen(
+                (current) =>
+                  !current,
+              )
+            }
+            aria-expanded={
+              menuOpen
+            }
+            aria-controls="platform-navigation-menu"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-white/20 px-4 text-sm font-semibold text-white transition hover:bg-white/10 xl:hidden"
+          >
+            {menuOpen
+              ? 'Fechar'
+              : 'Menu'}
+          </button>
+        </div>
+
+        {menuOpen ? (
+          <div
+            id="platform-navigation-menu"
+            className="border-t border-white/10 py-5 xl:hidden"
+          >
+            {!loading &&
+            user ? (
+              <div className="mb-5 rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="font-semibold text-white">
+                  {user.displayName}
+                </p>
+
+                {user.email ? (
+                  <p className="mt-1 break-all text-sm text-slate-300">
+                    {user.email}
+                  </p>
+                ) : null}
+
+                {activeContext ? (
+                  <p className="mt-3 text-sm text-cyan-200">
+                    {
+                      activeContext.roleLabel
+                    }
+                    {' — '}
+                    {getContextName(
+                      activeContext,
+                    )}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            <div className="space-y-6">
+              {(
+                Object.keys(
+                  groupedItems,
+                ) as Array<
+                  keyof typeof groupedItems
+                >
+              ).map((group) => {
+                const items =
+                  groupedItems[group]
+
+                if (
+                  items.length === 0
+                ) {
+                  return null
+                }
+
+                return (
+                  <section
+                    key={group}
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                      {
+                        GROUP_LABELS[
+                          group
+                        ]
+                      }
+                    </p>
+
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      {items.map(
+                        (item) => {
+                          const activePath =
+                            isActivePath(
+                              pathname,
+                              item.href,
+                            )
+
+                          return (
+                            <Link
+                              key={
+                                item.key
+                              }
+                              href={
+                                item.href
+                              }
+                              aria-current={
+                                activePath
+                                  ? 'page'
+                                  : undefined
+                              }
+                              className={`rounded-lg border px-4 py-3 text-sm font-semibold transition ${
+                                activePath
+                                  ? 'border-white bg-white text-[#071827]'
+                                  : 'border-white/10 bg-white/5 text-white hover:border-white/30 hover:bg-white/10'
+                              }`}
+                            >
+                              {
+                                item.label
+                              }
+                            </Link>
+                          )
+                        },
+                      )}
+                    </div>
+                  </section>
+                )
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={
+                handleLogout
+              }
+              disabled={
+                loggingOut
+              }
+              className="mt-6 inline-flex w-full items-center justify-center rounded-lg border border-red-300/40 px-5 py-3 text-sm font-semibold text-red-100 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loggingOut
+                ? 'Saindo...'
+                : 'Sair da plataforma'}
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </header>
+  )
+}
