@@ -3,7 +3,11 @@ import {
   NextResponse,
 } from 'next/server'
 
-import { requireOrganizationAdministrator } from '@/lib/organization/organization.authorization'
+import {
+  requireOrganizationAdministrator,
+  type OrganizationAuthorizationContext,
+} from '@/lib/organization/organization.authorization'
+import type { SchoolDto } from '@/lib/schools/school.dto'
 import { schoolService } from '@/lib/schools/school.service'
 
 export const dynamic = 'force-dynamic'
@@ -14,9 +18,22 @@ interface RouteContext {
   }
 }
 
+type UnknownRecord =
+  Record<string, unknown>
+
 const NO_CACHE_HEADERS = {
   'Cache-Control':
     'no-store, no-cache, must-revalidate',
+}
+
+function isRecord(
+  value: unknown,
+): value is UnknownRecord {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value)
+  )
 }
 
 function getErrorStatus(
@@ -45,6 +62,8 @@ function getErrorStatus(
     message.includes('sem permissão') ||
     message.includes('perfil inativo') ||
     message.includes('perfil de acesso') ||
+    message.includes('fora do escopo') ||
+    message.includes('escopo autorizado') ||
     message.includes('proibido') ||
     message.includes('forbidden')
   ) {
@@ -60,6 +79,12 @@ function getErrorStatus(
   }
 
   if (
+    message.includes('não encontrada')
+  ) {
+    return 404
+  }
+
+  if (
     message.includes('obrigatório') ||
     message.includes('inválido') ||
     message.includes('inválida') ||
@@ -68,12 +93,6 @@ function getErrorStatus(
     message.includes('exatamente')
   ) {
     return 400
-  }
-
-  if (
-    message.includes('não encontrada')
-  ) {
-    return 404
   }
 
   return 500
@@ -105,15 +124,170 @@ function createErrorResponse(
   )
 }
 
+function hasSchoolAccess(
+  context:
+    OrganizationAuthorizationContext,
+  school: SchoolDto,
+): boolean {
+  if (
+    context.isPlatformAdministrator
+  ) {
+    return true
+  }
+
+  return context.memberships.some(
+    (membership) =>
+      membership.organizationId ===
+        school.organization_id &&
+      (
+        membership.schoolId === null ||
+        membership.schoolId ===
+          school.id
+      ),
+  )
+}
+
+function hasOrganizationWideScope(
+  context:
+    OrganizationAuthorizationContext,
+  organizationId: string,
+): boolean {
+  if (
+    context.isPlatformAdministrator
+  ) {
+    return true
+  }
+
+  return context.memberships.some(
+    (membership) =>
+      membership.organizationId ===
+        organizationId &&
+      membership.schoolId === null,
+  )
+}
+
+function assertSchoolAccess(
+  context:
+    OrganizationAuthorizationContext,
+  school: SchoolDto,
+): void {
+  if (
+    !hasSchoolAccess(
+      context,
+      school,
+    )
+  ) {
+    throw new Error(
+      'Instituição fora do escopo autorizado.',
+    )
+  }
+}
+
+function readTargetOrganizationId(
+  body: unknown,
+): string | null {
+  if (!isRecord(body)) {
+    throw new Error(
+      'Dados da instituição inválidos.',
+    )
+  }
+
+  if (
+    !Object.prototype.hasOwnProperty.call(
+      body,
+      'organization_id',
+    )
+  ) {
+    return null
+  }
+
+  const organizationId =
+    body.organization_id
+
+  if (
+    typeof organizationId !==
+      'string' ||
+    !organizationId.trim()
+  ) {
+    throw new Error(
+      'Identificador da organização inválido.',
+    )
+  }
+
+  return organizationId.trim()
+}
+
+function assertOrganizationTransferAccess(
+  context:
+    OrganizationAuthorizationContext,
+  currentSchool: SchoolDto,
+  targetOrganizationId: string | null,
+): void {
+  if (
+    !targetOrganizationId ||
+    targetOrganizationId ===
+      currentSchool.organization_id
+  ) {
+    return
+  }
+
+  if (
+    context.isPlatformAdministrator
+  ) {
+    return
+  }
+
+  const canManageCurrentOrganization =
+    hasOrganizationWideScope(
+      context,
+      currentSchool.organization_id,
+    )
+
+  const canManageTargetOrganization =
+    hasOrganizationWideScope(
+      context,
+      targetOrganizationId,
+    )
+
+  if (
+    !canManageCurrentOrganization ||
+    !canManageTargetOrganization
+  ) {
+    throw new Error(
+      'Sem permissão para transferir a instituição entre organizações.',
+    )
+  }
+}
+
+async function loadAuthorizedSchool(
+  context:
+    OrganizationAuthorizationContext,
+  schoolId: string,
+): Promise<SchoolDto> {
+  const school =
+    await schoolService.getById(
+      schoolId,
+    )
+
+  assertSchoolAccess(
+    context,
+    school,
+  )
+
+  return school
+}
+
 export async function GET(
   _request: NextRequest,
   context: RouteContext,
 ) {
   try {
-    await requireOrganizationAdministrator()
+    const authorization =
+      await requireOrganizationAdministrator()
 
     const school =
-      await schoolService.getById(
+      await loadAuthorizedSchool(
+        authorization,
         context.params.id,
       )
 
@@ -129,13 +303,13 @@ export async function GET(
     )
   } catch (error) {
     console.error(
-      '[SCHOOL_GET_ERROR]',
+      '[SCHOOL_GET_BY_ID_ERROR]',
       error,
     )
 
     return createErrorResponse(
       error,
-      'Não foi possível carregar a escola.',
+      'Não foi possível carregar a instituição.',
     )
   }
 }
@@ -145,23 +319,46 @@ export async function PATCH(
   context: RouteContext,
 ) {
   try {
-    await requireOrganizationAdministrator()
+    const authorization =
+      await requireOrganizationAdministrator()
+
+    const currentSchool =
+      await loadAuthorizedSchool(
+        authorization,
+        context.params.id,
+      )
 
     const body: unknown =
       await request.json()
 
-    const school =
+    const targetOrganizationId =
+      readTargetOrganizationId(
+        body,
+      )
+
+    assertOrganizationTransferAccess(
+      authorization,
+      currentSchool,
+      targetOrganizationId,
+    )
+
+    const updatedSchool =
       await schoolService.update(
         context.params.id,
         body,
       )
 
+    assertSchoolAccess(
+      authorization,
+      updatedSchool,
+    )
+
     return NextResponse.json(
       {
         success: true,
         message:
-          'Escola atualizada com sucesso.',
-        data: school,
+          'Instituição atualizada com sucesso.',
+        data: updatedSchool,
       },
       {
         status: 200,
@@ -176,7 +373,7 @@ export async function PATCH(
 
     return createErrorResponse(
       error,
-      'Não foi possível atualizar a escola.',
+      'Não foi possível atualizar a instituição.',
     )
   }
 }
@@ -186,9 +383,15 @@ export async function DELETE(
   context: RouteContext,
 ) {
   try {
-    await requireOrganizationAdministrator()
+    const authorization =
+      await requireOrganizationAdministrator()
 
-    const school =
+    await loadAuthorizedSchool(
+      authorization,
+      context.params.id,
+    )
+
+    const archivedSchool =
       await schoolService.archive(
         context.params.id,
       )
@@ -197,8 +400,8 @@ export async function DELETE(
       {
         success: true,
         message:
-          'Escola arquivada com sucesso.',
-        data: school,
+          'Instituição arquivada com sucesso.',
+        data: archivedSchool,
       },
       {
         status: 200,
@@ -213,7 +416,7 @@ export async function DELETE(
 
     return createErrorResponse(
       error,
-      'Não foi possível arquivar a escola.',
+      'Não foi possível arquivar a instituição.',
     )
   }
 }
