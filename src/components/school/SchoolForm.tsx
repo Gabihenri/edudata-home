@@ -8,9 +8,13 @@ import {
 } from 'react'
 import { useRouter } from 'next/navigation'
 
+import SchoolRegistrySearch from '@/components/school-registry/SchoolRegistrySearch'
+import type { SchoolRegistrySearchItemDto } from '@/lib/school-registry/school-registry.dto'
 import type {
   AdministrativeType,
   EducationNetwork,
+  InstitutionType,
+  RegistrationOrigin,
   SchoolDto,
   SchoolStatus,
 } from '@/lib/schools/school.dto'
@@ -29,6 +33,9 @@ interface SchoolFormProps {
 
 interface SchoolFormState {
   organization_id: string
+  registry_id: string
+  registration_origin: RegistrationOrigin
+  institution_type: InstitutionType
   name: string
   short_name: string
   inep_code: string
@@ -58,6 +65,9 @@ interface ApiResponse<T> {
 
 const INITIAL_FORM: SchoolFormState = {
   organization_id: '',
+  registry_id: '',
+  registration_origin: 'inep',
+  institution_type: 'school',
   name: '',
   short_name: '',
   inep_code: '',
@@ -77,6 +87,56 @@ const INITIAL_FORM: SchoolFormState = {
   country: 'Brasil',
   status: 'active',
 }
+
+const INSTITUTION_TYPE_OPTIONS: Array<{
+  value: InstitutionType
+  label: string
+}> = [
+  {
+    value: 'school',
+    label: 'Escola',
+  },
+  {
+    value: 'institute',
+    label: 'Instituto',
+  },
+  {
+    value: 'college',
+    label: 'Faculdade',
+  },
+  {
+    value: 'university',
+    label: 'Universidade',
+  },
+  {
+    value: 'company',
+    label: 'Empresa',
+  },
+  {
+    value: 'training_center',
+    label: 'Centro de formação',
+  },
+  {
+    value: 'ngo',
+    label: 'ONG',
+  },
+  {
+    value: 'government_agency',
+    label: 'Órgão público',
+  },
+  {
+    value: 'education_department',
+    label: 'Secretaria ou diretoria de ensino',
+  },
+  {
+    value: 'research_center',
+    label: 'Centro de pesquisa',
+  },
+  {
+    value: 'other',
+    label: 'Outro',
+  },
+]
 
 const EDUCATION_NETWORK_OPTIONS: Array<{
   value: EducationNetwork
@@ -104,7 +164,7 @@ const EDUCATION_NETWORK_OPTIONS: Array<{
   },
   {
     value: 'other',
-    label: 'Outra',
+    label: 'Outra ou não se aplica',
   },
 ]
 
@@ -130,7 +190,7 @@ const ADMINISTRATIVE_TYPE_OPTIONS: Array<{
   },
   {
     value: 'other',
-    label: 'Outra',
+    label: 'Outra ou não se aplica',
   },
 ]
 
@@ -160,12 +220,101 @@ const STATUS_OPTIONS: Array<{
   },
 ]
 
+function mapEducationNetwork(
+  dependency: string | null,
+): EducationNetwork {
+  const normalized =
+    dependency?.trim().toLowerCase() ?? ''
+
+  if (normalized.includes('municipal')) {
+    return 'municipal'
+  }
+
+  if (
+    normalized.includes('estadual') ||
+    normalized.includes('state')
+  ) {
+    return 'state'
+  }
+
+  if (normalized.includes('federal')) {
+    return 'federal'
+  }
+
+  if (
+    normalized.includes('privada') ||
+    normalized.includes('private') ||
+    normalized.includes('particular')
+  ) {
+    return 'private'
+  }
+
+  if (normalized.includes('comunit')) {
+    return 'community'
+  }
+
+  return 'other'
+}
+
+function mapAdministrativeType(
+  dependency: string | null,
+  category: string | null,
+): AdministrativeType {
+  const normalized = [
+    dependency,
+    category,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+  if (normalized.includes('filantr')) {
+    return 'philanthropic'
+  }
+
+  if (normalized.includes('comunit')) {
+    return 'community'
+  }
+
+  if (
+    normalized.includes('privada') ||
+    normalized.includes('private') ||
+    normalized.includes('particular')
+  ) {
+    return 'private'
+  }
+
+  if (
+    normalized.includes('municipal') ||
+    normalized.includes('estadual') ||
+    normalized.includes('federal') ||
+    normalized.includes('pública') ||
+    normalized.includes('publica') ||
+    normalized.includes('public')
+  ) {
+    return 'public'
+  }
+
+  return 'other'
+}
+
 function getSchoolFormState(
   school: SchoolDto,
 ): SchoolFormState {
   return {
     organization_id:
       school.organization_id,
+
+    registry_id:
+      school.registry_id ?? '',
+
+    registration_origin:
+      school.registration_origin ??
+      'manual',
+
+    institution_type:
+      school.institution_type ??
+      'school',
 
     name:
       school.name,
@@ -239,8 +388,17 @@ export default function SchoolForm({
         organizationId ?? '',
     })
 
-  const [organizations, setOrganizations] =
-    useState<OrganizationOption[]>([])
+  const [
+    selectedRegistry,
+    setSelectedRegistry,
+  ] = useState<
+    SchoolRegistrySearchItemDto | null
+  >(null)
+
+  const [
+    organizations,
+    setOrganizations,
+  ] = useState<OrganizationOption[]>([])
 
   const [loading, setLoading] =
     useState(true)
@@ -261,10 +419,13 @@ export default function SchoolForm({
     useMemo(
       () =>
         isEditing
-          ? 'Editar escola'
-          : 'Cadastrar escola',
+          ? 'Editar instituição'
+          : 'Cadastrar instituição',
       [isEditing],
     )
+
+  const isRegistryRegistration =
+    form.registration_origin === 'inep'
 
   useEffect(() => {
     let active = true
@@ -329,7 +490,7 @@ export default function SchoolForm({
           ) {
             throw new Error(
               schoolPayload.error ??
-                'Não foi possível carregar a escola.',
+                'Não foi possível carregar a instituição.',
             )
           }
 
@@ -342,16 +503,15 @@ export default function SchoolForm({
               schoolPayload.data,
             ),
           )
-        } else if (
-          organizationId
-        ) {
+        } else if (organizationId) {
           setForm((current) => ({
             ...current,
             organization_id:
               organizationId,
           }))
         } else if (
-          organizationPayload.data.length === 1
+          organizationPayload.data.length ===
+          1
         ) {
           setForm((current) => ({
             ...current,
@@ -402,6 +562,92 @@ export default function SchoolForm({
     setSuccess(null)
   }
 
+  function selectRegistrationOrigin(
+    origin: RegistrationOrigin,
+  ) {
+    if (isEditing) {
+      return
+    }
+
+    setSelectedRegistry(null)
+    setError(null)
+    setSuccess(null)
+
+    setForm((current) => ({
+      ...INITIAL_FORM,
+      organization_id:
+        current.organization_id,
+      status: current.status,
+      registration_origin:
+        origin,
+      institution_type:
+        origin === 'inep'
+          ? 'school'
+          : 'other',
+    }))
+  }
+
+  function handleRegistrySelection(
+    institution:
+      SchoolRegistrySearchItemDto,
+  ) {
+    setSelectedRegistry(institution)
+
+    setForm((current) => ({
+      ...current,
+      registry_id:
+        institution.id,
+
+      registration_origin:
+        'inep',
+
+      institution_type:
+        'school',
+
+      inep_code:
+        institution.inep_code,
+
+      name:
+        institution.name,
+
+      education_network:
+        mapEducationNetwork(
+          institution.administrative_dependency,
+        ),
+
+      administrative_type:
+        mapAdministrativeType(
+          institution.administrative_dependency,
+          institution.administrative_category,
+        ),
+
+      phone:
+        institution.phone ?? '',
+
+      address:
+        institution.address ?? '',
+
+      city:
+        institution.city ?? '',
+
+      state:
+        institution.state ?? '',
+
+      country:
+        'Brasil',
+    }))
+
+    setError(null)
+    setSuccess(
+      'Instituição selecionada no Cadastro Nacional.',
+    )
+
+    window.scrollTo({
+      top: document.body.scrollHeight,
+      behavior: 'smooth',
+    })
+  }
+
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
   ) {
@@ -443,13 +689,13 @@ export default function SchoolForm({
       ) {
         throw new Error(
           payload.error ??
-            'Não foi possível salvar a escola.',
+            'Não foi possível salvar a instituição.',
         )
       }
 
       setSuccess(
         payload.message ??
-          'Escola salva com sucesso.',
+          'Instituição salva com sucesso.',
       )
 
       if (!isEditing) {
@@ -469,7 +715,7 @@ export default function SchoolForm({
       setError(
         saveError instanceof Error
           ? saveError.message
-          : 'Não foi possível salvar a escola.',
+          : 'Não foi possível salvar a instituição.',
       )
     } finally {
       setSaving(false)
@@ -483,7 +729,7 @@ export default function SchoolForm({
 
     const confirmed =
       window.confirm(
-        'Confirma o arquivamento desta escola?',
+        'Confirma o arquivamento desta instituição?',
       )
 
     if (!confirmed) {
@@ -513,7 +759,7 @@ export default function SchoolForm({
       ) {
         throw new Error(
           payload.error ??
-            'Não foi possível arquivar a escola.',
+            'Não foi possível arquivar a instituição.',
         )
       }
 
@@ -523,7 +769,7 @@ export default function SchoolForm({
       setError(
         archiveError instanceof Error
           ? archiveError.message
-          : 'Não foi possível arquivar a escola.',
+          : 'Não foi possível arquivar a instituição.',
       )
     } finally {
       setArchiving(false)
@@ -534,22 +780,19 @@ export default function SchoolForm({
     return (
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <p className="text-sm font-medium text-slate-600">
-          Carregando dados da escola...
+          Carregando dados da instituição...
         </p>
       </section>
     )
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-6"
-    >
+    <div className="space-y-6">
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="h-1 w-16 bg-[#0B7491]" />
 
         <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-          School Core
+          Institution Core
         </p>
 
         <h2 className="mt-2 text-xl font-bold text-slate-950">
@@ -557,9 +800,11 @@ export default function SchoolForm({
         </h2>
 
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Informe os dados institucionais e
-          vincule a escola à organização
-          responsável.
+          Cadastre uma escola pelo INEP ou
+          inclua manualmente empresas,
+          institutos, faculdades,
+          universidades e outras
+          instituições.
         </p>
 
         {error ? (
@@ -575,472 +820,611 @@ export default function SchoolForm({
         ) : null}
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 className="text-lg font-bold text-slate-950">
-          Dados institucionais
-        </h3>
+      {!isEditing ? (
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 className="text-lg font-bold text-slate-950">
+            Como deseja cadastrar?
+          </h3>
 
-        <div className="mt-5 grid gap-5 md:grid-cols-2">
-          <label className="md:col-span-2">
-            <span className="text-sm font-semibold text-slate-700">
-              Organização
-            </span>
-
-            <select
-              required
-              value={form.organization_id}
-              onChange={(event) =>
-                updateField(
-                  'organization_id',
-                  event.target.value,
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <button
+              type="button"
+              onClick={() =>
+                selectRegistrationOrigin(
+                  'inep',
                 )
               }
-              className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+              className={`rounded-xl border p-5 text-left transition ${
+                isRegistryRegistration
+                  ? 'border-[#0B7491] bg-[#0B7491]/5'
+                  : 'border-slate-200 hover:border-[#0B7491]/40'
+              }`}
             >
-              <option value="">
-                Selecione uma organização
-              </option>
+              <p className="font-bold text-slate-950">
+                Buscar no Cadastro Nacional
+              </p>
 
-              {organizations.map(
-                (organization) => (
-                  <option
-                    key={organization.id}
-                    value={organization.id}
-                    disabled={
-                      organization.status ===
-                      'archived'
-                    }
-                  >
-                    {organization.name}
-                    {organization.status ===
-                    'archived'
-                      ? ' — Arquivada'
-                      : ''}
-                  </option>
-                ),
-              )}
-            </select>
-          </label>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Recomendado para escolas
+                brasileiras com código INEP.
+              </p>
+            </button>
 
-          <label className="md:col-span-2">
-            <span className="text-sm font-semibold text-slate-700">
-              Nome da escola
-            </span>
-
-            <input
-              required
-              maxLength={200}
-              value={form.name}
-              onChange={(event) =>
-                updateField(
-                  'name',
-                  event.target.value,
+            <button
+              type="button"
+              onClick={() =>
+                selectRegistrationOrigin(
+                  'manual',
                 )
               }
-              className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
-            />
-          </label>
-
-          <label>
-            <span className="text-sm font-semibold text-slate-700">
-              Nome curto
-            </span>
-
-            <input
-              maxLength={100}
-              value={form.short_name}
-              onChange={(event) =>
-                updateField(
-                  'short_name',
-                  event.target.value,
-                )
-              }
-              className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
-            />
-          </label>
-
-          <label>
-            <span className="text-sm font-semibold text-slate-700">
-              Código INEP
-            </span>
-
-            <input
-              inputMode="numeric"
-              maxLength={8}
-              value={form.inep_code}
-              onChange={(event) =>
-                updateField(
-                  'inep_code',
-                  event.target.value.replace(
-                    /\D/g,
-                    '',
-                  ),
-                )
-              }
-              placeholder="8 números"
-              className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
-            />
-          </label>
-
-          <label>
-            <span className="text-sm font-semibold text-slate-700">
-              Rede de ensino
-            </span>
-
-            <select
-              value={form.education_network}
-              onChange={(event) =>
-                updateField(
-                  'education_network',
-                  event.target
-                    .value as EducationNetwork,
-                )
-              }
-              className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+              className={`rounded-xl border p-5 text-left transition ${
+                !isRegistryRegistration
+                  ? 'border-[#0B7491] bg-[#0B7491]/5'
+                  : 'border-slate-200 hover:border-[#0B7491]/40'
+              }`}
             >
-              {EDUCATION_NETWORK_OPTIONS.map(
-                (option) => (
-                  <option
-                    key={option.value}
-                    value={option.value}
-                  >
-                    {option.label}
-                  </option>
-                ),
-              )}
-            </select>
-          </label>
+              <p className="font-bold text-slate-950">
+                Cadastro manual
+              </p>
 
-          <label>
-            <span className="text-sm font-semibold text-slate-700">
-              Tipo administrativo
-            </span>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Para empresas, institutos,
+                faculdades, universidades,
+                ONGs e outras instituições.
+              </p>
+            </button>
+          </div>
+        </section>
+      ) : null}
 
-            <select
-              value={
-                form.administrative_type
-              }
-              onChange={(event) =>
-                updateField(
-                  'administrative_type',
-                  event.target
-                    .value as AdministrativeType,
-                )
-              }
-              className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
-            >
-              {ADMINISTRATIVE_TYPE_OPTIONS.map(
-                (option) => (
-                  <option
-                    key={option.value}
-                    value={option.value}
-                  >
-                    {option.label}
-                  </option>
-                ),
-              )}
-            </select>
-          </label>
-
-          <label>
-            <span className="text-sm font-semibold text-slate-700">
-              Diretor responsável
-            </span>
-
-            <input
-              maxLength={200}
-              value={form.principal_name}
-              onChange={(event) =>
-                updateField(
-                  'principal_name',
-                  event.target.value,
-                )
-              }
-              className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
-            />
-          </label>
-
-          <label>
-            <span className="text-sm font-semibold text-slate-700">
-              Status
-            </span>
-
-            <select
-              value={form.status}
-              onChange={(event) =>
-                updateField(
-                  'status',
-                  event.target
-                    .value as SchoolStatus,
-                )
-              }
-              className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
-            >
-              {STATUS_OPTIONS.map(
-                (option) => (
-                  <option
-                    key={option.value}
-                    value={option.value}
-                  >
-                    {option.label}
-                  </option>
-                ),
-              )}
-            </select>
-          </label>
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 className="text-lg font-bold text-slate-950">
-          Contato
-        </h3>
-
-        <div className="mt-5 grid gap-5 md:grid-cols-2">
-          <label>
-            <span className="text-sm font-semibold text-slate-700">
-              E-mail
-            </span>
-
-            <input
-              type="email"
-              maxLength={254}
-              value={form.email}
-              onChange={(event) =>
-                updateField(
-                  'email',
-                  event.target.value,
-                )
-              }
-              className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
-            />
-          </label>
-
-          <label>
-            <span className="text-sm font-semibold text-slate-700">
-              Telefone
-            </span>
-
-            <input
-              maxLength={30}
-              value={form.phone}
-              onChange={(event) =>
-                updateField(
-                  'phone',
-                  event.target.value,
-                )
-              }
-              className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
-            />
-          </label>
-
-          <label className="md:col-span-2">
-            <span className="text-sm font-semibold text-slate-700">
-              Site
-            </span>
-
-            <input
-              type="url"
-              maxLength={500}
-              value={form.website}
-              onChange={(event) =>
-                updateField(
-                  'website',
-                  event.target.value,
-                )
-              }
-              placeholder="https://"
-              className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
-            />
-          </label>
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 className="text-lg font-bold text-slate-950">
-          Endereço
-        </h3>
-
-        <div className="mt-5 grid gap-5 md:grid-cols-2">
-          <label>
-            <span className="text-sm font-semibold text-slate-700">
-              CEP
-            </span>
-
-            <input
-              maxLength={20}
-              value={form.postal_code}
-              onChange={(event) =>
-                updateField(
-                  'postal_code',
-                  event.target.value,
-                )
-              }
-              className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
-            />
-          </label>
-
-          <label>
-            <span className="text-sm font-semibold text-slate-700">
-              País
-            </span>
-
-            <input
-              maxLength={100}
-              value={form.country}
-              onChange={(event) =>
-                updateField(
-                  'country',
-                  event.target.value,
-                )
-              }
-              className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
-            />
-          </label>
-
-          <label className="md:col-span-2">
-            <span className="text-sm font-semibold text-slate-700">
-              Endereço
-            </span>
-
-            <input
-              maxLength={300}
-              value={form.address}
-              onChange={(event) =>
-                updateField(
-                  'address',
-                  event.target.value,
-                )
-              }
-              className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
-            />
-          </label>
-
-          <label>
-            <span className="text-sm font-semibold text-slate-700">
-              Número
-            </span>
-
-            <input
-              maxLength={20}
-              value={form.number}
-              onChange={(event) =>
-                updateField(
-                  'number',
-                  event.target.value,
-                )
-              }
-              className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
-            />
-          </label>
-
-          <label>
-            <span className="text-sm font-semibold text-slate-700">
-              Complemento
-            </span>
-
-            <input
-              maxLength={100}
-              value={form.complement}
-              onChange={(event) =>
-                updateField(
-                  'complement',
-                  event.target.value,
-                )
-              }
-              className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
-            />
-          </label>
-
-          <label>
-            <span className="text-sm font-semibold text-slate-700">
-              Bairro
-            </span>
-
-            <input
-              maxLength={120}
-              value={form.district}
-              onChange={(event) =>
-                updateField(
-                  'district',
-                  event.target.value,
-                )
-              }
-              className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
-            />
-          </label>
-
-          <label>
-            <span className="text-sm font-semibold text-slate-700">
-              Cidade
-            </span>
-
-            <input
-              maxLength={120}
-              value={form.city}
-              onChange={(event) =>
-                updateField(
-                  'city',
-                  event.target.value,
-                )
-              }
-              className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
-            />
-          </label>
-
-          <label>
-            <span className="text-sm font-semibold text-slate-700">
-              Estado
-            </span>
-
-            <input
-              maxLength={100}
-              value={form.state}
-              onChange={(event) =>
-                updateField(
-                  'state',
-                  event.target.value,
-                )
-              }
-              className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
-            />
-          </label>
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-        <button
-          type="submit"
-          disabled={
-            saving ||
-            archiving
+      {isRegistryRegistration &&
+      !isEditing ? (
+        <SchoolRegistrySearch
+          onSelect={
+            handleRegistrySelection
           }
-          className="inline-flex items-center justify-center rounded-lg bg-[#0B7491] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#09657e] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {saving
-            ? 'Salvando...'
-            : isEditing
-              ? 'Salvar alterações'
-              : 'Cadastrar escola'}
-        </button>
+        />
+      ) : null}
 
-        {isEditing ? (
+      {isRegistryRegistration &&
+      (selectedRegistry ||
+        isEditing) ? (
+        <section className="rounded-2xl border border-[#0B7491]/30 bg-[#0B7491]/5 p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0B7491]">
+            Cadastro Nacional selecionado
+          </p>
+
+          <h3 className="mt-2 font-bold text-slate-950">
+            {form.name}
+          </h3>
+
+          <p className="mt-2 text-sm text-slate-600">
+            INEP {form.inep_code}
+            {form.city
+              ? ` — ${form.city}`
+              : ''}
+            {form.state
+              ? `/${form.state}`
+              : ''}
+          </p>
+        </section>
+      ) : null}
+
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6"
+      >
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 className="text-lg font-bold text-slate-950">
+            Dados institucionais
+          </h3>
+
+          <div className="mt-5 grid gap-5 md:grid-cols-2">
+            <label className="md:col-span-2">
+              <span className="text-sm font-semibold text-slate-700">
+                Organização
+              </span>
+
+              <select
+                required
+                value={
+                  form.organization_id
+                }
+                onChange={(event) =>
+                  updateField(
+                    'organization_id',
+                    event.target.value,
+                  )
+                }
+                className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+              >
+                <option value="">
+                  Selecione uma organização
+                </option>
+
+                {organizations.map(
+                  (organization) => (
+                    <option
+                      key={organization.id}
+                      value={organization.id}
+                      disabled={
+                        organization.status ===
+                        'archived'
+                      }
+                    >
+                      {organization.name}
+                    </option>
+                  ),
+                )}
+              </select>
+            </label>
+
+            {!isRegistryRegistration ? (
+              <label className="md:col-span-2">
+                <span className="text-sm font-semibold text-slate-700">
+                  Tipo de instituição
+                </span>
+
+                <select
+                  value={
+                    form.institution_type
+                  }
+                  onChange={(event) =>
+                    updateField(
+                      'institution_type',
+                      event.target
+                        .value as InstitutionType,
+                    )
+                  }
+                  className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+                >
+                  {INSTITUTION_TYPE_OPTIONS.map(
+                    (option) => (
+                      <option
+                        key={option.value}
+                        value={option.value}
+                      >
+                        {option.label}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </label>
+            ) : null}
+
+            <label className="md:col-span-2">
+              <span className="text-sm font-semibold text-slate-700">
+                Nome da instituição
+              </span>
+
+              <input
+                required
+                readOnly={
+                  isRegistryRegistration
+                }
+                maxLength={200}
+                value={form.name}
+                onChange={(event) =>
+                  updateField(
+                    'name',
+                    event.target.value,
+                  )
+                }
+                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none read-only:bg-slate-100 focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+              />
+            </label>
+
+            <label>
+              <span className="text-sm font-semibold text-slate-700">
+                Nome curto
+              </span>
+
+              <input
+                maxLength={100}
+                value={form.short_name}
+                onChange={(event) =>
+                  updateField(
+                    'short_name',
+                    event.target.value,
+                  )
+                }
+                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+              />
+            </label>
+
+            <label>
+              <span className="text-sm font-semibold text-slate-700">
+                Código INEP
+              </span>
+
+              <input
+                readOnly={
+                  isRegistryRegistration
+                }
+                inputMode="numeric"
+                maxLength={8}
+                value={form.inep_code}
+                onChange={(event) =>
+                  updateField(
+                    'inep_code',
+                    event.target.value.replace(
+                      /\D/g,
+                      '',
+                    ),
+                  )
+                }
+                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none read-only:bg-slate-100 focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+              />
+            </label>
+
+            <label>
+              <span className="text-sm font-semibold text-slate-700">
+                Rede de ensino
+              </span>
+
+              <select
+                value={
+                  form.education_network
+                }
+                onChange={(event) =>
+                  updateField(
+                    'education_network',
+                    event.target
+                      .value as EducationNetwork,
+                  )
+                }
+                className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+              >
+                {EDUCATION_NETWORK_OPTIONS.map(
+                  (option) => (
+                    <option
+                      key={option.value}
+                      value={option.value}
+                    >
+                      {option.label}
+                    </option>
+                  ),
+                )}
+              </select>
+            </label>
+
+            <label>
+              <span className="text-sm font-semibold text-slate-700">
+                Tipo administrativo
+              </span>
+
+              <select
+                value={
+                  form.administrative_type
+                }
+                onChange={(event) =>
+                  updateField(
+                    'administrative_type',
+                    event.target
+                      .value as AdministrativeType,
+                  )
+                }
+                className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+              >
+                {ADMINISTRATIVE_TYPE_OPTIONS.map(
+                  (option) => (
+                    <option
+                      key={option.value}
+                      value={option.value}
+                    >
+                      {option.label}
+                    </option>
+                  ),
+                )}
+              </select>
+            </label>
+
+            <label>
+              <span className="text-sm font-semibold text-slate-700">
+                Responsável
+              </span>
+
+              <input
+                maxLength={200}
+                value={
+                  form.principal_name
+                }
+                onChange={(event) =>
+                  updateField(
+                    'principal_name',
+                    event.target.value,
+                  )
+                }
+                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+              />
+            </label>
+
+            <label>
+              <span className="text-sm font-semibold text-slate-700">
+                Status
+              </span>
+
+              <select
+                value={form.status}
+                onChange={(event) =>
+                  updateField(
+                    'status',
+                    event.target
+                      .value as SchoolStatus,
+                  )
+                }
+                className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+              >
+                {STATUS_OPTIONS.map(
+                  (option) => (
+                    <option
+                      key={option.value}
+                      value={option.value}
+                    >
+                      {option.label}
+                    </option>
+                  ),
+                )}
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 className="text-lg font-bold text-slate-950">
+            Contato
+          </h3>
+
+          <div className="mt-5 grid gap-5 md:grid-cols-2">
+            <label>
+              <span className="text-sm font-semibold text-slate-700">
+                E-mail
+              </span>
+
+              <input
+                type="email"
+                maxLength={254}
+                value={form.email}
+                onChange={(event) =>
+                  updateField(
+                    'email',
+                    event.target.value,
+                  )
+                }
+                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+              />
+            </label>
+
+            <label>
+              <span className="text-sm font-semibold text-slate-700">
+                Telefone
+              </span>
+
+              <input
+                maxLength={30}
+                value={form.phone}
+                onChange={(event) =>
+                  updateField(
+                    'phone',
+                    event.target.value,
+                  )
+                }
+                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+              />
+            </label>
+
+            <label className="md:col-span-2">
+              <span className="text-sm font-semibold text-slate-700">
+                Site
+              </span>
+
+              <input
+                type="url"
+                maxLength={500}
+                value={form.website}
+                onChange={(event) =>
+                  updateField(
+                    'website',
+                    event.target.value,
+                  )
+                }
+                placeholder="https://"
+                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+              />
+            </label>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 className="text-lg font-bold text-slate-950">
+            Endereço
+          </h3>
+
+          <div className="mt-5 grid gap-5 md:grid-cols-2">
+            <label>
+              <span className="text-sm font-semibold text-slate-700">
+                CEP
+              </span>
+
+              <input
+                maxLength={20}
+                value={form.postal_code}
+                onChange={(event) =>
+                  updateField(
+                    'postal_code',
+                    event.target.value,
+                  )
+                }
+                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+              />
+            </label>
+
+            <label>
+              <span className="text-sm font-semibold text-slate-700">
+                País
+              </span>
+
+              <input
+                maxLength={100}
+                value={form.country}
+                onChange={(event) =>
+                  updateField(
+                    'country',
+                    event.target.value,
+                  )
+                }
+                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+              />
+            </label>
+
+            <label className="md:col-span-2">
+              <span className="text-sm font-semibold text-slate-700">
+                Endereço
+              </span>
+
+              <input
+                maxLength={300}
+                value={form.address}
+                onChange={(event) =>
+                  updateField(
+                    'address',
+                    event.target.value,
+                  )
+                }
+                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+              />
+            </label>
+
+            <label>
+              <span className="text-sm font-semibold text-slate-700">
+                Número
+              </span>
+
+              <input
+                maxLength={20}
+                value={form.number}
+                onChange={(event) =>
+                  updateField(
+                    'number',
+                    event.target.value,
+                  )
+                }
+                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+              />
+            </label>
+
+            <label>
+              <span className="text-sm font-semibold text-slate-700">
+                Complemento
+              </span>
+
+              <input
+                maxLength={100}
+                value={form.complement}
+                onChange={(event) =>
+                  updateField(
+                    'complement',
+                    event.target.value,
+                  )
+                }
+                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+              />
+            </label>
+
+            <label>
+              <span className="text-sm font-semibold text-slate-700">
+                Bairro
+              </span>
+
+              <input
+                maxLength={120}
+                value={form.district}
+                onChange={(event) =>
+                  updateField(
+                    'district',
+                    event.target.value,
+                  )
+                }
+                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+              />
+            </label>
+
+            <label>
+              <span className="text-sm font-semibold text-slate-700">
+                Cidade
+              </span>
+
+              <input
+                maxLength={120}
+                value={form.city}
+                onChange={(event) =>
+                  updateField(
+                    'city',
+                    event.target.value,
+                  )
+                }
+                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+              />
+            </label>
+
+            <label>
+              <span className="text-sm font-semibold text-slate-700">
+                Estado
+              </span>
+
+              <input
+                maxLength={100}
+                value={form.state}
+                onChange={(event) =>
+                  updateField(
+                    'state',
+                    event.target.value,
+                  )
+                }
+                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
+              />
+            </label>
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <button
-            type="button"
+            type="submit"
             disabled={
               saving ||
               archiving ||
-              form.status === 'archived'
+              (
+                isRegistryRegistration &&
+                !form.registry_id
+              )
             }
-            onClick={handleArchive}
-            className="inline-flex items-center justify-center rounded-lg border border-red-200 px-6 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center justify-center rounded-lg bg-[#0B7491] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#09657e] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {archiving
-              ? 'Arquivando...'
-              : 'Arquivar escola'}
+            {saving
+              ? 'Salvando...'
+              : isEditing
+                ? 'Salvar alterações'
+                : 'Cadastrar instituição'}
           </button>
-        ) : null}
-      </section>
-    </form>
+
+          {isEditing ? (
+            <button
+              type="button"
+              disabled={
+                saving ||
+                archiving ||
+                form.status === 'archived'
+              }
+              onClick={handleArchive}
+              className="inline-flex items-center justify-center rounded-lg border border-red-200 px-6 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {archiving
+                ? 'Arquivando...'
+                : 'Arquivar instituição'}
+            </button>
+          ) : null}
+        </section>
+      </form>
+    </div>
   )
 }
