@@ -3,7 +3,11 @@ import {
   NextResponse,
 } from 'next/server'
 
-import { requireOrganizationAdministrator } from '@/lib/organization/organization.authorization'
+import {
+  requireOrganizationAdministrator,
+  type OrganizationAuthorizationContext,
+} from '@/lib/organization/organization.authorization'
+import type { OrganizationDto } from '@/lib/organization/organization.dto'
 import { organizationService } from '@/lib/organization/organization.service'
 
 export const dynamic = 'force-dynamic'
@@ -45,6 +49,8 @@ function getErrorStatus(
     message.includes('sem permissão') ||
     message.includes('perfil inativo') ||
     message.includes('perfil de acesso') ||
+    message.includes('fora do escopo') ||
+    message.includes('escopo autorizado') ||
     message.includes('proibido') ||
     message.includes('forbidden')
   ) {
@@ -60,6 +66,12 @@ function getErrorStatus(
   }
 
   if (
+    message.includes('não encontrada')
+  ) {
+    return 404
+  }
+
+  if (
     message.includes('obrigatório') ||
     message.includes('inválido') ||
     message.includes('inválida') ||
@@ -67,12 +79,6 @@ function getErrorStatus(
     message.includes('nenhum campo')
   ) {
     return 400
-  }
-
-  if (
-    message.includes('não encontrada')
-  ) {
-    return 404
   }
 
   return 500
@@ -104,15 +110,124 @@ function createErrorResponse(
   )
 }
 
+function hasOrganizationAccess(
+  context:
+    OrganizationAuthorizationContext,
+  organizationId: string,
+): boolean {
+  if (
+    context.isPlatformAdministrator
+  ) {
+    return true
+  }
+
+  return context.organizationIds.includes(
+    organizationId,
+  )
+}
+
+function hasOrganizationWideScope(
+  context:
+    OrganizationAuthorizationContext,
+  organizationId: string,
+): boolean {
+  if (
+    context.isPlatformAdministrator
+  ) {
+    return true
+  }
+
+  return context.memberships.some(
+    (membership) =>
+      membership.organizationId ===
+        organizationId &&
+      membership.schoolId === null,
+  )
+}
+
+function assertOrganizationAccess(
+  context:
+    OrganizationAuthorizationContext,
+  organizationId: string,
+): void {
+  if (
+    !hasOrganizationAccess(
+      context,
+      organizationId,
+    )
+  ) {
+    throw new Error(
+      'Organização fora do escopo autorizado.',
+    )
+  }
+}
+
+function assertOrganizationUpdateAccess(
+  context:
+    OrganizationAuthorizationContext,
+  organizationId: string,
+): void {
+  assertOrganizationAccess(
+    context,
+    organizationId,
+  )
+
+  if (
+    !hasOrganizationWideScope(
+      context,
+      organizationId,
+    )
+  ) {
+    throw new Error(
+      'Sem permissão para atualizar esta organização.',
+    )
+  }
+}
+
+function assertOrganizationArchiveAccess(
+  context:
+    OrganizationAuthorizationContext,
+): void {
+  if (
+    context.isPlatformAdministrator
+  ) {
+    return
+  }
+
+  throw new Error(
+    'Sem permissão para arquivar organizações.',
+  )
+}
+
+async function loadAuthorizedOrganization(
+  context:
+    OrganizationAuthorizationContext,
+  organizationId: string,
+): Promise<OrganizationDto> {
+  const organization =
+    await organizationService.getById(
+      organizationId,
+    )
+
+  assertOrganizationAccess(
+    context,
+    organization.id,
+  )
+
+  return organization
+}
+
 export async function GET(
   _request: NextRequest,
   context: RouteContext,
 ) {
   try {
-    await requireOrganizationAdministrator()
+    const authorization =
+      await requireOrganizationAdministrator()
 
     const organization =
-      await organizationService.getById(
+      await loadAuthorizedOrganization(
+        authorization,
         context.params.id,
       )
 
@@ -128,7 +243,7 @@ export async function GET(
     )
   } catch (error) {
     console.error(
-      '[ORGANIZATION_GET_ERROR]',
+      '[ORGANIZATION_GET_BY_ID_ERROR]',
       error,
     )
 
@@ -144,23 +259,40 @@ export async function PATCH(
   context: RouteContext,
 ) {
   try {
-    await requireOrganizationAdministrator()
+    const authorization =
+      await requireOrganizationAdministrator()
+
+    const currentOrganization =
+      await loadAuthorizedOrganization(
+        authorization,
+        context.params.id,
+      )
+
+    assertOrganizationUpdateAccess(
+      authorization,
+      currentOrganization.id,
+    )
 
     const body: unknown =
       await request.json()
 
-    const organization =
+    const updatedOrganization =
       await organizationService.update(
         context.params.id,
         body,
       )
+
+    assertOrganizationAccess(
+      authorization,
+      updatedOrganization.id,
+    )
 
     return NextResponse.json(
       {
         success: true,
         message:
           'Organização atualizada com sucesso.',
-        data: organization,
+        data: updatedOrganization,
       },
       {
         status: 200,
@@ -185,11 +317,22 @@ export async function DELETE(
   context: RouteContext,
 ) {
   try {
-    await requireOrganizationAdministrator()
+    const authorization =
+      await requireOrganizationAdministrator()
 
     const organization =
-      await organizationService.archive(
+      await loadAuthorizedOrganization(
+        authorization,
         context.params.id,
+      )
+
+    assertOrganizationArchiveAccess(
+      authorization,
+    )
+
+    const archivedOrganization =
+      await organizationService.archive(
+        organization.id,
       )
 
     return NextResponse.json(
@@ -197,7 +340,7 @@ export async function DELETE(
         success: true,
         message:
           'Organização arquivada com sucesso.',
-        data: organization,
+        data: archivedOrganization,
       },
       {
         status: 200,
