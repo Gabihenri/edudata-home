@@ -8,6 +8,8 @@ import {
 } from 'react'
 
 import type {
+  InstitutionType,
+  RegistrationOrigin,
   SchoolDto,
   SchoolStatus,
 } from '@/lib/schools/school.dto'
@@ -44,7 +46,33 @@ const NETWORK_LABELS: Record<
   federal: 'Federal',
   private: 'Privada',
   community: 'Comunitária',
-  other: 'Outra',
+  other: 'Outra ou não se aplica',
+}
+
+const INSTITUTION_TYPE_LABELS: Record<
+  InstitutionType,
+  string
+> = {
+  school: 'Escola',
+  institute: 'Instituto',
+  college: 'Faculdade',
+  university: 'Universidade',
+  company: 'Empresa',
+  training_center: 'Centro de formação',
+  ngo: 'ONG',
+  government_agency: 'Órgão público',
+  education_department:
+    'Secretaria ou diretoria de ensino',
+  research_center: 'Centro de pesquisa',
+  other: 'Outra instituição',
+}
+
+const REGISTRATION_ORIGIN_LABELS: Record<
+  RegistrationOrigin,
+  string
+> = {
+  inep: 'Cadastro Nacional INEP',
+  manual: 'Cadastro manual',
 }
 
 function getStatusClass(
@@ -69,12 +97,94 @@ function getStatusClass(
   }
 }
 
-export default function SchoolTable() {
-  const [schools, setSchools] =
-    useState<SchoolDto[]>([])
+function getOrganizationName(
+  organization: OrganizationOption,
+): string {
+  const officialName =
+    organization.name.trim()
 
-  const [organizations, setOrganizations] =
-    useState<OrganizationOption[]>([])
+  if (officialName) {
+    return officialName
+  }
+
+  const shortName =
+    organization.short_name?.trim()
+
+  if (shortName) {
+    return shortName
+  }
+
+  return 'Organização não identificada'
+}
+
+function getInstitutionType(
+  institution: SchoolDto,
+): InstitutionType {
+  return (
+    institution.institution_type ??
+    'school'
+  )
+}
+
+function getRegistrationOrigin(
+  institution: SchoolDto,
+): RegistrationOrigin {
+  return (
+    institution.registration_origin ??
+    'manual'
+  )
+}
+
+function getLocation(
+  institution: SchoolDto,
+): string {
+  const city =
+    institution.city?.trim()
+
+  const state =
+    institution.state?.trim()
+
+  if (city && state) {
+    return `${city} — ${state}`
+  }
+
+  return (
+    city ||
+    state ||
+    'Não informada'
+  )
+}
+
+function getInstitutionReference(
+  institution: SchoolDto,
+): string {
+  if (institution.inep_code) {
+    return `INEP ${institution.inep_code}`
+  }
+
+  if (institution.short_name) {
+    return institution.short_name
+  }
+
+  return REGISTRATION_ORIGIN_LABELS[
+    getRegistrationOrigin(
+      institution,
+    )
+  ]
+}
+
+export default function SchoolTable() {
+  const [
+    institutions,
+    setInstitutions,
+  ] = useState<SchoolDto[]>([])
+
+  const [
+    organizations,
+    setOrganizations,
+  ] = useState<
+    OrganizationOption[]
+  >([])
 
   const [search, setSearch] =
     useState('')
@@ -94,7 +204,7 @@ export default function SchoolTable() {
 
       try {
         const [
-          schoolsResponse,
+          institutionsResponse,
           organizationsResponse,
         ] = await Promise.all([
           fetch('/api/schools', {
@@ -108,9 +218,11 @@ export default function SchoolTable() {
           }),
         ])
 
-        const schoolsPayload =
-          (await schoolsResponse.json()) as
-            ApiResponse<SchoolDto[]>
+        const institutionsPayload =
+          (await institutionsResponse.json()) as
+            ApiResponse<
+              SchoolDto[]
+            >
 
         const organizationsPayload =
           (await organizationsResponse.json()) as
@@ -119,13 +231,13 @@ export default function SchoolTable() {
             >
 
         if (
-          !schoolsResponse.ok ||
-          !schoolsPayload.success ||
-          !schoolsPayload.data
+          !institutionsResponse.ok ||
+          !institutionsPayload.success ||
+          !institutionsPayload.data
         ) {
           throw new Error(
-            schoolsPayload.error ??
-              'Não foi possível carregar as escolas.',
+            institutionsPayload.error ??
+              'Não foi possível carregar as instituições.',
           )
         }
 
@@ -144,7 +256,10 @@ export default function SchoolTable() {
           return
         }
 
-        setSchools(schoolsPayload.data)
+        setInstitutions(
+          institutionsPayload.data,
+        )
+
         setOrganizations(
           organizationsPayload.data,
         )
@@ -156,7 +271,7 @@ export default function SchoolTable() {
         setError(
           loadError instanceof Error
             ? loadError.message
-            : 'Não foi possível carregar as escolas.',
+            : 'Não foi possível carregar as instituições.',
         )
       } finally {
         if (active) {
@@ -174,55 +289,79 @@ export default function SchoolTable() {
 
   const organizationNames =
     useMemo(() => {
-      return new Map(
+      return new Map<string, string>(
         organizations.map(
           (organization) => [
             organization.id,
-            organization.short_name ||
-              organization.name,
+            getOrganizationName(
+              organization,
+            ),
           ],
         ),
       )
     }, [organizations])
 
-  const filteredSchools =
+  const filteredInstitutions =
     useMemo(() => {
       const normalizedSearch =
-        search.trim().toLowerCase()
-
-      if (!normalizedSearch) {
-        return schools
-      }
-
-      return schools.filter((school) => {
-        const organizationName =
-          organizationNames.get(
-            school.organization_id,
-          ) ?? ''
-
-        const searchableText = [
-          school.name,
-          school.short_name,
-          school.inep_code,
-          school.city,
-          school.state,
-          organizationName,
-          NETWORK_LABELS[
-            school.education_network
-          ],
-          STATUS_LABELS[school.status],
-        ]
-          .filter(Boolean)
-          .join(' ')
+        search
+          .trim()
           .toLowerCase()
 
-        return searchableText.includes(
-          normalizedSearch,
-        )
-      })
+      if (!normalizedSearch) {
+        return institutions
+      }
+
+      return institutions.filter(
+        (institution) => {
+          const organizationName =
+            organizationNames.get(
+              institution.organization_id,
+            ) ?? ''
+
+          const institutionType =
+            INSTITUTION_TYPE_LABELS[
+              getInstitutionType(
+                institution,
+              )
+            ]
+
+          const registrationOrigin =
+            REGISTRATION_ORIGIN_LABELS[
+              getRegistrationOrigin(
+                institution,
+              )
+            ]
+
+          const searchableText = [
+            institution.name,
+            institution.short_name,
+            institution.inep_code,
+            institution.city,
+            institution.state,
+            organizationName,
+            institutionType,
+            registrationOrigin,
+            NETWORK_LABELS[
+              institution
+                .education_network
+            ],
+            STATUS_LABELS[
+              institution.status
+            ],
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase()
+
+          return searchableText.includes(
+            normalizedSearch,
+          )
+        },
+      )
     }, [
+      institutions,
       organizationNames,
-      schools,
       search,
     ])
 
@@ -230,7 +369,7 @@ export default function SchoolTable() {
     return (
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <p className="text-sm font-medium text-slate-600">
-          Carregando escolas...
+          Carregando instituições...
         </p>
       </section>
     )
@@ -254,18 +393,18 @@ export default function SchoolTable() {
             <div className="h-1 w-16 bg-[#0B7491]" />
 
             <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-              School Core
+              Institution Core
             </p>
 
             <h2 className="mt-2 text-xl font-bold text-slate-950">
-              Escolas cadastradas
+              Instituições cadastradas
             </h2>
 
             <p className="mt-2 text-sm text-slate-600">
-              {schools.length}{' '}
-              {schools.length === 1
-                ? 'escola cadastrada'
-                : 'escolas cadastradas'}
+              {institutions.length}{' '}
+              {institutions.length === 1
+                ? 'instituição cadastrada'
+                : 'instituições cadastradas'}
             </p>
           </div>
 
@@ -273,7 +412,7 @@ export default function SchoolTable() {
             href="/schools/new"
             className="inline-flex items-center justify-center rounded-lg bg-[#0B7491] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#09657e]"
           >
-            Nova escola
+            Nova instituição
           </Link>
         </div>
 
@@ -286,120 +425,166 @@ export default function SchoolTable() {
             type="search"
             value={search}
             onChange={(event) =>
-              setSearch(event.target.value)
+              setSearch(
+                event.target.value,
+              )
             }
-            placeholder="Nome, INEP, cidade, organização ou status"
+            placeholder="Nome, INEP, tipo, cidade, organização ou status"
             className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-[#0B7491]/20"
           />
         </label>
       </div>
 
-      {filteredSchools.length === 0 ? (
+      {filteredInstitutions.length ===
+      0 ? (
         <div className="p-6">
           <p className="text-sm font-medium text-slate-600">
-            {schools.length === 0
-              ? 'Nenhuma escola cadastrada.'
-              : 'Nenhuma escola corresponde à pesquisa.'}
+            {institutions.length === 0
+              ? 'Nenhuma instituição cadastrada.'
+              : 'Nenhuma instituição corresponde à pesquisa.'}
           </p>
         </div>
       ) : (
         <>
           <div className="space-y-4 p-4 md:hidden">
-            {filteredSchools.map(
-              (school) => (
-                <article
-                  key={school.id}
-                  className="rounded-xl border border-slate-200 p-5"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="font-bold text-slate-950">
-                        {school.name}
-                      </h3>
+            {filteredInstitutions.map(
+              (institution) => {
+                const institutionType =
+                  getInstitutionType(
+                    institution,
+                  )
 
-                      <p className="mt-1 text-sm text-slate-500">
-                        {school.short_name ||
-                          school.inep_code ||
-                          'Sem nome curto ou INEP'}
-                      </p>
-                    </div>
+                const registrationOrigin =
+                  getRegistrationOrigin(
+                    institution,
+                  )
 
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClass(
-                        school.status,
-                      )}`}
-                    >
-                      {
-                        STATUS_LABELS[
-                          school.status
-                        ]
-                      }
-                    </span>
-                  </div>
+                return (
+                  <article
+                    key={institution.id}
+                    className="rounded-xl border border-slate-200 p-5"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h3 className="font-bold text-slate-950">
+                          {
+                            institution.name
+                          }
+                        </h3>
 
-                  <dl className="mt-5 space-y-3 text-sm">
-                    <div>
-                      <dt className="font-semibold text-slate-500">
-                        Organização
-                      </dt>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {getInstitutionReference(
+                            institution,
+                          )}
+                        </p>
+                      </div>
 
-                      <dd className="mt-1 text-slate-800">
-                        {organizationNames.get(
-                          school.organization_id,
-                        ) ??
-                          'Organização não identificada'}
-                      </dd>
-                    </div>
-
-                    <div>
-                      <dt className="font-semibold text-slate-500">
-                        Rede
-                      </dt>
-
-                      <dd className="mt-1 text-slate-800">
+                      <span
+                        className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClass(
+                          institution.status,
+                        )}`}
+                      >
                         {
-                          NETWORK_LABELS[
-                            school
-                              .education_network
+                          STATUS_LABELS[
+                            institution
+                              .status
                           ]
                         }
-                      </dd>
+                      </span>
                     </div>
 
-                    <div>
-                      <dt className="font-semibold text-slate-500">
-                        Localização
-                      </dt>
+                    <dl className="mt-5 space-y-3 text-sm">
+                      <div>
+                        <dt className="font-semibold text-slate-500">
+                          Organização
+                        </dt>
 
-                      <dd className="mt-1 text-slate-800">
-                        {[
-                          school.city,
-                          school.state,
-                        ]
-                          .filter(Boolean)
-                          .join(' — ') ||
-                          'Não informada'}
-                      </dd>
-                    </div>
-                  </dl>
+                        <dd className="mt-1 text-slate-800">
+                          {organizationNames.get(
+                            institution.organization_id,
+                          ) ??
+                            'Organização não identificada'}
+                        </dd>
+                      </div>
 
-                  <Link
-                    href={`/schools/${school.id}`}
-                    className="mt-5 inline-flex w-full items-center justify-center rounded-lg border border-[#0B7491] px-4 py-3 text-sm font-semibold text-[#0B7491] transition hover:bg-[#0B7491]/5"
-                  >
-                    Gerenciar
-                  </Link>
-                </article>
-              ),
+                      <div>
+                        <dt className="font-semibold text-slate-500">
+                          Tipo
+                        </dt>
+
+                        <dd className="mt-1 text-slate-800">
+                          {
+                            INSTITUTION_TYPE_LABELS[
+                              institutionType
+                            ]
+                          }
+                        </dd>
+                      </div>
+
+                      <div>
+                        <dt className="font-semibold text-slate-500">
+                          Origem do cadastro
+                        </dt>
+
+                        <dd className="mt-1 text-slate-800">
+                          {
+                            REGISTRATION_ORIGIN_LABELS[
+                              registrationOrigin
+                            ]
+                          }
+                        </dd>
+                      </div>
+
+                      <div>
+                        <dt className="font-semibold text-slate-500">
+                          Rede
+                        </dt>
+
+                        <dd className="mt-1 text-slate-800">
+                          {
+                            NETWORK_LABELS[
+                              institution
+                                .education_network
+                            ]
+                          }
+                        </dd>
+                      </div>
+
+                      <div>
+                        <dt className="font-semibold text-slate-500">
+                          Localização
+                        </dt>
+
+                        <dd className="mt-1 text-slate-800">
+                          {getLocation(
+                            institution,
+                          )}
+                        </dd>
+                      </div>
+                    </dl>
+
+                    <Link
+                      href={`/schools/${institution.id}`}
+                      className="mt-5 inline-flex w-full items-center justify-center rounded-lg border border-[#0B7491] px-4 py-3 text-sm font-semibold text-[#0B7491] transition hover:bg-[#0B7491]/5"
+                    >
+                      Gerenciar
+                    </Link>
+                  </article>
+                )
+              },
             )}
           </div>
 
           <div className="hidden overflow-x-auto md:block">
-            <table className="w-full min-w-[920px] border-collapse text-left">
+            <table className="w-full min-w-[1050px] border-collapse text-left">
               <thead className="bg-slate-50">
                 <tr className="border-b border-slate-200">
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-                    Escola
+                    Instituição
+                  </th>
+
+                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                    Tipo
                   </th>
 
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
@@ -407,7 +592,7 @@ export default function SchoolTable() {
                   </th>
 
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-                    Rede
+                    Cadastro
                   </th>
 
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
@@ -425,59 +610,69 @@ export default function SchoolTable() {
               </thead>
 
               <tbody>
-                {filteredSchools.map(
-                  (school) => (
+                {filteredInstitutions.map(
+                  (institution) => (
                     <tr
-                      key={school.id}
+                      key={institution.id}
                       className="border-b border-slate-100 last:border-b-0"
                     >
                       <td className="px-6 py-5">
                         <p className="font-semibold text-slate-950">
-                          {school.name}
+                          {
+                            institution.name
+                          }
                         </p>
 
                         <p className="mt-1 text-sm text-slate-500">
-                          {school.short_name ||
-                            school.inep_code ||
-                            'Sem nome curto ou INEP'}
+                          {getInstitutionReference(
+                            institution,
+                          )}
                         </p>
                       </td>
 
                       <td className="px-6 py-5 text-sm text-slate-700">
+                        {
+                          INSTITUTION_TYPE_LABELS[
+                            getInstitutionType(
+                              institution,
+                            )
+                          ]
+                        }
+                      </td>
+
+                      <td className="px-6 py-5 text-sm text-slate-700">
                         {organizationNames.get(
-                          school.organization_id,
+                          institution.organization_id,
                         ) ??
                           'Não identificada'}
                       </td>
 
                       <td className="px-6 py-5 text-sm text-slate-700">
                         {
-                          NETWORK_LABELS[
-                            school
-                              .education_network
+                          REGISTRATION_ORIGIN_LABELS[
+                            getRegistrationOrigin(
+                              institution,
+                            )
                           ]
                         }
                       </td>
 
                       <td className="px-6 py-5 text-sm text-slate-700">
-                        {[
-                          school.city,
-                          school.state,
-                        ]
-                          .filter(Boolean)
-                          .join(' — ') ||
-                          'Não informada'}
+                        {getLocation(
+                          institution,
+                        )}
                       </td>
 
                       <td className="px-6 py-5">
                         <span
                           className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClass(
-                            school.status,
+                            institution.status,
                           )}`}
                         >
                           {
                             STATUS_LABELS[
-                              school.status
+                              institution
+                                .status
                             ]
                           }
                         </span>
@@ -485,8 +680,8 @@ export default function SchoolTable() {
 
                       <td className="px-6 py-5 text-right">
                         <Link
-                          href={`/schools/${school.id}`}
-                          className="inline-flex rounded-lg border border-[#0B7491] px-4 py-2 text-sm font-semibold text-[#0B7491] transition hover:bg-[#0B7491]/5"
+                          href={`/schools/${institution.id}`}
+                          className="inline-flex items-center justify-center rounded-lg border border-[#0B7491] px-4 py-2 text-sm font-semibold text-[#0B7491] transition hover:bg-[#0B7491]/5"
                         >
                           Gerenciar
                         </Link>
