@@ -10,6 +10,7 @@ import type {
   AgendaEvidence,
   CreateAgendaEvidenceInput,
 } from '@/lib/agenda'
+import { supabase } from '@/lib/supabaseClient'
 
 type EvidencesResponse = {
   success: boolean
@@ -26,6 +27,7 @@ type EvidencesResponse = {
 type UploadApiData = {
   bucket: string
   path: string
+  token: string
   publicUrl: string | null
 }
 
@@ -102,6 +104,13 @@ function getResponseError(
     )
   }
 
+  if (response.status === 413) {
+    return (
+      'O arquivo ultrapassou o limite permitido ' +
+      'para envio.'
+    )
+  }
+
   return fallbackMessage
 }
 
@@ -141,6 +150,28 @@ function validateFile(
   ) {
     throw new Error(
       'Formato não permitido. Envie uma imagem JPG, PNG, WEBP ou um PDF.',
+    )
+  }
+}
+
+function validateUploadAuthorization(
+  data: UploadApiData,
+): void {
+  if (!data.bucket?.trim()) {
+    throw new Error(
+      'O servidor não informou o bucket de armazenamento.',
+    )
+  }
+
+  if (!data.path?.trim()) {
+    throw new Error(
+      'O servidor não informou o caminho do arquivo.',
+    )
+  }
+
+  if (!data.token?.trim()) {
+    throw new Error(
+      'O servidor não retornou o token temporário de envio.',
     )
   }
 }
@@ -217,57 +248,88 @@ export function useEvidences() {
       ): Promise<EvidenceUploadResult> => {
         validateFile(file)
 
-        const formData = new FormData()
+        const authorizationResponse =
+          await fetch(
+            '/api/agenda/evidences/upload',
+            {
+              method: 'POST',
 
-        formData.append('file', file)
+              headers: {
+                'Content-Type':
+                  'application/json',
+              },
 
-        const response = await fetch(
-          '/api/agenda/evidences/upload',
-          {
-            method: 'POST',
-            credentials: 'include',
-            body: formData,
-          },
-        )
+              credentials: 'include',
 
-        const result =
+              body: JSON.stringify({
+                fileName: file.name,
+                contentType: file.type,
+                sizeBytes: file.size,
+              }),
+            },
+          )
+
+        const authorizationResult =
           await parseJsonResponse<UploadResponse>(
-            response,
+            authorizationResponse,
           )
 
         if (
-          !response.ok ||
-          !result.success ||
-          !result.data
+          !authorizationResponse.ok ||
+          !authorizationResult.success ||
+          !authorizationResult.data
         ) {
           throw new Error(
             getResponseError(
-              response,
-              result.error,
-              'Erro ao enviar o arquivo.',
+              authorizationResponse,
+              authorizationResult.error,
+              'Não foi possível autorizar o envio do arquivo.',
             ),
           )
         }
 
-        if (
-          !result.data.bucket?.trim() ||
-          !result.data.path?.trim()
-        ) {
+        validateUploadAuthorization(
+          authorizationResult.data,
+        )
+
+        const {
+          bucket,
+          path,
+          token,
+          publicUrl,
+        } = authorizationResult.data
+
+        const {
+          error: uploadError,
+        } = await supabase.storage
+          .from(bucket)
+          .uploadToSignedUrl(
+            path,
+            token,
+            file,
+            {
+              contentType: file.type,
+              cacheControl: '3600',
+            },
+          )
+
+        if (uploadError) {
           throw new Error(
-            'O arquivo foi enviado, mas sua referência de armazenamento não foi retornada.',
+            `Não foi possível enviar o arquivo: ${uploadError.message}`,
           )
         }
 
         return {
-          bucket: result.data.bucket,
-          path: result.data.path,
-          publicUrl:
-            result.data.publicUrl ?? null,
+          bucket,
+          path,
+          publicUrl: publicUrl ?? null,
 
           originalFileName: file.name,
+
           mimeType:
             file.type ||
             'application/octet-stream',
+
           sizeBytes: file.size,
         }
       },
@@ -275,12 +337,11 @@ export function useEvidences() {
     )
 
   /*
-   * Compatibilidade temporária com a tela atual.
+   * Compatibilidade temporária com componentes
+   * que ainda esperam uma URL pública.
    *
-   * A próxima atualização do componente
-   * AgendaEvidence utilizará uploadEvidenceFile
-   * e não dependerá mais exclusivamente da
-   * URL pública.
+   * Evidências protegidas devem utilizar
+   * uploadEvidenceFile e armazenar bucket/path.
    */
   const uploadEvidence =
     useCallback(
@@ -292,7 +353,7 @@ export function useEvidences() {
 
         if (!uploadedFile.publicUrl) {
           throw new Error(
-            'O arquivo foi enviado, mas nenhuma URL pública foi retornada.',
+            'O arquivo foi enviado de forma protegida e não possui URL pública.',
           )
         }
 
@@ -488,7 +549,6 @@ export function useEvidences() {
     reload: loadEvidences,
 
     createEvidence,
-
     uploadEvidence,
     uploadEvidenceFile,
     getEvidenceFileUrl,
