@@ -27,6 +27,7 @@ export type AgendaEvidence = {
   planning_id: string | null
   event_id: string | null
 
+  organization_id: string | null
   school_id: string | null
   user_id: string | null
 
@@ -53,6 +54,20 @@ export type AgendaEvidence = {
   file_mime_type: string | null
   file_size_bytes: number | null
 
+  /*
+   * Governança e auditoria.
+   */
+  created_by: string | null
+  updated_by: string | null
+
+  deleted_at: string | null
+  deleted_by: string | null
+  deletion_reason: string | null
+
+  restored_at: string | null
+  restored_by: string | null
+  restore_reason: string | null
+
   created_at: string
   updated_at: string
 }
@@ -69,6 +84,7 @@ export type CreateAgendaEvidenceInput = {
   planning_id?: string | null
   event_id?: string | null
 
+  organization_id?: string | null
   school_id?: string | null
   user_id?: string | null
 
@@ -88,10 +104,23 @@ export type CreateAgendaEvidenceInput = {
   original_file_name?: string | null
   file_mime_type?: string | null
   file_size_bytes?: number | null
+
+  created_by?: string | null
+  updated_by?: string | null
 }
 
 export type UpdateAgendaEvidenceInput =
   Partial<CreateAgendaEvidenceInput>
+
+export type DeleteAgendaEvidenceContext = {
+  actorUserId: string
+  reason: string
+}
+
+export type RestoreAgendaEvidenceContext = {
+  actorUserId: string
+  reason: string
+}
 
 const DEFAULT_PRIVACY_NOTICE_VERSION =
   'edi-protecao-menores-v1.0'
@@ -119,6 +148,72 @@ function createSupabaseClient(): SupabaseClient {
   })
 }
 
+function normalizeRequiredText(
+  value: string | undefined,
+  fieldName: string,
+): string {
+  const normalizedValue =
+    value?.trim()
+
+  if (!normalizedValue) {
+    throw new Error(
+      `${fieldName} é obrigatório.`,
+    )
+  }
+
+  return normalizedValue
+}
+
+function normalizeDeletionContext(
+  actorUserId?: string,
+  reason?: string,
+): DeleteAgendaEvidenceContext {
+  const normalizedActorUserId =
+    normalizeRequiredText(
+      actorUserId,
+      'ID do usuário responsável pela exclusão',
+    )
+
+  const normalizedReason =
+    normalizeRequiredText(
+      reason,
+      'Motivo da exclusão',
+    )
+
+  return {
+    actorUserId:
+      normalizedActorUserId,
+
+    reason:
+      normalizedReason,
+  }
+}
+
+function normalizeRestorationContext(
+  actorUserId?: string,
+  reason?: string,
+): RestoreAgendaEvidenceContext {
+  const normalizedActorUserId =
+    normalizeRequiredText(
+      actorUserId,
+      'ID do usuário responsável pela restauração',
+    )
+
+  const normalizedReason =
+    normalizeRequiredText(
+      reason,
+      'Motivo da restauração',
+    )
+
+  return {
+    actorUserId:
+      normalizedActorUserId,
+
+    reason:
+      normalizedReason,
+  }
+}
+
 function buildCreatePayload(
   input: CreateAgendaEvidenceInput,
 ) {
@@ -142,6 +237,9 @@ function buildCreatePayload(
 
     event_id:
       input.event_id ?? null,
+
+    organization_id:
+      input.organization_id ?? null,
 
     school_id:
       input.school_id ?? null,
@@ -187,6 +285,12 @@ function buildCreatePayload(
 
     file_size_bytes:
       input.file_size_bytes ?? null,
+
+    created_by:
+      input.created_by ?? null,
+
+    updated_by:
+      input.updated_by ?? null,
   }
 }
 
@@ -198,7 +302,8 @@ function buildUpdatePayload(
   }
 
   if (input.title !== undefined) {
-    payload.title = input.title
+    payload.title =
+      input.title
   }
 
   if (input.description !== undefined) {
@@ -206,7 +311,9 @@ function buildUpdatePayload(
       input.description
   }
 
-  if (input.evidence_type !== undefined) {
+  if (
+    input.evidence_type !== undefined
+  ) {
     payload.evidence_type =
       input.evidence_type
   }
@@ -216,12 +323,16 @@ function buildUpdatePayload(
       input.file_url
   }
 
-  if (input.external_url !== undefined) {
+  if (
+    input.external_url !== undefined
+  ) {
     payload.external_url =
       input.external_url
   }
 
-  if (input.planning_id !== undefined) {
+  if (
+    input.planning_id !== undefined
+  ) {
     payload.planning_id =
       input.planning_id
   }
@@ -229,6 +340,13 @@ function buildUpdatePayload(
   if (input.event_id !== undefined) {
     payload.event_id =
       input.event_id
+  }
+
+  if (
+    input.organization_id !== undefined
+  ) {
+    payload.organization_id =
+      input.organization_id
   }
 
   if (input.school_id !== undefined) {
@@ -325,6 +443,20 @@ function buildUpdatePayload(
       input.file_size_bytes
   }
 
+  if (
+    input.created_by !== undefined
+  ) {
+    payload.created_by =
+      input.created_by
+  }
+
+  if (
+    input.updated_by !== undefined
+  ) {
+    payload.updated_by =
+      input.updated_by
+  }
+
   return payload
 }
 
@@ -340,6 +472,7 @@ class EvidencesRepository {
       await this.client
         .from('agenda_evidences')
         .select('*')
+        .is('deleted_at', null)
         .order('created_at', {
           ascending: false,
         })
@@ -361,11 +494,31 @@ class EvidencesRepository {
         .from('agenda_evidences')
         .select('*')
         .eq('id', id)
+        .is('deleted_at', null)
         .maybeSingle()
 
     if (error) {
       throw new Error(
         `Erro ao buscar evidência: ${error.message}`,
+      )
+    }
+
+    return data as AgendaEvidence | null
+  }
+
+  async findByIdIncludingDeleted(
+    id: string,
+  ): Promise<AgendaEvidence | null> {
+    const { data, error } =
+      await this.client
+        .from('agenda_evidences')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle()
+
+    if (error) {
+      throw new Error(
+        `Erro ao buscar evidência incluindo registros excluídos: ${error.message}`,
       )
     }
 
@@ -380,6 +533,7 @@ class EvidencesRepository {
         .from('agenda_evidences')
         .select('*')
         .eq('user_id', userId)
+        .is('deleted_at', null)
         .order('created_at', {
           ascending: false,
         })
@@ -401,6 +555,7 @@ class EvidencesRepository {
         .from('agenda_evidences')
         .select('*')
         .eq('school_id', schoolId)
+        .is('deleted_at', null)
         .order('created_at', {
           ascending: false,
         })
@@ -421,7 +576,11 @@ class EvidencesRepository {
       await this.client
         .from('agenda_evidences')
         .select('*')
-        .eq('planning_id', planningId)
+        .eq(
+          'planning_id',
+          planningId,
+        )
+        .is('deleted_at', null)
         .order('created_at', {
           ascending: false,
         })
@@ -443,6 +602,7 @@ class EvidencesRepository {
         .from('agenda_evidences')
         .select('*')
         .eq('event_id', eventId)
+        .is('deleted_at', null)
         .order('created_at', {
           ascending: false,
         })
@@ -490,6 +650,7 @@ class EvidencesRepository {
         .from('agenda_evidences')
         .update(payload)
         .eq('id', id)
+        .is('deleted_at', null)
         .select('*')
         .single()
 
@@ -504,18 +665,84 @@ class EvidencesRepository {
 
   async delete(
     id: string,
+    actorUserId?: string,
+    reason?: string,
   ): Promise<void> {
+    const context =
+      normalizeDeletionContext(
+        actorUserId,
+        reason,
+      )
+
     const { error } =
-      await this.client
-        .from('agenda_evidences')
-        .delete()
-        .eq('id', id)
+      await this.client.rpc(
+        'soft_delete_agenda_record',
+        {
+          requested_resource_type:
+            'agenda_evidences',
+
+          requested_resource_id:
+            id,
+
+          requested_reason:
+            context.reason,
+
+          requested_actor_user_id:
+            context.actorUserId,
+        },
+      )
 
     if (error) {
       throw new Error(
         `Erro ao excluir evidência: ${error.message}`,
       )
     }
+  }
+
+  async restore(
+    id: string,
+    actorUserId?: string,
+    reason?: string,
+  ): Promise<AgendaEvidence> {
+    const context =
+      normalizeRestorationContext(
+        actorUserId,
+        reason,
+      )
+
+    const {
+      data,
+      error,
+    } = await this.client.rpc(
+      'restore_agenda_record',
+      {
+        requested_resource_type:
+          'agenda_evidences',
+
+        requested_resource_id:
+          id,
+
+        requested_reason:
+          context.reason,
+
+        requested_actor_user_id:
+          context.actorUserId,
+      },
+    )
+
+    if (error) {
+      throw new Error(
+        `Erro ao restaurar evidência: ${error.message}`,
+      )
+    }
+
+    if (!data) {
+      throw new Error(
+        'A restauração não retornou a evidência atualizada.',
+      )
+    }
+
+    return data as unknown as AgendaEvidence
   }
 }
 
