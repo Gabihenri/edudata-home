@@ -1,25 +1,23 @@
-import { randomUUID } from 'node:crypto'
-
 import {
-  eventsRepository,
-  type AgendaEvent,
-  type AgendaRecurrenceFrequency,
-  type AgendaScheduleMode,
-  type CreateAgendaEventInput,
-  type UpdateAgendaEventInput,
-} from '@/lib/agenda/repository/events.repository'
+  evidencesRepository,
+  type AgendaEvidence,
+  type AgendaEvidenceType,
+  type CreateAgendaEvidenceInput,
+  type UpdateAgendaEvidenceInput,
+} from '@/lib/agenda/repository/evidences.repository'
 
-const MAX_RECURRENCE_OCCURRENCES = 104
-const MAX_DELETION_REASON_LENGTH = 500
-const AGENDA_TIMEZONE = 'America/Sao_Paulo'
+const ALLOWED_EVIDENCE_TYPES: AgendaEvidenceType[] = [
+  'texto',
+  'imagem',
+  'pdf',
+  'link',
+]
 
-export type DeleteAgendaEventContext = {
-  actorUserId: string
-  reason: string
-}
+const DEFAULT_PRIVACY_NOTICE_VERSION =
+  'edi-protecao-menores-v1.0'
 
-function validateRequiredId(
-  value: string,
+function normalizeRequiredText(
+  value: string | null | undefined,
   fieldName: string,
 ): string {
   const normalizedValue = value?.trim()
@@ -31,703 +29,752 @@ function validateRequiredId(
   return normalizedValue
 }
 
-function validateDeletionReason(
-  value: string,
-): string {
-  const normalizedValue = value?.trim()
+function normalizeOptionalText(
+  value: string | null | undefined,
+): string | null {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  return value.trim() || null
+}
+
+function normalizeEvidenceType(
+  value: string | undefined,
+): AgendaEvidenceType {
+  const normalizedValue =
+    value?.trim().toLowerCase() || 'texto'
+
+  if (
+    !ALLOWED_EVIDENCE_TYPES.includes(
+      normalizedValue as AgendaEvidenceType,
+    )
+  ) {
+    throw new Error(
+      'Tipo de evidência inválido. Use texto, imagem, pdf ou link.',
+    )
+  }
+
+  return normalizedValue as AgendaEvidenceType
+}
+
+function normalizeFileSize(
+  value: number | null | undefined,
+): number | null {
+  if (value === undefined || value === null) {
+    return null
+  }
+
+  if (
+    !Number.isInteger(value) ||
+    value < 0
+  ) {
+    throw new Error(
+      'O tamanho do arquivo é inválido.',
+    )
+  }
+
+  return value
+}
+
+function normalizeDateTime(
+  value: string | null | undefined,
+  fieldName: string,
+): string | null {
+  const normalizedValue =
+    normalizeOptionalText(value)
 
   if (!normalizedValue) {
-    throw new Error(
-      'Motivo da exclusão é obrigatório.',
-    )
+    return null
   }
 
-  if (
-    normalizedValue.length >
-    MAX_DELETION_REASON_LENGTH
-  ) {
-    throw new Error(
-      `O motivo da exclusão não pode ultrapassar ${MAX_DELETION_REASON_LENGTH} caracteres.`,
-    )
-  }
-
-  return normalizedValue
-}
-
-function normalizeDeleteContext(
-  context: DeleteAgendaEventContext,
-): DeleteAgendaEventContext {
-  if (!context) {
-    throw new Error(
-      'Os dados de auditoria da exclusão são obrigatórios.',
-    )
-  }
-
-  return {
-    actorUserId: validateRequiredId(
-      context.actorUserId,
-      'ID do usuário responsável',
-    ),
-
-    reason: validateDeletionReason(
-      context.reason,
-    ),
-  }
-}
-
-function validateDateOnly(
-  value: string,
-  fieldName: string,
-): string {
-  const normalizedValue = value.trim()
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedValue)) {
-    throw new Error(
-      `${fieldName} deve estar no formato YYYY-MM-DD.`,
-    )
-  }
-
-  const parsedDate = new Date(
-    `${normalizedValue}T00:00:00.000Z`,
-  )
-
-  if (
-    Number.isNaN(parsedDate.getTime()) ||
-    parsedDate.toISOString().slice(0, 10) !==
-      normalizedValue
-  ) {
-    throw new Error(`${fieldName} é inválida.`)
-  }
-
-  return normalizedValue
-}
-
-function parseDateTime(
-  value: string,
-  fieldName: string,
-): Date {
-  const date = new Date(value)
+  const date = new Date(normalizedValue)
 
   if (Number.isNaN(date.getTime())) {
-    throw new Error(`${fieldName} é inválida.`)
-  }
-
-  return date
-}
-
-function getDateKeyInTimezone(
-  date: Date,
-): string {
-  const parts = new Intl.DateTimeFormat(
-    'en-CA',
-    {
-      timeZone: AGENDA_TIMEZONE,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    },
-  ).formatToParts(date)
-
-  const year = parts.find(
-    (part) => part.type === 'year',
-  )?.value
-
-  const month = parts.find(
-    (part) => part.type === 'month',
-  )?.value
-
-  const day = parts.find(
-    (part) => part.type === 'day',
-  )?.value
-
-  if (!year || !month || !day) {
     throw new Error(
-      'Não foi possível calcular a data da ocorrência.',
+      `${fieldName} é inválida.`,
     )
   }
 
-  return `${year}-${month}-${day}`
+  return date.toISOString()
 }
 
-function addWeeks(
-  date: Date,
-  numberOfWeeks: number,
-): Date {
-  const result = new Date(date)
+function validateExternalUrl(
+  value: string | null,
+): void {
+  if (!value) {
+    return
+  }
 
-  result.setUTCDate(
-    result.getUTCDate() +
-      numberOfWeeks * 7,
+  try {
+    const url = new URL(value)
+
+    if (
+      url.protocol !== 'https:' &&
+      url.protocol !== 'http:'
+    ) {
+      throw new Error()
+    }
+  } catch {
+    throw new Error(
+      'O endereço externo da evidência é inválido.',
+    )
+  }
+}
+
+function validateStorageReference(
+  storageBucket: string | null,
+  storagePath: string | null,
+): void {
+  const hasBucket = Boolean(storageBucket)
+  const hasPath = Boolean(storagePath)
+
+  if (hasBucket !== hasPath) {
+    throw new Error(
+      'O bucket e o caminho do arquivo devem ser informados juntos.',
+    )
+  }
+}
+
+function validateEvidenceReferences(
+  evidenceType: AgendaEvidenceType,
+  fileUrl: string | null,
+  externalUrl: string | null,
+  storageBucket: string | null,
+  storagePath: string | null,
+): void {
+  validateStorageReference(
+    storageBucket,
+    storagePath,
   )
 
-  return result
-}
+  validateExternalUrl(externalUrl)
 
-function normalizeScheduleMode(
-  input: CreateAgendaEventInput,
-): AgendaScheduleMode {
-  if (input.schedule_mode) {
-    return input.schedule_mode
-  }
+  const hasStoredFile =
+    Boolean(storageBucket) &&
+    Boolean(storagePath)
 
   if (
-    input.recurrence_frequency ===
-    'weekly'
-  ) {
-    return 'recorrente'
-  }
-
-  return 'pontual'
-}
-
-function normalizeRecurrenceFrequency(
-  scheduleMode: AgendaScheduleMode,
-  frequency:
-    | AgendaRecurrenceFrequency
-    | undefined,
-): AgendaRecurrenceFrequency {
-  if (scheduleMode === 'recorrente') {
-    return 'weekly'
-  }
-
-  return frequency ?? 'none'
-}
-
-function normalizeRecurrenceInterval(
-  value: number | undefined,
-): number {
-  const interval = value ?? 1
-
-  if (
-    !Number.isInteger(interval) ||
-    interval < 1 ||
-    interval > 52
+    (
+      evidenceType === 'imagem' ||
+      evidenceType === 'pdf'
+    ) &&
+    !fileUrl &&
+    !hasStoredFile
   ) {
     throw new Error(
-      'O intervalo de repetição deve estar entre 1 e 52 semanas.',
+      'Envie um arquivo para evidências de imagem ou PDF.',
     )
   }
 
-  return interval
+  if (
+    evidenceType === 'link' &&
+    !externalUrl
+  ) {
+    throw new Error(
+      'Informe o endereço externo da evidência.',
+    )
+  }
 }
 
-function validateDateRange(
-  startAtValue: string,
-  endAtValue?: string | null,
-): {
-  startAt: Date
-  endAt: Date | null
-} {
-  const startAt = parseDateTime(
-    startAtValue,
-    'Data inicial do evento',
-  )
+type MinorProtectionInput = {
+  containsIdentifiableMinor: boolean
 
-  if (!endAtValue) {
+  guardianAuthorizationConfirmed: boolean
+  authorizationReference: string | null
+
+  authorizationConfirmedAt: string | null
+  authorizationConfirmedBy: string | null
+
+  privacyNoticeVersion: string | null
+
+  evidenceOwnerId: string | null
+}
+
+type NormalizedMinorProtection = {
+  contains_identifiable_minor: boolean
+
+  guardian_authorization_confirmed: boolean
+  authorization_reference: string | null
+
+  authorization_confirmed_at: string | null
+  authorization_confirmed_by: string | null
+
+  privacy_notice_version: string
+}
+
+function normalizeMinorProtection(
+  input: MinorProtectionInput,
+): NormalizedMinorProtection {
+  const privacyNoticeVersion =
+    normalizeOptionalText(
+      input.privacyNoticeVersion,
+    ) ??
+    DEFAULT_PRIVACY_NOTICE_VERSION
+
+  if (!input.containsIdentifiableMinor) {
     return {
-      startAt,
-      endAt: null,
+      contains_identifiable_minor: false,
+
+      guardian_authorization_confirmed:
+        false,
+
+      authorization_reference: null,
+
+      authorization_confirmed_at: null,
+      authorization_confirmed_by: null,
+
+      privacy_notice_version:
+        privacyNoticeVersion,
     }
   }
 
-  const endAt = parseDateTime(
-    endAtValue,
-    'Data final do evento',
-  )
-
-  if (endAt.getTime() < startAt.getTime()) {
-    throw new Error(
-      'A data final não pode ser anterior à data inicial.',
-    )
-  }
-
-  return {
-    startAt,
-    endAt,
-  }
-}
-
-function normalizeCreateInput(
-  input: CreateAgendaEventInput,
-): CreateAgendaEventInput {
-  const title = input.title?.trim()
-
-  if (!title) {
-    throw new Error(
-      'Título do evento é obrigatório.',
-    )
-  }
-
-  if (!input.start_at) {
-    throw new Error(
-      'Data inicial do evento é obrigatória.',
-    )
-  }
-
-  validateDateRange(
-    input.start_at,
-    input.end_at,
-  )
-
-  const scheduleMode =
-    normalizeScheduleMode(input)
-
-  if (scheduleMode === 'modelo') {
-    throw new Error(
-      'Horários-padrão devem ser cadastrados como modelos de agenda.',
-    )
-  }
-
-  const recurrenceFrequency =
-    normalizeRecurrenceFrequency(
-      scheduleMode,
-      input.recurrence_frequency,
-    )
-
-  const recurrenceInterval =
-    normalizeRecurrenceInterval(
-      input.recurrence_interval,
-    )
-
-  let recurrenceUntil:
-    | string
-    | null = null
-
-  if (scheduleMode === 'recorrente') {
-    if (!input.recurrence_until) {
-      throw new Error(
-        'Informe até quando o evento deverá se repetir.',
-      )
-    }
-
-    recurrenceUntil = validateDateOnly(
-      input.recurrence_until,
-      'Data final da recorrência',
-    )
-
-    const firstOccurrenceDate =
-      getDateKeyInTimezone(
-        new Date(input.start_at),
-      )
-
-    if (
-      recurrenceUntil <
-      firstOccurrenceDate
-    ) {
-      throw new Error(
-        'A data final da recorrência não pode ser anterior ao primeiro evento.',
-      )
-    }
-  }
-
-  return {
-    ...input,
-
-    title,
-
-    description:
-      input.description?.trim() ||
-      null,
-
-    event_type:
-      input.event_type?.trim() ||
-      'pedagogico',
-
-    status:
-      input.status?.trim() ||
-      'planejado',
-
-    priority:
-      input.priority?.trim() ||
-      'media',
-
-    schedule_mode: scheduleMode,
-
-    recurrence_frequency:
-      recurrenceFrequency,
-
-    recurrence_interval:
-      recurrenceInterval,
-
-    recurrence_until:
-      recurrenceUntil,
-
-    is_exception:
-      input.is_exception ?? false,
-  }
-}
-
-function buildRecurringOccurrences(
-  input: CreateAgendaEventInput,
-): CreateAgendaEventInput[] {
-  const recurrenceUntil =
-    input.recurrence_until
-
-  if (!recurrenceUntil) {
-    throw new Error(
-      'A data final da recorrência é obrigatória.',
-    )
-  }
-
-  const recurrenceInterval =
-    normalizeRecurrenceInterval(
-      input.recurrence_interval,
-    )
-
-  const {
-    startAt,
-    endAt,
-  } = validateDateRange(
-    input.start_at,
-    input.end_at,
-  )
-
-  const durationInMilliseconds =
-    endAt
-      ? endAt.getTime() -
-        startAt.getTime()
-      : null
-
-  const seriesId =
-    input.series_id ??
-    randomUUID()
-
-  const originalStartAt =
-    input.original_start_at ??
-    startAt.toISOString()
-
-  const occurrences: CreateAgendaEventInput[] =
-    []
-
-  let currentStartAt =
-    new Date(startAt)
-
-  while (
-    getDateKeyInTimezone(
-      currentStartAt,
-    ) <= recurrenceUntil
+  if (
+    !input.guardianAuthorizationConfirmed
   ) {
-    if (
-      occurrences.length >=
-      MAX_RECURRENCE_OCCURRENCES
-    ) {
-      throw new Error(
-        `A recorrência não pode ultrapassar ${MAX_RECURRENCE_OCCURRENCES} ocorrências.`,
-      )
-    }
-
-    const currentEndAt =
-      durationInMilliseconds !== null
-        ? new Date(
-            currentStartAt.getTime() +
-              durationInMilliseconds,
-          )
-        : null
-
-    occurrences.push({
-      ...input,
-
-      start_at:
-        currentStartAt.toISOString(),
-
-      end_at:
-        currentEndAt
-          ? currentEndAt.toISOString()
-          : null,
-
-      schedule_mode: 'recorrente',
-
-      recurrence_frequency:
-        'weekly',
-
-      recurrence_interval:
-        recurrenceInterval,
-
-      recurrence_until:
-        recurrenceUntil,
-
-      series_id: seriesId,
-
-      original_start_at:
-        originalStartAt,
-
-      is_exception: false,
-    })
-
-    currentStartAt = addWeeks(
-      currentStartAt,
-      recurrenceInterval,
+    throw new Error(
+      'Confirme que a instituição possui autorização vigente do responsável legal.',
     )
   }
 
-  return occurrences
+  const authorizationReference =
+    normalizeRequiredText(
+      input.authorizationReference,
+      'Referência da autorização',
+    )
+
+  const authorizationConfirmedBy =
+    normalizeRequiredText(
+      input.authorizationConfirmedBy,
+      'Usuário responsável pela confirmação',
+    )
+
+  const evidenceOwnerId =
+    normalizeRequiredText(
+      input.evidenceOwnerId,
+      'Usuário responsável pela evidência',
+    )
+
+  if (
+    authorizationConfirmedBy !==
+    evidenceOwnerId
+  ) {
+    throw new Error(
+      'A confirmação da autorização deve ser registrada pelo usuário responsável pelo envio.',
+    )
+  }
+
+  const authorizationConfirmedAt =
+    normalizeDateTime(
+      input.authorizationConfirmedAt,
+      'Data da confirmação da autorização',
+    ) ??
+    new Date().toISOString()
+
+  return {
+    contains_identifiable_minor: true,
+
+    guardian_authorization_confirmed:
+      true,
+
+    authorization_reference:
+      authorizationReference,
+
+    authorization_confirmed_at:
+      authorizationConfirmedAt,
+
+    authorization_confirmed_by:
+      authorizationConfirmedBy,
+
+    privacy_notice_version:
+      privacyNoticeVersion,
+  }
 }
 
-class EventsService {
+class EvidencesService {
   async listAll(): Promise<
-    AgendaEvent[]
+    AgendaEvidence[]
   > {
-    return eventsRepository.findAll()
+    return evidencesRepository.findAll()
   }
 
   async getById(
     id: string,
-  ): Promise<AgendaEvent> {
+  ): Promise<AgendaEvidence> {
     const normalizedId =
-      validateRequiredId(
+      normalizeRequiredText(
         id,
-        'ID do evento',
+        'ID da evidência',
       )
 
-    const event =
-      await eventsRepository.findById(
+    const evidence =
+      await evidencesRepository.findById(
         normalizedId,
       )
 
-    if (!event) {
+    if (!evidence) {
       throw new Error(
-        'Evento não encontrado.',
+        'Evidência não encontrada.',
       )
     }
 
-    return event
+    return evidence
   }
 
   async listByUserId(
     userId: string,
-  ): Promise<AgendaEvent[]> {
+  ): Promise<AgendaEvidence[]> {
     const normalizedUserId =
-      validateRequiredId(
+      normalizeRequiredText(
         userId,
         'ID do usuário',
       )
 
-    return eventsRepository.findByUserId(
+    return evidencesRepository.findByUserId(
       normalizedUserId,
-    )
-  }
-
-  async listByUserAndWeek(
-    userId: string,
-    weekReference: string,
-  ): Promise<AgendaEvent[]> {
-    const normalizedUserId =
-      validateRequiredId(
-        userId,
-        'ID do usuário',
-      )
-
-    const normalizedWeek =
-      validateDateOnly(
-        weekReference,
-        'Semana de referência',
-      )
-
-    return eventsRepository.findByUserAndWeek(
-      normalizedUserId,
-      normalizedWeek,
     )
   }
 
   async listBySchoolId(
     schoolId: string,
-  ): Promise<AgendaEvent[]> {
+  ): Promise<AgendaEvidence[]> {
     const normalizedSchoolId =
-      validateRequiredId(
+      normalizeRequiredText(
         schoolId,
         'ID da escola',
       )
 
-    return eventsRepository.findBySchoolId(
+    return evidencesRepository.findBySchoolId(
       normalizedSchoolId,
     )
   }
 
-  async listBySeriesId(
-    seriesId: string,
-  ): Promise<AgendaEvent[]> {
-    const normalizedSeriesId =
-      validateRequiredId(
-        seriesId,
-        'ID da série',
+  async listByPlanningId(
+    planningId: string,
+  ): Promise<AgendaEvidence[]> {
+    const normalizedPlanningId =
+      normalizeRequiredText(
+        planningId,
+        'ID do planejamento',
       )
 
-    return eventsRepository.findBySeriesId(
-      normalizedSeriesId,
+    return evidencesRepository.findByPlanningId(
+      normalizedPlanningId,
+    )
+  }
+
+  async listByEventId(
+    eventId: string,
+  ): Promise<AgendaEvidence[]> {
+    const normalizedEventId =
+      normalizeRequiredText(
+        eventId,
+        'ID do evento',
+      )
+
+    return evidencesRepository.findByEventId(
+      normalizedEventId,
     )
   }
 
   async create(
-    input: CreateAgendaEventInput,
-  ): Promise<AgendaEvent> {
-    const events =
-      await this.createSchedule(input)
-
-    const firstEvent = events[0]
-
-    if (!firstEvent) {
-      throw new Error(
-        'Nenhum evento foi criado.',
+    input: CreateAgendaEvidenceInput,
+  ): Promise<AgendaEvidence> {
+    const title =
+      normalizeRequiredText(
+        input.title,
+        'Título da evidência',
       )
-    }
 
-    return firstEvent
-  }
-
-  async createSchedule(
-    input: CreateAgendaEventInput,
-  ): Promise<AgendaEvent[]> {
-    const normalizedInput =
-      normalizeCreateInput(input)
-
-    if (
-      normalizedInput.schedule_mode ===
-        'recorrente' &&
-      normalizedInput.recurrence_frequency ===
-        'weekly'
-    ) {
-      const occurrences =
-        buildRecurringOccurrences(
-          normalizedInput,
-        )
-
-      return eventsRepository.createMany(
-        occurrences,
+    const evidenceType =
+      normalizeEvidenceType(
+        input.evidence_type,
       )
-    }
 
-    const event =
-      await eventsRepository.create({
-        ...normalizedInput,
+    const description =
+      normalizeOptionalText(
+        input.description,
+      )
 
-        schedule_mode: 'pontual',
+    const fileUrl =
+      normalizeOptionalText(
+        input.file_url,
+      )
 
-        recurrence_frequency:
-          'none',
+    const externalUrl =
+      normalizeOptionalText(
+        input.external_url,
+      )
 
-        recurrence_interval: 1,
+    const storageBucket =
+      normalizeOptionalText(
+        input.storage_bucket,
+      )
 
-        recurrence_until: null,
+    const storagePath =
+      normalizeOptionalText(
+        input.storage_path,
+      )
 
-        series_id: null,
+    const originalFileName =
+      normalizeOptionalText(
+        input.original_file_name,
+      )
 
-        original_start_at: null,
+    const fileMimeType =
+      normalizeOptionalText(
+        input.file_mime_type,
+      )
 
-        is_exception: false,
+    const fileSizeBytes =
+      normalizeFileSize(
+        input.file_size_bytes,
+      )
+
+    const userId =
+      normalizeOptionalText(
+        input.user_id,
+      )
+
+    validateEvidenceReferences(
+      evidenceType,
+      fileUrl,
+      externalUrl,
+      storageBucket,
+      storagePath,
+    )
+
+    const minorProtection =
+      normalizeMinorProtection({
+        containsIdentifiableMinor:
+          input.contains_identifiable_minor ??
+          false,
+
+        guardianAuthorizationConfirmed:
+          input.guardian_authorization_confirmed ??
+          false,
+
+        authorizationReference:
+          normalizeOptionalText(
+            input.authorization_reference,
+          ),
+
+        authorizationConfirmedAt:
+          normalizeOptionalText(
+            input.authorization_confirmed_at,
+          ),
+
+        authorizationConfirmedBy:
+          normalizeOptionalText(
+            input.authorization_confirmed_by,
+          ),
+
+        privacyNoticeVersion:
+          normalizeOptionalText(
+            input.privacy_notice_version,
+          ),
+
+        evidenceOwnerId: userId,
       })
 
-    return [event]
+    return evidencesRepository.create({
+      title,
+      description,
+
+      evidence_type: evidenceType,
+
+      file_url: fileUrl,
+      external_url: externalUrl,
+
+      planning_id:
+        normalizeOptionalText(
+          input.planning_id,
+        ),
+
+      event_id:
+        normalizeOptionalText(
+          input.event_id,
+        ),
+
+      school_id:
+        normalizeOptionalText(
+          input.school_id,
+        ),
+
+      user_id: userId,
+
+      ...minorProtection,
+
+      storage_bucket: storageBucket,
+      storage_path: storagePath,
+
+      original_file_name:
+        originalFileName,
+
+      file_mime_type:
+        fileMimeType,
+
+      file_size_bytes:
+        fileSizeBytes,
+    })
   }
 
   async update(
     id: string,
-    input: UpdateAgendaEventInput,
-  ): Promise<AgendaEvent> {
+    input: UpdateAgendaEvidenceInput,
+  ): Promise<AgendaEvidence> {
     const normalizedId =
-      validateRequiredId(
+      normalizeRequiredText(
         id,
-        'ID do evento',
+        'ID da evidência',
       )
 
-    const existingEvent =
-      await eventsRepository.findById(
+    const existingEvidence =
+      await evidencesRepository.findById(
         normalizedId,
       )
 
-    if (!existingEvent) {
+    if (!existingEvidence) {
       throw new Error(
-        'Evento não encontrado.',
+        'Evidência não encontrada.',
       )
     }
 
-    const startAtValue =
-      input.start_at ??
-      existingEvent.start_at
-
-    const endAtValue =
-      input.end_at !== undefined
-        ? input.end_at
-        : existingEvent.end_at
-
-    validateDateRange(
-      startAtValue,
-      endAtValue,
-    )
-
     const normalizedInput:
-      UpdateAgendaEventInput = {
-        ...input,
-      }
+      UpdateAgendaEvidenceInput = {}
 
     if (input.title !== undefined) {
-      const title =
-        input.title.trim()
-
-      if (!title) {
-        throw new Error(
-          'Título do evento não pode ficar vazio.',
-        )
-      }
-
       normalizedInput.title =
-        title
+        normalizeRequiredText(
+          input.title,
+          'Título da evidência',
+        )
     }
 
     if (
       input.description !== undefined
     ) {
       normalizedInput.description =
-        input.description?.trim() ||
-        null
+        normalizeOptionalText(
+          input.description,
+        )
     }
 
     if (
-      input.event_type !== undefined
+      input.evidence_type !== undefined
     ) {
-      normalizedInput.event_type =
-        input.event_type.trim() ||
-        'pedagogico'
+      normalizedInput.evidence_type =
+        normalizeEvidenceType(
+          input.evidence_type,
+        )
+    }
+
+    if (input.file_url !== undefined) {
+      normalizedInput.file_url =
+        normalizeOptionalText(
+          input.file_url,
+        )
     }
 
     if (
-      input.status !== undefined
+      input.external_url !== undefined
     ) {
-      normalizedInput.status =
-        input.status.trim() ||
-        'planejado'
+      normalizedInput.external_url =
+        normalizeOptionalText(
+          input.external_url,
+        )
     }
 
     if (
-      input.priority !== undefined
+      input.planning_id !== undefined
     ) {
-      normalizedInput.priority =
-        input.priority.trim() ||
-        'media'
+      normalizedInput.planning_id =
+        normalizeOptionalText(
+          input.planning_id,
+        )
     }
 
     if (
-      input.recurrence_interval !==
+      input.event_id !== undefined
+    ) {
+      normalizedInput.event_id =
+        normalizeOptionalText(
+          input.event_id,
+        )
+    }
+
+    if (
+      input.school_id !== undefined
+    ) {
+      normalizedInput.school_id =
+        normalizeOptionalText(
+          input.school_id,
+        )
+    }
+
+    if (input.user_id !== undefined) {
+      normalizedInput.user_id =
+        normalizeOptionalText(
+          input.user_id,
+        )
+    }
+
+    if (
+      input.storage_bucket !== undefined
+    ) {
+      normalizedInput.storage_bucket =
+        normalizeOptionalText(
+          input.storage_bucket,
+        )
+    }
+
+    if (
+      input.storage_path !== undefined
+    ) {
+      normalizedInput.storage_path =
+        normalizeOptionalText(
+          input.storage_path,
+        )
+    }
+
+    if (
+      input.original_file_name !==
       undefined
     ) {
-      normalizedInput.recurrence_interval =
-        normalizeRecurrenceInterval(
-          input.recurrence_interval,
+      normalizedInput.original_file_name =
+        normalizeOptionalText(
+          input.original_file_name,
         )
     }
 
     if (
-      input.recurrence_until !==
-        undefined &&
-      input.recurrence_until !== null
+      input.file_mime_type !== undefined
     ) {
-      normalizedInput.recurrence_until =
-        validateDateOnly(
-          input.recurrence_until,
-          'Data final da recorrência',
+      normalizedInput.file_mime_type =
+        normalizeOptionalText(
+          input.file_mime_type,
         )
     }
 
-    return eventsRepository.update(
+    if (
+      input.file_size_bytes !== undefined
+    ) {
+      normalizedInput.file_size_bytes =
+        normalizeFileSize(
+          input.file_size_bytes,
+        )
+    }
+
+    const finalEvidenceType =
+      normalizedInput.evidence_type ??
+      existingEvidence.evidence_type
+
+    const finalFileUrl =
+      normalizedInput.file_url !==
+      undefined
+        ? normalizedInput.file_url
+        : existingEvidence.file_url
+
+    const finalExternalUrl =
+      normalizedInput.external_url !==
+      undefined
+        ? normalizedInput.external_url
+        : existingEvidence.external_url
+
+    const finalStorageBucket =
+      normalizedInput.storage_bucket !==
+      undefined
+        ? normalizedInput.storage_bucket
+        : existingEvidence.storage_bucket
+
+    const finalStoragePath =
+      normalizedInput.storage_path !==
+      undefined
+        ? normalizedInput.storage_path
+        : existingEvidence.storage_path
+
+    validateEvidenceReferences(
+      finalEvidenceType,
+      finalFileUrl ?? null,
+      finalExternalUrl ?? null,
+      finalStorageBucket ?? null,
+      finalStoragePath ?? null,
+    )
+
+    const protectionWasUpdated =
+      input.contains_identifiable_minor !==
+        undefined ||
+      input.guardian_authorization_confirmed !==
+        undefined ||
+      input.authorization_reference !==
+        undefined ||
+      input.authorization_confirmed_at !==
+        undefined ||
+      input.authorization_confirmed_by !==
+        undefined ||
+      input.privacy_notice_version !==
+        undefined
+
+    if (protectionWasUpdated) {
+      const finalUserId =
+        normalizedInput.user_id !==
+        undefined
+          ? normalizedInput.user_id
+          : existingEvidence.user_id
+
+      const minorProtection =
+        normalizeMinorProtection({
+          containsIdentifiableMinor:
+            input.contains_identifiable_minor ??
+            existingEvidence.contains_identifiable_minor,
+
+          guardianAuthorizationConfirmed:
+            input.guardian_authorization_confirmed ??
+            existingEvidence.guardian_authorization_confirmed,
+
+          authorizationReference:
+            input.authorization_reference !==
+            undefined
+              ? normalizeOptionalText(
+                  input.authorization_reference,
+                )
+              : existingEvidence.authorization_reference,
+
+          authorizationConfirmedAt:
+            input.authorization_confirmed_at !==
+            undefined
+              ? normalizeOptionalText(
+                  input.authorization_confirmed_at,
+                )
+              : existingEvidence.authorization_confirmed_at,
+
+          authorizationConfirmedBy:
+            input.authorization_confirmed_by !==
+            undefined
+              ? normalizeOptionalText(
+                  input.authorization_confirmed_by,
+                )
+              : existingEvidence.authorization_confirmed_by,
+
+          privacyNoticeVersion:
+            input.privacy_notice_version !==
+            undefined
+              ? normalizeOptionalText(
+                  input.privacy_notice_version,
+                )
+              : existingEvidence.privacy_notice_version,
+
+          evidenceOwnerId:
+            finalUserId ?? null,
+        })
+
+      Object.assign(
+        normalizedInput,
+        minorProtection,
+      )
+    }
+
+    return evidencesRepository.update(
       normalizedId,
       normalizedInput,
     )
@@ -735,63 +782,29 @@ class EventsService {
 
   async delete(
     id: string,
-    context: DeleteAgendaEventContext,
   ): Promise<void> {
     const normalizedId =
-      validateRequiredId(
+      normalizeRequiredText(
         id,
-        'ID do evento',
+        'ID da evidência',
       )
 
-    const normalizedContext =
-      normalizeDeleteContext(context)
-
-    const existingEvent =
-      await eventsRepository.findById(
+    const existingEvidence =
+      await evidencesRepository.findById(
         normalizedId,
       )
 
-    if (!existingEvent) {
+    if (!existingEvidence) {
       throw new Error(
-        'Evento não encontrado ou já excluído.',
+        'Evidência não encontrada.',
       )
     }
 
-    await eventsRepository.delete(
+    await evidencesRepository.delete(
       normalizedId,
-      normalizedContext.actorUserId,
-      normalizedContext.reason,
-    )
-  }
-
-  async deleteSeriesFromDate(
-    seriesId: string,
-    startAt: string,
-    context: DeleteAgendaEventContext,
-  ): Promise<void> {
-    const normalizedSeriesId =
-      validateRequiredId(
-        seriesId,
-        'ID da série',
-      )
-
-    const normalizedStartAt =
-      parseDateTime(
-        startAt,
-        'Data inicial',
-      ).toISOString()
-
-    const normalizedContext =
-      normalizeDeleteContext(context)
-
-    await eventsRepository.deleteSeriesFromDate(
-      normalizedSeriesId,
-      normalizedStartAt,
-      normalizedContext.actorUserId,
-      normalizedContext.reason,
     )
   }
 }
 
-export const eventsService =
-  new EventsService()
+export const evidencesService =
+  new EvidencesService()
