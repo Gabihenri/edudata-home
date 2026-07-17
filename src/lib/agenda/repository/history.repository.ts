@@ -154,6 +154,16 @@ function createSupabaseClient():
   )
 }
 
+function normalizeRows<T>(
+  value: unknown,
+): T[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value as T[]
+}
+
 function normalizeOptionalText(
   value: string | null | undefined,
 ): string | null {
@@ -502,8 +512,8 @@ class HistoryRepository {
       )
     }
 
-    return (
-      (data ?? []) as AgendaEventRow[]
+    return normalizeRows<AgendaEventRow>(
+      data,
     ).map((event) => {
       const sourceOccurredAt =
         event.start_at
@@ -630,8 +640,8 @@ class HistoryRepository {
       )
     }
 
-    return (
-      (data ?? []) as AgendaPlanningRow[]
+    return normalizeRows<AgendaPlanningRow>(
+      data,
     ).map((planning) => {
       const sourceOccurredAt =
         normalizePlanningDate(
@@ -760,8 +770,8 @@ class HistoryRepository {
       )
     }
 
-    return (
-      (data ?? []) as AgendaEvidenceRow[]
+    return normalizeRows<AgendaEvidenceRow>(
+      data,
     ).map((evidence) => {
       const sourceOccurredAt =
         evidence.created_at
@@ -887,8 +897,8 @@ class HistoryRepository {
       )
     }
 
-    return (
-      (data ?? []) as AgendaTaskRow[]
+    return normalizeRows<AgendaTaskRow>(
+      data,
     ).map((task) => {
       const sourceOccurredAt =
         normalizeTaskDate(
