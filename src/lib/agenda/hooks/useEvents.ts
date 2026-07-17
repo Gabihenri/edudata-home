@@ -1,6 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from 'react'
 
 import type {
   AgendaEvent,
@@ -10,98 +14,333 @@ import type {
 type EventsResponse = {
   success: boolean
   total?: number
-  data?: AgendaEvent[] | AgendaEvent
+  message?: string
+
+  data?:
+    | AgendaEvent[]
+    | AgendaEvent
+
   error?: string
 }
 
+function normalizeRequiredText(
+  value: string,
+  fieldName: string,
+): string {
+  const normalizedValue =
+    value?.trim()
+
+  if (!normalizedValue) {
+    throw new Error(
+      `${fieldName} é obrigatório.`,
+    )
+  }
+
+  return normalizedValue
+}
+
+async function readEventsResponse(
+  response: Response,
+): Promise<EventsResponse> {
+  try {
+    return (
+      await response.json()
+    ) as EventsResponse
+  } catch {
+    throw new Error(
+      'A resposta do servidor é inválida.',
+    )
+  }
+}
+
 export function useEvents() {
-  const [events, setEvents] = useState<AgendaEvent[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [events, setEvents] =
+    useState<AgendaEvent[]>([])
 
-  const loadEvents = useCallback(async (): Promise<void> => {
-    setLoading(true)
-    setError(null)
+  const [loading, setLoading] =
+    useState(true)
 
-    try {
-      const response = await fetch('/api/agenda/events', {
-        method: 'GET',
-        credentials: 'include',
-        cache: 'no-store',
-      })
+  const [
+    deletingEventId,
+    setDeletingEventId,
+  ] = useState<string | null>(null)
 
-      const result = (await response.json()) as EventsResponse
+  const [error, setError] =
+    useState<string | null>(null)
 
-      if (!response.ok || !result.success || !Array.isArray(result.data)) {
-        throw new Error(
-          result.error ?? 'Não foi possível carregar os eventos.',
+  const loadEvents =
+    useCallback(
+      async (): Promise<void> => {
+        setLoading(true)
+        setError(null)
+
+        try {
+          const response =
+            await fetch(
+              '/api/agenda/events',
+              {
+                method: 'GET',
+                credentials: 'include',
+                cache: 'no-store',
+              },
+            )
+
+          const result =
+            await readEventsResponse(
+              response,
+            )
+
+          if (
+            !response.ok ||
+            !result.success ||
+            !Array.isArray(result.data)
+          ) {
+            throw new Error(
+              result.error ??
+                'Não foi possível carregar os eventos.',
+            )
+          }
+
+          setEvents(result.data)
+        } catch (loadError) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : 'Erro inesperado ao carregar eventos.',
+          )
+        } finally {
+          setLoading(false)
+        }
+      },
+      [],
+    )
+
+  const createEvent =
+    useCallback(
+      async (
+        input: CreateAgendaEventInput,
+      ): Promise<AgendaEvent> => {
+        setError(null)
+
+        const response =
+          await fetch(
+            '/api/agenda/events',
+            {
+              method: 'POST',
+
+              headers: {
+                'Content-Type':
+                  'application/json',
+              },
+
+              credentials: 'include',
+
+              body: JSON.stringify({
+                title: input.title,
+
+                description:
+                  input.description ??
+                  null,
+
+                eventType:
+                  input.event_type ??
+                  'pedagogico',
+
+                startAt:
+                  input.start_at,
+
+                endAt:
+                  input.end_at ??
+                  null,
+
+                status:
+                  input.status ??
+                  'planejado',
+
+                priority:
+                  input.priority ??
+                  'media',
+
+                schoolId:
+                  input.school_id ??
+                  null,
+
+                planningId:
+                  input.planning_id ??
+                  null,
+
+                evidenceId:
+                  input.evidence_id ??
+                  null,
+
+                scheduleMode:
+                  input.schedule_mode ??
+                  'pontual',
+
+                recurrenceFrequency:
+                  input.recurrence_frequency ??
+                  'none',
+
+                recurrenceInterval:
+                  input.recurrence_interval ??
+                  1,
+
+                recurrenceUntil:
+                  input.recurrence_until ??
+                  null,
+
+                sourceTemplateId:
+                  input.source_template_id ??
+                  null,
+
+                weekReference:
+                  input.week_reference ??
+                  null,
+              }),
+            },
+          )
+
+        const result =
+          await readEventsResponse(
+            response,
+          )
+
+        if (
+          !response.ok ||
+          !result.success ||
+          !result.data
+        ) {
+          throw new Error(
+            result.error ??
+              'Não foi possível criar o evento.',
+          )
+        }
+
+        const createdEvent =
+          Array.isArray(result.data)
+            ? result.data[0]
+            : result.data
+
+        if (!createdEvent) {
+          throw new Error(
+            'O servidor não retornou o evento criado.',
+          )
+        }
+
+        setEvents(
+          (currentEvents) =>
+            [
+              ...currentEvents,
+              createdEvent,
+            ].sort(
+              (
+                firstEvent,
+                secondEvent,
+              ) =>
+                new Date(
+                  firstEvent.start_at,
+                ).getTime() -
+                new Date(
+                  secondEvent.start_at,
+                ).getTime(),
+            ),
         )
-      }
 
-      setEvents(result.data)
-    } catch (loadError) {
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : 'Erro inesperado ao carregar eventos.',
-      )
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+        return createdEvent
+      },
+      [],
+    )
 
-  const createEvent = useCallback(
-    async (
-      input: CreateAgendaEventInput,
-    ): Promise<AgendaEvent> => {
-      const response = await fetch('/api/agenda/events', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          title: input.title,
-          description: input.description ?? null,
-          eventType: input.event_type ?? 'pedagogico',
-          startAt: input.start_at,
-          endAt: input.end_at ?? null,
-          status: input.status ?? 'planejado',
-          priority: input.priority ?? 'media',
-          schoolId: input.school_id ?? null,
-          userId: input.user_id ?? null,
-          planningId: input.planning_id ?? null,
-          evidenceId: input.evidence_id ?? null,
-        }),
-      })
+  const deleteEvent =
+    useCallback(
+      async (
+        eventId: string,
+        reason: string,
+      ): Promise<string> => {
+        const normalizedEventId =
+          normalizeRequiredText(
+            eventId,
+            'ID do evento',
+          )
 
-      const result = (await response.json()) as EventsResponse
+        const normalizedReason =
+          normalizeRequiredText(
+            reason,
+            'Motivo da exclusão',
+          )
 
-      if (
-        !response.ok ||
-        !result.success ||
-        !result.data ||
-        Array.isArray(result.data)
-      ) {
-        throw new Error(
-          result.error ?? 'Não foi possível criar o evento.',
+        setDeletingEventId(
+          normalizedEventId,
         )
-      }
 
-      const createdEvent = result.data
+        setError(null)
 
-      setEvents((currentEvents) =>
-        [...currentEvents, createdEvent].sort(
-          (firstEvent, secondEvent) =>
-            new Date(firstEvent.start_at).getTime() -
-            new Date(secondEvent.start_at).getTime(),
-        ),
-      )
+        try {
+          const response =
+            await fetch(
+              `/api/agenda/events/${encodeURIComponent(
+                normalizedEventId,
+              )}`,
+              {
+                method: 'DELETE',
 
-      return createdEvent
-    },
-    [],
-  )
+                headers: {
+                  'Content-Type':
+                    'application/json',
+                },
+
+                credentials: 'include',
+
+                body: JSON.stringify({
+                  reason:
+                    normalizedReason,
+                }),
+              },
+            )
+
+          const result =
+            await readEventsResponse(
+              response,
+            )
+
+          if (
+            !response.ok ||
+            !result.success
+          ) {
+            throw new Error(
+              result.error ??
+                'Não foi possível excluir o evento.',
+            )
+          }
+
+          setEvents(
+            (currentEvents) =>
+              currentEvents.filter(
+                (event) =>
+                  event.id !==
+                  normalizedEventId,
+              ),
+          )
+
+          return (
+            result.message ??
+            'Evento excluído com sucesso.'
+          )
+        } catch (deleteError) {
+          const message =
+            deleteError instanceof Error
+              ? deleteError.message
+              : 'Erro inesperado ao excluir o evento.'
+
+          setError(message)
+
+          throw new Error(message)
+        } finally {
+          setDeletingEventId(null)
+        }
+      },
+      [],
+    )
 
   useEffect(() => {
     void loadEvents()
@@ -110,8 +349,11 @@ export function useEvents() {
   return {
     events,
     loading,
+    deletingEventId,
     error,
+
     reload: loadEvents,
     createEvent,
+    deleteEvent,
   }
 }
