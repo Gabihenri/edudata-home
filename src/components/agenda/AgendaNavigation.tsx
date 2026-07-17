@@ -53,13 +53,19 @@ export function AgendaNavigation() {
     navigationItems.find(
       (item) =>
         pathname === item.href ||
-        pathname.startsWith(`${item.href}/`),
+        pathname.startsWith(
+          `${item.href}/`,
+        ),
     ) ?? navigationItems[0]
 
-  function isItemActive(href: string) {
+  function isItemActive(
+    href: string,
+  ) {
     return (
       pathname === href ||
-      pathname.startsWith(`${href}/`)
+      pathname.startsWith(
+        `${href}/`,
+      )
     )
   }
 
@@ -67,92 +73,98 @@ export function AgendaNavigation() {
     isActive: boolean,
   ) {
     return [
-      'inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border px-4 py-3',
-      'text-center text-sm font-semibold transition',
-      'focus:outline-none focus:ring-4 focus:ring-purple-200',
+      'inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border px-3 py-2.5',
+      'text-center text-sm font-semibold transition duration-200',
+      'focus:outline-none focus:ring-4 focus:ring-cyan-100',
       isActive
-        ? 'border-[#6B21A8] bg-[#6B21A8] text-white shadow-sm'
-        : 'border-slate-200 bg-white text-slate-700 hover:border-purple-300 hover:bg-purple-50 hover:text-[#6B21A8]',
+        ? 'border-[#0B7491] bg-[#0B7491] text-white shadow-sm'
+        : 'border-slate-200 bg-white text-slate-700 hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78]',
     ].join(' ')
   }
 
   return (
     <nav
       aria-label="Navegação da Agenda Inteligente EDI"
-      className="border-b border-slate-200 bg-white shadow-sm"
+      className="border-b border-slate-200 bg-white"
     >
-      <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-        {/* Navegação para celular */}
+      <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
         <div className="md:hidden">
           <details className="group">
-            <summary className="flex min-h-[54px] cursor-pointer list-none items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-slate-800 transition hover:border-purple-300 [&::-webkit-details-marker]:hidden">
+            <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-800 shadow-sm transition hover:border-cyan-300 focus:outline-none focus:ring-4 focus:ring-cyan-100 [&::-webkit-details-marker]:hidden">
               <div className="min-w-0">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-                  Módulo atual
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                  Agenda EDI
                 </p>
 
-                <p className="mt-1 truncate text-base font-bold text-[#081C2E]">
+                <p className="mt-0.5 truncate text-sm font-bold text-[#081C2E]">
                   {currentItem.label}
                 </p>
               </div>
 
               <span
                 aria-hidden="true"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#6B21A8] text-xl font-bold text-white transition group-open:rotate-180"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan-200 bg-cyan-50 transition group-open:bg-[#0B7491]"
               >
-                ↓
+                <span className="h-2.5 w-2.5 rotate-45 border-b-2 border-r-2 border-[#0B7491] transition group-open:-rotate-135 group-open:border-white" />
               </span>
             </summary>
 
-            <div className="mt-3 grid grid-cols-2 gap-2 rounded-3xl border border-slate-200 bg-slate-50 p-3">
-              {navigationItems.map((item) => {
-                const isActive =
-                  isItemActive(item.href)
+            <div className="mt-2 grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2.5 shadow-sm">
+              {navigationItems.map(
+                (item) => {
+                  const isActive =
+                    isItemActive(
+                      item.href,
+                    )
 
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={
-                      isActive
-                        ? 'page'
-                        : undefined
-                    }
-                    className={getLinkClassName(
-                      isActive,
-                    )}
-                  >
-                    {item.label}
-                  </Link>
-                )
-              })}
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      aria-current={
+                        isActive
+                          ? 'page'
+                          : undefined
+                      }
+                      className={getLinkClassName(
+                        isActive,
+                      )}
+                    >
+                      {item.label}
+                    </Link>
+                  )
+                },
+              )}
             </div>
           </details>
         </div>
 
-        {/* Navegação para tablet e computador */}
-        <div className="hidden gap-3 md:grid md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-10">
-          {navigationItems.map((item) => {
-            const isActive =
-              isItemActive(item.href)
+        <div className="hidden gap-2 md:grid md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-10">
+          {navigationItems.map(
+            (item) => {
+              const isActive =
+                isItemActive(
+                  item.href,
+                )
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={
-                  isActive
-                    ? 'page'
-                    : undefined
-                }
-                className={getLinkClassName(
-                  isActive,
-                )}
-              >
-                {item.label}
-              </Link>
-            )
-          })}
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={
+                    isActive
+                      ? 'page'
+                      : undefined
+                  }
+                  className={getLinkClassName(
+                    isActive,
+                  )}
+                >
+                  {item.label}
+                </Link>
+              )
+            },
+          )}
         </div>
       </div>
     </nav>
