@@ -1,6 +1,14 @@
-import { FrameworkEDI } from '@/components/framework/FrameworkEDI'
-import { ProfessorDigital } from '@/components/professor/ProfessorDigital'
-import { AgendaInteligente } from '@/components/agenda/AgendaInteligente'
+import Link from 'next/link'
+
+import {
+  FrameworkEDI,
+} from '@/components/framework/FrameworkEDI'
+import {
+  ProfessorDigital,
+} from '@/components/professor/ProfessorDigital'
+import {
+  AgendaInteligente,
+} from '@/components/agenda/AgendaInteligente'
 
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
@@ -23,102 +31,265 @@ import AreasAtuacao from '@/components/home/AreasAtuacao'
 import Consultorias from '@/components/home/Consultorias'
 import EduDataInsights from '@/components/home/EduDataInsights'
 
+type HeroAction = {
+  code: string
+  title: string
+  description: string
+  href: string
+  primary?: boolean
+}
+
+const heroActions:
+  HeroAction[] = [
+    {
+      code: '01',
+      title: 'Conhecer o Framework EDI',
+      description:
+        'Consulte a base científica, metodológica e pedagógica da plataforma.',
+      href: '#framework',
+      primary: true,
+    },
+    {
+      code: '02',
+      title: 'Explorar o ecossistema',
+      description:
+        'Conheça os produtos especializados conectados pelo EIOS.',
+      href: '#ecossistema',
+    },
+    {
+      code: '03',
+      title: 'EduData Academy',
+      description:
+        'Acesse cursos e trilhas de desenvolvimento profissional.',
+      href: '/academy',
+    },
+  ]
+
+const architectureLayers = [
+  {
+    code: '01',
+    title: 'Framework EDI',
+    description:
+      'Base científica, metodológica e pedagógica.',
+  },
+  {
+    code: '02',
+    title: 'EIOS',
+    description:
+      'Sistema operacional de inteligência educacional.',
+  },
+  {
+    code: '03',
+    title: 'Core compartilhado',
+    description:
+      'Identidade, dados, segurança e inteligência.',
+  },
+  {
+    code: '04',
+    title: 'Produtos especializados',
+    description:
+      'Soluções conectadas para pessoas e instituições.',
+  },
+]
+
 export default function Page() {
   return (
     <>
       <AccessibilityBar />
+
       <Header />
 
       <main>
-        <section className="min-h-screen bg-gradient-to-br from-[#F5F6F8] via-white to-[#E8EEF4] px-6 py-24 md:px-20">
-          <div className="mx-auto grid max-w-7xl gap-16 md:grid-cols-[1fr_1.1fr] md:items-center">
-            <div className="space-y-8">
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">
-                Plataforma Modular de Inteligência Educacional
+        <section className="relative overflow-hidden bg-[#071827] text-white">
+          <div
+            aria-hidden="true"
+            className="absolute -right-28 -top-28 h-80 w-80 rounded-full border border-cyan-300/10"
+          />
+
+          <div
+            aria-hidden="true"
+            className="absolute right-8 top-36 h-48 w-48 rounded-full border border-cyan-300/10"
+          />
+
+          <div
+            aria-hidden="true"
+            className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-cyan-300/30 to-transparent"
+          />
+
+          <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)] lg:items-center lg:gap-14 lg:px-8 lg:py-24">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-cyan-200">
+                  Plataforma operacional
+                </span>
+
+                <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
+                  Inteligência educacional
+                </span>
+              </div>
+
+              <p className="mt-7 text-xs font-bold uppercase tracking-[0.22em] text-cyan-300 sm:text-sm">
+                EduData IA
               </p>
 
-              <h1 className="text-4xl font-bold leading-tight text-[#0A3A5E] md:text-6xl">
-                Um único ecossistema, um único motor de inteligência,
-                múltiplos produtos especializados.
+              <h1 className="mt-4 max-w-4xl text-4xl font-bold leading-[1.06] tracking-tight text-white sm:text-5xl lg:text-6xl">
+                Um único ecossistema, um único motor de inteligência, múltiplos produtos especializados.
               </h1>
 
-              <p className="max-w-2xl text-xl leading-9 text-slate-600">
-                A EduData IA integra Framework EDI, EDI Intelligence Engine,
-                formação continuada, desenvolvimento profissional, gestão
-                pedagógica, analytics e governança educacional em uma única
+              <p className="mt-6 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
+                A EduData IA integra formação, desenvolvimento
+                profissional, gestão pedagógica, evidências, dados,
+                analytics e governança educacional em uma única
                 plataforma.
               </p>
 
-              <div className="flex flex-wrap gap-4">
-                <a
-                  href="#framework"
-                  className="rounded-full bg-[#0A3A5E] px-7 py-4 font-semibold text-white transition hover:opacity-90"
-                >
-                  Conheça o Framework EDI
-                </a>
+              <p className="mt-4 max-w-3xl text-base leading-7 text-slate-400">
+                O Framework EDI orienta a plataforma. O EIOS conecta
+                identidade, dados, segurança, inteligência e produtos
+                especializados.
+              </p>
 
-                <a
-                  href="#academy"
-                  className="rounded-full border border-[#1B6B3A] px-7 py-4 font-semibold text-[#1B6B3A] transition hover:bg-[#1B6B3A] hover:text-white"
-                >
-                  EduData Academy
-                </a>
+              <section
+                aria-label="Acessos principais da EduData IA"
+                className="mt-9 grid gap-3 md:grid-cols-3"
+              >
+                {heroActions.map(
+                  (action) => (
+                    <Link
+                      key={action.code}
+                      href={action.href}
+                      className={`group flex min-h-40 flex-col justify-between rounded-xl border p-5 transition ${
+                        action.primary
+                          ? 'border-cyan-300/30 bg-[#0B7491] text-white hover:bg-[#09657E]'
+                          : 'border-white/15 bg-white/[0.04] text-white hover:border-cyan-300/30 hover:bg-white/[0.08]'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <span
+                          className={`font-mono text-xs font-bold ${
+                            action.primary
+                              ? 'text-cyan-100'
+                              : 'text-cyan-300'
+                          }`}
+                        >
+                          {action.code}
+                        </span>
 
-                <a
-                  href="#ecossistema"
-                  className="rounded-full border border-[#5C1A8C] px-7 py-4 font-semibold text-[#5C1A8C] transition hover:bg-[#5C1A8C] hover:text-white"
-                >
-                  Ver Ecossistema
-                </a>
-              </div>
+                        <span
+                          aria-hidden="true"
+                          className="text-cyan-300 transition group-hover:translate-x-1"
+                        >
+                          →
+                        </span>
+                      </div>
+
+                      <div className="mt-6">
+                        <h2 className="font-bold leading-6">
+                          {action.title}
+                        </h2>
+
+                        <p
+                          className={`mt-2 text-sm leading-6 ${
+                            action.primary
+                              ? 'text-cyan-50'
+                              : 'text-slate-300'
+                          }`}
+                        >
+                          {action.description}
+                        </p>
+                      </div>
+                    </Link>
+                  ),
+                )}
+              </section>
             </div>
 
-            <div className="relative hidden md:block">
-              <div className="absolute -left-10 top-8 h-28 w-28 clip-polygon-triangle bg-[#0A3A5E]/15" />
-              <div className="absolute right-10 top-28 h-24 w-24 clip-polygon-diamond bg-[#1B6B3A]/15" />
-              <div className="absolute bottom-4 left-32 h-28 w-28 clip-polygon-hexagon bg-[#5C1A8C]/15" />
-
-              <div className="rounded-[2rem] border border-white/70 bg-white/70 p-10 shadow-xl backdrop-blur">
-                <p className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">
-                  EduData IA Platform
+            <aside className="overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/10">
+              <header className="border-b border-white/10 px-5 py-5 sm:px-7">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">
+                  Arquitetura oficial
                 </p>
 
-                <h2 className="text-4xl font-bold leading-tight text-slate-950">
-                  Framework EDI.
-                  <br />
-                  EDI Intelligence Engine.
-                  <br />
-                  Produtos integrados.
+                <h2 className="mt-2 text-2xl font-bold text-white">
+                  Uma plataforma, uma base compartilhada.
                 </h2>
 
-                <p className="mt-6 text-lg leading-8 text-slate-600">
-                  Uma arquitetura educacional modular em que todos os produtos
-                  compartilham o mesmo motor de inteligência, o mesmo core
-                  tecnológico e a mesma base metodológica.
+                <p className="mt-2 text-sm leading-6 text-slate-300">
+                  Todos os produtos compartilham os mesmos princípios,
+                  serviços e estruturas essenciais.
                 </p>
+              </header>
+
+              <div className="divide-y divide-white/10">
+                {architectureLayers.map(
+                  (layer) => (
+                    <article
+                      key={layer.code}
+                      className="grid grid-cols-[40px_minmax(0,1fr)] gap-4 px-5 py-5 sm:px-7"
+                    >
+                      <span className="font-mono text-xs font-bold text-cyan-300">
+                        {layer.code}
+                      </span>
+
+                      <div>
+                        <h3 className="font-bold text-white">
+                          {layer.title}
+                        </h3>
+
+                        <p className="mt-1 text-sm leading-6 text-slate-300">
+                          {layer.description}
+                        </p>
+                      </div>
+                    </article>
+                  ),
+                )}
               </div>
-            </div>
+
+              <footer className="border-t border-cyan-300/20 bg-cyan-300/10 px-5 py-5 sm:px-7">
+                <p className="text-sm font-semibold leading-6 text-cyan-100">
+                  Framework EDI → EIOS → Core compartilhado → Produtos
+                </p>
+              </footer>
+            </aside>
           </div>
         </section>
 
         <ManifestoEDI />
+
         <FrameworkEDI />
+
         <EngineSection />
+
         <PlatformArchitecture />
+
         <EcosystemProducts />
+
         <ClientsSection />
+
         <EcossistemaFlow />
+
         <ProfessorDigital />
+
         <AgendaInteligente />
+
         <ComeceHoje />
+
         <EduDataAnalytics />
+
         <SGPA />
+
         <EduDataAcademy />
+
         <Consultorias />
+
         <AreasAtuacao />
+
         <EduDataInsights />
+
         <SolucoesEscolas />
+
         <SobreEduData />
+
         <Participacao />
       </main>
 
