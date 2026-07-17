@@ -8,10 +8,14 @@ import {
   PlatformNavigation,
 } from '@/components/platform/PlatformNavigation'
 
+const PUBLIC_PRODUCT_ROUTES = [
+  '/agenda',
+  '/professor-digital',
+] as const
+
 const EXACT_PRIVATE_ROUTES = [
   '/portal',
   '/perfil',
-  '/professor-digital',
   '/organizations',
   '/schools',
   '/backoffice',
@@ -32,6 +36,15 @@ const PRIVATE_ROUTE_PREFIXES = [
   '/sgpa/',
   '/agenda/',
 ] as const
+
+function isPublicProductRoute(
+  pathname: string,
+): boolean {
+  return PUBLIC_PRODUCT_ROUTES.some(
+    (route) =>
+      pathname === route,
+  )
+}
 
 function isPrivateRoute(
   pathname: string,
@@ -58,18 +71,26 @@ export default function PlatformNavigationGate() {
     usePathname()
 
   /*
-   * /agenda é a página pública de apresentação
-   * do produto.
+   * Páginas públicas de apresentação:
    *
-   * Os módulos operacionais privados começam em:
+   * /agenda
+   * /professor-digital
+   *
+   * Essas páginas apresentam os produtos e não devem
+   * exibir a navegação privada da Central EIOS.
+   *
+   * Os módulos operacionais continuam privados:
+   *
    * /agenda/dashboard
    * /agenda/calendario
    * /agenda/planejamento
    * /agenda/evidencias
-   * e demais rotas internas.
+   * /professor-digital/...
    */
   if (
-    pathname === '/agenda'
+    isPublicProductRoute(
+      pathname,
+    )
   ) {
     return null
   }
