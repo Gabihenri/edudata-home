@@ -39,7 +39,7 @@ type EventsApiResponse = {
   error?: string
 }
 
-type TemplateApiResponse = {
+type BasicApiResponse = {
   success: boolean
   message?: string
   error?: string
@@ -60,6 +60,7 @@ type EventFormData = {
 }
 
 const TIMEZONE = 'America/Sao_Paulo'
+const MAX_DELETION_REASON_LENGTH = 500
 
 const timePresets = [
   {
@@ -168,7 +169,6 @@ function getWeekdayFromDateInput(
   dateInput: string,
 ): number {
   const date = parseDateInput(dateInput)
-
   const weekday = date.getDay()
 
   return weekday === 0 ? 7 : weekday
@@ -256,26 +256,33 @@ function createInitialForm(
     description: '',
     eventType: 'pedagogico',
     priority: 'media',
-
     startAt: `${weekReference}T14:20`,
     endAt: `${weekReference}T15:10`,
-
     scheduleMode,
     recurrenceInterval: '1',
-
     recurrenceUntil:
       addWeeksToDateInput(
         weekReference,
         8,
       ),
-
     saveAsTemplate: false,
-
     templateValidUntil:
       addWeeksToDateInput(
         weekReference,
         16,
       ),
+  }
+}
+
+async function readJsonResponse<T>(
+  response: Response,
+): Promise<T> {
+  try {
+    return (await response.json()) as T
+  } catch {
+    throw new Error(
+      'A resposta do servidor é inválida.',
+    )
   }
 }
 
@@ -314,6 +321,11 @@ export default function AgendaCalendarPage() {
   const [isSaving, setIsSaving] =
     useState(false)
 
+  const [
+    deletingEventId,
+    setDeletingEventId,
+  ] = useState<string | null>(null)
+
   const [errorMessage, setErrorMessage] =
     useState('')
 
@@ -327,6 +339,12 @@ export default function AgendaCalendarPage() {
     templatesRefreshKey,
     setTemplatesRefreshKey,
   ] = useState(0)
+
+  const clearMessages = useCallback(() => {
+    setErrorMessage('')
+    setSuccessMessage('')
+    setWarningMessage('')
+  }, [])
 
   const loadEvents = useCallback(
     async () => {
@@ -346,7 +364,9 @@ export default function AgendaCalendarPage() {
         )
 
         const result =
-          (await response.json()) as EventsApiResponse
+          await readJsonResponse<EventsApiResponse>(
+            response,
+          )
 
         if (
           !response.ok ||
@@ -395,9 +415,7 @@ export default function AgendaCalendarPage() {
     weekReference: string,
   ) {
     setSelectedWeek(weekReference)
-    setErrorMessage('')
-    setSuccessMessage('')
-    setWarningMessage('')
+    clearMessages()
   }
 
   function selectCurrentWeek() {
@@ -434,13 +452,8 @@ export default function AgendaCalendarPage() {
       ),
     )
 
-    setSelectedPreset(
-      '14:20|15:10',
-    )
-
-    setErrorMessage('')
-    setSuccessMessage('')
-    setWarningMessage('')
+    setSelectedPreset('14:20|15:10')
+    clearMessages()
     setShowForm(true)
 
     window.setTimeout(() => {
@@ -451,9 +464,7 @@ export default function AgendaCalendarPage() {
     }, 50)
   }
 
-  function applyTimePreset(
-    value: string,
-  ) {
+  function applyTimePreset(value: string) {
     setSelectedPreset(value)
 
     if (value === 'custom') {
@@ -471,7 +482,6 @@ export default function AgendaCalendarPage() {
       ...current,
       startAt:
         `${selectedDate}T${startTime}`,
-
       endAt:
         `${selectedDate}T${endTime}`,
     }))
@@ -494,40 +504,29 @@ export default function AgendaCalendarPage() {
       {
         method: 'POST',
         credentials: 'include',
-
         headers: {
           'Content-Type':
             'application/json',
         },
-
         body: JSON.stringify({
           title:
             formData.title.trim(),
-
           description:
             formData.description.trim() ||
             null,
-
           eventType:
             formData.eventType,
-
           priority:
             formData.priority,
-
           weekday:
             getWeekdayFromDateInput(
               eventDate,
             ),
-
           startTime,
           endTime,
-
           timezone: TIMEZONE,
-
           repeatIntervalWeeks: 1,
-
           validFrom: eventDate,
-
           validUntil:
             formData.templateValidUntil ||
             null,
@@ -536,7 +535,9 @@ export default function AgendaCalendarPage() {
     )
 
     const result =
-      (await response.json()) as TemplateApiResponse
+      await readJsonResponse<BasicApiResponse>(
+        response,
+      )
 
     if (
       !response.ok ||
@@ -562,16 +563,12 @@ export default function AgendaCalendarPage() {
     event: FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault()
-
-    setErrorMessage('')
-    setSuccessMessage('')
-    setWarningMessage('')
+    clearMessages()
 
     if (!formData.title.trim()) {
       setErrorMessage(
         'Informe o título do evento.',
       )
-
       return
     }
 
@@ -579,7 +576,6 @@ export default function AgendaCalendarPage() {
       setErrorMessage(
         'Informe a data e o horário inicial.',
       )
-
       return
     }
 
@@ -597,7 +593,6 @@ export default function AgendaCalendarPage() {
       setErrorMessage(
         'A data inicial é inválida.',
       )
-
       return
     }
 
@@ -608,7 +603,6 @@ export default function AgendaCalendarPage() {
       setErrorMessage(
         'A data final é inválida.',
       )
-
       return
     }
 
@@ -620,7 +614,6 @@ export default function AgendaCalendarPage() {
       setErrorMessage(
         'O término precisa ser posterior ao início.',
       )
-
       return
     }
 
@@ -632,7 +625,6 @@ export default function AgendaCalendarPage() {
       setErrorMessage(
         'Informe até quando o horário deverá se repetir.',
       )
-
       return
     }
 
@@ -645,7 +637,6 @@ export default function AgendaCalendarPage() {
       setErrorMessage(
         'A repetição não pode terminar antes do primeiro evento.',
       )
-
       return
     }
 
@@ -658,7 +649,6 @@ export default function AgendaCalendarPage() {
       setErrorMessage(
         'A vigência do horário-padrão não pode terminar antes do primeiro evento.',
       )
-
       return
     }
 
@@ -670,45 +660,34 @@ export default function AgendaCalendarPage() {
         {
           method: 'POST',
           credentials: 'include',
-
           headers: {
             'Content-Type':
               'application/json',
           },
-
           body: JSON.stringify({
             title:
               formData.title.trim(),
-
             description:
               formData.description.trim() ||
               null,
-
             eventType:
               formData.eventType,
-
             priority:
               formData.priority,
-
             startAt:
               startDate.toISOString(),
-
             endAt:
               endDate
                 ? endDate.toISOString()
                 : null,
-
             status: 'planejado',
-
             scheduleMode:
               formData.scheduleMode,
-
             recurrenceFrequency:
               formData.scheduleMode ===
               'recorrente'
                 ? 'weekly'
                 : 'none',
-
             recurrenceInterval:
               formData.scheduleMode ===
               'recorrente'
@@ -716,7 +695,6 @@ export default function AgendaCalendarPage() {
                     formData.recurrenceInterval,
                   )
                 : 1,
-
             recurrenceUntil:
               formData.scheduleMode ===
               'recorrente'
@@ -727,7 +705,9 @@ export default function AgendaCalendarPage() {
       )
 
       const result =
-        (await response.json()) as EventsApiResponse
+        await readJsonResponse<EventsApiResponse>(
+          response,
+        )
 
       if (
         !response.ok ||
@@ -792,6 +772,109 @@ export default function AgendaCalendarPage() {
     }
   }
 
+  async function handleDeleteEvent(
+    agendaEvent: AgendaEvent,
+  ) {
+    clearMessages()
+
+    const reason = window.prompt(
+      `Informe o motivo da exclusão de "${agendaEvent.title}".`,
+    )
+
+    if (reason === null) {
+      return
+    }
+
+    const normalizedReason =
+      reason.trim()
+
+    if (!normalizedReason) {
+      setErrorMessage(
+        'O motivo da exclusão é obrigatório.',
+      )
+      return
+    }
+
+    if (
+      normalizedReason.length >
+      MAX_DELETION_REASON_LENGTH
+    ) {
+      setErrorMessage(
+        `O motivo da exclusão não pode ultrapassar ${MAX_DELETION_REASON_LENGTH} caracteres.`,
+      )
+      return
+    }
+
+    const confirmed = window.confirm(
+      `Confirmar a exclusão de "${agendaEvent.title}"?\n\nO evento sairá da agenda, mas permanecerá preservado no histórico institucional.`,
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    setDeletingEventId(
+      agendaEvent.id,
+    )
+
+    try {
+      const response = await fetch(
+        `/api/agenda/events/${encodeURIComponent(
+          agendaEvent.id,
+        )}`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: {
+            'Content-Type':
+              'application/json',
+          },
+          body: JSON.stringify({
+            reason:
+              normalizedReason,
+          }),
+        },
+      )
+
+      const result =
+        await readJsonResponse<BasicApiResponse>(
+          response,
+        )
+
+      if (
+        !response.ok ||
+        !result.success
+      ) {
+        throw new Error(
+          result.error ??
+            'Não foi possível excluir o evento.',
+        )
+      }
+
+      setEvents(
+        (currentEvents) =>
+          currentEvents.filter(
+            (currentEvent) =>
+              currentEvent.id !==
+              agendaEvent.id,
+          ),
+      )
+
+      setSuccessMessage(
+        result.message ??
+          'Evento excluído com sucesso.',
+      )
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível excluir o evento.',
+      )
+    } finally {
+      setDeletingEventId(null)
+    }
+  }
+
   return (
     <AgendaPageShell
       eyebrow="Agenda Inteligente EDI"
@@ -817,7 +900,7 @@ export default function AgendaCalendarPage() {
               <button
                 type="button"
                 onClick={selectCurrentWeek}
-                className="inline-flex min-h-[50px] items-center justify-center rounded-full border-2 border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-[#6B21A8] hover:text-[#6B21A8]"
+                className="inline-flex min-h-[50px] items-center justify-center rounded-full border-2 border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-cyan-500 hover:text-cyan-700"
               >
                 Semana atual
               </button>
@@ -825,7 +908,7 @@ export default function AgendaCalendarPage() {
               <button
                 type="button"
                 onClick={selectNextWeek}
-                className="inline-flex min-h-[50px] items-center justify-center rounded-full bg-[#6B21A8] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#581C87]"
+                className="inline-flex min-h-[50px] items-center justify-center rounded-full bg-[#0B7491] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#075E77]"
               >
                 Planejar próxima semana
               </button>
@@ -855,7 +938,7 @@ export default function AgendaCalendarPage() {
                 )
               }
               aria-label="Selecionar semana"
-              className="min-h-[52px] w-full rounded-2xl border border-slate-300 bg-white px-4 font-semibold text-slate-700 outline-none transition focus:border-[#6B21A8] focus:ring-2 focus:ring-purple-200"
+              className="min-h-[52px] w-full rounded-2xl border border-slate-300 bg-white px-4 font-semibold text-slate-700 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
             />
 
             <button
@@ -875,9 +958,9 @@ export default function AgendaCalendarPage() {
             onClick={() =>
               openEventForm('pontual')
             }
-            className="rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-md"
+            className="rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-md"
           >
-            <span className="inline-flex rounded-full bg-purple-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[#6B21A8]">
+            <span className="inline-flex rounded-full bg-cyan-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-cyan-800">
               Pontual
             </span>
 
@@ -895,9 +978,9 @@ export default function AgendaCalendarPage() {
             onClick={() =>
               openEventForm('recorrente')
             }
-            className="rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-md"
+            className="rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-md"
           >
-            <span className="inline-flex rounded-full bg-cyan-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-cyan-800">
+            <span className="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-sky-800">
               Semanal
             </span>
 
@@ -922,7 +1005,7 @@ export default function AgendaCalendarPage() {
                 })
               }, 100)
             }}
-            className="rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-md"
+            className="rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-md"
           >
             <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-emerald-800">
               Antecipado
@@ -1019,7 +1102,7 @@ export default function AgendaCalendarPage() {
                 onClick={() =>
                   openEventForm('pontual')
                 }
-                className="mt-6 inline-flex min-h-[52px] items-center justify-center rounded-full bg-[#6B21A8] px-7 py-3 font-semibold text-white transition hover:bg-[#581C87]"
+                className="mt-6 inline-flex min-h-[52px] items-center justify-center rounded-full bg-[#0B7491] px-7 py-3 font-semibold text-white transition hover:bg-[#075E77]"
               >
                 Adicionar primeiro evento
               </button>
@@ -1044,7 +1127,7 @@ export default function AgendaCalendarPage() {
                       </span>
                     ) : agendaEvent.schedule_mode ===
                       'recorrente' ? (
-                      <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[#6B21A8]">
+                      <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-sky-800">
                         Semanal
                       </span>
                     ) : (
@@ -1103,6 +1186,27 @@ export default function AgendaCalendarPage() {
                       </dd>
                     </div>
                   </dl>
+
+                  <div className="mt-6 border-t border-slate-200 pt-5">
+                    <button
+                      type="button"
+                      disabled={
+                        deletingEventId ===
+                        agendaEvent.id
+                      }
+                      onClick={() =>
+                        void handleDeleteEvent(
+                          agendaEvent,
+                        )
+                      }
+                      className="inline-flex min-h-[46px] w-full items-center justify-center rounded-full border border-red-200 bg-white px-5 py-2 text-sm font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                    >
+                      {deletingEventId ===
+                      agendaEvent.id
+                        ? 'Excluindo...'
+                        : 'Excluir evento'}
+                    </button>
+                  </div>
                 </article>
               ))}
             </div>
@@ -1116,7 +1220,7 @@ export default function AgendaCalendarPage() {
           >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#6B21A8]">
+                <p className="text-sm font-bold uppercase tracking-[0.2em] text-cyan-700">
                   {formData.scheduleMode ===
                   'recorrente'
                     ? 'Evento semanal'
@@ -1167,7 +1271,7 @@ export default function AgendaCalendarPage() {
                     )
                   }
                   placeholder="Ex.: Planejamento semanal"
-                  className="min-h-[54px] w-full rounded-2xl border border-slate-300 bg-white px-4 text-slate-900 outline-none transition focus:border-[#6B21A8] focus:ring-2 focus:ring-purple-200"
+                  className="min-h-[54px] w-full rounded-2xl border border-slate-300 bg-white px-4 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
                 />
               </div>
 
@@ -1190,7 +1294,7 @@ export default function AgendaCalendarPage() {
                     )
                   }
                   placeholder="Descreva a ação pedagógica."
-                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-4 text-slate-900 outline-none transition focus:border-[#6B21A8] focus:ring-2 focus:ring-purple-200"
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-4 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
                 />
               </div>
 
@@ -1212,7 +1316,7 @@ export default function AgendaCalendarPage() {
                         event.target.value,
                       )
                     }
-                    className="min-h-[54px] w-full rounded-2xl border border-slate-300 bg-white px-4 text-slate-900 outline-none transition focus:border-[#6B21A8] focus:ring-2 focus:ring-purple-200"
+                    className="min-h-[54px] w-full rounded-2xl border border-slate-300 bg-white px-4 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
                   >
                     <option value="pedagogico">
                       Pedagógico
@@ -1258,7 +1362,7 @@ export default function AgendaCalendarPage() {
                         event.target.value,
                       )
                     }
-                    className="min-h-[54px] w-full rounded-2xl border border-slate-300 bg-white px-4 text-slate-900 outline-none transition focus:border-[#6B21A8] focus:ring-2 focus:ring-purple-200"
+                    className="min-h-[54px] w-full rounded-2xl border border-slate-300 bg-white px-4 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
                   >
                     <option value="baixa">
                       Baixa
@@ -1292,7 +1396,7 @@ export default function AgendaCalendarPage() {
                       event.target.value,
                     )
                   }
-                  className="min-h-[54px] w-full rounded-2xl border border-slate-300 bg-white px-4 text-slate-900 outline-none transition focus:border-[#6B21A8] focus:ring-2 focus:ring-purple-200"
+                  className="min-h-[54px] w-full rounded-2xl border border-slate-300 bg-white px-4 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
                 >
                   {timePresets.map(
                     (preset) => (
@@ -1326,12 +1430,9 @@ export default function AgendaCalendarPage() {
                         'startAt',
                         event.target.value,
                       )
-
-                      setSelectedPreset(
-                        'custom',
-                      )
+                      setSelectedPreset('custom')
                     }}
-                    className="min-h-[54px] w-full rounded-2xl border border-slate-300 bg-white px-4 text-slate-900 outline-none transition focus:border-[#6B21A8] focus:ring-2 focus:ring-purple-200"
+                    className="min-h-[54px] w-full rounded-2xl border border-slate-300 bg-white px-4 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
                   />
                 </div>
 
@@ -1356,12 +1457,9 @@ export default function AgendaCalendarPage() {
                         'endAt',
                         event.target.value,
                       )
-
-                      setSelectedPreset(
-                        'custom',
-                      )
+                      setSelectedPreset('custom')
                     }}
-                    className="min-h-[54px] w-full rounded-2xl border border-slate-300 bg-white px-4 text-slate-900 outline-none transition focus:border-[#6B21A8] focus:ring-2 focus:ring-purple-200"
+                    className="min-h-[54px] w-full rounded-2xl border border-slate-300 bg-white px-4 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
                   />
                 </div>
               </div>
@@ -1377,7 +1475,7 @@ export default function AgendaCalendarPage() {
                       'cursor-pointer rounded-3xl border-2 p-5 transition',
                       formData.scheduleMode ===
                       'pontual'
-                        ? 'border-[#6B21A8] bg-purple-50'
+                        ? 'border-cyan-500 bg-cyan-50'
                         : 'border-slate-200 bg-white hover:border-slate-300',
                     ].join(' ')}
                   >
@@ -1415,7 +1513,7 @@ export default function AgendaCalendarPage() {
                       'cursor-pointer rounded-3xl border-2 p-5 transition',
                       formData.scheduleMode ===
                       'recorrente'
-                        ? 'border-[#6B21A8] bg-purple-50'
+                        ? 'border-cyan-500 bg-cyan-50'
                         : 'border-slate-200 bg-white hover:border-slate-300',
                     ].join(' ')}
                   >
@@ -1454,7 +1552,7 @@ export default function AgendaCalendarPage() {
 
               {formData.scheduleMode ===
               'recorrente' ? (
-                <div className="grid gap-5 rounded-3xl border border-purple-200 bg-purple-50 p-5 md:grid-cols-2">
+                <div className="grid gap-5 rounded-3xl border border-cyan-200 bg-cyan-50 p-5 md:grid-cols-2">
                   <div>
                     <label
                       htmlFor="recurrence-interval"
@@ -1474,7 +1572,7 @@ export default function AgendaCalendarPage() {
                           event.target.value,
                         )
                       }
-                      className="min-h-[54px] w-full rounded-2xl border border-purple-200 bg-white px-4 text-slate-900 outline-none transition focus:border-[#6B21A8] focus:ring-2 focus:ring-purple-200"
+                      className="min-h-[54px] w-full rounded-2xl border border-cyan-200 bg-white px-4 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
                     >
                       <option value="1">
                         Toda semana
@@ -1518,7 +1616,7 @@ export default function AgendaCalendarPage() {
                           event.target.value,
                         )
                       }
-                      className="min-h-[54px] w-full rounded-2xl border border-purple-200 bg-white px-4 text-slate-900 outline-none transition focus:border-[#6B21A8] focus:ring-2 focus:ring-purple-200"
+                      className="min-h-[54px] w-full rounded-2xl border border-cyan-200 bg-white px-4 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
                     />
                   </div>
                 </div>
@@ -1539,7 +1637,7 @@ export default function AgendaCalendarPage() {
                           }),
                         )
                       }
-                      className="mt-1 h-5 w-5 shrink-0 accent-[#6B21A8]"
+                      className="mt-1 h-5 w-5 shrink-0 accent-[#0B7491]"
                     />
 
                     <span>
@@ -1580,7 +1678,7 @@ export default function AgendaCalendarPage() {
                             event.target.value,
                           )
                         }
-                        className="min-h-[54px] w-full rounded-2xl border border-emerald-200 bg-white px-4 text-slate-900 outline-none transition focus:border-[#6B21A8] focus:ring-2 focus:ring-purple-200"
+                        className="min-h-[54px] w-full rounded-2xl border border-emerald-200 bg-white px-4 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
                       />
                     </div>
                   ) : null}
@@ -1600,7 +1698,7 @@ export default function AgendaCalendarPage() {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="inline-flex min-h-[56px] items-center justify-center rounded-full bg-[#6B21A8] px-7 py-4 font-semibold text-white transition hover:bg-[#581C87] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex min-h-[56px] items-center justify-center rounded-full bg-[#0B7491] px-7 py-4 font-semibold text-white transition hover:bg-[#075E77] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSaving
                     ? 'Salvando...'
