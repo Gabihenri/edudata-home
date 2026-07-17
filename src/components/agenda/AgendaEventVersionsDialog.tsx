@@ -1,8 +1,6 @@
 'use client'
 
-import {
-  useEffect,
-} from 'react'
+import { useEffect } from 'react'
 
 import { useEventVersions } from '@/lib/agenda/hooks/useEventVersions'
 
@@ -17,129 +15,137 @@ type AgendaEventVersionsDialogProps = {
   onClose: () => void
 }
 
-const actionLabels:
-  Record<
-    AgendaEventAuditAction,
-    string
-  > = {
-    create: 'Criação',
-    update: 'Alteração',
-    delete: 'Exclusão',
-    restore: 'Restauração',
-  }
+const actionLabels: Record<
+  AgendaEventAuditAction,
+  string
+> = {
+  create: 'Criação',
+  update: 'Alteração',
+  delete: 'Exclusão',
+  restore: 'Restauração',
+}
 
-const actionDescriptions:
-  Record<
-    AgendaEventAuditAction,
-    string
-  > = {
-    create:
-      'O evento foi criado.',
+const actionDescriptions: Record<
+  AgendaEventAuditAction,
+  string
+> = {
+  create: 'O evento foi criado.',
+  update:
+    'Os dados do evento foram alterados.',
+  delete:
+    'O evento foi excluído de forma governada.',
+  restore:
+    'O evento foi restaurado de forma governada.',
+}
 
-    update:
-      'Os dados do evento foram alterados.',
+const actionClasses: Record<
+  AgendaEventAuditAction,
+  string
+> = {
+  create:
+    'border-cyan-200 bg-cyan-50 text-cyan-900',
 
-    delete:
-      'O evento foi excluído de forma governada.',
+  update:
+    'border-blue-200 bg-blue-50 text-blue-900',
 
-    restore:
-      'O evento foi restaurado de forma governada.',
-  }
+  delete:
+    'border-amber-200 bg-amber-50 text-amber-950',
 
-const actionClasses:
-  Record<
-    AgendaEventAuditAction,
-    string
-  > = {
-    create:
-      'border-cyan-200 bg-cyan-50 text-cyan-900',
+  restore:
+    'border-emerald-200 bg-emerald-50 text-emerald-900',
+}
 
-    update:
-      'border-blue-200 bg-blue-50 text-blue-900',
+const actionBadgeClasses: Record<
+  AgendaEventAuditAction,
+  string
+> = {
+  create:
+    'bg-cyan-100 text-cyan-900',
 
-    delete:
-      'border-amber-200 bg-amber-50 text-amber-950',
+  update:
+    'bg-blue-100 text-blue-900',
 
-    restore:
-      'border-emerald-200 bg-emerald-50 text-emerald-900',
-  }
+  delete:
+    'bg-amber-100 text-amber-950',
 
-const actionBadgeClasses:
-  Record<
-    AgendaEventAuditAction,
-    string
-  > = {
-    create:
-      'bg-cyan-100 text-cyan-900',
+  restore:
+    'bg-emerald-100 text-emerald-900',
+}
 
-    update:
-      'bg-blue-100 text-blue-900',
+const fieldLabels: Record<
+  string,
+  string
+> = {
+  title: 'Título',
+  description: 'Descrição',
+  event_type: 'Tipo do evento',
 
-    delete:
-      'bg-amber-100 text-amber-950',
+  start_at:
+    'Data e hora de início',
 
-    restore:
-      'bg-emerald-100 text-emerald-900',
-  }
+  end_at:
+    'Data e hora de término',
 
-const fieldLabels:
-  Record<string, string> = {
-    title: 'Título',
-    description: 'Descrição',
-    event_type: 'Tipo do evento',
+  status: 'Status',
+  priority: 'Prioridade',
 
-    start_at: 'Data e hora de início',
-    end_at: 'Data e hora de término',
+  organization_id:
+    'Organização',
 
-    status: 'Status',
-    priority: 'Prioridade',
+  school_id: 'Escola',
+  user_id: 'Proprietário',
 
-    organization_id: 'Organização',
-    school_id: 'Escola',
-    user_id: 'Proprietário',
+  planning_id:
+    'Planejamento relacionado',
 
-    planning_id: 'Planejamento relacionado',
-    evidence_id: 'Evidência relacionada',
+  evidence_id:
+    'Evidência relacionada',
 
-    schedule_mode: 'Modo de agendamento',
+  schedule_mode:
+    'Modo de agendamento',
 
-    recurrence_frequency:
-      'Frequência da recorrência',
+  recurrence_frequency:
+    'Frequência da recorrência',
 
-    recurrence_interval:
-      'Intervalo da recorrência',
+  recurrence_interval:
+    'Intervalo da recorrência',
 
-    recurrence_until:
-      'Término da recorrência',
+  recurrence_until:
+    'Término da recorrência',
 
-    series_id: 'Série recorrente',
-    source_template_id: 'Modelo de origem',
+  series_id:
+    'Série recorrente',
 
-    week_reference:
-      'Semana de referência',
+  source_template_id:
+    'Modelo de origem',
 
-    original_start_at:
-      'Data original',
+  week_reference:
+    'Semana de referência',
 
-    is_exception:
-      'Exceção da recorrência',
+  original_start_at:
+    'Data original',
 
-    deleted_at: 'Data da exclusão',
-    deleted_by:
-      'Responsável pela exclusão',
+  is_exception:
+    'Exceção da recorrência',
 
-    deletion_reason:
-      'Motivo da exclusão',
+  deleted_at:
+    'Data da exclusão',
 
-    restored_at:
-      'Data da restauração',
+  deleted_by:
+    'Responsável pela exclusão',
 
-    restored_by:
-      'Responsável pela restauração',
+  deletion_reason:
+    'Motivo da exclusão',
 
-    restore_reason:
-      'Motivo da restauração',
-  }
+  restored_at:
+    'Data da restauração',
+
+  restored_by:
+    'Responsável pela restauração',
+
+  restore_reason:
+    'Motivo da restauração',
+}
 
 const DATE_FIELDS =
   new Set<string>([
@@ -200,12 +206,16 @@ function formatFieldName(
 function formatIdentifier(
   value: string,
 ): string {
-  return value.length > 18
-    ? `${value.slice(
-        0,
-        8,
-      )}…${value.slice(-6)}`
-    : value
+  if (
+    value.length <= 18
+  ) {
+    return value
+  }
+
+  return `${value.slice(
+    0,
+    8,
+  )}…${value.slice(-6)}`
 }
 
 function formatValue(
@@ -221,7 +231,8 @@ function formatValue(
   }
 
   if (
-    typeof value === 'boolean'
+    typeof value ===
+    'boolean'
   ) {
     return value
       ? 'Sim'
@@ -229,16 +240,20 @@ function formatValue(
   }
 
   if (
-    typeof value === 'number'
+    typeof value ===
+    'number'
   ) {
     return String(value)
   }
 
   if (
-    typeof value === 'string'
+    typeof value ===
+    'string'
   ) {
     if (
-      DATE_FIELDS.has(field)
+      DATE_FIELDS.has(
+        field,
+      )
     ) {
       return formatDateTime(
         value,
@@ -246,8 +261,12 @@ function formatValue(
     }
 
     if (
-      field.endsWith('_id') ||
-      field.endsWith('_by')
+      field.endsWith(
+        '_id',
+      ) ||
+      field.endsWith(
+        '_by',
+      )
     ) {
       return formatIdentifier(
         value,
@@ -281,23 +300,41 @@ function getActorReference(
 }
 
 function getChangeDescription(
-  changes: AgendaEventAuditChange[],
+  changes:
+    AgendaEventAuditChange[],
 ): string {
-  if (changes.length === 0) {
+  if (
+    changes.length === 0
+  ) {
     return 'Nenhuma diferença de campo foi disponibilizada para esta operação.'
   }
 
-  if (changes.length === 1) {
+  if (
+    changes.length === 1
+  ) {
     return '1 campo alterado'
   }
 
   return `${changes.length} campos alterados`
 }
 
+function getOperationCountLabel(
+  total: number,
+): string {
+  if (
+    total === 1
+  ) {
+    return '1 operação'
+  }
+
+  return `${total} operações`
+}
+
 function ChangeItem({
   change,
 }: {
-  change: AgendaEventAuditChange
+  change:
+    AgendaEventAuditChange
 }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -368,14 +405,60 @@ export function AgendaEventVersionsDialog({
   ])
 
   useEffect(() => {
-    const previousOverflow =
-      document.body.style.overflow
+    const body =
+      document.body
 
-    document.body.style.overflow =
+    const currentScrollY =
+      window.scrollY
+
+    const previousOverflow =
+      body.style.overflow
+
+    const previousPosition =
+      body.style.position
+
+    const previousTop =
+      body.style.top
+
+    const previousWidth =
+      body.style.width
+
+    body.style.overflow =
       'hidden'
 
+    body.style.position =
+      'fixed'
+
+    body.style.top =
+      `-${currentScrollY}px`
+
+    body.style.width =
+      '100%'
+
+    return () => {
+      body.style.overflow =
+        previousOverflow
+
+      body.style.position =
+        previousPosition
+
+      body.style.top =
+        previousTop
+
+      body.style.width =
+        previousWidth
+
+      window.scrollTo(
+        0,
+        currentScrollY,
+      )
+    }
+  }, [])
+
+  useEffect(() => {
     function handleKeyDown(
-      keyboardEvent: KeyboardEvent,
+      keyboardEvent:
+        KeyboardEvent,
     ): void {
       if (
         keyboardEvent.key ===
@@ -391,9 +474,6 @@ export function AgendaEventVersionsDialog({
     )
 
     return () => {
-      document.body.style.overflow =
-        previousOverflow
-
       window.removeEventListener(
         'keydown',
         handleKeyDown,
@@ -407,25 +487,38 @@ export function AgendaEventVersionsDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[110] flex items-end justify-center bg-slate-950/75 p-3 sm:items-center sm:p-6"
+      className="fixed inset-0 z-[110] flex h-[100dvh] min-h-0 items-stretch justify-center overflow-hidden bg-slate-950/75 sm:items-center"
+      style={{
+        paddingTop:
+          'max(0.75rem, env(safe-area-inset-top))',
+
+        paddingRight:
+          'max(0.75rem, env(safe-area-inset-right))',
+
+        paddingBottom:
+          'max(0.75rem, env(safe-area-inset-bottom))',
+
+        paddingLeft:
+          'max(0.75rem, env(safe-area-inset-left))',
+      }}
       role="presentation"
     >
       <section
-        className="flex max-h-[94vh] w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl"
+        className="flex h-full min-h-0 w-full max-w-4xl flex-col overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-2xl sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:rounded-[2rem]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="event-versions-title"
       >
-        <header className="shrink-0 bg-[#081C2E] px-5 py-6 text-white sm:px-7">
-          <div className="flex items-start justify-between gap-5">
-            <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-cyan-300">
+        <header className="shrink-0 bg-[#081C2E] px-5 py-5 text-white sm:px-7 sm:py-6">
+          <div className="flex items-start justify-between gap-4 sm:gap-5">
+            <div className="min-w-0 flex-1">
+              <p className="text-[0.7rem] font-bold uppercase tracking-[0.2em] text-cyan-300 sm:text-xs sm:tracking-[0.22em]">
                 Governança e auditoria
               </p>
 
               <h2
                 id="event-versions-title"
-                className="mt-2 text-2xl font-bold sm:text-3xl"
+                className="mt-2 break-words text-2xl font-bold leading-tight sm:text-3xl"
               >
                 Linha do tempo do evento
               </h2>
@@ -440,7 +533,7 @@ export function AgendaEventVersionsDialog({
               onClick={
                 onClose
               }
-              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/20"
+              className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm font-bold text-white transition hover:bg-white/20 sm:min-h-11 sm:px-4"
               aria-label="Fechar linha do tempo"
               autoFocus
             >
@@ -450,11 +543,9 @@ export function AgendaEventVersionsDialog({
 
           <div className="mt-5 flex flex-wrap gap-2">
             <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold text-slate-100">
-              {total}{' '}
-              operação
-              {total === 1
-                ? ''
-                : 'ões'}
+              {getOperationCountLabel(
+                total,
+              )}
             </span>
 
             {event ? (
@@ -473,7 +564,7 @@ export function AgendaEventVersionsDialog({
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 p-5 sm:p-7">
+        <div className="min-h-0 flex-1 overscroll-contain overflow-y-auto bg-slate-50 p-4 sm:p-7">
           {loading ? (
             <div
               className="rounded-2xl border border-cyan-200 bg-cyan-50 p-6 text-cyan-950"
@@ -507,7 +598,8 @@ export function AgendaEventVersionsDialog({
 
           {!loading &&
           !error &&
-          versions.length === 0 ? (
+          versions.length ===
+            0 ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-7 text-slate-600">
               Nenhuma operação de auditoria foi encontrada para este evento.
             </div>
@@ -515,7 +607,8 @@ export function AgendaEventVersionsDialog({
 
           {!loading &&
           !error &&
-          versions.length > 0 ? (
+          versions.length >
+            0 ? (
             <div className="relative space-y-5 before:absolute before:bottom-4 before:left-[1.15rem] before:top-4 before:w-px before:bg-slate-300 sm:before:left-[1.4rem]">
               {versions.map(
                 (
@@ -547,7 +640,7 @@ export function AgendaEventVersionsDialog({
                         ]
                       }`}
                     >
-                      <div className="p-5 sm:p-6">
+                      <div className="p-4 sm:p-6">
                         <div className="flex flex-wrap items-start justify-between gap-4">
                           <div>
                             <span
@@ -622,7 +715,8 @@ export function AgendaEventVersionsDialog({
                           </div>
                         </dl>
 
-                        {version.changes.length >
+                        {version.changes
+                          .length >
                         0 ? (
                           <div className="mt-5 space-y-3">
                             {version.changes.map(
@@ -647,7 +741,7 @@ export function AgendaEventVersionsDialog({
                         )}
 
                         <div className="mt-5 border-t border-slate-900/10 pt-4">
-                          <p className="font-mono text-xs text-slate-600">
+                          <p className="break-all font-mono text-xs text-slate-600">
                             Auditoria:{' '}
                             {formatIdentifier(
                               version.id,
@@ -663,7 +757,7 @@ export function AgendaEventVersionsDialog({
           ) : null}
         </div>
 
-        <footer className="shrink-0 border-t border-slate-200 bg-white px-5 py-4 sm:px-7">
+        <footer className="shrink-0 border-t border-slate-200 bg-white px-4 py-4 sm:px-7">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs leading-5 text-slate-500">
               As operações são preservadas para rastreabilidade e auditoria institucional.
@@ -674,7 +768,7 @@ export function AgendaEventVersionsDialog({
               onClick={
                 onClose
               }
-              className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0A6F8F] px-5 py-3 font-semibold text-white transition hover:bg-[#085A75]"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#0A6F8F] px-5 py-3 font-semibold text-white transition hover:bg-[#085A75] sm:w-auto"
             >
               Voltar ao histórico
             </button>
