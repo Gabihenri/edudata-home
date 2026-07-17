@@ -29,6 +29,11 @@ function normalizeFontSize(
 
 export default function AccessibilityBar() {
   const [
+    initialized,
+    setInitialized,
+  ] = useState(false)
+
+  const [
     open,
     setOpen,
   ] = useState(false)
@@ -84,11 +89,18 @@ export default function AccessibilityBar() {
     }
 
     setHighContrast(
-      savedContrast === 'true',
+      savedContrast ===
+        'true',
     )
+
+    setInitialized(true)
   }, [])
 
   useEffect(() => {
+    if (!initialized) {
+      return
+    }
+
     document.documentElement.style.fontSize =
       `${fontSize}px`
 
@@ -96,9 +108,16 @@ export default function AccessibilityBar() {
       FONT_SIZE_STORAGE_KEY,
       String(fontSize),
     )
-  }, [fontSize])
+  }, [
+    fontSize,
+    initialized,
+  ])
 
   useEffect(() => {
+    if (!initialized) {
+      return
+    }
+
     document.documentElement.style.filter =
       highContrast
         ? 'contrast(1.18)'
@@ -108,7 +127,10 @@ export default function AccessibilityBar() {
       CONTRAST_STORAGE_KEY,
       String(highContrast),
     )
-  }, [highContrast])
+  }, [
+    highContrast,
+    initialized,
+  ])
 
   useEffect(() => {
     return () => {
@@ -172,7 +194,7 @@ export default function AccessibilityBar() {
     void {
     if (
       typeof window ===
-      'undefined' ||
+        'undefined' ||
       !window.speechSynthesis
     ) {
       return
@@ -256,9 +278,7 @@ export default function AccessibilityBar() {
 
     utterance.onstart =
       () => {
-        setSpeaking(
-          true,
-        )
+        setSpeaking(true)
 
         setStatusMessage(
           'Leitura da página iniciada.',
@@ -267,9 +287,7 @@ export default function AccessibilityBar() {
 
     utterance.onend =
       () => {
-        setSpeaking(
-          false,
-        )
+        setSpeaking(false)
 
         setStatusMessage(
           'Leitura da página concluída.',
@@ -278,9 +296,7 @@ export default function AccessibilityBar() {
 
     utterance.onerror =
       () => {
-        setSpeaking(
-          false,
-        )
+        setSpeaking(false)
 
         setStatusMessage(
           'Não foi possível concluir a leitura da página.',
@@ -302,17 +318,13 @@ export default function AccessibilityBar() {
       window.speechSynthesis.cancel()
     }
 
-    setSpeaking(
-      false,
-    )
+    setSpeaking(false)
 
     setFontSize(
       DEFAULT_FONT_SIZE,
     )
 
-    setHighContrast(
-      false,
-    )
+    setHighContrast(false)
 
     setStatusMessage(
       'Configurações de acessibilidade restauradas.',
@@ -320,21 +332,21 @@ export default function AccessibilityBar() {
   }
 
   return (
-    <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] right-4 z-[70] md:bottom-auto md:right-5 md:top-28">
+    <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+12px)] right-3 z-[70] md:bottom-auto md:right-5 md:top-24">
       {open ? (
         <section
           id="accessibility-panel"
           aria-label="Configurações de acessibilidade"
-          className="absolute bottom-14 right-0 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl md:bottom-auto md:top-14"
+          className="absolute bottom-[56px] right-0 w-[min(320px,calc(100vw-24px))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl md:bottom-auto md:top-[56px]"
         >
-          <header className="flex items-start justify-between gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4">
+          <header className="flex items-start justify-between gap-4 border-b border-slate-200 bg-[#071827] px-4 py-4 text-white">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0B7491]">
-                Acessibilidade
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-300">
+                EIOS
               </p>
 
-              <h2 className="mt-1 text-lg font-bold text-[#071827]">
-                Recursos da página
+              <h2 className="mt-1 text-base font-bold text-white">
+                Acessibilidade
               </h2>
             </div>
 
@@ -344,14 +356,24 @@ export default function AccessibilityBar() {
               onClick={() =>
                 setOpen(false)
               }
-              className="inline-flex min-h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-white/20 bg-white/5 px-3 text-xs font-semibold text-white transition hover:bg-white/10"
             >
               Fechar
             </button>
           </header>
 
-          <div className="p-4">
-            <div className="grid grid-cols-2 gap-3">
+          <div className="divide-y divide-slate-200">
+            <section className="flex items-center justify-between gap-4 px-4 py-4">
+              <div>
+                <p className="text-sm font-bold text-[#071827]">
+                  Leitura da página
+                </p>
+
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  Ouça o conteúdo principal.
+                </p>
+              </div>
+
               <button
                 type="button"
                 aria-pressed={
@@ -360,40 +382,78 @@ export default function AccessibilityBar() {
                 onClick={
                   readPage
                 }
-                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78]"
+                className={`inline-flex h-10 min-w-20 items-center justify-center rounded-lg border px-3 text-xs font-semibold transition ${
+                  speaking
+                    ? 'border-[#071827] bg-[#071827] text-white'
+                    : 'border-slate-300 bg-white text-slate-700 hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78]'
+                }`}
               >
                 {speaking
-                  ? 'Parar leitura'
-                  : 'Ouvir página'}
+                  ? 'Parar'
+                  : 'Ouvir'}
               </button>
+            </section>
 
-              <button
-                type="button"
-                disabled={
-                  fontSize >=
-                  MAXIMUM_FONT_SIZE
-                }
-                onClick={
-                  increaseFontSize
-                }
-                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-              >
-                Aumentar texto
-              </button>
+            <section className="px-4 py-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-bold text-[#071827]">
+                    Tamanho do texto
+                  </p>
 
-              <button
-                type="button"
-                disabled={
-                  fontSize <=
-                  MINIMUM_FONT_SIZE
-                }
-                onClick={
-                  decreaseFontSize
-                }
-                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-              >
-                Reduzir texto
-              </button>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    Ajuste entre 14 e 20 px.
+                  </p>
+                </div>
+
+                <span className="font-mono text-sm font-bold text-[#0B7491]">
+                  {fontSize}px
+                </span>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  aria-label="Reduzir tamanho do texto"
+                  disabled={
+                    fontSize <=
+                    MINIMUM_FONT_SIZE
+                  }
+                  onClick={
+                    decreaseFontSize
+                  }
+                  className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white text-sm font-bold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  A−
+                </button>
+
+                <button
+                  type="button"
+                  aria-label="Aumentar tamanho do texto"
+                  disabled={
+                    fontSize >=
+                    MAXIMUM_FONT_SIZE
+                  }
+                  onClick={
+                    increaseFontSize
+                  }
+                  className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white text-sm font-bold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  A+
+                </button>
+              </div>
+            </section>
+
+            <section className="flex items-center justify-between gap-4 px-4 py-4">
+              <div>
+                <p className="text-sm font-bold text-[#071827]">
+                  Contraste
+                </p>
+
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  Amplie a diferença visual.
+                </p>
+              </div>
 
               <button
                 type="button"
@@ -403,54 +463,47 @@ export default function AccessibilityBar() {
                 onClick={
                   toggleContrast
                 }
-                className={`inline-flex min-h-12 items-center justify-center rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                className={`inline-flex h-10 min-w-20 items-center justify-center rounded-lg border px-3 text-xs font-semibold transition ${
                   highContrast
                     ? 'border-[#071827] bg-[#071827] text-white'
                     : 'border-slate-300 bg-white text-slate-700 hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78]'
                 }`}
               >
                 {highContrast
-                  ? 'Contraste ativo'
-                  : 'Alto contraste'}
+                  ? 'Ativo'
+                  : 'Ativar'}
               </button>
-            </div>
+            </section>
 
-            <div className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
-                  Texto
-                </p>
-
-                <p className="mt-1 text-sm font-semibold text-[#071827]">
-                  {fontSize}px
-                </p>
-              </div>
-
+            <section className="px-4 py-4">
               <button
                 type="button"
                 onClick={
                   resetAccessibility
                 }
-                className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                className="inline-flex h-10 w-full items-center justify-center rounded-lg border border-slate-300 bg-slate-50 px-4 text-xs font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78]"
               >
-                Restaurar
+                Restaurar configurações
               </button>
-            </div>
 
-            <p
-              aria-live="polite"
-              className="mt-3 min-h-5 text-xs leading-5 text-slate-500"
-            >
-              {
-                statusMessage
-              }
-            </p>
+              <p
+                aria-live="polite"
+                className="mt-3 min-h-5 text-xs leading-5 text-slate-500"
+              >
+                {statusMessage}
+              </p>
+            </section>
           </div>
         </section>
       ) : null}
 
       <button
         type="button"
+        aria-label={
+          open
+            ? 'Fechar recursos de acessibilidade'
+            : 'Abrir recursos de acessibilidade'
+        }
         aria-expanded={
           open
         }
@@ -461,9 +514,18 @@ export default function AccessibilityBar() {
               !current,
           )
         }
-        className="inline-flex min-h-12 items-center justify-center rounded-xl border border-cyan-300/30 bg-[#071827] px-4 py-3 text-sm font-semibold text-white shadow-xl transition hover:bg-[#0B2940]"
+        className="inline-flex h-[48px] w-[48px] items-center justify-center rounded-xl border border-cyan-300/40 bg-[#071827] text-[14px] font-bold text-cyan-200 shadow-lg transition hover:bg-[#0B2940] focus:outline-none focus:ring-4 focus:ring-cyan-300/20 md:w-auto md:px-4"
       >
-        Acessibilidade
+        <span
+          aria-hidden="true"
+          className="md:hidden"
+        >
+          A
+        </span>
+
+        <span className="hidden md:inline">
+          Acessibilidade
+        </span>
       </button>
     </div>
   )
