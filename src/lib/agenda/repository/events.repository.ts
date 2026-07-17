@@ -107,6 +107,11 @@ export type DeleteAgendaEventContext = {
   reason: string
 }
 
+export type RestoreAgendaEventContext = {
+  actorUserId: string
+  reason: string
+}
+
 const AGENDA_TIMEZONE =
   'America/Sao_Paulo'
 
@@ -235,6 +240,34 @@ function normalizeDeletionContext(
   if (!normalizedReason) {
     throw new Error(
       'Motivo da exclusão é obrigatório.',
+    )
+  }
+
+  return {
+    actorUserId: normalizedActorUserId,
+    reason: normalizedReason,
+  }
+}
+
+function normalizeRestorationContext(
+  actorUserId?: string,
+  reason?: string,
+): RestoreAgendaEventContext {
+  const normalizedActorUserId =
+    actorUserId?.trim()
+
+  if (!normalizedActorUserId) {
+    throw new Error(
+      'ID do usuário responsável pela restauração é obrigatório.',
+    )
+  }
+
+  const normalizedReason =
+    reason?.trim()
+
+  if (!normalizedReason) {
+    throw new Error(
+      'Motivo da restauração é obrigatório.',
     )
   }
 
@@ -718,6 +751,53 @@ class EventsRepository {
         `Erro ao excluir evento: ${error.message}`,
       )
     }
+  }
+
+  async restore(
+    id: string,
+    actorUserId?: string,
+    reason?: string,
+  ): Promise<AgendaEvent> {
+    const context =
+      normalizeRestorationContext(
+        actorUserId,
+        reason,
+      )
+
+    const {
+      data,
+      error,
+    } =
+      await this.client.rpc(
+        'restore_agenda_record',
+        {
+          requested_resource_type:
+            'agenda_events',
+
+          requested_resource_id:
+            id,
+
+          requested_reason:
+            context.reason,
+
+          requested_actor_user_id:
+            context.actorUserId,
+        },
+      )
+
+    if (error) {
+      throw new Error(
+        `Erro ao restaurar evento: ${error.message}`,
+      )
+    }
+
+    if (!data) {
+      throw new Error(
+        'A restauração não retornou o evento atualizado.',
+      )
+    }
+
+    return data as unknown as AgendaEvent
   }
 
   async deleteSeriesFromDate(
