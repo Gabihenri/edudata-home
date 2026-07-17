@@ -1,13 +1,16 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
+import {
+  usePathname,
+} from 'next/navigation'
 
-import { PlatformNavigation } from '@/components/platform/PlatformNavigation'
+import {
+  PlatformNavigation,
+} from '@/components/platform/PlatformNavigation'
 
-const PRIVATE_ROUTES = [
+const EXACT_PRIVATE_ROUTES = [
   '/portal',
   '/perfil',
-  '/agenda',
   '/professor-digital',
   '/organizations',
   '/schools',
@@ -15,16 +18,37 @@ const PRIVATE_ROUTES = [
   '/experience-manager',
   '/analytics',
   '/sgpa',
-]
+] as const
+
+const PRIVATE_ROUTE_PREFIXES = [
+  '/portal/',
+  '/perfil/',
+  '/professor-digital/',
+  '/organizations/',
+  '/schools/',
+  '/backoffice/',
+  '/experience-manager/',
+  '/analytics/',
+  '/sgpa/',
+  '/agenda/',
+] as const
 
 function isPrivateRoute(
   pathname: string,
 ): boolean {
-  return PRIVATE_ROUTES.some(
-    (route) =>
-      pathname === route ||
+  if (
+    EXACT_PRIVATE_ROUTES.some(
+      (route) =>
+        pathname === route,
+    )
+  ) {
+    return true
+  }
+
+  return PRIVATE_ROUTE_PREFIXES.some(
+    (prefix) =>
       pathname.startsWith(
-        `${route}/`,
+        prefix,
       ),
   )
 }
@@ -33,9 +57,32 @@ export default function PlatformNavigationGate() {
   const pathname =
     usePathname()
 
-  if (!isPrivateRoute(pathname)) {
+  /*
+   * /agenda é a página pública de apresentação
+   * do produto.
+   *
+   * Os módulos operacionais privados começam em:
+   * /agenda/dashboard
+   * /agenda/calendario
+   * /agenda/planejamento
+   * /agenda/evidencias
+   * e demais rotas internas.
+   */
+  if (
+    pathname === '/agenda'
+  ) {
     return null
   }
 
-  return <PlatformNavigation />
+  if (
+    !isPrivateRoute(
+      pathname,
+    )
+  ) {
+    return null
+  }
+
+  return (
+    <PlatformNavigation />
+  )
 }
