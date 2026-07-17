@@ -1,8 +1,17 @@
 'use client'
 
-import { FormEvent, useState } from 'react'
+import {
+  type FormEvent,
+  useMemo,
+  useState,
+} from 'react'
 
-import { useClasses } from '@/lib/agenda/hooks/useClasses'
+import {
+  AgendaPageShell,
+} from '@/components/agenda/AgendaPageShell'
+import {
+  useClasses,
+} from '@/lib/agenda/hooks/useClasses'
 
 type ClassFormState = {
   name: string
@@ -12,12 +21,38 @@ type ClassFormState = {
   studentsCount: string
 }
 
-const initialForm: ClassFormState = {
+const initialForm:
+  ClassFormState = {
   name: '',
   schoolYear: '',
   grade: '',
   subject: '',
   studentsCount: '0',
+}
+
+const inputClassName = [
+  'min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3',
+  'text-slate-950 outline-none transition placeholder:text-slate-400',
+  'focus:border-[#0B7491] focus:ring-4 focus:ring-cyan-100',
+  'disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500',
+].join(' ')
+
+function normalizeText(
+  value: string | null,
+): string | null {
+  const normalized =
+    value?.trim() ?? ''
+
+  return normalized ||
+    null
+}
+
+function formatStudentCount(
+  value: number,
+): string {
+  return new Intl.NumberFormat(
+    'pt-BR',
+  ).format(value)
 }
 
 export function AgendaClasses() {
@@ -29,42 +64,232 @@ export function AgendaClasses() {
     createClass,
   } = useClasses()
 
-  const [form, setForm] = useState<ClassFormState>(initialForm)
-  const [submitting, setSubmitting] = useState(false)
-  const [formError, setFormError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(
-    null,
-  )
+  const [
+    form,
+    setForm,
+  ] =
+    useState<ClassFormState>(
+      initialForm,
+    )
+
+  const [
+    submitting,
+    setSubmitting,
+  ] =
+    useState(false)
+
+  const [
+    formError,
+    setFormError,
+  ] =
+    useState<string | null>(
+      null,
+    )
+
+  const [
+    successMessage,
+    setSuccessMessage,
+  ] =
+    useState<string | null>(
+      null,
+    )
+
+  const summary =
+    useMemo(() => {
+      const activeClasses =
+        classes.filter(
+          (agendaClass) =>
+            agendaClass.active,
+        )
+
+      const students =
+        activeClasses.reduce(
+          (
+            total,
+            agendaClass,
+          ) =>
+            total +
+            Math.max(
+              0,
+              agendaClass
+                .students_count ??
+                0,
+            ),
+          0,
+        )
+
+      const subjects =
+        new Set(
+          activeClasses
+            .map(
+              (agendaClass) =>
+                agendaClass
+                  .subject
+                  ?.trim(),
+            )
+            .filter(
+              (
+                subject,
+              ): subject is string =>
+                Boolean(
+                  subject,
+                ),
+            ),
+        )
+
+      const schoolYears =
+        new Set(
+          activeClasses
+            .map(
+              (agendaClass) =>
+                agendaClass
+                  .school_year
+                  ?.trim(),
+            )
+            .filter(
+              (
+                schoolYear,
+              ): schoolYear is string =>
+                Boolean(
+                  schoolYear,
+                ),
+            ),
+        )
+
+      return {
+        total:
+          classes.length,
+
+        active:
+          activeClasses.length,
+
+        students,
+        subjects:
+          subjects.size,
+
+        schoolYears:
+          schoolYears.size,
+      }
+    }, [classes])
+
+  function updateField<
+    Key extends
+      keyof ClassFormState,
+  >(
+    key: Key,
+    value:
+      ClassFormState[Key],
+  ): void {
+    setForm(
+      (current) => ({
+        ...current,
+        [key]: value,
+      }),
+    )
+
+    setFormError(
+      null,
+    )
+
+    setSuccessMessage(
+      null,
+    )
+  }
+
+  function clearForm(): void {
+    if (submitting) {
+      return
+    }
+
+    setForm(
+      initialForm,
+    )
+
+    setFormError(
+      null,
+    )
+
+    setSuccessMessage(
+      null,
+    )
+  }
 
   async function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
+    event:
+      FormEvent<HTMLFormElement>,
   ): Promise<void> {
     event.preventDefault()
 
-    setSubmitting(true)
-    setFormError(null)
-    setSuccessMessage(null)
+    setSubmitting(
+      true,
+    )
+
+    setFormError(
+      null,
+    )
+
+    setSuccessMessage(
+      null,
+    )
 
     try {
-      const studentsCount = Number(form.studentsCount)
+      const name =
+        form.name.trim()
 
-      if (!Number.isInteger(studentsCount) || studentsCount < 0) {
+      if (!name) {
+        throw new Error(
+          'Informe o nome da turma.',
+        )
+      }
+
+      const studentsCount =
+        Number(
+          form.studentsCount,
+        )
+
+      if (
+        !Number.isInteger(
+          studentsCount,
+        ) ||
+        studentsCount < 0
+      ) {
         throw new Error(
           'A quantidade de estudantes deve ser um número inteiro igual ou maior que zero.',
         )
       }
 
       await createClass({
-        name: form.name,
-        school_year: form.schoolYear || null,
-        grade: form.grade || null,
-        subject: form.subject || null,
-        students_count: studentsCount,
-        active: true,
+        name,
+
+        school_year:
+          normalizeText(
+            form.schoolYear,
+          ),
+
+        grade:
+          normalizeText(
+            form.grade,
+          ),
+
+        subject:
+          normalizeText(
+            form.subject,
+          ),
+
+        students_count:
+          studentsCount,
+
+        active:
+          true,
       })
 
-      setForm(initialForm)
-      setSuccessMessage('Turma criada com sucesso.')
+      setForm(
+        initialForm,
+      )
+
+      setSuccessMessage(
+        'Turma criada com sucesso.',
+      )
     } catch (createError) {
       setFormError(
         createError instanceof Error
@@ -72,36 +297,118 @@ export function AgendaClasses() {
           : 'Não foi possível criar a turma.',
       )
     } finally {
-      setSubmitting(false)
+      setSubmitting(
+        false,
+      )
     }
   }
 
   return (
-    <section className="px-6 py-16">
-      <div className="mx-auto max-w-7xl">
-        <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#5C1A8C]">
-          Agenda Inteligente EDI
-        </p>
+    <AgendaPageShell
+      eyebrow="Contextos de aprendizagem"
+      title="Turmas"
+      description="Organize os contextos pedagógicos acompanhados na Agenda Inteligente EDI, relacionando turma, etapa, disciplina, ano letivo e quantidade de estudantes."
+    >
+      <div className="space-y-6 sm:space-y-8">
+        <section
+          aria-label="Resumo das turmas"
+          className="grid overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm sm:grid-cols-2 xl:grid-cols-4"
+        >
+          <article className="border-b border-slate-200 p-5 sm:border-r xl:border-b-0">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Turmas ativas
+            </p>
 
-        <h1 className="mt-4 text-4xl font-bold tracking-tight text-slate-950 md:text-6xl">
-          Turmas
-        </h1>
+            <p className="mt-3 text-3xl font-bold text-[#071827]">
+              {
+                summary.active
+              }
+            </p>
 
-        <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-600">
-          Cadastre e acompanhe turmas, disciplinas, etapas de ensino e
-          quantidade de estudantes com dados persistidos no Supabase.
-        </p>
+            <p className="mt-1 text-sm text-slate-500">
+              Contextos acompanhados
+            </p>
+          </article>
 
-        <div className="mt-12 grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
+          <article className="border-b border-slate-200 p-5 xl:border-b-0 xl:border-r">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Estudantes
+            </p>
+
+            <p className="mt-3 text-3xl font-bold text-[#071827]">
+              {formatStudentCount(
+                summary.students,
+              )}
+            </p>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Total informado
+            </p>
+          </article>
+
+          <article className="border-b border-slate-200 p-5 sm:border-r sm:border-b-0">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Disciplinas
+            </p>
+
+            <p className="mt-3 text-3xl font-bold text-[#071827]">
+              {
+                summary.subjects
+              }
+            </p>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Áreas identificadas
+            </p>
+          </article>
+
+          <article className="p-5">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Anos letivos
+            </p>
+
+            <p className="mt-3 text-3xl font-bold text-[#071827]">
+              {
+                summary.schoolYears
+              }
+            </p>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Períodos registrados
+            </p>
+          </article>
+        </section>
+
+        <div className="grid gap-6 xl:grid-cols-[minmax(320px,0.8fr)_minmax(0,1.2fr)]">
           <form
-            onSubmit={handleSubmit}
-            className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm"
+            onSubmit={
+              handleSubmit
+            }
+            className="self-start overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm xl:sticky xl:top-[176px]"
           >
-            <h2 className="text-2xl font-bold text-slate-950">
-              Nova turma
-            </h2>
+            <header className="border-b border-slate-200 px-5 py-5 sm:px-7">
+              <div className="flex items-start gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#071827] font-mono text-xs font-bold text-cyan-300">
+                  06
+                </div>
 
-            <div className="mt-6 space-y-5">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                    Novo contexto
+                  </p>
+
+                  <h2 className="mt-2 text-2xl font-bold text-[#071827]">
+                    Cadastrar turma
+                  </h2>
+
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    Registre as informações essenciais para relacionar planejamentos, aulas e evidências.
+                  </p>
+                </div>
+              </div>
+            </header>
+
+            <div className="space-y-6 p-5 sm:p-7">
               <div>
                 <label
                   htmlFor="class-name"
@@ -114,39 +421,87 @@ export function AgendaClasses() {
                   id="class-name"
                   type="text"
                   required
-                  value={form.name}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      name: event.target.value,
-                    }))
+                  value={
+                    form.name
                   }
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-[#5C1A8C] focus:ring-2 focus:ring-[#5C1A8C]/20"
+                  onChange={(
+                    event,
+                  ) =>
+                    updateField(
+                      'name',
+                      event.target
+                        .value,
+                    )
+                  }
+                  className={
+                    inputClassName
+                  }
                   placeholder="Ex.: 3ª Série A"
                 />
               </div>
 
-              <div>
-                <label
-                  htmlFor="class-school-year"
-                  className="mb-2 block text-sm font-semibold text-slate-700"
-                >
-                  Ano letivo
-                </label>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor="class-school-year"
+                    className="mb-2 block text-sm font-semibold text-slate-700"
+                  >
+                    Ano letivo
+                  </label>
 
-                <input
-                  id="class-school-year"
-                  type="text"
-                  value={form.schoolYear}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      schoolYear: event.target.value,
-                    }))
-                  }
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-[#5C1A8C] focus:ring-2 focus:ring-[#5C1A8C]/20"
-                  placeholder="Ex.: 2026"
-                />
+                  <input
+                    id="class-school-year"
+                    type="text"
+                    inputMode="numeric"
+                    value={
+                      form.schoolYear
+                    }
+                    onChange={(
+                      event,
+                    ) =>
+                      updateField(
+                        'schoolYear',
+                        event.target
+                          .value,
+                      )
+                    }
+                    className={
+                      inputClassName
+                    }
+                    placeholder="Ex.: 2026"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="class-students-count"
+                    className="mb-2 block text-sm font-semibold text-slate-700"
+                  >
+                    Estudantes
+                  </label>
+
+                  <input
+                    id="class-students-count"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={
+                      form.studentsCount
+                    }
+                    onChange={(
+                      event,
+                    ) =>
+                      updateField(
+                        'studentsCount',
+                        event.target
+                          .value,
+                      )
+                    }
+                    className={
+                      inputClassName
+                    }
+                  />
+                </div>
               </div>
 
               <div>
@@ -154,20 +509,27 @@ export function AgendaClasses() {
                   htmlFor="class-grade"
                   className="mb-2 block text-sm font-semibold text-slate-700"
                 >
-                  Série ou etapa
+                  Série, ano ou etapa
                 </label>
 
                 <input
                   id="class-grade"
                   type="text"
-                  value={form.grade}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      grade: event.target.value,
-                    }))
+                  value={
+                    form.grade
                   }
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-[#5C1A8C] focus:ring-2 focus:ring-[#5C1A8C]/20"
+                  onChange={(
+                    event,
+                  ) =>
+                    updateField(
+                      'grade',
+                      event.target
+                        .value,
+                    )
+                  }
+                  className={
+                    inputClassName
+                  }
                   placeholder="Ex.: 3ª Série do Ensino Médio"
                 />
               </div>
@@ -177,147 +539,289 @@ export function AgendaClasses() {
                   htmlFor="class-subject"
                   className="mb-2 block text-sm font-semibold text-slate-700"
                 >
-                  Disciplina
+                  Disciplina ou área
                 </label>
 
                 <input
                   id="class-subject"
                   type="text"
-                  value={form.subject}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      subject: event.target.value,
-                    }))
+                  value={
+                    form.subject
                   }
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-[#5C1A8C] focus:ring-2 focus:ring-[#5C1A8C]/20"
+                  onChange={(
+                    event,
+                  ) =>
+                    updateField(
+                      'subject',
+                      event.target
+                        .value,
+                    )
+                  }
+                  className={
+                    inputClassName
+                  }
                   placeholder="Ex.: Física"
                 />
               </div>
 
-              <div>
-                <label
-                  htmlFor="class-students-count"
-                  className="mb-2 block text-sm font-semibold text-slate-700"
-                >
-                  Quantidade de estudantes
-                </label>
+              <section className="rounded-xl border border-cyan-200 bg-cyan-50 p-4">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#075F78]">
+                  Contexto pedagógico
+                </p>
 
-                <input
-                  id="class-students-count"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={form.studentsCount}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      studentsCount: event.target.value,
-                    }))
+                <p className="mt-2 text-sm leading-6 text-cyan-950">
+                  A turma funciona como referência para organizar planejamentos, aulas, objetivos, tarefas e evidências sem expor dados individuais dos estudantes.
+                </p>
+              </section>
+
+              {formError ? (
+                <div
+                  role="alert"
+                  className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold leading-6 text-red-700"
+                >
+                  {formError}
+                </div>
+              ) : null}
+
+              {successMessage ? (
+                <div
+                  role="status"
+                  className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold leading-6 text-emerald-800"
+                >
+                  {
+                    successMessage
                   }
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-[#5C1A8C] focus:ring-2 focus:ring-[#5C1A8C]/20"
-                />
-              </div>
+                </div>
+              ) : null}
             </div>
 
-            {formError ? (
-              <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
-                {formError}
-              </div>
-            ) : null}
-
-            {successMessage ? (
-              <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">
-                {successMessage}
-              </div>
-            ) : null}
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="mt-6 w-full rounded-full bg-[#5C1A8C] px-6 py-4 font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {submitting ? 'Salvando...' : 'Criar turma'}
-            </button>
-          </form>
-
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <h2 className="text-2xl font-bold text-slate-950">
-                Turmas cadastradas
-              </h2>
-
+            <footer className="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-5 py-5 sm:flex-row sm:px-7">
               <button
                 type="button"
-                onClick={() => void reload()}
-                className="rounded-full border border-slate-300 px-5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                onClick={
+                  clearForm
+                }
+                disabled={
+                  submitting
+                }
+                className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Atualizar
+                Limpar
               </button>
-            </div>
 
-            {loading ? (
-              <p className="mt-8 text-slate-600">
-                Carregando turmas...
-              </p>
-            ) : null}
+              <button
+                type="submit"
+                disabled={
+                  submitting
+                }
+                className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-[#0B7491] px-5 py-3 font-semibold text-white transition hover:bg-[#09657E] disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                {submitting
+                  ? 'Salvando...'
+                  : 'Criar turma'}
+              </button>
+            </footer>
+          </form>
 
-            {error ? (
-              <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700">
-                {error}
-              </div>
-            ) : null}
+          <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
+            <header className="border-b border-slate-200 px-5 py-5 sm:px-7">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                    Organização pedagógica
+                  </p>
 
-            {!loading && !error && classes.length === 0 ? (
-              <p className="mt-8 text-slate-500">
-                Nenhuma turma cadastrada.
-              </p>
-            ) : null}
+                  <h2 className="mt-2 text-2xl font-bold text-[#071827]">
+                    Turmas cadastradas
+                  </h2>
 
-            <div className="mt-8 grid gap-5 md:grid-cols-2">
-              {classes.map((agendaClass) => (
-                <article
-                  key={agendaClass.id}
-                  className="rounded-3xl border border-slate-200 bg-[#F5F6F8] p-6"
+                  <p className="mt-2 text-sm text-slate-500">
+                    {
+                      summary.total
+                    }{' '}
+                    turma
+                    {summary.total === 1
+                      ? ''
+                      : 's'}{' '}
+                    registrada
+                    {summary.total === 1
+                      ? ''
+                      : 's'}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    void reload()
+                  }
+                  disabled={
+                    loading
+                  }
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#5C1A8C]">
-                        {agendaClass.active ? 'Ativa' : 'Inativa'}
-                      </p>
+                  {loading
+                    ? 'Atualizando...'
+                    : 'Atualizar turmas'}
+                </button>
+              </div>
+            </header>
 
-                      <h3 className="mt-3 text-xl font-bold text-slate-950">
-                        {agendaClass.name}
-                      </h3>
-                    </div>
+            <div className="p-5 sm:p-7">
+              {error ? (
+                <div
+                  role="alert"
+                  className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700"
+                >
+                  {error}
+                </div>
+              ) : null}
 
-                    <span className="rounded-full bg-[#081C2E] px-4 py-2 text-xs font-bold text-white">
-                      {agendaClass.students_count} estudantes
-                    </span>
-                  </div>
+              {loading ? (
+                <div
+                  role="status"
+                  className="rounded-xl border border-cyan-200 bg-cyan-50 p-5 text-sm font-semibold text-cyan-900"
+                >
+                  Carregando turmas...
+                </div>
+              ) : null}
 
-                  <div className="mt-5 space-y-2 text-sm text-slate-600">
-                    <p>
-                      <strong>Ano letivo:</strong>{' '}
-                      {agendaClass.school_year ?? 'Não informado'}
-                    </p>
+              {!loading &&
+              !error &&
+              classes.length ===
+                0 ? (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                  <h3 className="text-lg font-bold text-[#071827]">
+                    Nenhuma turma cadastrada
+                  </h3>
 
-                    <p>
-                      <strong>Série:</strong>{' '}
-                      {agendaClass.grade ?? 'Não informada'}
-                    </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                    Utilize o formulário para registrar o primeiro contexto de aprendizagem.
+                  </p>
+                </div>
+              ) : null}
 
-                    <p>
-                      <strong>Disciplina:</strong>{' '}
-                      {agendaClass.subject ?? 'Não informada'}
-                    </p>
-                  </div>
-                </article>
-              ))}
+              {!loading &&
+              classes.length >
+                0 ? (
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {classes.map(
+                    (
+                      agendaClass,
+                      index,
+                    ) => (
+                      <article
+                        key={
+                          agendaClass.id
+                        }
+                        className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                      >
+                        <header className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex min-w-0 items-start gap-3">
+                              <span className="font-mono text-xs font-bold text-[#0B7491]">
+                                {String(
+                                  index +
+                                    1,
+                                ).padStart(
+                                  2,
+                                  '0',
+                                )}
+                              </span>
+
+                              <div className="min-w-0">
+                                <span
+                                  className={`inline-flex rounded-lg border px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] ${
+                                    agendaClass.active
+                                      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                                      : 'border-slate-200 bg-slate-100 text-slate-600'
+                                  }`}
+                                >
+                                  {agendaClass.active
+                                    ? 'Ativa'
+                                    : 'Inativa'}
+                                </span>
+
+                                <h3 className="mt-3 break-words text-xl font-bold text-[#071827]">
+                                  {
+                                    agendaClass.name
+                                  }
+                                </h3>
+                              </div>
+                            </div>
+
+                            <div className="shrink-0 rounded-xl bg-[#071827] px-4 py-3 text-center text-white">
+                              <p className="text-xl font-bold">
+                                {formatStudentCount(
+                                  agendaClass.students_count ??
+                                    0,
+                                )}
+                              </p>
+
+                              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-300">
+                                Estudantes
+                              </p>
+                            </div>
+                          </div>
+                        </header>
+
+                        <div className="space-y-4 p-5">
+                          <div className="grid grid-cols-2 gap-3">
+                            <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                                Ano letivo
+                              </p>
+
+                              <p className="mt-2 text-sm font-semibold text-slate-700">
+                                {agendaClass.school_year ??
+                                  'Não informado'}
+                              </p>
+                            </section>
+
+                            <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                                Situação
+                              </p>
+
+                              <p className="mt-2 text-sm font-semibold text-slate-700">
+                                {agendaClass.active
+                                  ? 'Em acompanhamento'
+                                  : 'Fora do acompanhamento'}
+                              </p>
+                            </section>
+                          </div>
+
+                          <section className="rounded-xl border border-slate-200 p-4">
+                            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
+                              Série ou etapa
+                            </p>
+
+                            <p className="mt-2 text-sm leading-6 text-slate-700">
+                              {agendaClass.grade ??
+                                'Não informada'}
+                            </p>
+                          </section>
+
+                          <section className="rounded-xl border border-cyan-200 bg-cyan-50 p-4">
+                            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#075F78]">
+                              Disciplina ou área
+                            </p>
+
+                            <p className="mt-2 text-sm font-semibold leading-6 text-cyan-950">
+                              {agendaClass.subject ??
+                                'Não informada'}
+                            </p>
+                          </section>
+                        </div>
+                      </article>
+                    ),
+                  )}
+                </div>
+              ) : null}
             </div>
-          </div>
+          </section>
         </div>
       </div>
-    </section>
+    </AgendaPageShell>
   )
 }
