@@ -19,6 +19,45 @@ type HistoryResponse = {
   error?: string
 }
 
+type RestoreEventResponse = {
+  success: boolean
+  message?: string
+  data?: unknown
+  error?: string
+}
+
+type ApiErrorResponse = {
+  success?: boolean
+  error?: string
+  message?: string
+}
+
+async function readJsonResponse<T>(
+  response: Response,
+): Promise<T | null> {
+  try {
+    return (await response.json()) as T
+  } catch {
+    return null
+  }
+}
+
+function normalizeRequiredText(
+  value: string,
+  fieldName: string,
+): string {
+  const normalizedValue =
+    value?.trim()
+
+  if (!normalizedValue) {
+    throw new Error(
+      `${fieldName} é obrigatório.`,
+    )
+  }
+
+  return normalizedValue
+}
+
 export function useHistory(
   initialFilters: AgendaHistoryFilters = {},
 ) {
@@ -27,20 +66,56 @@ export function useHistory(
       initialFilters,
     )
 
-  const [history, setHistory] =
+  const currentFiltersRef =
+    useRef<AgendaHistoryFilters>(
+      initialFilters,
+    )
+
+  const [
+    history,
+    setHistory,
+  ] =
     useState<AgendaHistoryItem[]>([])
 
-  const [loading, setLoading] =
+  const [
+    loading,
+    setLoading,
+  ] =
     useState(true)
 
-  const [error, setError] =
+  const [
+    error,
+    setError,
+  ] =
+    useState<string | null>(null)
+
+  const [
+    restoringEventId,
+    setRestoringEventId,
+  ] =
+    useState<string | null>(null)
+
+  const [
+    actionError,
+    setActionError,
+  ] =
+    useState<string | null>(null)
+
+  const [
+    actionMessage,
+    setActionMessage,
+  ] =
     useState<string | null>(null)
 
   const loadHistory = useCallback(
     async (
       filters: AgendaHistoryFilters =
-        initialFiltersRef.current,
+        currentFiltersRef.current,
     ): Promise<void> => {
+      currentFiltersRef.current = {
+        ...filters,
+      }
+
       setLoading(true)
       setError(null)
 
@@ -93,37 +168,61 @@ export function useHistory(
         if (filters.limit) {
           params.set(
             'limit',
-            String(filters.limit),
+            String(
+              filters.limit,
+            ),
           )
         }
 
-        const response = await fetch(
-          `/api/agenda/history?${params.toString()}`,
-          {
-            cache: 'no-store',
-            credentials: 'include',
-          },
-        )
+        const queryString =
+          params.toString()
+
+        const endpoint =
+          queryString
+            ? `/api/agenda/history?${queryString}`
+            : '/api/agenda/history'
+
+        const response =
+          await fetch(
+            endpoint,
+            {
+              method: 'GET',
+              cache: 'no-store',
+              credentials: 'include',
+              headers: {
+                Accept:
+                  'application/json',
+              },
+            },
+          )
 
         const result =
-          (await response.json()) as HistoryResponse
+          await readJsonResponse<
+            HistoryResponse
+          >(response)
 
         if (
           !response.ok ||
-          !result.success
+          !result?.success
         ) {
           throw new Error(
-            result.error ??
+            result?.error ??
               'Não foi possível carregar o histórico.',
           )
         }
 
-        setHistory(result.data)
+        setHistory(
+          Array.isArray(
+            result.data,
+          )
+            ? result.data
+            : [],
+        )
       } catch (err) {
         setError(
           err instanceof Error
             ? err.message
-            : 'Erro inesperado.',
+            : 'Erro inesperado ao carregar o histórico.',
         )
       } finally {
         setLoading(false)
@@ -132,14 +231,131 @@ export function useHistory(
     [],
   )
 
+  const restoreEvent =
+    useCallback(
+      async (
+        eventId: string,
+        reason: string,
+      ): Promise<boolean> => {
+        setActionError(null)
+        setActionMessage(null)
+
+        try {
+          const normalizedEventId =
+            normalizeRequiredText(
+              eventId,
+              'ID do evento',
+            )
+
+          const normalizedReason =
+            normalizeRequiredText(
+              reason,
+              'Motivo da restauração',
+            )
+
+          setRestoringEventId(
+            normalizedEventId,
+          )
+
+          const response =
+            await fetch(
+              `/api/agenda/events/${encodeURIComponent(
+                normalizedEventId,
+              )}/restore`,
+              {
+                method: 'POST',
+                cache: 'no-store',
+                credentials:
+                  'include',
+
+                headers: {
+                  Accept:
+                    'application/json',
+
+                  'Content-Type':
+                    'application/json',
+                },
+
+                body:
+                  JSON.stringify({
+                    reason:
+                      normalizedReason,
+                  }),
+              },
+            )
+
+          const result =
+            await readJsonResponse<
+              RestoreEventResponse
+            >(response)
+
+          if (
+            !response.ok ||
+            !result?.success
+          ) {
+            const fallbackResult =
+              result as
+                | ApiErrorResponse
+                | null
+
+            throw new Error(
+              fallbackResult?.error ??
+                fallbackResult?.message ??
+                'Não foi possível restaurar o evento.',
+            )
+          }
+
+          setActionMessage(
+            result.message ??
+              'Evento restaurado com sucesso.',
+          )
+
+          await loadHistory(
+            currentFiltersRef.current,
+          )
+
+          return true
+        } catch (err) {
+          setActionError(
+            err instanceof Error
+              ? err.message
+              : 'Erro inesperado ao restaurar o evento.',
+          )
+
+          return false
+        } finally {
+          setRestoringEventId(
+            null,
+          )
+        }
+      },
+      [loadHistory],
+    )
+
+  const clearActionFeedback =
+    useCallback(() => {
+      setActionError(null)
+      setActionMessage(null)
+    }, [])
+
   useEffect(() => {
-    void loadHistory()
+    void loadHistory(
+      initialFiltersRef.current,
+    )
   }, [loadHistory])
 
   return {
     history,
     loading,
     error,
-    reload: loadHistory,
+    reload:
+      loadHistory,
+
+    restoringEventId,
+    actionError,
+    actionMessage,
+
+    restoreEvent,
+    clearActionFeedback,
   }
 }
