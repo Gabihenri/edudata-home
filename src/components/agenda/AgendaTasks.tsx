@@ -1,21 +1,313 @@
 'use client'
 
-import { FormEvent, useState } from 'react'
+import {
+  type FormEvent,
+  useMemo,
+  useState,
+} from 'react'
 
-import { useTasks } from '@/lib/agenda/hooks/useTasks'
+import {
+  AgendaPageShell,
+} from '@/components/agenda/AgendaPageShell'
+import {
+  useTasks,
+} from '@/lib/agenda/hooks/useTasks'
+
+type TaskPriority =
+  | 'baixa'
+  | 'media'
+  | 'alta'
 
 type TaskFormState = {
   title: string
   description: string
-  priority: string
+  priority: TaskPriority
   dueDate: string
 }
 
-const initialForm: TaskFormState = {
+type PriorityOption = {
+  value: TaskPriority
+  label: string
+  description: string
+}
+
+const TIMEZONE =
+  'America/Sao_Paulo'
+
+const initialForm:
+  TaskFormState = {
   title: '',
   description: '',
   priority: 'media',
   dueDate: '',
+}
+
+const priorityOptions:
+  PriorityOption[] = [
+    {
+      value: 'baixa',
+      label: 'Baixa',
+      description:
+        'Pode ser executada após as demandas principais.',
+    },
+    {
+      value: 'media',
+      label: 'Média',
+      description:
+        'Deve ser acompanhada na rotina de trabalho.',
+    },
+    {
+      value: 'alta',
+      label: 'Alta',
+      description:
+        'Exige atenção e execução prioritária.',
+    },
+  ]
+
+const inputClassName = [
+  'min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3',
+  'text-slate-950 outline-none transition placeholder:text-slate-400',
+  'focus:border-[#0B7491] focus:ring-4 focus:ring-cyan-100',
+  'disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500',
+].join(' ')
+
+function normalizeValue(
+  value: string,
+): string {
+  return value
+    .normalize('NFD')
+    .replace(
+      /[\u0300-\u036f]/g,
+      '',
+    )
+    .toLowerCase()
+    .trim()
+}
+
+function isTaskCompleted(
+  status: string,
+): boolean {
+  const normalized =
+    normalizeValue(status)
+
+  return [
+    'concluida',
+    'concluido',
+    'finalizada',
+    'finalizado',
+    'completa',
+    'completo',
+    'done',
+  ].includes(normalized)
+}
+
+function formatTaskStatus(
+  status: string,
+): string {
+  const normalized =
+    normalizeValue(status)
+
+  const labels:
+    Record<string, string> = {
+    pendente: 'Pendente',
+    andamento: 'Em andamento',
+    em_andamento:
+      'Em andamento',
+    concluida: 'Concluída',
+    concluido: 'Concluída',
+    finalizada: 'Finalizada',
+    finalizado: 'Finalizada',
+    cancelada: 'Cancelada',
+    cancelado: 'Cancelada',
+  }
+
+  return (
+    labels[normalized] ??
+    status
+      .replace(
+        /_/g,
+        ' ',
+      )
+      .replace(
+        /\b\w/g,
+        (character) =>
+          character.toUpperCase(),
+      )
+  )
+}
+
+function formatPriority(
+  priority: string,
+): string {
+  const normalized =
+    normalizeValue(priority)
+
+  const labels:
+    Record<string, string> = {
+    baixa: 'Baixa',
+    media: 'Média',
+    alta: 'Alta',
+    urgente: 'Urgente',
+  }
+
+  return (
+    labels[normalized] ??
+    priority
+  )
+}
+
+function formatDueDate(
+  value: string | null,
+): string {
+  if (!value) {
+    return 'Prazo não informado'
+  }
+
+  const date =
+    new Date(value)
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return 'Prazo indisponível'
+  }
+
+  return new Intl.DateTimeFormat(
+    'pt-BR',
+    {
+      timeZone:
+        TIMEZONE,
+
+      dateStyle:
+        'medium',
+
+      timeStyle:
+        'short',
+    },
+  ).format(date)
+}
+
+function getPriorityClasses(
+  priority: string,
+): string {
+  const normalized =
+    normalizeValue(priority)
+
+  if (
+    normalized === 'alta' ||
+    normalized === 'urgente'
+  ) {
+    return [
+      'border-red-200',
+      'bg-red-50',
+      'text-red-800',
+    ].join(' ')
+  }
+
+  if (
+    normalized === 'media'
+  ) {
+    return [
+      'border-amber-200',
+      'bg-amber-50',
+      'text-amber-800',
+    ].join(' ')
+  }
+
+  return [
+    'border-emerald-200',
+    'bg-emerald-50',
+    'text-emerald-800',
+  ].join(' ')
+}
+
+function getDeadlinePresentation(
+  dueDate: string | null,
+  status: string,
+): {
+  label: string
+  classes: string
+} {
+  if (
+    isTaskCompleted(status)
+  ) {
+    return {
+      label:
+        'Concluída',
+
+      classes:
+        'border-emerald-200 bg-emerald-50 text-emerald-800',
+    }
+  }
+
+  if (!dueDate) {
+    return {
+      label:
+        'Sem prazo',
+
+      classes:
+        'border-slate-200 bg-slate-50 text-slate-600',
+    }
+  }
+
+  const date =
+    new Date(dueDate)
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return {
+      label:
+        'Prazo indisponível',
+
+      classes:
+        'border-slate-200 bg-slate-50 text-slate-600',
+    }
+  }
+
+  const difference =
+    date.getTime() -
+    Date.now()
+
+  if (difference < 0) {
+    return {
+      label:
+        'Atrasada',
+
+      classes:
+        'border-red-200 bg-red-50 text-red-800',
+    }
+  }
+
+  const oneDay =
+    24 *
+    60 *
+    60 *
+    1000
+
+  if (
+    difference <= oneDay
+  ) {
+    return {
+      label:
+        'Vence em breve',
+
+      classes:
+        'border-amber-200 bg-amber-50 text-amber-800',
+    }
+  }
+
+  return {
+    label:
+      'No prazo',
+
+    classes:
+      'border-cyan-200 bg-cyan-50 text-[#075F78]',
+  }
 }
 
 export function AgendaTasks() {
@@ -27,35 +319,201 @@ export function AgendaTasks() {
     createTask,
   } = useTasks()
 
-  const [form, setForm] = useState<TaskFormState>(initialForm)
-  const [submitting, setSubmitting] = useState(false)
-  const [formError, setFormError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(
-    null,
-  )
+  const [
+    form,
+    setForm,
+  ] =
+    useState<TaskFormState>(
+      initialForm,
+    )
+
+  const [
+    submitting,
+    setSubmitting,
+  ] =
+    useState(false)
+
+  const [
+    formError,
+    setFormError,
+  ] =
+    useState<string | null>(
+      null,
+    )
+
+  const [
+    successMessage,
+    setSuccessMessage,
+  ] =
+    useState<string | null>(
+      null,
+    )
+
+  const summary =
+    useMemo(() => {
+      const pending =
+        tasks.filter(
+          (task) =>
+            !isTaskCompleted(
+              task.status,
+            ),
+        )
+
+      const overdue =
+        pending.filter(
+          (task) => {
+            if (
+              !task.due_date
+            ) {
+              return false
+            }
+
+            const dueDate =
+              new Date(
+                task.due_date,
+              )
+
+            return (
+              !Number.isNaN(
+                dueDate.getTime(),
+              ) &&
+              dueDate.getTime() <
+                Date.now()
+            )
+          },
+        )
+
+      const highPriority =
+        pending.filter(
+          (task) => {
+            const priority =
+              normalizeValue(
+                task.priority,
+              )
+
+            return (
+              priority ===
+                'alta' ||
+              priority ===
+                'urgente'
+            )
+          },
+        )
+
+      return {
+        total:
+          tasks.length,
+
+        pending:
+          pending.length,
+
+        overdue:
+          overdue.length,
+
+        highPriority:
+          highPriority.length,
+      }
+    }, [tasks])
+
+  function updateField<
+    Key extends
+      keyof TaskFormState,
+  >(
+    key: Key,
+    value:
+      TaskFormState[Key],
+  ): void {
+    setForm(
+      (current) => ({
+        ...current,
+        [key]: value,
+      }),
+    )
+
+    setFormError(
+      null,
+    )
+
+    setSuccessMessage(
+      null,
+    )
+  }
+
+  function clearForm(): void {
+    if (submitting) {
+      return
+    }
+
+    setForm(
+      initialForm,
+    )
+
+    setFormError(
+      null,
+    )
+
+    setSuccessMessage(
+      null,
+    )
+  }
 
   async function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
+    event:
+      FormEvent<HTMLFormElement>,
   ): Promise<void> {
     event.preventDefault()
 
-    setSubmitting(true)
-    setFormError(null)
-    setSuccessMessage(null)
+    setSubmitting(
+      true,
+    )
+
+    setFormError(
+      null,
+    )
+
+    setSuccessMessage(
+      null,
+    )
 
     try {
+      const title =
+        form.title.trim()
+
+      if (!title) {
+        throw new Error(
+          'Informe o título da tarefa.',
+        )
+      }
+
       await createTask({
-        title: form.title,
-        description: form.description || null,
-        status: 'pendente',
-        priority: form.priority,
-        due_date: form.dueDate
-          ? new Date(form.dueDate).toISOString()
-          : null,
+        title,
+
+        description:
+          form.description
+            .trim() ||
+          null,
+
+        status:
+          'pendente',
+
+        priority:
+          form.priority,
+
+        due_date:
+          form.dueDate
+            ? new Date(
+                form.dueDate,
+              ).toISOString()
+            : null,
       })
 
-      setForm(initialForm)
-      setSuccessMessage('Tarefa criada com sucesso.')
+      setForm(
+        initialForm,
+      )
+
+      setSuccessMessage(
+        'Tarefa criada com sucesso.',
+      )
     } catch (createError) {
       setFormError(
         createError instanceof Error
@@ -63,36 +521,118 @@ export function AgendaTasks() {
           : 'Não foi possível criar a tarefa.',
       )
     } finally {
-      setSubmitting(false)
+      setSubmitting(
+        false,
+      )
     }
   }
 
   return (
-    <section className="px-6 py-16">
-      <div className="mx-auto max-w-7xl">
-        <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#5C1A8C]">
-          Agenda Inteligente EDI
-        </p>
+    <AgendaPageShell
+      eyebrow="Organização e execução"
+      title="Tarefas e pendências"
+      description="Organize ações, prazos e prioridades pedagógicas em um fluxo operacional integrado à Agenda Inteligente EDI."
+    >
+      <div className="space-y-6 sm:space-y-8">
+        <section
+          aria-label="Resumo das tarefas"
+          className="grid overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm sm:grid-cols-2 xl:grid-cols-4"
+        >
+          <article className="border-b border-slate-200 p-5 sm:border-r xl:border-b-0">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Total ativo
+            </p>
 
-        <h1 className="mt-4 text-4xl font-bold tracking-tight text-slate-950 md:text-6xl">
-          Tarefas e pendências
-        </h1>
+            <p className="mt-3 text-3xl font-bold text-[#071827]">
+              {
+                summary.total
+              }
+            </p>
 
-        <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-600">
-          Organize prioridades, prazos e ações pedagógicas utilizando dados
-          persistidos no Supabase.
-        </p>
+            <p className="mt-1 text-sm text-slate-500">
+              Tarefas registradas
+            </p>
+          </article>
 
-        <div className="mt-12 grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
+          <article className="border-b border-slate-200 p-5 xl:border-b-0 xl:border-r">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Pendentes
+            </p>
+
+            <p className="mt-3 text-3xl font-bold text-[#071827]">
+              {
+                summary.pending
+              }
+            </p>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Ações em aberto
+            </p>
+          </article>
+
+          <article className="border-b border-slate-200 p-5 sm:border-r sm:border-b-0">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Alta prioridade
+            </p>
+
+            <p className="mt-3 text-3xl font-bold text-[#071827]">
+              {
+                summary.highPriority
+              }
+            </p>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Demandas prioritárias
+            </p>
+          </article>
+
+          <article className="p-5">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Atrasadas
+            </p>
+
+            <p className="mt-3 text-3xl font-bold text-[#071827]">
+              {
+                summary.overdue
+              }
+            </p>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Prazos vencidos
+            </p>
+          </article>
+        </section>
+
+        <div className="grid gap-6 xl:grid-cols-[minmax(320px,0.8fr)_minmax(0,1.2fr)]">
           <form
-            onSubmit={handleSubmit}
-            className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm"
+            onSubmit={
+              handleSubmit
+            }
+            className="self-start overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm xl:sticky xl:top-[176px]"
           >
-            <h2 className="text-2xl font-bold text-slate-950">
-              Nova tarefa
-            </h2>
+            <header className="border-b border-slate-200 px-5 py-5 sm:px-7">
+              <div className="flex items-start gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#071827] font-mono text-xs font-bold text-cyan-300">
+                  05
+                </div>
 
-            <div className="mt-6 space-y-5">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                    Nova demanda
+                  </p>
+
+                  <h2 className="mt-2 text-2xl font-bold text-[#071827]">
+                    Criar tarefa
+                  </h2>
+
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    Registre uma ação, atribua prioridade e defina o prazo.
+                  </p>
+                </div>
+              </div>
+            </header>
+
+            <div className="space-y-6 p-5 sm:p-7">
               <div>
                 <label
                   htmlFor="task-title"
@@ -105,14 +645,22 @@ export function AgendaTasks() {
                   id="task-title"
                   type="text"
                   required
-                  value={form.title}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      title: event.target.value,
-                    }))
+                  value={
+                    form.title
                   }
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-[#5C1A8C] focus:ring-2 focus:ring-[#5C1A8C]/20"
+                  onChange={(
+                    event,
+                  ) =>
+                    updateField(
+                      'title',
+                      event.target
+                        .value,
+                    )
+                  }
+                  placeholder="Ex.: Revisar planejamento semanal"
+                  className={
+                    inputClassName
+                  }
                 />
               </div>
 
@@ -126,42 +674,97 @@ export function AgendaTasks() {
 
                 <textarea
                   id="task-description"
-                  rows={4}
-                  value={form.description}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      description: event.target.value,
-                    }))
+                  rows={5}
+                  value={
+                    form.description
                   }
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-[#5C1A8C] focus:ring-2 focus:ring-[#5C1A8C]/20"
+                  onChange={(
+                    event,
+                  ) =>
+                    updateField(
+                      'description',
+                      event.target
+                        .value,
+                    )
+                  }
+                  placeholder="Descreva a ação necessária, seu contexto e o resultado esperado."
+                  className={`${inputClassName} resize-y`}
                 />
               </div>
 
-              <div>
-                <label
-                  htmlFor="task-priority"
-                  className="mb-2 block text-sm font-semibold text-slate-700"
-                >
+              <fieldset>
+                <legend className="text-sm font-semibold text-slate-700">
                   Prioridade
-                </label>
+                </legend>
 
-                <select
-                  id="task-priority"
-                  value={form.priority}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      priority: event.target.value,
-                    }))
-                  }
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-[#5C1A8C] focus:ring-2 focus:ring-[#5C1A8C]/20"
-                >
-                  <option value="baixa">Baixa</option>
-                  <option value="media">Média</option>
-                  <option value="alta">Alta</option>
-                </select>
-              </div>
+                <div className="mt-3 grid gap-3">
+                  {priorityOptions.map(
+                    (
+                      option,
+                    ) => {
+                      const active =
+                        form.priority ===
+                        option.value
+
+                      return (
+                        <label
+                          key={
+                            option.value
+                          }
+                          className={`cursor-pointer rounded-xl border p-4 transition ${
+                            active
+                              ? 'border-[#0B7491] bg-cyan-50'
+                              : 'border-slate-200 bg-white hover:border-cyan-300'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="task-priority"
+                            value={
+                              option.value
+                            }
+                            checked={
+                              active
+                            }
+                            onChange={() =>
+                              updateField(
+                                'priority',
+                                option.value,
+                              )
+                            }
+                            className="sr-only"
+                          />
+
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <p className="font-bold text-[#071827]">
+                                {
+                                  option.label
+                                }
+                              </p>
+
+                              <p className="mt-1 text-sm leading-5 text-slate-500">
+                                {
+                                  option.description
+                                }
+                              </p>
+                            </div>
+
+                            <span
+                              aria-hidden="true"
+                              className={`mt-1 h-3 w-3 shrink-0 rounded-full ${
+                                active
+                                  ? 'bg-[#0B7491]'
+                                  : 'border border-slate-300 bg-white'
+                              }`}
+                            />
+                          </div>
+                        </label>
+                      )
+                    },
+                  )}
+                </div>
+              </fieldset>
 
               <div>
                 <label
@@ -174,112 +777,288 @@ export function AgendaTasks() {
                 <input
                   id="task-due-date"
                   type="datetime-local"
-                  value={form.dueDate}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      dueDate: event.target.value,
-                    }))
+                  value={
+                    form.dueDate
                   }
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-[#5C1A8C] focus:ring-2 focus:ring-[#5C1A8C]/20"
+                  onChange={(
+                    event,
+                  ) =>
+                    updateField(
+                      'dueDate',
+                      event.target
+                        .value,
+                    )
+                  }
+                  className={
+                    inputClassName
+                  }
                 />
+
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  O prazo é opcional, mas ajuda a identificar atrasos e demandas urgentes.
+                </p>
               </div>
+
+              {formError ? (
+                <div
+                  role="alert"
+                  className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold leading-6 text-red-700"
+                >
+                  {formError}
+                </div>
+              ) : null}
+
+              {successMessage ? (
+                <div
+                  role="status"
+                  className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold leading-6 text-emerald-800"
+                >
+                  {
+                    successMessage
+                  }
+                </div>
+              ) : null}
             </div>
 
-            {formError ? (
-              <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
-                {formError}
-              </div>
-            ) : null}
-
-            {successMessage ? (
-              <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">
-                {successMessage}
-              </div>
-            ) : null}
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="mt-6 w-full rounded-full bg-[#5C1A8C] px-6 py-4 font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {submitting ? 'Salvando...' : 'Criar tarefa'}
-            </button>
-          </form>
-
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <h2 className="text-2xl font-bold text-slate-950">
-                Tarefas cadastradas
-              </h2>
-
+            <footer className="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-5 py-5 sm:flex-row sm:px-7">
               <button
                 type="button"
-                onClick={() => void reload()}
-                className="rounded-full border border-slate-300 px-5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                onClick={
+                  clearForm
+                }
+                disabled={
+                  submitting
+                }
+                className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Atualizar
+                Limpar
               </button>
-            </div>
 
-            {loading ? (
-              <p className="mt-8 text-slate-600">
-                Carregando tarefas...
-              </p>
-            ) : null}
+              <button
+                type="submit"
+                disabled={
+                  submitting
+                }
+                className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-[#0B7491] px-5 py-3 font-semibold text-white transition hover:bg-[#09657E] disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                {submitting
+                  ? 'Salvando...'
+                  : 'Criar tarefa'}
+              </button>
+            </footer>
+          </form>
 
-            {error ? (
-              <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700">
-                {error}
-              </div>
-            ) : null}
-
-            {!loading && !error && tasks.length === 0 ? (
-              <p className="mt-8 text-slate-500">
-                Nenhuma tarefa cadastrada.
-              </p>
-            ) : null}
-
-            <div className="mt-8 space-y-5">
-              {tasks.map((task) => (
-                <article
-                  key={task.id}
-                  className="rounded-3xl border border-slate-200 bg-[#F5F6F8] p-6"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#5C1A8C]">
-                        {task.status}
-                      </p>
-
-                      <h3 className="mt-3 text-xl font-bold text-slate-950">
-                        {task.title}
-                      </h3>
-                    </div>
-
-                    <span className="rounded-full bg-[#081C2E] px-4 py-2 text-xs font-bold uppercase text-white">
-                      {task.priority}
-                    </span>
-                  </div>
-
-                  {task.description ? (
-                    <p className="mt-4 leading-7 text-slate-600">
-                      {task.description}
-                    </p>
-                  ) : null}
-
-                  <p className="mt-5 text-sm text-slate-600">
-                    <strong>Prazo:</strong>{' '}
-                    {task.due_date
-                      ? new Date(task.due_date).toLocaleString('pt-BR')
-                      : 'Não informado'}
+          <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
+            <header className="border-b border-slate-200 px-5 py-5 sm:px-7">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                    Fluxo de execução
                   </p>
-                </article>
-              ))}
+
+                  <h2 className="mt-2 text-2xl font-bold text-[#071827]">
+                    Tarefas cadastradas
+                  </h2>
+
+                  <p className="mt-2 text-sm text-slate-500">
+                    {tasks.length}{' '}
+                    tarefa
+                    {tasks.length === 1
+                      ? ''
+                      : 's'}{' '}
+                    registrada
+                    {tasks.length === 1
+                      ? ''
+                      : 's'}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    void reload()
+                  }
+                  disabled={
+                    loading
+                  }
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {loading
+                    ? 'Atualizando...'
+                    : 'Atualizar tarefas'}
+                </button>
+              </div>
+            </header>
+
+            <div className="p-5 sm:p-7">
+              {error ? (
+                <div
+                  role="alert"
+                  className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700"
+                >
+                  {error}
+                </div>
+              ) : null}
+
+              {loading ? (
+                <div
+                  role="status"
+                  className="rounded-xl border border-cyan-200 bg-cyan-50 p-5 text-sm font-semibold text-cyan-900"
+                >
+                  Carregando tarefas...
+                </div>
+              ) : null}
+
+              {!loading &&
+              !error &&
+              tasks.length ===
+                0 ? (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                  <h3 className="text-lg font-bold text-[#071827]">
+                    Nenhuma tarefa cadastrada
+                  </h3>
+
+                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                    Utilize o formulário para registrar a primeira ação ou pendência.
+                  </p>
+                </div>
+              ) : null}
+
+              {!loading &&
+              tasks.length >
+                0 ? (
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {tasks.map(
+                    (
+                      task,
+                      index,
+                    ) => {
+                      const deadline =
+                        getDeadlinePresentation(
+                          task.due_date,
+                          task.status,
+                        )
+
+                      return (
+                        <article
+                          key={
+                            task.id
+                          }
+                          className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                        >
+                          <header className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex min-w-0 items-start gap-3">
+                                <span className="font-mono text-xs font-bold text-[#0B7491]">
+                                  {String(
+                                    index +
+                                      1,
+                                  ).padStart(
+                                    2,
+                                    '0',
+                                  )}
+                                </span>
+
+                                <div className="min-w-0">
+                                  <span className="inline-flex rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#075F78]">
+                                    {formatTaskStatus(
+                                      task.status,
+                                    )}
+                                  </span>
+
+                                  <h3 className="mt-3 break-words text-xl font-bold text-[#071827]">
+                                    {
+                                      task.title
+                                    }
+                                  </h3>
+                                </div>
+                              </div>
+
+                              <span
+                                className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-bold ${getPriorityClasses(
+                                  task.priority,
+                                )}`}
+                              >
+                                {formatPriority(
+                                  task.priority,
+                                )}
+                              </span>
+                            </div>
+                          </header>
+
+                          <div className="space-y-4 p-5">
+                            {task.description ? (
+                              <p className="break-words text-sm leading-6 text-slate-600">
+                                {
+                                  task.description
+                                }
+                              </p>
+                            ) : (
+                              <p className="text-sm italic text-slate-400">
+                                Sem descrição complementar.
+                              </p>
+                            )}
+
+                            <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                              <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
+                                    Prazo
+                                  </p>
+
+                                  <p className="mt-2 text-sm font-semibold text-slate-700">
+                                    {formatDueDate(
+                                      task.due_date,
+                                    )}
+                                  </p>
+                                </div>
+
+                                <span
+                                  className={`rounded-lg border px-3 py-2 text-xs font-bold ${deadline.classes}`}
+                                >
+                                  {
+                                    deadline.label
+                                  }
+                                </span>
+                              </div>
+                            </section>
+
+                            <div className="grid grid-cols-2 gap-3 border-t border-slate-200 pt-4">
+                              <div>
+                                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                                  Situação
+                                </p>
+
+                                <p className="mt-1 text-sm font-semibold text-slate-700">
+                                  {formatTaskStatus(
+                                    task.status,
+                                  )}
+                                </p>
+                              </div>
+
+                              <div>
+                                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                                  Prioridade
+                                </p>
+
+                                <p className="mt-1 text-sm font-semibold text-slate-700">
+                                  {formatPriority(
+                                    task.priority,
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </article>
+                      )
+                    },
+                  )}
+                </div>
+              ) : null}
             </div>
-          </div>
+          </section>
         </div>
       </div>
-    </section>
+    </AgendaPageShell>
   )
 }
