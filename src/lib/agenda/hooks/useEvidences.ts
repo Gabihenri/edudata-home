@@ -43,6 +43,18 @@ type CleanupResponse = {
   error?: string
 }
 
+type DeleteEvidenceResponse = {
+  success: boolean
+
+  message?: string
+  error?: string
+
+  data?: {
+    evidenceId: string
+    deletedAt: string
+  }
+}
+
 type EvidenceFileApiData = {
   signedUrl: string
   expiresIn: number
@@ -73,11 +85,15 @@ type TemporaryEvidenceFile = {
   path: string
 }
 
+const MAX_DELETION_REASON_LENGTH = 500
+
 async function parseJsonResponse<T>(
   response: Response,
 ): Promise<T> {
   const contentType =
-    response.headers.get('content-type')
+    response.headers.get(
+      'content-type',
+    )
 
   if (
     !contentType?.includes(
@@ -115,6 +131,12 @@ function getResponseError(
     )
   }
 
+  if (response.status === 404) {
+    return (
+      'A evidência não foi encontrada ou já foi excluída.'
+    )
+  }
+
   if (response.status === 413) {
     return (
       'O arquivo ultrapassou o limite permitido ' +
@@ -143,7 +165,10 @@ function validateFile(
   const maximumFileSize =
     10 * 1024 * 1024
 
-  if (file.size > maximumFileSize) {
+  if (
+    file.size >
+    maximumFileSize
+  ) {
     throw new Error(
       'O arquivo deve ter no máximo 10 MB.',
     )
@@ -157,7 +182,9 @@ function validateFile(
   ]
 
   if (
-    !allowedMimeTypes.includes(file.type)
+    !allowedMimeTypes.includes(
+      file.type,
+    )
   ) {
     throw new Error(
       'Formato não permitido. Envie uma imagem JPG, PNG, WEBP ou um PDF.',
@@ -187,6 +214,45 @@ function validateUploadAuthorization(
   }
 }
 
+function normalizeEvidenceId(
+  value: string,
+): string {
+  const normalizedValue =
+    value.trim()
+
+  if (!normalizedValue) {
+    throw new Error(
+      'Identificador da evidência não informado.',
+    )
+  }
+
+  return normalizedValue
+}
+
+function normalizeDeletionReason(
+  value: string,
+): string {
+  const normalizedValue =
+    value.trim()
+
+  if (!normalizedValue) {
+    throw new Error(
+      'Informe o motivo da exclusão.',
+    )
+  }
+
+  if (
+    normalizedValue.length >
+    MAX_DELETION_REASON_LENGTH
+  ) {
+    throw new Error(
+      `O motivo da exclusão não pode ultrapassar ${MAX_DELETION_REASON_LENGTH} caracteres.`,
+    )
+  }
+
+  return normalizedValue
+}
+
 function hasTemporaryFileReference(
   input: CreateAgendaEvidenceInput,
 ): input is CreateAgendaEvidenceInput & {
@@ -213,7 +279,9 @@ export function useEvidences() {
   const [
     error,
     setError,
-  ] = useState<string | null>(null)
+  ] = useState<string | null>(
+    null,
+  )
 
   const loadEvidences =
     useCallback(
@@ -222,14 +290,16 @@ export function useEvidences() {
         setError(null)
 
         try {
-          const response = await fetch(
-            '/api/agenda/evidences',
-            {
-              method: 'GET',
-              credentials: 'include',
-              cache: 'no-store',
-            },
-          )
+          const response =
+            await fetch(
+              '/api/agenda/evidences',
+              {
+                method: 'GET',
+                credentials:
+                  'include',
+                cache: 'no-store',
+              },
+            )
 
           const result =
             await parseJsonResponse<EvidencesResponse>(
@@ -239,7 +309,9 @@ export function useEvidences() {
           if (
             !response.ok ||
             !result.success ||
-            !Array.isArray(result.data)
+            !Array.isArray(
+              result.data,
+            )
           ) {
             throw new Error(
               getResponseError(
@@ -250,7 +322,9 @@ export function useEvidences() {
             )
           }
 
-          setEvidences(result.data)
+          setEvidences(
+            result.data,
+          )
         } catch (loadError) {
           setError(
             loadError instanceof Error
@@ -283,25 +357,33 @@ export function useEvidences() {
           return
         }
 
-        const response = await fetch(
-          '/api/agenda/evidences/upload',
-          {
-            method: 'DELETE',
+        const response =
+          await fetch(
+            '/api/agenda/evidences/upload',
+            {
+              method: 'DELETE',
 
-            headers: {
-              'Content-Type':
-                'application/json',
+              headers: {
+                'Content-Type':
+                  'application/json',
+              },
+
+              credentials:
+                'include',
+
+              cache:
+                'no-store',
+
+              body:
+                JSON.stringify({
+                  bucket:
+                    normalizedBucket,
+
+                  path:
+                    normalizedPath,
+                }),
             },
-
-            credentials: 'include',
-            cache: 'no-store',
-
-            body: JSON.stringify({
-              bucket: normalizedBucket,
-              path: normalizedPath,
-            }),
-          },
-        )
+          )
 
         const result =
           await parseJsonResponse<CleanupResponse>(
@@ -314,7 +396,9 @@ export function useEvidences() {
          *
          * Nesse caso ele deve ser preservado.
          */
-        if (response.status === 409) {
+        if (
+          response.status === 409
+        ) {
           return
         }
 
@@ -352,13 +436,20 @@ export function useEvidences() {
                   'application/json',
               },
 
-              credentials: 'include',
+              credentials:
+                'include',
 
-              body: JSON.stringify({
-                fileName: file.name,
-                contentType: file.type,
-                sizeBytes: file.size,
-              }),
+              body:
+                JSON.stringify({
+                  fileName:
+                    file.name,
+
+                  contentType:
+                    file.type,
+
+                  sizeBytes:
+                    file.size,
+                }),
             },
           )
 
@@ -390,21 +481,26 @@ export function useEvidences() {
           path,
           token,
           publicUrl,
-        } = authorizationResult.data
+        } =
+          authorizationResult.data
 
         const {
           error: uploadError,
-        } = await supabase.storage
-          .from(bucket)
-          .uploadToSignedUrl(
-            path,
-            token,
-            file,
-            {
-              contentType: file.type,
-              cacheControl: '3600',
-            },
-          )
+        } =
+          await supabase.storage
+            .from(bucket)
+            .uploadToSignedUrl(
+              path,
+              token,
+              file,
+              {
+                contentType:
+                  file.type,
+
+                cacheControl:
+                  '3600',
+              },
+            )
 
         if (uploadError) {
           throw new Error(
@@ -415,15 +511,19 @@ export function useEvidences() {
         return {
           bucket,
           path,
-          publicUrl: publicUrl ?? null,
 
-          originalFileName: file.name,
+          publicUrl:
+            publicUrl ?? null,
+
+          originalFileName:
+            file.name,
 
           mimeType:
             file.type ||
             'application/octet-stream',
 
-          sizeBytes: file.size,
+          sizeBytes:
+            file.size,
         }
       },
       [],
@@ -442,15 +542,26 @@ export function useEvidences() {
         file: File,
       ): Promise<string> => {
         const uploadedFile =
-          await uploadEvidenceFile(file)
+          await uploadEvidenceFile(
+            file,
+          )
 
-        if (!uploadedFile.publicUrl) {
+        if (
+          !uploadedFile.publicUrl
+        ) {
           try {
-            await deleteTemporaryEvidenceFile({
-              bucket: uploadedFile.bucket,
-              path: uploadedFile.path,
-            })
-          } catch (cleanupError) {
+            await deleteTemporaryEvidenceFile(
+              {
+                bucket:
+                  uploadedFile.bucket,
+
+                path:
+                  uploadedFile.path,
+              },
+            )
+          } catch (
+            cleanupError
+          ) {
             console.error(
               'Erro ao remover upload incompatível:',
               cleanupError,
@@ -476,83 +587,96 @@ export function useEvidences() {
         input: CreateAgendaEvidenceInput,
       ): Promise<AgendaEvidence> => {
         try {
-          const response = await fetch(
-            '/api/agenda/evidences',
-            {
-              method: 'POST',
+          const response =
+            await fetch(
+              '/api/agenda/evidences',
+              {
+                method: 'POST',
 
-              headers: {
-                'Content-Type':
-                  'application/json',
+                headers: {
+                  'Content-Type':
+                    'application/json',
+                },
+
+                credentials:
+                  'include',
+
+                body:
+                  JSON.stringify({
+                    title:
+                      input.title,
+
+                    description:
+                      input.description ??
+                      null,
+
+                    evidenceType:
+                      input.evidence_type ??
+                      'texto',
+
+                    fileUrl:
+                      input.file_url ??
+                      null,
+
+                    externalUrl:
+                      input.external_url ??
+                      null,
+
+                    planningId:
+                      input.planning_id ??
+                      null,
+
+                    eventId:
+                      input.event_id ??
+                      null,
+
+                    schoolId:
+                      input.school_id ??
+                      null,
+
+                    containsIdentifiableMinor:
+                      input
+                        .contains_identifiable_minor ??
+                      false,
+
+                    guardianAuthorizationConfirmed:
+                      input
+                        .guardian_authorization_confirmed ??
+                      false,
+
+                    authorizationReference:
+                      input
+                        .authorization_reference ??
+                      null,
+
+                    privacyNoticeVersion:
+                      input
+                        .privacy_notice_version ??
+                      'edi-protecao-menores-v1.0',
+
+                    storageBucket:
+                      input.storage_bucket ??
+                      null,
+
+                    storagePath:
+                      input.storage_path ??
+                      null,
+
+                    originalFileName:
+                      input
+                        .original_file_name ??
+                      null,
+
+                    fileMimeType:
+                      input.file_mime_type ??
+                      null,
+
+                    fileSizeBytes:
+                      input.file_size_bytes ??
+                      null,
+                  }),
               },
-
-              credentials: 'include',
-
-              body: JSON.stringify({
-                title: input.title,
-
-                description:
-                  input.description ?? null,
-
-                evidenceType:
-                  input.evidence_type ??
-                  'texto',
-
-                fileUrl:
-                  input.file_url ?? null,
-
-                externalUrl:
-                  input.external_url ?? null,
-
-                planningId:
-                  input.planning_id ?? null,
-
-                eventId:
-                  input.event_id ?? null,
-
-                schoolId:
-                  input.school_id ?? null,
-
-                containsIdentifiableMinor:
-                  input
-                    .contains_identifiable_minor ??
-                  false,
-
-                guardianAuthorizationConfirmed:
-                  input
-                    .guardian_authorization_confirmed ??
-                  false,
-
-                authorizationReference:
-                  input
-                    .authorization_reference ??
-                  null,
-
-                privacyNoticeVersion:
-                  input
-                    .privacy_notice_version ??
-                  'edi-protecao-menores-v1.0',
-
-                storageBucket:
-                  input.storage_bucket ?? null,
-
-                storagePath:
-                  input.storage_path ?? null,
-
-                originalFileName:
-                  input.original_file_name ??
-                  null,
-
-                fileMimeType:
-                  input.file_mime_type ??
-                  null,
-
-                fileSizeBytes:
-                  input.file_size_bytes ??
-                  null,
-              }),
-            },
-          )
+            )
 
           const result =
             await parseJsonResponse<EvidencesResponse>(
@@ -563,7 +687,9 @@ export function useEvidences() {
             !response.ok ||
             !result.success ||
             !result.data ||
-            Array.isArray(result.data)
+            Array.isArray(
+              result.data,
+            )
           ) {
             throw new Error(
               getResponseError(
@@ -578,14 +704,18 @@ export function useEvidences() {
             result.data
 
           setEvidences(
-            (currentEvidences) => [
+            (
+              currentEvidences,
+            ) => [
               createdEvidence,
               ...currentEvidences,
             ],
           )
 
           return createdEvidence
-        } catch (createError) {
+        } catch (
+          createError
+        ) {
           /*
            * Compensação do fluxo:
            *
@@ -603,13 +733,18 @@ export function useEvidences() {
             )
           ) {
             try {
-              await deleteTemporaryEvidenceFile({
-                bucket:
-                  input.storage_bucket,
-                path:
-                  input.storage_path,
-              })
-            } catch (cleanupError) {
+              await deleteTemporaryEvidenceFile(
+                {
+                  bucket:
+                    input.storage_bucket,
+
+                  path:
+                    input.storage_path,
+                },
+              )
+            } catch (
+              cleanupError
+            ) {
               console.error(
                 'Erro ao compensar upload de evidência:',
                 cleanupError,
@@ -620,7 +755,89 @@ export function useEvidences() {
           throw createError
         }
       },
-      [deleteTemporaryEvidenceFile],
+      [
+        deleteTemporaryEvidenceFile,
+      ],
+    )
+
+  const deleteEvidence =
+    useCallback(
+      async (
+        evidenceId: string,
+        reason: string,
+      ): Promise<string> => {
+        const normalizedEvidenceId =
+          normalizeEvidenceId(
+            evidenceId,
+          )
+
+        const normalizedReason =
+          normalizeDeletionReason(
+            reason,
+          )
+
+        const response =
+          await fetch(
+            `/api/agenda/evidences/${encodeURIComponent(normalizedEvidenceId)}`,
+            {
+              method: 'DELETE',
+
+              headers: {
+                'Content-Type':
+                  'application/json',
+              },
+
+              credentials:
+                'include',
+
+              cache:
+                'no-store',
+
+              body:
+                JSON.stringify({
+                  reason:
+                    normalizedReason,
+                }),
+            },
+          )
+
+        const result =
+          await parseJsonResponse<DeleteEvidenceResponse>(
+            response,
+          )
+
+        if (
+          !response.ok ||
+          !result.success
+        ) {
+          throw new Error(
+            getResponseError(
+              response,
+              result.error,
+              'Não foi possível excluir a evidência.',
+            ),
+          )
+        }
+
+        setEvidences(
+          (
+            currentEvidences,
+          ) =>
+            currentEvidences.filter(
+              (
+                evidence,
+              ) =>
+                evidence.id !==
+                normalizedEvidenceId,
+            ),
+        )
+
+        return (
+          result.message ??
+          'Evidência excluída de forma governada.'
+        )
+      },
+      [],
     )
 
   const getEvidenceFileUrl =
@@ -629,22 +846,23 @@ export function useEvidences() {
         evidenceId: string,
       ): Promise<string> => {
         const normalizedEvidenceId =
-          evidenceId.trim()
-
-        if (!normalizedEvidenceId) {
-          throw new Error(
-            'Identificador da evidência não informado.',
+          normalizeEvidenceId(
+            evidenceId,
           )
-        }
 
-        const response = await fetch(
-          `/api/agenda/evidences/${encodeURIComponent(normalizedEvidenceId)}/file`,
-          {
-            method: 'GET',
-            credentials: 'include',
-            cache: 'no-store',
-          },
-        )
+        const response =
+          await fetch(
+            `/api/agenda/evidences/${encodeURIComponent(normalizedEvidenceId)}/file`,
+            {
+              method: 'GET',
+
+              credentials:
+                'include',
+
+              cache:
+                'no-store',
+            },
+          )
 
         const result =
           await parseJsonResponse<EvidenceFileResponse>(
@@ -666,9 +884,10 @@ export function useEvidences() {
         }
 
         if (
-          !result.data.signedUrl.startsWith(
-            'https://',
-          )
+          !result.data.signedUrl
+            .startsWith(
+              'https://',
+            )
         ) {
           throw new Error(
             'O servidor retornou um endereço de arquivo inválido.',
@@ -689,11 +908,15 @@ export function useEvidences() {
     loading,
     error,
 
-    reload: loadEvidences,
+    reload:
+      loadEvidences,
 
     createEvidence,
+    deleteEvidence,
+
     uploadEvidence,
     uploadEvidenceFile,
+
     getEvidenceFileUrl,
   }
 }
