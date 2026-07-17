@@ -6,10 +6,17 @@ import {
   useState,
 } from 'react'
 
-import { useHistory } from '@/lib/agenda/hooks'
+import {
+  AgendaEventVersionsDialog,
+} from './AgendaEventVersionsDialog'
+
+import {
+  useHistory,
+} from '@/lib/agenda/hooks'
 
 import type {
   AgendaHistoryFilters,
+  AgendaHistoryItem,
   AgendaHistoryItemType,
 } from '@/lib/agenda'
 
@@ -23,6 +30,24 @@ type HistoryFormState = {
 type RestoreTarget = {
   sourceId: string
   title: string
+}
+
+type VersionsTarget = {
+  eventId: string
+  title: string
+}
+
+type HistoryRecordCardProps = {
+  item: AgendaHistoryItem
+  restoringEventId: string | null
+
+  onRestore: (
+    target: RestoreTarget,
+  ) => void
+
+  onOpenVersions: (
+    target: VersionsTarget,
+  ) => void
 }
 
 const initialForm: HistoryFormState = {
@@ -115,8 +140,297 @@ function getActorReference(
   }
 
   return value.length > 12
-    ? `${value.slice(0, 8)}…${value.slice(-4)}`
+    ? `${value.slice(
+        0,
+        8,
+      )}…${value.slice(-4)}`
     : value
+}
+
+function HistoryRecordCard({
+  item,
+  restoringEventId,
+  onRestore,
+  onOpenVersions,
+}: HistoryRecordCardProps) {
+  const actorReference =
+    getActorReference(
+      item.deleted_by,
+    )
+
+  const isEvent =
+    item.type === 'evento'
+
+  const canRestore =
+    item.is_deleted &&
+    isEvent
+
+  const isRestoring =
+    restoringEventId ===
+    item.source_id
+
+  const hasProtectedLinks =
+    !item.is_deleted &&
+    Boolean(
+      item.file_url ||
+        item.external_url,
+    )
+
+  const hasActions =
+    isEvent ||
+    canRestore ||
+    hasProtectedLinks
+
+  return (
+    <article
+      className={`overflow-hidden rounded-2xl border bg-white shadow-sm ${
+        item.is_deleted
+          ? 'border-amber-300'
+          : 'border-slate-200'
+      }`}
+    >
+      {item.is_deleted ? (
+        <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 sm:px-6">
+          <p className="text-sm font-bold text-amber-900">
+            Registro excluído e
+            preservado para histórico e
+            auditoria
+          </p>
+        </div>
+      ) : null}
+
+      <div className="p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-cyan-800">
+                {
+                  typeLabels[
+                    item.type
+                  ]
+                }
+              </span>
+
+              {item.is_deleted ? (
+                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900">
+                  Excluído
+                </span>
+              ) : (
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">
+                  Ativo
+                </span>
+              )}
+
+              {isEvent ? (
+                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800">
+                  Versionado
+                </span>
+              ) : null}
+            </div>
+
+            <h3 className="mt-3 break-words text-xl font-bold text-slate-950 sm:text-2xl">
+              {item.title}
+            </h3>
+          </div>
+
+          <div className="rounded-xl bg-[#081C2E] px-4 py-2 text-xs font-bold text-white">
+            {item.is_deleted
+              ? 'Excluído em '
+              : 'Registrado em '}
+
+            {formatDate(
+              item.occurred_at,
+            )}
+          </div>
+        </div>
+
+        {item.description ? (
+          <p className="mt-5 whitespace-pre-wrap break-words leading-7 text-slate-600">
+            {item.description}
+          </p>
+        ) : null}
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          {item.status &&
+          !item.is_deleted ? (
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+              Status:{' '}
+              {formatLabel(
+                item.status,
+              )}
+            </span>
+          ) : null}
+
+          {item.category ? (
+            <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-800">
+              {formatLabel(
+                item.category,
+              )}
+            </span>
+          ) : null}
+
+          {item.subject ? (
+            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800">
+              Disciplina:{' '}
+              {item.subject}
+            </span>
+          ) : null}
+
+          {item.class_name ? (
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+              Turma:{' '}
+              {item.class_name}
+            </span>
+          ) : null}
+        </div>
+
+        {item.is_deleted ? (
+          <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+            <h4 className="font-bold text-amber-950">
+              Informações da exclusão
+            </h4>
+
+            <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+              <div>
+                <dt className="font-semibold text-amber-900">
+                  Motivo
+                </dt>
+
+                <dd className="mt-1 whitespace-pre-wrap break-words text-amber-950">
+                  {item.deletion_reason ??
+                    'Motivo não informado.'}
+                </dd>
+              </div>
+
+              <div>
+                <dt className="font-semibold text-amber-900">
+                  Data da exclusão
+                </dt>
+
+                <dd className="mt-1 text-amber-950">
+                  {item.deleted_at
+                    ? formatDate(
+                        item.deleted_at,
+                      )
+                    : 'Data não disponível'}
+                </dd>
+              </div>
+
+              <div>
+                <dt className="font-semibold text-amber-900">
+                  Responsável
+                </dt>
+
+                <dd className="mt-1 text-amber-950">
+                  {item.deleted_by
+                    ? 'Usuário identificado pelo sistema'
+                    : 'Identificação não disponível'}
+                </dd>
+              </div>
+
+              <div>
+                <dt className="font-semibold text-amber-900">
+                  Referência de auditoria
+                </dt>
+
+                <dd className="mt-1 font-mono text-xs text-amber-950">
+                  {actorReference ??
+                    'Não disponível'}
+                </dd>
+              </div>
+
+              <div className="sm:col-span-2">
+                <dt className="font-semibold text-amber-900">
+                  Data original do registro
+                </dt>
+
+                <dd className="mt-1 text-amber-950">
+                  {formatDate(
+                    item.source_occurred_at,
+                  )}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        ) : null}
+
+        {hasActions ? (
+          <div className="mt-6 flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:flex-wrap">
+            {isEvent ? (
+              <button
+                type="button"
+                onClick={() =>
+                  onOpenVersions({
+                    eventId:
+                      item.source_id,
+
+                    title:
+                      item.title,
+                  })
+                }
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-cyan-700 bg-white px-5 py-3 font-semibold text-cyan-800 transition hover:bg-cyan-50 sm:w-auto"
+              >
+                Ver versões
+              </button>
+            ) : null}
+
+            {canRestore ? (
+              <button
+                type="button"
+                disabled={
+                  Boolean(
+                    restoringEventId,
+                  )
+                }
+                onClick={() =>
+                  onRestore({
+                    sourceId:
+                      item.source_id,
+
+                    title:
+                      item.title,
+                  })
+                }
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#0A6F8F] px-5 py-3 font-semibold text-white transition hover:bg-[#085A75] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              >
+                {isRestoring
+                  ? 'Restaurando evento...'
+                  : 'Restaurar evento'}
+              </button>
+            ) : null}
+
+            {!item.is_deleted &&
+            item.file_url ? (
+              <a
+                href={
+                  item.file_url
+                }
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-cyan-700 bg-white px-5 py-3 font-semibold text-cyan-800 transition hover:bg-cyan-50 sm:w-auto"
+              >
+                Abrir arquivo
+              </a>
+            ) : null}
+
+            {!item.is_deleted &&
+            item.external_url ? (
+              <a
+                href={
+                  item.external_url
+                }
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto"
+              >
+                Abrir link
+              </a>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </article>
+  )
 }
 
 export function AgendaHistory() {
@@ -161,6 +475,14 @@ export function AgendaHistory() {
     )
 
   const [
+    versionsTarget,
+    setVersionsTarget,
+  ] =
+    useState<VersionsTarget | null>(
+      null,
+    )
+
+  const [
     restoreReason,
     setRestoreReason,
   ] =
@@ -199,7 +521,7 @@ export function AgendaHistory() {
       return history.reduce<
         Record<
           string,
-          typeof history
+          AgendaHistoryItem[]
         >
       >(
         (
@@ -212,8 +534,7 @@ export function AgendaHistory() {
             )
 
           if (!groups[dateKey]) {
-            groups[dateKey] =
-              []
+            groups[dateKey] = []
           }
 
           groups[
@@ -236,25 +557,24 @@ export function AgendaHistory() {
 
     const filters:
       AgendaHistoryFilters = {
-        search:
-          form.search.trim() ||
-          null,
+      search:
+        form.search.trim() ||
+        null,
 
-        type:
-          form.type ||
-          null,
+      type:
+        form.type ||
+        null,
 
-        startDate:
-          form.startDate ||
-          null,
+      startDate:
+        form.startDate ||
+        null,
 
-        endDate:
-          form.endDate ||
-          null,
+      endDate:
+        form.endDate ||
+        null,
 
-        limit:
-          200,
-      }
+      limit: 200,
+    }
 
     setActiveFilters(
       filters,
@@ -275,8 +595,8 @@ export function AgendaHistory() {
 
     const filters:
       AgendaHistoryFilters = {
-        limit: 200,
-      }
+      limit: 200,
+    }
 
     setActiveFilters(
       filters,
@@ -291,6 +611,10 @@ export function AgendaHistory() {
     target: RestoreTarget,
   ): void {
     clearActionFeedback()
+
+    setVersionsTarget(
+      null,
+    )
 
     setRestoreValidationError(
       null,
@@ -316,6 +640,31 @@ export function AgendaHistory() {
     setRestoreReason('')
 
     setRestoreValidationError(
+      null,
+    )
+  }
+
+  function openVersionsDialog(
+    target: VersionsTarget,
+  ): void {
+    if (restoringEventId) {
+      return
+    }
+
+    clearActionFeedback()
+
+    setRestoreTarget(
+      null,
+    )
+
+    setVersionsTarget(
+      target,
+    )
+  }
+
+  function closeVersionsDialog():
+    void {
+    setVersionsTarget(
       null,
     )
   }
@@ -389,9 +738,8 @@ export function AgendaHistory() {
 
               <p className="mt-4 max-w-3xl text-base leading-7 text-slate-200 sm:text-lg">
                 Consulte eventos,
-                planejamentos,
-                evidências e tarefas
-                preservados na sua
+                planejamentos, evidências e
+                tarefas preservados na sua
                 trajetória pedagógica.
               </p>
 
@@ -660,7 +1008,8 @@ export function AgendaHistory() {
                   role="alert"
                 >
                   <p className="font-bold">
-                    Não foi possível restaurar o evento
+                    Não foi possível
+                    restaurar o evento
                   </p>
 
                   <p className="mt-1">
@@ -708,8 +1057,7 @@ export function AgendaHistory() {
                   role="status"
                   aria-live="polite"
                 >
-                  Carregando o
-                  histórico
+                  Carregando o histórico
                   pedagógico...
                 </div>
               ) : null}
@@ -721,8 +1069,7 @@ export function AgendaHistory() {
                 >
                   <p className="font-bold">
                     Não foi possível
-                    carregar o
-                    histórico.
+                    carregar o histórico.
                   </p>
 
                   <p className="mt-2">
@@ -733,8 +1080,7 @@ export function AgendaHistory() {
 
               {!loading &&
               !error &&
-              history.length ===
-                0 ? (
+              history.length === 0 ? (
                 <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-8 text-slate-600">
                   Nenhum registro foi
                   encontrado para os
@@ -744,8 +1090,7 @@ export function AgendaHistory() {
 
               {!loading &&
               !error &&
-              history.length >
-                0 ? (
+              history.length > 0 ? (
                 <div className="mt-10 space-y-10">
                   {Object.entries(
                     groupedHistory,
@@ -773,270 +1118,25 @@ export function AgendaHistory() {
                           {items.map(
                             (
                               item,
-                            ) => {
-                              const actorReference =
-                                getActorReference(
-                                  item.deleted_by,
-                                )
-
-                              const canRestore =
-                                item.is_deleted &&
-                                item.type ===
-                                  'evento'
-
-                              const isRestoring =
-                                restoringEventId ===
-                                item.source_id
-
-                              return (
-                                <article
-                                  key={
-                                    item.id
-                                  }
-                                  className={`overflow-hidden rounded-2xl border bg-white shadow-sm ${
-                                    item.is_deleted
-                                      ? 'border-amber-300'
-                                      : 'border-slate-200'
-                                  }`}
-                                >
-                                  {item.is_deleted ? (
-                                    <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 sm:px-6">
-                                      <p className="text-sm font-bold text-amber-900">
-                                        Registro
-                                        excluído e
-                                        preservado
-                                        para
-                                        histórico e
-                                        auditoria
-                                      </p>
-                                    </div>
-                                  ) : null}
-
-                                  <div className="p-5 sm:p-6">
-                                    <div className="flex flex-wrap items-start justify-between gap-4">
-                                      <div className="min-w-0">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                          <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-cyan-800">
-                                            {
-                                              typeLabels[
-                                                item
-                                                  .type
-                                              ]
-                                            }
-                                          </span>
-
-                                          {item.is_deleted ? (
-                                            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900">
-                                              Excluído
-                                            </span>
-                                          ) : (
-                                            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">
-                                              Ativo
-                                            </span>
-                                          )}
-                                        </div>
-
-                                        <h3 className="mt-3 break-words text-xl font-bold text-slate-950 sm:text-2xl">
-                                          {
-                                            item.title
-                                          }
-                                        </h3>
-                                      </div>
-
-                                      <div className="rounded-xl bg-[#081C2E] px-4 py-2 text-xs font-bold text-white">
-                                        {item.is_deleted
-                                          ? 'Excluído em '
-                                          : 'Registrado em '}
-
-                                        {formatDate(
-                                          item.occurred_at,
-                                        )}
-                                      </div>
-                                    </div>
-
-                                    {item.description ? (
-                                      <p className="mt-5 whitespace-pre-wrap break-words leading-7 text-slate-600">
-                                        {
-                                          item.description
-                                        }
-                                      </p>
-                                    ) : null}
-
-                                    <div className="mt-5 flex flex-wrap gap-2">
-                                      {item.status &&
-                                      !item.is_deleted ? (
-                                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                                          Status:{' '}
-                                          {formatLabel(
-                                            item.status,
-                                          )}
-                                        </span>
-                                      ) : null}
-
-                                      {item.category ? (
-                                        <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-800">
-                                          {formatLabel(
-                                            item.category,
-                                          )}
-                                        </span>
-                                      ) : null}
-
-                                      {item.subject ? (
-                                        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800">
-                                          Disciplina:{' '}
-                                          {
-                                            item.subject
-                                          }
-                                        </span>
-                                      ) : null}
-
-                                      {item.class_name ? (
-                                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
-                                          Turma:{' '}
-                                          {
-                                            item.class_name
-                                          }
-                                        </span>
-                                      ) : null}
-                                    </div>
-
-                                    {item.is_deleted ? (
-                                      <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-                                        <h4 className="font-bold text-amber-950">
-                                          Informações
-                                          da exclusão
-                                        </h4>
-
-                                        <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
-                                          <div>
-                                            <dt className="font-semibold text-amber-900">
-                                              Motivo
-                                            </dt>
-
-                                            <dd className="mt-1 whitespace-pre-wrap break-words text-amber-950">
-                                              {item.deletion_reason ??
-                                                'Motivo não informado.'}
-                                            </dd>
-                                          </div>
-
-                                          <div>
-                                            <dt className="font-semibold text-amber-900">
-                                              Data da
-                                              exclusão
-                                            </dt>
-
-                                            <dd className="mt-1 text-amber-950">
-                                              {item.deleted_at
-                                                ? formatDate(
-                                                    item.deleted_at,
-                                                  )
-                                                : 'Data não disponível'}
-                                            </dd>
-                                          </div>
-
-                                          <div>
-                                            <dt className="font-semibold text-amber-900">
-                                              Responsável
-                                            </dt>
-
-                                            <dd className="mt-1 text-amber-950">
-                                              {item.deleted_by
-                                                ? 'Usuário identificado pelo sistema'
-                                                : 'Identificação não disponível'}
-                                            </dd>
-                                          </div>
-
-                                          <div>
-                                            <dt className="font-semibold text-amber-900">
-                                              Referência
-                                              de auditoria
-                                            </dt>
-
-                                            <dd className="mt-1 font-mono text-xs text-amber-950">
-                                              {actorReference ??
-                                                'Não disponível'}
-                                            </dd>
-                                          </div>
-
-                                          <div className="sm:col-span-2">
-                                            <dt className="font-semibold text-amber-900">
-                                              Data original
-                                              do registro
-                                            </dt>
-
-                                            <dd className="mt-1 text-amber-950">
-                                              {formatDate(
-                                                item.source_occurred_at,
-                                              )}
-                                            </dd>
-                                          </div>
-                                        </dl>
-
-                                        {canRestore ? (
-                                          <div className="mt-5 border-t border-amber-200 pt-5">
-                                            <button
-                                              type="button"
-                                              disabled={
-                                                Boolean(
-                                                  restoringEventId,
-                                                )
-                                              }
-                                              onClick={() =>
-                                                openRestoreDialog({
-                                                  sourceId:
-                                                    item.source_id,
-
-                                                  title:
-                                                    item.title,
-                                                })
-                                              }
-                                              className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#0A6F8F] px-5 py-3 font-semibold text-white transition hover:bg-[#085A75] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-                                            >
-                                              {isRestoring
-                                                ? 'Restaurando evento...'
-                                                : 'Restaurar evento'}
-                                            </button>
-                                          </div>
-                                        ) : null}
-                                      </div>
-                                    ) : null}
-
-                                    {!item.is_deleted &&
-                                    (item.file_url ||
-                                      item.external_url) ? (
-                                      <div className="mt-6 flex flex-wrap gap-3 border-t border-slate-100 pt-5">
-                                        {item.file_url ? (
-                                          <a
-                                            href={
-                                              item.file_url
-                                            }
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="inline-flex min-h-10 items-center justify-center rounded-xl border border-cyan-700 px-4 py-2 text-sm font-semibold text-cyan-800 transition hover:bg-cyan-50"
-                                          >
-                                            Abrir
-                                            arquivo
-                                          </a>
-                                        ) : null}
-
-                                        {item.external_url ? (
-                                          <a
-                                            href={
-                                              item.external_url
-                                            }
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                                          >
-                                            Abrir link
-                                          </a>
-                                        ) : null}
-                                      </div>
-                                    ) : null}
-                                  </div>
-                                </article>
-                              )
-                            },
+                            ) => (
+                              <HistoryRecordCard
+                                key={
+                                  item.id
+                                }
+                                item={
+                                  item
+                                }
+                                restoringEventId={
+                                  restoringEventId
+                                }
+                                onRestore={
+                                  openRestoreDialog
+                                }
+                                onOpenVersions={
+                                  openVersionsDialog
+                                }
+                              />
+                            ),
                           )}
                         </div>
                       </section>
@@ -1085,13 +1185,10 @@ export function AgendaHistory() {
             >
               <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm leading-6 text-cyan-950">
                 O evento voltará a
-                aparecer no
-                calendário. A
-                exclusão e a
-                restauração
-                permanecerão
-                registradas na
-                auditoria
+                aparecer no calendário.
+                A exclusão e a
+                restauração permanecerão
+                registradas na auditoria
                 institucional.
               </div>
 
@@ -1145,9 +1242,7 @@ export function AgendaHistory() {
                   </p>
 
                   <p className="text-xs text-slate-500">
-                    {
-                      restoreReason.length
-                    }
+                    {restoreReason.length}
                     /500
                   </p>
                 </div>
@@ -1204,6 +1299,20 @@ export function AgendaHistory() {
             </form>
           </div>
         </div>
+      ) : null}
+
+      {versionsTarget ? (
+        <AgendaEventVersionsDialog
+          eventId={
+            versionsTarget.eventId
+          }
+          title={
+            versionsTarget.title
+          }
+          onClose={
+            closeVersionsDialog
+          }
+        />
       ) : null}
     </>
   )
