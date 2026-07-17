@@ -10,7 +10,13 @@ import {
 } from '@/lib/agenda/repository/events.repository'
 
 const MAX_RECURRENCE_OCCURRENCES = 104
+const MAX_DELETION_REASON_LENGTH = 500
 const AGENDA_TIMEZONE = 'America/Sao_Paulo'
+
+export type DeleteAgendaEventContext = {
+  actorUserId: string
+  reason: string
+}
 
 function validateRequiredId(
   value: string,
@@ -23,6 +29,50 @@ function validateRequiredId(
   }
 
   return normalizedValue
+}
+
+function validateDeletionReason(
+  value: string,
+): string {
+  const normalizedValue = value?.trim()
+
+  if (!normalizedValue) {
+    throw new Error(
+      'Motivo da exclusão é obrigatório.',
+    )
+  }
+
+  if (
+    normalizedValue.length >
+    MAX_DELETION_REASON_LENGTH
+  ) {
+    throw new Error(
+      `O motivo da exclusão não pode ultrapassar ${MAX_DELETION_REASON_LENGTH} caracteres.`,
+    )
+  }
+
+  return normalizedValue
+}
+
+function normalizeDeleteContext(
+  context: DeleteAgendaEventContext,
+): DeleteAgendaEventContext {
+  if (!context) {
+    throw new Error(
+      'Os dados de auditoria da exclusão são obrigatórios.',
+    )
+  }
+
+  return {
+    actorUserId: validateRequiredId(
+      context.actorUserId,
+      'ID do usuário responsável',
+    ),
+
+    reason: validateDeletionReason(
+      context.reason,
+    ),
+  }
 }
 
 function validateDateOnly(
@@ -685,12 +735,16 @@ class EventsService {
 
   async delete(
     id: string,
+    context: DeleteAgendaEventContext,
   ): Promise<void> {
     const normalizedId =
       validateRequiredId(
         id,
         'ID do evento',
       )
+
+    const normalizedContext =
+      normalizeDeleteContext(context)
 
     const existingEvent =
       await eventsRepository.findById(
@@ -699,18 +753,21 @@ class EventsService {
 
     if (!existingEvent) {
       throw new Error(
-        'Evento não encontrado.',
+        'Evento não encontrado ou já excluído.',
       )
     }
 
     await eventsRepository.delete(
       normalizedId,
+      normalizedContext.actorUserId,
+      normalizedContext.reason,
     )
   }
 
   async deleteSeriesFromDate(
     seriesId: string,
     startAt: string,
+    context: DeleteAgendaEventContext,
   ): Promise<void> {
     const normalizedSeriesId =
       validateRequiredId(
@@ -724,9 +781,14 @@ class EventsService {
         'Data inicial',
       ).toISOString()
 
+    const normalizedContext =
+      normalizeDeleteContext(context)
+
     await eventsRepository.deleteSeriesFromDate(
       normalizedSeriesId,
       normalizedStartAt,
+      normalizedContext.actorUserId,
+      normalizedContext.reason,
     )
   }
 }
