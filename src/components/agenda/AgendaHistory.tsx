@@ -9,6 +9,9 @@ import {
 import {
   AgendaEventVersionsDialog,
 } from './AgendaEventVersionsDialog'
+import {
+  AgendaRestoreDialog,
+} from './AgendaRestoreDialog'
 
 import {
   useHistory,
@@ -22,14 +25,21 @@ import type {
 
 type HistoryFormState = {
   search: string
-  type: '' | AgendaHistoryItemType
+  type:
+    | ''
+    | AgendaHistoryItemType
   startDate: string
   endDate: string
 }
 
+type RestorableHistoryItemType =
+  | 'evento'
+  | 'evidencia'
+
 type RestoreTarget = {
   sourceId: string
   title: string
+  type: RestorableHistoryItemType
 }
 
 type VersionsTarget = {
@@ -39,7 +49,14 @@ type VersionsTarget = {
 
 type HistoryRecordCardProps = {
   item: AgendaHistoryItem
-  restoringEventId: string | null
+
+  restoringEventId:
+    | string
+    | null
+
+  restoringEvidenceId:
+    | string
+    | null
 
   onRestore: (
     target: RestoreTarget,
@@ -147,9 +164,25 @@ function getActorReference(
     : value
 }
 
+function getRestoreButtonLabel(
+  type: RestorableHistoryItemType,
+  restoring: boolean,
+): string {
+  if (type === 'evento') {
+    return restoring
+      ? 'Restaurando evento...'
+      : 'Restaurar evento'
+  }
+
+  return restoring
+    ? 'Restaurando evidência...'
+    : 'Restaurar evidência'
+}
+
 function HistoryRecordCard({
   item,
   restoringEventId,
+  restoringEvidenceId,
   onRestore,
   onOpenVersions,
 }: HistoryRecordCardProps) {
@@ -161,12 +194,32 @@ function HistoryRecordCard({
   const isEvent =
     item.type === 'evento'
 
+  const isEvidence =
+    item.type === 'evidencia'
+
+  const restorableType:
+    | RestorableHistoryItemType
+    | null =
+    isEvent
+      ? 'evento'
+      : isEvidence
+        ? 'evidencia'
+        : null
+
   const canRestore =
     item.is_deleted &&
-    isEvent
+    Boolean(restorableType)
+
+  const restoringRecordId =
+    restorableType === 'evento'
+      ? restoringEventId
+      : restorableType ===
+          'evidencia'
+        ? restoringEvidenceId
+        : null
 
   const isRestoring =
-    restoringEventId ===
+    restoringRecordId ===
     item.source_id
 
   const hasProtectedLinks =
@@ -333,7 +386,7 @@ function HistoryRecordCard({
                   Referência de auditoria
                 </dt>
 
-                <dd className="mt-1 font-mono text-xs text-amber-950">
+                <dd className="mt-1 break-all font-mono text-xs text-amber-950">
                   {actorReference ??
                     'Não disponível'}
                 </dd>
@@ -374,14 +427,14 @@ function HistoryRecordCard({
               </button>
             ) : null}
 
-            {canRestore ? (
+            {canRestore &&
+            restorableType ? (
               <button
                 type="button"
-                disabled={
-                  Boolean(
-                    restoringEventId,
-                  )
-                }
+                disabled={Boolean(
+                  restoringEventId ||
+                    restoringEvidenceId,
+                )}
                 onClick={() =>
                   onRestore({
                     sourceId:
@@ -389,13 +442,17 @@ function HistoryRecordCard({
 
                     title:
                       item.title,
+
+                    type:
+                      restorableType,
                   })
                 }
                 className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#0A6F8F] px-5 py-3 font-semibold text-white transition hover:bg-[#085A75] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
               >
-                {isRestoring
-                  ? 'Restaurando evento...'
-                  : 'Restaurar evento'}
+                {getRestoreButtonLabel(
+                  restorableType,
+                  isRestoring,
+                )}
               </button>
             ) : null}
 
@@ -441,10 +498,14 @@ export function AgendaHistory() {
     reload,
 
     restoringEventId,
+    restoringEvidenceId,
+
     actionError,
     actionMessage,
 
     restoreEvent,
+    restoreEvidence,
+
     clearActionFeedback,
   } = useHistory({
     limit: 200,
@@ -482,18 +543,10 @@ export function AgendaHistory() {
       null,
     )
 
-  const [
-    restoreReason,
-    setRestoreReason,
-  ] =
-    useState('')
-
-  const [
-    restoreValidationError,
-    setRestoreValidationError,
-  ] =
-    useState<string | null>(
-      null,
+  const isRestoring =
+    Boolean(
+      restoringEventId ||
+        restoringEvidenceId,
     )
 
   const summary =
@@ -616,12 +669,6 @@ export function AgendaHistory() {
       null,
     )
 
-    setRestoreValidationError(
-      null,
-    )
-
-    setRestoreReason('')
-
     setRestoreTarget(
       target,
     )
@@ -629,7 +676,7 @@ export function AgendaHistory() {
 
   function closeRestoreDialog():
     void {
-    if (restoringEventId) {
+    if (isRestoring) {
       return
     }
 
@@ -637,17 +684,13 @@ export function AgendaHistory() {
       null,
     )
 
-    setRestoreReason('')
-
-    setRestoreValidationError(
-      null,
-    )
+    clearActionFeedback()
   }
 
   function openVersionsDialog(
     target: VersionsTarget,
   ): void {
-    if (restoringEventId) {
+    if (isRestoring) {
       return
     }
 
@@ -669,47 +712,26 @@ export function AgendaHistory() {
     )
   }
 
-  async function handleRestoreSubmit(
-    event:
-      FormEvent<HTMLFormElement>,
+  async function handleRestoreConfirm(
+    reason: string,
   ): Promise<void> {
-    event.preventDefault()
-
     if (!restoreTarget) {
-      return
-    }
-
-    const normalizedReason =
-      restoreReason.trim()
-
-    if (!normalizedReason) {
-      setRestoreValidationError(
-        'Informe o motivo da restauração.',
+      throw new Error(
+        'Nenhum registro foi selecionado para restauração.',
       )
-
-      return
     }
-
-    if (
-      normalizedReason.length >
-      500
-    ) {
-      setRestoreValidationError(
-        'O motivo da restauração não pode ultrapassar 500 caracteres.',
-      )
-
-      return
-    }
-
-    setRestoreValidationError(
-      null,
-    )
 
     const restored =
-      await restoreEvent(
-        restoreTarget.sourceId,
-        normalizedReason,
-      )
+      restoreTarget.type ===
+      'evento'
+        ? await restoreEvent(
+            restoreTarget.sourceId,
+            reason,
+          )
+        : await restoreEvidence(
+            restoreTarget.sourceId,
+            reason,
+          )
 
     if (!restored) {
       return
@@ -718,8 +740,6 @@ export function AgendaHistory() {
     setRestoreTarget(
       null,
     )
-
-    setRestoreReason('')
   }
 
   return (
@@ -1009,7 +1029,7 @@ export function AgendaHistory() {
                 >
                   <p className="font-bold">
                     Não foi possível
-                    restaurar o evento
+                    restaurar o registro
                   </p>
 
                   <p className="mt-1">
@@ -1129,6 +1149,9 @@ export function AgendaHistory() {
                                 restoringEventId={
                                   restoringEventId
                                 }
+                                restoringEvidenceId={
+                                  restoringEvidenceId
+                                }
                                 onRestore={
                                   openRestoreDialog
                                 }
@@ -1149,157 +1172,34 @@ export function AgendaHistory() {
         </div>
       </section>
 
-      {restoreTarget ? (
-        <div
-          className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/70 p-4 sm:items-center"
-          role="presentation"
-        >
-          <div
-            className="w-full max-w-xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="restore-event-title"
-          >
-            <div className="bg-[#081C2E] px-6 py-6 text-white">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">
-                Restauração governada
-              </p>
-
-              <h2
-                id="restore-event-title"
-                className="mt-2 text-2xl font-bold"
-              >
-                Restaurar evento
-              </h2>
-
-              <p className="mt-3 break-words text-sm leading-6 text-slate-200">
-                {restoreTarget.title}
-              </p>
-            </div>
-
-            <form
-              onSubmit={
-                handleRestoreSubmit
-              }
-              className="p-6"
-            >
-              <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm leading-6 text-cyan-950">
-                O evento voltará a
-                aparecer no calendário.
-                A exclusão e a
-                restauração permanecerão
-                registradas na auditoria
-                institucional.
-              </div>
-
-              <div className="mt-5">
-                <label
-                  htmlFor="restore-reason"
-                  className="block text-sm font-bold text-slate-800"
-                >
-                  Motivo da restauração
-                </label>
-
-                <textarea
-                  id="restore-reason"
-                  value={
-                    restoreReason
-                  }
-                  onChange={(
-                    event,
-                  ) => {
-                    setRestoreReason(
-                      event.target.value,
-                    )
-
-                    if (
-                      restoreValidationError
-                    ) {
-                      setRestoreValidationError(
-                        null,
-                      )
-                    }
-                  }}
-                  maxLength={
-                    500
-                  }
-                  rows={
-                    5
-                  }
-                  disabled={
-                    Boolean(
-                      restoringEventId,
-                    )
-                  }
-                  placeholder="Explique por que este evento deve ser restaurado."
-                  className="mt-2 w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-600/20 disabled:cursor-not-allowed disabled:bg-slate-100"
-                  autoFocus
-                />
-
-                <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs text-slate-500">
-                    Campo obrigatório.
-                  </p>
-
-                  <p className="text-xs text-slate-500">
-                    {restoreReason.length}
-                    /500
-                  </p>
-                </div>
-              </div>
-
-              {restoreValidationError ? (
-                <div
-                  className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
-                  role="alert"
-                >
-                  {restoreValidationError}
-                </div>
-              ) : null}
-
-              {actionError ? (
-                <div
-                  className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
-                  role="alert"
-                >
-                  {actionError}
-                </div>
-              ) : null}
-
-              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  disabled={
-                    Boolean(
-                      restoringEventId,
-                    )
-                  }
-                  onClick={
-                    closeRestoreDialog
-                  }
-                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Cancelar
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={
-                    Boolean(
-                      restoringEventId,
-                    )
-                  }
-                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0A6F8F] px-5 py-3 font-semibold text-white transition hover:bg-[#085A75] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {restoringEventId
-                    ? 'Restaurando...'
-                    : 'Confirmar restauração'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
+      <AgendaRestoreDialog
+        open={
+          restoreTarget !==
+          null
+        }
+        recordType={
+          restoreTarget?.type ===
+          'evento'
+            ? 'evento'
+            : 'evidência'
+        }
+        recordTitle={
+          restoreTarget?.title ??
+          null
+        }
+        submitting={
+          isRestoring
+        }
+        error={
+          actionError
+        }
+        onClose={
+          closeRestoreDialog
+        }
+        onConfirm={
+          handleRestoreConfirm
+        }
+      />
 
       {versionsTarget ? (
         <AgendaEventVersionsDialog
