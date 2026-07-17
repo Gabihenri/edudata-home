@@ -37,6 +37,12 @@ type UploadResponse = {
   error?: string
 }
 
+type CleanupResponse = {
+  success: boolean
+  message?: string
+  error?: string
+}
+
 type EvidenceFileApiData = {
   signedUrl: string
   expiresIn: number
@@ -60,6 +66,11 @@ export type EvidenceUploadResult = {
   originalFileName: string
   mimeType: string
   sizeBytes: number
+}
+
+type TemporaryEvidenceFile = {
+  bucket: string
+  path: string
 }
 
 async function parseJsonResponse<T>(
@@ -99,7 +110,7 @@ function getResponseError(
 
   if (response.status === 403) {
     return (
-      'Seu plano atual não permite realizar ' +
+      'Você não possui permissão para realizar ' +
       'esta operação.'
     )
   }
@@ -176,6 +187,18 @@ function validateUploadAuthorization(
   }
 }
 
+function hasTemporaryFileReference(
+  input: CreateAgendaEvidenceInput,
+): input is CreateAgendaEvidenceInput & {
+  storage_bucket: string
+  storage_path: string
+} {
+  return Boolean(
+    input.storage_bucket?.trim() &&
+      input.storage_path?.trim(),
+  )
+}
+
 export function useEvidences() {
   const [
     evidences,
@@ -236,6 +259,76 @@ export function useEvidences() {
           )
         } finally {
           setLoading(false)
+        }
+      },
+      [],
+    )
+
+  const deleteTemporaryEvidenceFile =
+    useCallback(
+      async ({
+        bucket,
+        path,
+      }: TemporaryEvidenceFile): Promise<void> => {
+        const normalizedBucket =
+          bucket.trim()
+
+        const normalizedPath =
+          path.trim()
+
+        if (
+          !normalizedBucket ||
+          !normalizedPath
+        ) {
+          return
+        }
+
+        const response = await fetch(
+          '/api/agenda/evidences/upload',
+          {
+            method: 'DELETE',
+
+            headers: {
+              'Content-Type':
+                'application/json',
+            },
+
+            credentials: 'include',
+            cache: 'no-store',
+
+            body: JSON.stringify({
+              bucket: normalizedBucket,
+              path: normalizedPath,
+            }),
+          },
+        )
+
+        const result =
+          await parseJsonResponse<CleanupResponse>(
+            response,
+          )
+
+        /*
+         * O status 409 significa que o arquivo
+         * já foi associado a uma evidência.
+         *
+         * Nesse caso ele deve ser preservado.
+         */
+        if (response.status === 409) {
+          return
+        }
+
+        if (
+          !response.ok ||
+          !result.success
+        ) {
+          throw new Error(
+            getResponseError(
+              response,
+              result.error,
+              'Não foi possível remover o arquivo temporário.',
+            ),
+          )
         }
       },
       [],
@@ -340,8 +433,8 @@ export function useEvidences() {
    * Compatibilidade temporária com componentes
    * que ainda esperam uma URL pública.
    *
-   * Evidências protegidas devem utilizar
-   * uploadEvidenceFile e armazenar bucket/path.
+   * Como o bucket é privado, o arquivo enviado
+   * é removido antes de retornar o erro.
    */
   const uploadEvidence =
     useCallback(
@@ -352,6 +445,18 @@ export function useEvidences() {
           await uploadEvidenceFile(file)
 
         if (!uploadedFile.publicUrl) {
+          try {
+            await deleteTemporaryEvidenceFile({
+              bucket: uploadedFile.bucket,
+              path: uploadedFile.path,
+            })
+          } catch (cleanupError) {
+            console.error(
+              'Erro ao remover upload incompatível:',
+              cleanupError,
+            )
+          }
+
           throw new Error(
             'O arquivo foi enviado de forma protegida e não possui URL pública.',
           )
@@ -359,7 +464,10 @@ export function useEvidences() {
 
         return uploadedFile.publicUrl
       },
-      [uploadEvidenceFile],
+      [
+        deleteTemporaryEvidenceFile,
+        uploadEvidenceFile,
+      ],
     )
 
   const createEvidence =
@@ -367,117 +475,152 @@ export function useEvidences() {
       async (
         input: CreateAgendaEvidenceInput,
       ): Promise<AgendaEvidence> => {
-        const response = await fetch(
-          '/api/agenda/evidences',
-          {
-            method: 'POST',
+        try {
+          const response = await fetch(
+            '/api/agenda/evidences',
+            {
+              method: 'POST',
 
-            headers: {
-              'Content-Type':
-                'application/json',
+              headers: {
+                'Content-Type':
+                  'application/json',
+              },
+
+              credentials: 'include',
+
+              body: JSON.stringify({
+                title: input.title,
+
+                description:
+                  input.description ?? null,
+
+                evidenceType:
+                  input.evidence_type ??
+                  'texto',
+
+                fileUrl:
+                  input.file_url ?? null,
+
+                externalUrl:
+                  input.external_url ?? null,
+
+                planningId:
+                  input.planning_id ?? null,
+
+                eventId:
+                  input.event_id ?? null,
+
+                schoolId:
+                  input.school_id ?? null,
+
+                containsIdentifiableMinor:
+                  input
+                    .contains_identifiable_minor ??
+                  false,
+
+                guardianAuthorizationConfirmed:
+                  input
+                    .guardian_authorization_confirmed ??
+                  false,
+
+                authorizationReference:
+                  input
+                    .authorization_reference ??
+                  null,
+
+                privacyNoticeVersion:
+                  input
+                    .privacy_notice_version ??
+                  'edi-protecao-menores-v1.0',
+
+                storageBucket:
+                  input.storage_bucket ?? null,
+
+                storagePath:
+                  input.storage_path ?? null,
+
+                originalFileName:
+                  input.original_file_name ??
+                  null,
+
+                fileMimeType:
+                  input.file_mime_type ??
+                  null,
+
+                fileSizeBytes:
+                  input.file_size_bytes ??
+                  null,
+              }),
             },
-
-            credentials: 'include',
-
-            body: JSON.stringify({
-              title: input.title,
-
-              description:
-                input.description ?? null,
-
-              evidenceType:
-                input.evidence_type ??
-                'texto',
-
-              fileUrl:
-                input.file_url ?? null,
-
-              externalUrl:
-                input.external_url ?? null,
-
-              planningId:
-                input.planning_id ?? null,
-
-              eventId:
-                input.event_id ?? null,
-
-              schoolId:
-                input.school_id ?? null,
-
-              containsIdentifiableMinor:
-                input
-                  .contains_identifiable_minor ??
-                false,
-
-              guardianAuthorizationConfirmed:
-                input
-                  .guardian_authorization_confirmed ??
-                false,
-
-              authorizationReference:
-                input
-                  .authorization_reference ??
-                null,
-
-              privacyNoticeVersion:
-                input
-                  .privacy_notice_version ??
-                'edi-protecao-menores-v1.0',
-
-              storageBucket:
-                input.storage_bucket ?? null,
-
-              storagePath:
-                input.storage_path ?? null,
-
-              originalFileName:
-                input.original_file_name ??
-                null,
-
-              fileMimeType:
-                input.file_mime_type ??
-                null,
-
-              fileSizeBytes:
-                input.file_size_bytes ??
-                null,
-            }),
-          },
-        )
-
-        const result =
-          await parseJsonResponse<EvidencesResponse>(
-            response,
           )
 
-        if (
-          !response.ok ||
-          !result.success ||
-          !result.data ||
-          Array.isArray(result.data)
-        ) {
-          throw new Error(
-            getResponseError(
+          const result =
+            await parseJsonResponse<EvidencesResponse>(
               response,
-              result.error,
-              'Não foi possível criar a evidência.',
-            ),
+            )
+
+          if (
+            !response.ok ||
+            !result.success ||
+            !result.data ||
+            Array.isArray(result.data)
+          ) {
+            throw new Error(
+              getResponseError(
+                response,
+                result.error,
+                'Não foi possível criar a evidência.',
+              ),
+            )
+          }
+
+          const createdEvidence =
+            result.data
+
+          setEvidences(
+            (currentEvidences) => [
+              createdEvidence,
+              ...currentEvidences,
+            ],
           )
+
+          return createdEvidence
+        } catch (createError) {
+          /*
+           * Compensação do fluxo:
+           *
+           * se o arquivo foi enviado, mas a
+           * evidência não foi registrada, o
+           * arquivo temporário é removido.
+           *
+           * Caso o banco tenha efetivamente
+           * criado a evidência, a API responderá
+           * 409 e preservará o arquivo.
+           */
+          if (
+            hasTemporaryFileReference(
+              input,
+            )
+          ) {
+            try {
+              await deleteTemporaryEvidenceFile({
+                bucket:
+                  input.storage_bucket,
+                path:
+                  input.storage_path,
+              })
+            } catch (cleanupError) {
+              console.error(
+                'Erro ao compensar upload de evidência:',
+                cleanupError,
+              )
+            }
+          }
+
+          throw createError
         }
-
-        const createdEvidence =
-          result.data
-
-        setEvidences(
-          (currentEvidences) => [
-            createdEvidence,
-            ...currentEvidences,
-          ],
-        )
-
-        return createdEvidence
       },
-      [],
+      [deleteTemporaryEvidenceFile],
     )
 
   const getEvidenceFileUrl =
