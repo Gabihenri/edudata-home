@@ -2,21 +2,48 @@
 
 import {
   type FormEvent,
+  useMemo,
   useState,
 } from 'react'
 
-import { AgendaPageShell } from '@/components/agenda/AgendaPageShell'
-import { usePlanning } from '@/lib/agenda/hooks/usePlanning'
+import {
+  AgendaPageShell,
+} from '@/components/agenda/AgendaPageShell'
+import {
+  usePlanning,
+} from '@/lib/agenda/hooks/usePlanning'
 
 type PlanningFormData = {
   title: string
+  description: string
+  subject: string
+  className: string
   objective: string
+  methodology: string
+  resources: string
+  evaluation: string
+  plannedDate: string
 }
 
-const initialFormData: PlanningFormData = {
+const initialFormData:
+  PlanningFormData = {
   title: '',
+  description: '',
+  subject: '',
+  className: '',
   objective: '',
+  methodology: '',
+  resources: '',
+  evaluation: '',
+  plannedDate: '',
 }
+
+const inputClassName = [
+  'min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3',
+  'text-slate-950 outline-none transition placeholder:text-slate-400',
+  'focus:border-[#0B7491] focus:ring-4 focus:ring-cyan-100',
+  'disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500',
+].join(' ')
 
 function formatPlanningDate(
   value: string | null,
@@ -25,27 +52,89 @@ function formatPlanningDate(
     return 'Data não definida'
   }
 
-  const [year, month, day] = value
-    .split('-')
-    .map(Number)
+  const parts =
+    value
+      .split('-')
+      .map(Number)
 
-  const date = new Date(
+  if (
+    parts.length !== 3 ||
+    parts.some(
+      (part) =>
+        !Number.isFinite(part),
+    )
+  ) {
+    return value
+  }
+
+  const [
     year,
-    month - 1,
+    month,
     day,
-    12,
-    0,
-    0,
-    0,
-  )
+  ] = parts
 
-  if (Number.isNaN(date.getTime())) {
+  const date =
+    new Date(
+      year,
+      month - 1,
+      day,
+      12,
+      0,
+      0,
+      0,
+    )
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
     return value
   }
 
   return new Intl.DateTimeFormat(
     'pt-BR',
+    {
+      dateStyle:
+        'medium',
+    },
   ).format(date)
+}
+
+function formatStatus(
+  value: string,
+): string {
+  const labels:
+    Record<string, string> = {
+    rascunho:
+      'Rascunho',
+
+    ativo:
+      'Ativo',
+
+    concluido:
+      'Concluído',
+
+    concluído:
+      'Concluído',
+
+    arquivado:
+      'Arquivado',
+  }
+
+  return (
+    labels[value] ??
+    value
+      .replace(
+        /_/g,
+        ' ',
+      )
+      .replace(
+        /\b\w/g,
+        (character) =>
+          character.toUpperCase(),
+      )
+  )
 }
 
 export default function AgendaPlanningPage() {
@@ -57,42 +146,104 @@ export default function AgendaPlanningPage() {
     createPlanning,
   } = usePlanning()
 
-  const [formData, setFormData] =
+  const [
+    formData,
+    setFormData,
+  ] =
     useState<PlanningFormData>(
       initialFormData,
     )
 
-  const [isSaving, setIsSaving] =
+  const [
+    isSaving,
+    setIsSaving,
+  ] =
     useState(false)
 
-  const [formError, setFormError] =
+  const [
+    formError,
+    setFormError,
+  ] =
     useState('')
 
-  const [successMessage, setSuccessMessage] =
+  const [
+    successMessage,
+    setSuccessMessage,
+  ] =
     useState('')
 
-  function updateField(
-    field: keyof PlanningFormData,
-    value: string,
-  ) {
-    setFormData((current) => ({
-      ...current,
-      [field]: value,
-    }))
+  const summary =
+    useMemo(() => {
+      const dated =
+        planning.filter(
+          (item) =>
+            Boolean(
+              item.planned_date,
+            ),
+        ).length
+
+      const contextualized =
+        planning.filter(
+          (item) =>
+            Boolean(
+              item.subject ||
+                item.class_name,
+            ),
+        ).length
+
+      const drafts =
+        planning.filter(
+          (item) =>
+            item.status ===
+            'rascunho',
+        ).length
+
+      return {
+        total:
+          planning.length,
+
+        dated,
+        contextualized,
+        drafts,
+      }
+    }, [planning])
+
+  function updateField<
+    Key extends
+      keyof PlanningFormData,
+  >(
+    field: Key,
+    value:
+      PlanningFormData[Key],
+  ): void {
+    setFormData(
+      (current) => ({
+        ...current,
+        [field]: value,
+      }),
+    )
 
     setFormError('')
     setSuccessMessage('')
   }
 
-  function clearForm() {
-    setFormData(initialFormData)
+  function clearForm(): void {
+    if (isSaving) {
+      return
+    }
+
+    setFormData(
+      initialFormData,
+    )
+
     setFormError('')
     setSuccessMessage('')
   }
 
   async function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
-  ) {
+    event:
+      FormEvent<HTMLFormElement>,
+  ): Promise<void> {
     event.preventDefault()
 
     setFormError('')
@@ -125,23 +276,56 @@ export default function AgendaPlanningPage() {
     try {
       await createPlanning({
         title,
+
+        description:
+          formData.description
+            .trim() ||
+          null,
+
+        subject:
+          formData.subject
+            .trim() ||
+          null,
+
+        class_name:
+          formData.className
+            .trim() ||
+          null,
+
         objective,
 
-        description: null,
-        subject: null,
-        class_name: null,
-        methodology: null,
-        resources: null,
-        evaluation: null,
-        planned_date: null,
+        methodology:
+          formData.methodology
+            .trim() ||
+          null,
 
-        status: 'rascunho',
+        resources:
+          formData.resources
+            .trim() ||
+          null,
 
-        school_id: null,
-        user_id: null,
+        evaluation:
+          formData.evaluation
+            .trim() ||
+          null,
+
+        planned_date:
+          formData.plannedDate ||
+          null,
+
+        status:
+          'rascunho',
+
+        school_id:
+          null,
+
+        user_id:
+          null,
       })
 
-      setFormData(initialFormData)
+      setFormData(
+        initialFormData,
+      )
 
       setSuccessMessage(
         'Planejamento salvo com sucesso.',
@@ -159,72 +343,406 @@ export default function AgendaPlanningPage() {
 
   return (
     <AgendaPageShell
-      eyebrow="Agenda Inteligente EDI"
+      eyebrow="Organização pedagógica"
       title="Planejamento pedagógico"
-      description="Organize objetivos, metodologias, recursos, avaliações e datas utilizando dados persistidos no Supabase."
+      description="Estruture objetivos, contexto, estratégias, recursos e formas de acompanhamento em um registro pedagógico integrado ao EIOS."
     >
-      <div className="grid gap-6">
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <section className="rounded-3xl border border-slate-200 bg-slate-50 p-6 sm:p-8">
-            <h2 className="text-3xl font-bold text-[#081C2E]">
-              Novo planejamento
-            </h2>
+      <div className="space-y-6 sm:space-y-8">
+        <section
+          aria-label="Resumo dos planejamentos"
+          className="grid overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm sm:grid-cols-2 xl:grid-cols-4"
+        >
+          <article className="border-b border-slate-200 p-5 sm:border-r xl:border-b-0">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Registros ativos
+            </p>
 
-            <form
-              onSubmit={handleSubmit}
-              className="mt-8 space-y-5"
-            >
-              <div>
-                <label
-                  htmlFor="planning-title"
-                  className="mb-2 block text-sm font-semibold text-slate-700"
-                >
-                  Título
-                </label>
+            <p className="mt-3 text-3xl font-bold text-[#071827]">
+              {summary.total}
+            </p>
 
-                <input
-                  id="planning-title"
-                  type="text"
-                  value={formData.title}
-                  onChange={(event) =>
-                    updateField(
-                      'title',
-                      event.target.value,
-                    )
-                  }
-                  placeholder="Ex.: Sequência didática"
-                  autoComplete="off"
-                  className="min-h-[56px] w-full rounded-2xl border border-slate-300 bg-white px-4 text-base text-slate-900 outline-none transition focus:border-[#6B21A8] focus:ring-2 focus:ring-purple-200"
-                />
+            <p className="mt-1 text-sm text-slate-500">
+              Planejamentos disponíveis
+            </p>
+          </article>
+
+          <article className="border-b border-slate-200 p-5 xl:border-b-0 xl:border-r">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Com data
+            </p>
+
+            <p className="mt-3 text-3xl font-bold text-[#071827]">
+              {summary.dated}
+            </p>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Cronogramas definidos
+            </p>
+          </article>
+
+          <article className="border-b border-slate-200 p-5 sm:border-r sm:border-b-0">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Contextualizados
+            </p>
+
+            <p className="mt-3 text-3xl font-bold text-[#071827]">
+              {
+                summary.contextualized
+              }
+            </p>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Com turma ou disciplina
+            </p>
+          </article>
+
+          <article className="p-5">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Rascunhos
+            </p>
+
+            <p className="mt-3 text-3xl font-bold text-[#071827]">
+              {summary.drafts}
+            </p>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Em elaboração
+            </p>
+          </article>
+        </section>
+
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)]">
+          <form
+            onSubmit={
+              handleSubmit
+            }
+            className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm"
+          >
+            <header className="border-b border-slate-200 px-5 py-5 sm:px-7">
+              <div className="flex items-start gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#071827] font-mono text-xs font-bold text-cyan-300">
+                  03
+                </div>
+
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                    Novo registro
+                  </p>
+
+                  <h2 className="mt-2 text-2xl font-bold text-[#071827]">
+                    Criar planejamento
+                  </h2>
+
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    Organize a intenção pedagógica antes de registrar ações e evidências.
+                  </p>
+                </div>
               </div>
+            </header>
 
-              <div>
-                <label
-                  htmlFor="planning-objective"
-                  className="mb-2 block text-sm font-semibold text-slate-700"
-                >
-                  Objetivo
-                </label>
+            <div className="space-y-8 p-5 sm:p-7">
+              <fieldset>
+                <legend className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                  01 — Identificação
+                </legend>
 
-                <textarea
-                  id="planning-objective"
-                  rows={6}
-                  value={formData.objective}
-                  onChange={(event) =>
-                    updateField(
-                      'objective',
-                      event.target.value,
-                    )
-                  }
-                  placeholder="Descreva o objetivo pedagógico."
-                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-4 text-base text-slate-900 outline-none transition focus:border-[#6B21A8] focus:ring-2 focus:ring-purple-200"
-                />
-              </div>
+                <div className="mt-5 space-y-5">
+                  <div>
+                    <label
+                      htmlFor="planning-title"
+                      className="mb-2 block text-sm font-semibold text-slate-700"
+                    >
+                      Título
+                    </label>
+
+                    <input
+                      id="planning-title"
+                      type="text"
+                      required
+                      value={
+                        formData.title
+                      }
+                      onChange={(
+                        event,
+                      ) =>
+                        updateField(
+                          'title',
+                          event.target
+                            .value,
+                        )
+                      }
+                      placeholder="Ex.: Sequência didática sobre energia"
+                      autoComplete="off"
+                      className={
+                        inputClassName
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="planning-description"
+                      className="mb-2 block text-sm font-semibold text-slate-700"
+                    >
+                      Descrição geral
+                    </label>
+
+                    <textarea
+                      id="planning-description"
+                      rows={4}
+                      value={
+                        formData.description
+                      }
+                      onChange={(
+                        event,
+                      ) =>
+                        updateField(
+                          'description',
+                          event.target
+                            .value,
+                        )
+                      }
+                      placeholder="Apresente o contexto e a finalidade deste planejamento."
+                      className={`${inputClassName} resize-y`}
+                    />
+                  </div>
+
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <div>
+                      <label
+                        htmlFor="planning-subject"
+                        className="mb-2 block text-sm font-semibold text-slate-700"
+                      >
+                        Disciplina ou área
+                      </label>
+
+                      <input
+                        id="planning-subject"
+                        type="text"
+                        value={
+                          formData.subject
+                        }
+                        onChange={(
+                          event,
+                        ) =>
+                          updateField(
+                            'subject',
+                            event.target
+                              .value,
+                          )
+                        }
+                        placeholder="Ex.: Física"
+                        className={
+                          inputClassName
+                        }
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="planning-class"
+                        className="mb-2 block text-sm font-semibold text-slate-700"
+                      >
+                        Turma
+                      </label>
+
+                      <input
+                        id="planning-class"
+                        type="text"
+                        value={
+                          formData.className
+                        }
+                        onChange={(
+                          event,
+                        ) =>
+                          updateField(
+                            'className',
+                            event.target
+                              .value,
+                          )
+                        }
+                        placeholder="Ex.: 2º A"
+                        className={
+                          inputClassName
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="planning-date"
+                      className="mb-2 block text-sm font-semibold text-slate-700"
+                    >
+                      Data planejada
+                    </label>
+
+                    <input
+                      id="planning-date"
+                      type="date"
+                      value={
+                        formData.plannedDate
+                      }
+                      onChange={(
+                        event,
+                      ) =>
+                        updateField(
+                          'plannedDate',
+                          event.target
+                            .value,
+                        )
+                      }
+                      className={
+                        inputClassName
+                      }
+                    />
+                  </div>
+                </div>
+              </fieldset>
+
+              <div className="h-px bg-slate-200" />
+
+              <fieldset>
+                <legend className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                  02 — Intencionalidade
+                </legend>
+
+                <div className="mt-5">
+                  <label
+                    htmlFor="planning-objective"
+                    className="mb-2 block text-sm font-semibold text-slate-700"
+                  >
+                    Objetivo pedagógico
+                  </label>
+
+                  <textarea
+                    id="planning-objective"
+                    rows={5}
+                    required
+                    value={
+                      formData.objective
+                    }
+                    onChange={(
+                      event,
+                    ) =>
+                      updateField(
+                        'objective',
+                        event.target
+                          .value,
+                      )
+                    }
+                    placeholder="Descreva o que se espera que os estudantes desenvolvam ou demonstrem."
+                    className={`${inputClassName} resize-y`}
+                  />
+                </div>
+              </fieldset>
+
+              <div className="h-px bg-slate-200" />
+
+              <fieldset>
+                <legend className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                  03 — Estratégia
+                </legend>
+
+                <div className="mt-5 space-y-5">
+                  <div>
+                    <label
+                      htmlFor="planning-methodology"
+                      className="mb-2 block text-sm font-semibold text-slate-700"
+                    >
+                      Estratégias e metodologia
+                    </label>
+
+                    <textarea
+                      id="planning-methodology"
+                      rows={4}
+                      value={
+                        formData.methodology
+                      }
+                      onChange={(
+                        event,
+                      ) =>
+                        updateField(
+                          'methodology',
+                          event.target
+                            .value,
+                        )
+                      }
+                      placeholder="Descreva ações, organização da aula e formas de participação."
+                      className={`${inputClassName} resize-y`}
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="planning-resources"
+                      className="mb-2 block text-sm font-semibold text-slate-700"
+                    >
+                      Recursos
+                    </label>
+
+                    <textarea
+                      id="planning-resources"
+                      rows={3}
+                      value={
+                        formData.resources
+                      }
+                      onChange={(
+                        event,
+                      ) =>
+                        updateField(
+                          'resources',
+                          event.target
+                            .value,
+                        )
+                      }
+                      placeholder="Materiais, ambientes, tecnologias e apoios necessários."
+                      className={`${inputClassName} resize-y`}
+                    />
+                  </div>
+                </div>
+              </fieldset>
+
+              <div className="h-px bg-slate-200" />
+
+              <fieldset>
+                <legend className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                  04 — Acompanhamento
+                </legend>
+
+                <div className="mt-5">
+                  <label
+                    htmlFor="planning-evaluation"
+                    className="mb-2 block text-sm font-semibold text-slate-700"
+                  >
+                    Avaliação e evidências esperadas
+                  </label>
+
+                  <textarea
+                    id="planning-evaluation"
+                    rows={4}
+                    value={
+                      formData.evaluation
+                    }
+                    onChange={(
+                      event,
+                    ) =>
+                      updateField(
+                        'evaluation',
+                        event.target
+                          .value,
+                      )
+                    }
+                    placeholder="Indique como o desenvolvimento será acompanhado e quais evidências poderão ser registradas."
+                    className={`${inputClassName} resize-y`}
+                  />
+                </div>
+              </fieldset>
 
               {formError ? (
                 <div
                   role="alert"
-                  className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 leading-7 text-red-700"
+                  className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold leading-6 text-red-700"
                 >
                   {formError}
                 </div>
@@ -233,139 +751,373 @@ export default function AgendaPlanningPage() {
               {successMessage ? (
                 <div
                   role="status"
-                  className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 leading-7 text-emerald-800"
+                  className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold leading-6 text-emerald-800"
                 >
-                  {successMessage}
+                  {
+                    successMessage
+                  }
                 </div>
               ) : null}
+            </div>
 
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="inline-flex min-h-[56px] flex-1 cursor-pointer items-center justify-center rounded-full bg-[#6B21A8] px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-[#581C87] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isSaving
-                    ? 'Salvando...'
-                    : 'Salvar planejamento'}
-                </button>
+            <footer className="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-5 py-5 sm:flex-row sm:px-7">
+              <button
+                type="button"
+                onClick={
+                  clearForm
+                }
+                disabled={
+                  isSaving
+                }
+                className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Limpar campos
+              </button>
 
-                <button
-                  type="button"
-                  onClick={clearForm}
-                  disabled={isSaving}
-                  className="inline-flex min-h-[56px] flex-1 cursor-pointer items-center justify-center rounded-full border-2 border-slate-300 bg-white px-6 py-3 text-base font-semibold text-slate-700 transition hover:border-[#6B21A8] hover:bg-purple-50 hover:text-[#6B21A8] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Limpar campos
-                </button>
-              </div>
-            </form>
-          </section>
+              <button
+                type="submit"
+                disabled={
+                  isSaving
+                }
+                className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-[#0B7491] px-6 py-3 font-semibold text-white transition hover:bg-[#09657E] disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                {isSaving
+                  ? 'Salvando...'
+                  : 'Salvar planejamento'}
+              </button>
+            </footer>
+          </form>
 
-          <aside className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8">
-            <h2 className="text-2xl font-bold text-[#081C2E]">
-              Boas práticas
-            </h2>
+          <aside className="self-start overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[#071827] text-white shadow-sm xl:sticky xl:top-[176px]">
+            <header className="border-b border-white/10 px-5 py-5 sm:px-7">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">
+                Referência EDI
+              </p>
 
-            <ul className="mt-6 space-y-4 text-base leading-8 text-slate-600">
-              <li>
-                • Defina objetivos claros de aprendizagem.
-              </li>
+              <h2 className="mt-2 text-2xl font-bold">
+                Estrutura do planejamento
+              </h2>
 
-              <li>
-                • Relacione metodologias e evidências esperadas.
-              </li>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                O registro deve apoiar a ação docente, e não aumentar a burocracia.
+              </p>
+            </header>
 
-              <li>
-                • Estabeleça cronograma e formas de avaliação.
-              </li>
+            <div className="divide-y divide-white/10">
+              <article className="px-5 py-5 sm:px-7">
+                <div className="flex gap-4">
+                  <span className="font-mono text-xs font-bold text-cyan-300">
+                    01
+                  </span>
 
-              <li>
-                • Mantenha registros para análise futura.
-              </li>
-            </ul>
+                  <div>
+                    <h3 className="font-bold">
+                      Contexto
+                    </h3>
+
+                    <p className="mt-1 text-sm leading-6 text-slate-300">
+                      Identifique turma, área, período e situação pedagógica.
+                    </p>
+                  </div>
+                </div>
+              </article>
+
+              <article className="px-5 py-5 sm:px-7">
+                <div className="flex gap-4">
+                  <span className="font-mono text-xs font-bold text-cyan-300">
+                    02
+                  </span>
+
+                  <div>
+                    <h3 className="font-bold">
+                      Intencionalidade
+                    </h3>
+
+                    <p className="mt-1 text-sm leading-6 text-slate-300">
+                      Defina com clareza a aprendizagem ou o desenvolvimento esperado.
+                    </p>
+                  </div>
+                </div>
+              </article>
+
+              <article className="px-5 py-5 sm:px-7">
+                <div className="flex gap-4">
+                  <span className="font-mono text-xs font-bold text-cyan-300">
+                    03
+                  </span>
+
+                  <div>
+                    <h3 className="font-bold">
+                      Estratégia
+                    </h3>
+
+                    <p className="mt-1 text-sm leading-6 text-slate-300">
+                      Registre ações, recursos, apoios e formas de participação.
+                    </p>
+                  </div>
+                </div>
+              </article>
+
+              <article className="px-5 py-5 sm:px-7">
+                <div className="flex gap-4">
+                  <span className="font-mono text-xs font-bold text-cyan-300">
+                    04
+                  </span>
+
+                  <div>
+                    <h3 className="font-bold">
+                      Evidências
+                    </h3>
+
+                    <p className="mt-1 text-sm leading-6 text-slate-300">
+                      Antecipe como o processo será observado, documentado e analisado.
+                    </p>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div className="border-t border-cyan-300/20 bg-cyan-300/10 px-5 py-5 sm:px-7">
+              <p className="text-sm font-semibold leading-6 text-cyan-100">
+                O Framework EDI orienta o planejamento por evidências, inclusão e inteligência, sem impor uma metodologia pedagógica específica.
+              </p>
+            </div>
           </aside>
         </div>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-cyan-700">
-                Registros
-              </p>
+        <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
+          <header className="border-b border-slate-200 px-5 py-5 sm:px-7">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                  Memória de trabalho
+                </p>
 
-              <h2 className="mt-2 text-2xl font-bold text-[#081C2E]">
-                Planejamentos cadastrados
-              </h2>
+                <h2 className="mt-2 text-2xl font-bold text-[#071827]">
+                  Planejamentos cadastrados
+                </h2>
+
+                <p className="mt-2 text-sm text-slate-500">
+                  {planning.length}{' '}
+                  registro
+                  {planning.length === 1
+                    ? ''
+                    : 's'}{' '}
+                  ativo
+                  {planning.length === 1
+                    ? ''
+                    : 's'}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  void reload()
+                }
+                disabled={
+                  loading
+                }
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading
+                  ? 'Atualizando...'
+                  : 'Atualizar registros'}
+              </button>
             </div>
+          </header>
 
-            <button
-              type="button"
-              onClick={() => void reload()}
-              disabled={loading}
-              className="inline-flex min-h-[48px] items-center justify-center rounded-full border-2 border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-[#6B21A8] hover:text-[#6B21A8] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading
-                ? 'Atualizando...'
-                : 'Atualizar'}
-            </button>
+          <div className="p-5 sm:p-7">
+            {error ? (
+              <div
+                role="alert"
+                className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700"
+              >
+                {error}
+              </div>
+            ) : null}
+
+            {loading ? (
+              <div
+                role="status"
+                className="rounded-xl border border-cyan-200 bg-cyan-50 p-5 text-sm font-semibold text-cyan-900"
+              >
+                Carregando planejamentos...
+              </div>
+            ) : null}
+
+            {!loading &&
+            !error &&
+            planning.length ===
+              0 ? (
+              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                <h3 className="text-lg font-bold text-[#071827]">
+                  Nenhum planejamento cadastrado
+                </h3>
+
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Utilize o formulário para criar o primeiro planejamento pedagógico.
+                </p>
+              </div>
+            ) : null}
+
+            {!loading &&
+            planning.length >
+              0 ? (
+              <div className="grid gap-4 lg:grid-cols-2">
+                {planning.map(
+                  (
+                    item,
+                    index,
+                  ) => (
+                    <article
+                      key={
+                        item.id
+                      }
+                      className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                    >
+                      <header className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex min-w-0 items-start gap-3">
+                            <span className="font-mono text-xs font-bold text-[#0B7491]">
+                              {String(
+                                index + 1,
+                              ).padStart(
+                                2,
+                                '0',
+                              )}
+                            </span>
+
+                            <div className="min-w-0">
+                              <span className="inline-flex rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#075F78]">
+                                {formatStatus(
+                                  item.status,
+                                )}
+                              </span>
+
+                              <h3 className="mt-3 break-words text-xl font-bold text-[#071827]">
+                                {item.title}
+                              </h3>
+                            </div>
+                          </div>
+
+                          <span className="shrink-0 rounded-lg bg-[#071827] px-3 py-2 text-xs font-bold text-white">
+                            {formatPlanningDate(
+                              item.planned_date,
+                            )}
+                          </span>
+                        </div>
+                      </header>
+
+                      <div className="space-y-4 p-5">
+                        {item.description ? (
+                          <p className="text-sm leading-6 text-slate-600">
+                            {
+                              item.description
+                            }
+                          </p>
+                        ) : null}
+
+                        <div className="flex flex-wrap gap-2">
+                          {item.subject ? (
+                            <span className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">
+                              {
+                                item.subject
+                              }
+                            </span>
+                          ) : null}
+
+                          {item.class_name ? (
+                            <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
+                              Turma{' '}
+                              {
+                                item.class_name
+                              }
+                            </span>
+                          ) : null}
+                        </div>
+
+                        {item.objective ? (
+                          <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
+                              Objetivo
+                            </p>
+
+                            <p className="mt-2 text-sm leading-6 text-slate-700">
+                              {
+                                item.objective
+                              }
+                            </p>
+                          </section>
+                        ) : null}
+
+                        {item.methodology ||
+                        item.resources ||
+                        item.evaluation ? (
+                          <details className="group rounded-xl border border-slate-200">
+                            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 font-semibold text-[#075F78] [&::-webkit-details-marker]:hidden">
+                              Ver estrutura completa
+
+                              <span
+                                aria-hidden="true"
+                                className="transition group-open:rotate-180"
+                              >
+                                ↓
+                              </span>
+                            </summary>
+
+                            <div className="space-y-4 border-t border-slate-200 px-4 py-4">
+                              {item.methodology ? (
+                                <div>
+                                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+                                    Estratégia
+                                  </p>
+
+                                  <p className="mt-1 text-sm leading-6 text-slate-700">
+                                    {
+                                      item.methodology
+                                    }
+                                  </p>
+                                </div>
+                              ) : null}
+
+                              {item.resources ? (
+                                <div>
+                                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+                                    Recursos
+                                  </p>
+
+                                  <p className="mt-1 text-sm leading-6 text-slate-700">
+                                    {
+                                      item.resources
+                                    }
+                                  </p>
+                                </div>
+                              ) : null}
+
+                              {item.evaluation ? (
+                                <div>
+                                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+                                    Avaliação
+                                  </p>
+
+                                  <p className="mt-1 text-sm leading-6 text-slate-700">
+                                    {
+                                      item.evaluation
+                                    }
+                                  </p>
+                                </div>
+                              ) : null}
+                            </div>
+                          </details>
+                        ) : null}
+                      </div>
+                    </article>
+                  ),
+                )}
+              </div>
+            ) : null}
           </div>
-
-          {error ? (
-            <div
-              role="alert"
-              className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 leading-7 text-red-700"
-            >
-              {error}
-            </div>
-          ) : null}
-
-          {loading ? (
-            <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center text-slate-600">
-              Carregando planejamentos...
-            </div>
-          ) : planning.length === 0 ? (
-            <div className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-              <h3 className="text-xl font-bold text-[#081C2E]">
-                Nenhum planejamento cadastrado
-              </h3>
-
-              <p className="mt-3 leading-7 text-slate-600">
-                Preencha o formulário acima para criar o primeiro planejamento.
-              </p>
-            </div>
-          ) : (
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {planning.map((item) => (
-                <article
-                  key={item.id}
-                  className="rounded-3xl border border-slate-200 bg-slate-50 p-6"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[#6B21A8]">
-                      {item.status}
-                    </span>
-
-                    <span className="text-sm font-semibold text-slate-500">
-                      {formatPlanningDate(
-                        item.planned_date,
-                      )}
-                    </span>
-                  </div>
-
-                  <h3 className="mt-5 text-xl font-bold text-[#081C2E]">
-                    {item.title}
-                  </h3>
-
-                  {item.objective ? (
-                    <p className="mt-3 leading-7 text-slate-600">
-                      {item.objective}
-                    </p>
-                  ) : null}
-                </article>
-              ))}
-            </div>
-          )}
         </section>
       </div>
     </AgendaPageShell>
