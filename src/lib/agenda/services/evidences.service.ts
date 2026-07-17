@@ -3,6 +3,8 @@ import {
   type AgendaEvidence,
   type AgendaEvidenceType,
   type CreateAgendaEvidenceInput,
+  type DeleteAgendaEvidenceContext,
+  type RestoreAgendaEvidenceContext,
   type UpdateAgendaEvidenceInput,
 } from '@/lib/agenda/repository/evidences.repository'
 
@@ -16,6 +18,9 @@ const ALLOWED_EVIDENCE_TYPES: AgendaEvidenceType[] = [
 const DEFAULT_PRIVACY_NOTICE_VERSION =
   'edi-protecao-menores-v1.0'
 
+const MAX_DELETION_REASON_LENGTH = 500
+const MAX_RESTORATION_REASON_LENGTH = 500
+
 function normalizeRequiredText(
   value: string | null | undefined,
   fieldName: string,
@@ -23,7 +28,9 @@ function normalizeRequiredText(
   const normalizedValue = value?.trim()
 
   if (!normalizedValue) {
-    throw new Error(`${fieldName} é obrigatório.`)
+    throw new Error(
+      `${fieldName} é obrigatório.`,
+    )
   }
 
   return normalizedValue
@@ -43,7 +50,8 @@ function normalizeEvidenceType(
   value: string | undefined,
 ): AgendaEvidenceType {
   const normalizedValue =
-    value?.trim().toLowerCase() || 'texto'
+    value?.trim().toLowerCase() ||
+    'texto'
 
   if (
     !ALLOWED_EVIDENCE_TYPES.includes(
@@ -61,7 +69,10 @@ function normalizeEvidenceType(
 function normalizeFileSize(
   value: number | null | undefined,
 ): number | null {
-  if (value === undefined || value === null) {
+  if (
+    value === undefined ||
+    value === null
+  ) {
     return null
   }
 
@@ -88,9 +99,14 @@ function normalizeDateTime(
     return null
   }
 
-  const date = new Date(normalizedValue)
+  const date =
+    new Date(normalizedValue)
 
-  if (Number.isNaN(date.getTime())) {
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
     throw new Error(
       `${fieldName} é inválida.`,
     )
@@ -107,7 +123,8 @@ function validateExternalUrl(
   }
 
   try {
-    const url = new URL(value)
+    const url =
+      new URL(value)
 
     if (
       url.protocol !== 'https:' &&
@@ -126,10 +143,15 @@ function validateStorageReference(
   storageBucket: string | null,
   storagePath: string | null,
 ): void {
-  const hasBucket = Boolean(storageBucket)
-  const hasPath = Boolean(storagePath)
+  const hasBucket =
+    Boolean(storageBucket)
 
-  if (hasBucket !== hasPath) {
+  const hasPath =
+    Boolean(storagePath)
+
+  if (
+    hasBucket !== hasPath
+  ) {
     throw new Error(
       'O bucket e o caminho do arquivo devem ser informados juntos.',
     )
@@ -148,7 +170,9 @@ function validateEvidenceReferences(
     storagePath,
   )
 
-  validateExternalUrl(externalUrl)
+  validateExternalUrl(
+    externalUrl,
+  )
 
   const hasStoredFile =
     Boolean(storageBucket) &&
@@ -174,6 +198,94 @@ function validateEvidenceReferences(
     throw new Error(
       'Informe o endereço externo da evidência.',
     )
+  }
+}
+
+function normalizeDeletionReason(
+  value: string | null | undefined,
+): string {
+  const normalizedValue =
+    normalizeRequiredText(
+      value,
+      'Motivo da exclusão',
+    )
+
+  if (
+    normalizedValue.length >
+    MAX_DELETION_REASON_LENGTH
+  ) {
+    throw new Error(
+      `O motivo da exclusão não pode ultrapassar ${MAX_DELETION_REASON_LENGTH} caracteres.`,
+    )
+  }
+
+  return normalizedValue
+}
+
+function normalizeRestorationReason(
+  value: string | null | undefined,
+): string {
+  const normalizedValue =
+    normalizeRequiredText(
+      value,
+      'Motivo da restauração',
+    )
+
+  if (
+    normalizedValue.length >
+    MAX_RESTORATION_REASON_LENGTH
+  ) {
+    throw new Error(
+      `O motivo da restauração não pode ultrapassar ${MAX_RESTORATION_REASON_LENGTH} caracteres.`,
+    )
+  }
+
+  return normalizedValue
+}
+
+function normalizeDeleteContext(
+  context: DeleteAgendaEvidenceContext,
+): DeleteAgendaEvidenceContext {
+  if (!context) {
+    throw new Error(
+      'Os dados de auditoria da exclusão são obrigatórios.',
+    )
+  }
+
+  return {
+    actorUserId:
+      normalizeRequiredText(
+        context.actorUserId,
+        'ID do usuário responsável',
+      ),
+
+    reason:
+      normalizeDeletionReason(
+        context.reason,
+      ),
+  }
+}
+
+function normalizeRestoreContext(
+  context: RestoreAgendaEvidenceContext,
+): RestoreAgendaEvidenceContext {
+  if (!context) {
+    throw new Error(
+      'Os dados de auditoria da restauração são obrigatórios.',
+    )
+  }
+
+  return {
+    actorUserId:
+      normalizeRequiredText(
+        context.actorUserId,
+        'ID do usuário responsável',
+      ),
+
+    reason:
+      normalizeRestorationReason(
+        context.reason,
+      ),
   }
 }
 
@@ -212,17 +324,24 @@ function normalizeMinorProtection(
     ) ??
     DEFAULT_PRIVACY_NOTICE_VERSION
 
-  if (!input.containsIdentifiableMinor) {
+  if (
+    !input.containsIdentifiableMinor
+  ) {
     return {
-      contains_identifiable_minor: false,
+      contains_identifiable_minor:
+        false,
 
       guardian_authorization_confirmed:
         false,
 
-      authorization_reference: null,
+      authorization_reference:
+        null,
 
-      authorization_confirmed_at: null,
-      authorization_confirmed_by: null,
+      authorization_confirmed_at:
+        null,
+
+      authorization_confirmed_by:
+        null,
 
       privacy_notice_version:
         privacyNoticeVersion,
@@ -230,7 +349,8 @@ function normalizeMinorProtection(
   }
 
   if (
-    !input.guardianAuthorizationConfirmed
+    !input
+      .guardianAuthorizationConfirmed
   ) {
     throw new Error(
       'Confirme que a instituição possui autorização vigente do responsável legal.',
@@ -272,7 +392,8 @@ function normalizeMinorProtection(
     new Date().toISOString()
 
   return {
-    contains_identifiable_minor: true,
+    contains_identifiable_minor:
+      true,
 
     guardian_authorization_confirmed:
       true,
@@ -295,7 +416,8 @@ class EvidencesService {
   async listAll(): Promise<
     AgendaEvidence[]
   > {
-    return evidencesRepository.findAll()
+    return evidencesRepository
+      .findAll()
   }
 
   async getById(
@@ -308,9 +430,10 @@ class EvidencesService {
       )
 
     const evidence =
-      await evidencesRepository.findById(
-        normalizedId,
-      )
+      await evidencesRepository
+        .findById(
+          normalizedId,
+        )
 
     if (!evidence) {
       throw new Error(
@@ -330,9 +453,10 @@ class EvidencesService {
         'ID do usuário',
       )
 
-    return evidencesRepository.findByUserId(
-      normalizedUserId,
-    )
+    return evidencesRepository
+      .findByUserId(
+        normalizedUserId,
+      )
   }
 
   async listBySchoolId(
@@ -344,9 +468,10 @@ class EvidencesService {
         'ID da escola',
       )
 
-    return evidencesRepository.findBySchoolId(
-      normalizedSchoolId,
-    )
+    return evidencesRepository
+      .findBySchoolId(
+        normalizedSchoolId,
+      )
   }
 
   async listByPlanningId(
@@ -358,9 +483,10 @@ class EvidencesService {
         'ID do planejamento',
       )
 
-    return evidencesRepository.findByPlanningId(
-      normalizedPlanningId,
-    )
+    return evidencesRepository
+      .findByPlanningId(
+        normalizedPlanningId,
+      )
   }
 
   async listByEventId(
@@ -372,9 +498,10 @@ class EvidencesService {
         'ID do evento',
       )
 
-    return evidencesRepository.findByEventId(
-      normalizedEventId,
-    )
+    return evidencesRepository
+      .findByEventId(
+        normalizedEventId,
+      )
   }
 
   async create(
@@ -447,11 +574,13 @@ class EvidencesService {
     const minorProtection =
       normalizeMinorProtection({
         containsIdentifiableMinor:
-          input.contains_identifiable_minor ??
+          input
+            .contains_identifiable_minor ??
           false,
 
         guardianAuthorizationConfirmed:
-          input.guardian_authorization_confirmed ??
+          input
+            .guardian_authorization_confirmed ??
           false,
 
         authorizationReference:
@@ -474,17 +603,22 @@ class EvidencesService {
             input.privacy_notice_version,
           ),
 
-        evidenceOwnerId: userId,
+        evidenceOwnerId:
+          userId,
       })
 
     return evidencesRepository.create({
       title,
       description,
 
-      evidence_type: evidenceType,
+      evidence_type:
+        evidenceType,
 
-      file_url: fileUrl,
-      external_url: externalUrl,
+      file_url:
+        fileUrl,
+
+      external_url:
+        externalUrl,
 
       planning_id:
         normalizeOptionalText(
@@ -496,17 +630,26 @@ class EvidencesService {
           input.event_id,
         ),
 
+      organization_id:
+        normalizeOptionalText(
+          input.organization_id,
+        ),
+
       school_id:
         normalizeOptionalText(
           input.school_id,
         ),
 
-      user_id: userId,
+      user_id:
+        userId,
 
       ...minorProtection,
 
-      storage_bucket: storageBucket,
-      storage_path: storagePath,
+      storage_bucket:
+        storageBucket,
+
+      storage_path:
+        storagePath,
 
       original_file_name:
         originalFileName,
@@ -516,6 +659,18 @@ class EvidencesService {
 
       file_size_bytes:
         fileSizeBytes,
+
+      created_by:
+        normalizeOptionalText(
+          input.created_by,
+        ) ??
+        userId,
+
+      updated_by:
+        normalizeOptionalText(
+          input.updated_by,
+        ) ??
+        userId,
     })
   }
 
@@ -530,9 +685,10 @@ class EvidencesService {
       )
 
     const existingEvidence =
-      await evidencesRepository.findById(
-        normalizedId,
-      )
+      await evidencesRepository
+        .findById(
+          normalizedId,
+        )
 
     if (!existingEvidence) {
       throw new Error(
@@ -543,7 +699,9 @@ class EvidencesService {
     const normalizedInput:
       UpdateAgendaEvidenceInput = {}
 
-    if (input.title !== undefined) {
+    if (
+      input.title !== undefined
+    ) {
       normalizedInput.title =
         normalizeRequiredText(
           input.title,
@@ -552,7 +710,8 @@ class EvidencesService {
     }
 
     if (
-      input.description !== undefined
+      input.description !==
+      undefined
     ) {
       normalizedInput.description =
         normalizeOptionalText(
@@ -561,7 +720,8 @@ class EvidencesService {
     }
 
     if (
-      input.evidence_type !== undefined
+      input.evidence_type !==
+      undefined
     ) {
       normalizedInput.evidence_type =
         normalizeEvidenceType(
@@ -569,7 +729,9 @@ class EvidencesService {
         )
     }
 
-    if (input.file_url !== undefined) {
+    if (
+      input.file_url !== undefined
+    ) {
       normalizedInput.file_url =
         normalizeOptionalText(
           input.file_url,
@@ -577,7 +739,8 @@ class EvidencesService {
     }
 
     if (
-      input.external_url !== undefined
+      input.external_url !==
+      undefined
     ) {
       normalizedInput.external_url =
         normalizeOptionalText(
@@ -586,7 +749,8 @@ class EvidencesService {
     }
 
     if (
-      input.planning_id !== undefined
+      input.planning_id !==
+      undefined
     ) {
       normalizedInput.planning_id =
         normalizeOptionalText(
@@ -604,6 +768,16 @@ class EvidencesService {
     }
 
     if (
+      input.organization_id !==
+      undefined
+    ) {
+      normalizedInput.organization_id =
+        normalizeOptionalText(
+          input.organization_id,
+        )
+    }
+
+    if (
       input.school_id !== undefined
     ) {
       normalizedInput.school_id =
@@ -612,7 +786,9 @@ class EvidencesService {
         )
     }
 
-    if (input.user_id !== undefined) {
+    if (
+      input.user_id !== undefined
+    ) {
       normalizedInput.user_id =
         normalizeOptionalText(
           input.user_id,
@@ -620,7 +796,8 @@ class EvidencesService {
     }
 
     if (
-      input.storage_bucket !== undefined
+      input.storage_bucket !==
+      undefined
     ) {
       normalizedInput.storage_bucket =
         normalizeOptionalText(
@@ -629,7 +806,8 @@ class EvidencesService {
     }
 
     if (
-      input.storage_path !== undefined
+      input.storage_path !==
+      undefined
     ) {
       normalizedInput.storage_path =
         normalizeOptionalText(
@@ -648,7 +826,8 @@ class EvidencesService {
     }
 
     if (
-      input.file_mime_type !== undefined
+      input.file_mime_type !==
+      undefined
     ) {
       normalizedInput.file_mime_type =
         normalizeOptionalText(
@@ -657,11 +836,21 @@ class EvidencesService {
     }
 
     if (
-      input.file_size_bytes !== undefined
+      input.file_size_bytes !==
+      undefined
     ) {
       normalizedInput.file_size_bytes =
         normalizeFileSize(
           input.file_size_bytes,
+        )
+    }
+
+    if (
+      input.updated_by !== undefined
+    ) {
+      normalizedInput.updated_by =
+        normalizeOptionalText(
+          input.updated_by,
         )
     }
 
@@ -702,17 +891,23 @@ class EvidencesService {
     )
 
     const protectionWasUpdated =
-      input.contains_identifiable_minor !==
+      input
+        .contains_identifiable_minor !==
         undefined ||
-      input.guardian_authorization_confirmed !==
+      input
+        .guardian_authorization_confirmed !==
         undefined ||
-      input.authorization_reference !==
+      input
+        .authorization_reference !==
         undefined ||
-      input.authorization_confirmed_at !==
+      input
+        .authorization_confirmed_at !==
         undefined ||
-      input.authorization_confirmed_by !==
+      input
+        .authorization_confirmed_by !==
         undefined ||
-      input.privacy_notice_version !==
+      input
+        .privacy_notice_version !==
         undefined
 
     if (protectionWasUpdated) {
@@ -725,44 +920,60 @@ class EvidencesService {
       const minorProtection =
         normalizeMinorProtection({
           containsIdentifiableMinor:
-            input.contains_identifiable_minor ??
-            existingEvidence.contains_identifiable_minor,
+            input
+              .contains_identifiable_minor ??
+            existingEvidence
+              .contains_identifiable_minor,
 
           guardianAuthorizationConfirmed:
-            input.guardian_authorization_confirmed ??
-            existingEvidence.guardian_authorization_confirmed,
+            input
+              .guardian_authorization_confirmed ??
+            existingEvidence
+              .guardian_authorization_confirmed,
 
           authorizationReference:
-            input.authorization_reference !==
+            input
+              .authorization_reference !==
             undefined
               ? normalizeOptionalText(
-                  input.authorization_reference,
+                  input
+                    .authorization_reference,
                 )
-              : existingEvidence.authorization_reference,
+              : existingEvidence
+                  .authorization_reference,
 
           authorizationConfirmedAt:
-            input.authorization_confirmed_at !==
+            input
+              .authorization_confirmed_at !==
             undefined
               ? normalizeOptionalText(
-                  input.authorization_confirmed_at,
+                  input
+                    .authorization_confirmed_at,
                 )
-              : existingEvidence.authorization_confirmed_at,
+              : existingEvidence
+                  .authorization_confirmed_at,
 
           authorizationConfirmedBy:
-            input.authorization_confirmed_by !==
+            input
+              .authorization_confirmed_by !==
             undefined
               ? normalizeOptionalText(
-                  input.authorization_confirmed_by,
+                  input
+                    .authorization_confirmed_by,
                 )
-              : existingEvidence.authorization_confirmed_by,
+              : existingEvidence
+                  .authorization_confirmed_by,
 
           privacyNoticeVersion:
-            input.privacy_notice_version !==
+            input
+              .privacy_notice_version !==
             undefined
               ? normalizeOptionalText(
-                  input.privacy_notice_version,
+                  input
+                    .privacy_notice_version,
                 )
-              : existingEvidence.privacy_notice_version,
+              : existingEvidence
+                  .privacy_notice_version,
 
           evidenceOwnerId:
             finalUserId ?? null,
@@ -782,6 +993,7 @@ class EvidencesService {
 
   async delete(
     id: string,
+    context: DeleteAgendaEvidenceContext,
   ): Promise<void> {
     const normalizedId =
       normalizeRequiredText(
@@ -789,10 +1001,50 @@ class EvidencesService {
         'ID da evidência',
       )
 
-    const existingEvidence =
-      await evidencesRepository.findById(
-        normalizedId,
+    const normalizedContext =
+      normalizeDeleteContext(
+        context,
       )
+
+    const existingEvidence =
+      await evidencesRepository
+        .findById(
+          normalizedId,
+        )
+
+    if (!existingEvidence) {
+      throw new Error(
+        'Evidência não encontrada ou já excluída.',
+      )
+    }
+
+    await evidencesRepository.delete(
+      normalizedId,
+      normalizedContext.actorUserId,
+      normalizedContext.reason,
+    )
+  }
+
+  async restore(
+    id: string,
+    context: RestoreAgendaEvidenceContext,
+  ): Promise<AgendaEvidence> {
+    const normalizedId =
+      normalizeRequiredText(
+        id,
+        'ID da evidência',
+      )
+
+    const normalizedContext =
+      normalizeRestoreContext(
+        context,
+      )
+
+    const existingEvidence =
+      await evidencesRepository
+        .findByIdIncludingDeleted(
+          normalizedId,
+        )
 
     if (!existingEvidence) {
       throw new Error(
@@ -800,8 +1052,18 @@ class EvidencesService {
       )
     }
 
-    await evidencesRepository.delete(
+    if (
+      !existingEvidence.deleted_at
+    ) {
+      throw new Error(
+        'A evidência não está excluída.',
+      )
+    }
+
+    return evidencesRepository.restore(
       normalizedId,
+      normalizedContext.actorUserId,
+      normalizedContext.reason,
     )
   }
 }
