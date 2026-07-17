@@ -28,20 +28,20 @@ export default async function AgendaLayout({
     return (
       <div className="min-h-screen bg-[#F4F7FA]">
         <header className="border-b border-white/10 bg-[#071826] text-white">
-          <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+          <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
             <Link
               href="/agenda/dashboard"
               aria-label="Ir para o painel da Agenda Inteligente EDI"
-              className="self-center sm:self-auto"
+              className="flex self-center sm:self-auto"
             >
-              <div className="relative h-20 w-[300px] overflow-visible sm:h-24 sm:w-[340px]">
+              <div className="relative h-24 w-[340px] max-w-full overflow-hidden sm:h-24 sm:w-[380px]">
                 <Image
                   src="/logo-agenda-inteligente-edi.png"
                   alt="Agenda Inteligente EDI"
                   fill
                   priority
-                  sizes="(max-width: 640px) 300px, 340px"
-                  className="scale-[1.18] object-contain object-center"
+                  sizes="(max-width: 640px) 340px, 380px"
+                  className="scale-[2.05] object-contain object-center sm:scale-[1.95]"
                 />
               </div>
             </Link>
