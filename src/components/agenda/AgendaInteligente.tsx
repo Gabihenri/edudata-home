@@ -1,157 +1,332 @@
+import Link from 'next/link'
+
+type OperationalStep = {
+  code: string
+  title: string
+  description: string
+}
+
+type ApplicationItem = {
+  code: string
+  title: string
+  description: string
+}
+
+const operationalFlow:
+  OperationalStep[] = [
+    {
+      code: '01',
+      title: 'Planejar',
+      description:
+        'Organizar objetivos, aulas, ações pedagógicas, reuniões, formações e intervenções.',
+    },
+    {
+      code: '02',
+      title: 'Registrar',
+      description:
+        'Documentar a execução do trabalho pedagógico e os contextos de aprendizagem.',
+    },
+    {
+      code: '03',
+      title: 'Evidenciar',
+      description:
+        'Relacionar registros a documentos, produções, relatos e resultados observáveis.',
+    },
+    {
+      code: '04',
+      title: 'Analisar',
+      description:
+        'Transformar dados e evidências em indicadores para acompanhamento e decisão.',
+    },
+  ]
+
+const applications:
+  ApplicationItem[] = [
+    {
+      code: 'A01',
+      title: 'Calendário pedagógico',
+      description:
+        'Eventos pontuais, recorrência semanal e horários reutilizáveis.',
+    },
+    {
+      code: 'A02',
+      title: 'Planejamento',
+      description:
+        'Objetivos, estratégias, recursos, avaliação e contexto das turmas.',
+    },
+    {
+      code: 'A03',
+      title: 'Evidências',
+      description:
+        'Registros protegidos, contextualizados e preservados com governança.',
+    },
+    {
+      code: 'A04',
+      title: 'Tarefas',
+      description:
+        'Prioridades, prazos e pendências integradas ao fluxo de trabalho.',
+    },
+    {
+      code: 'A05',
+      title: 'Indicadores',
+      description:
+        'Leitura consolidada da operação sem substituir o contexto pedagógico.',
+    },
+    {
+      code: 'A06',
+      title: 'Histórico',
+      description:
+        'Memória institucional, versões, auditoria, exclusões e restaurações.',
+    },
+  ]
+
+const ediPillars = [
+  {
+    label: 'Evidências',
+    description:
+      'Registros sustentam o acompanhamento.',
+  },
+  {
+    label: 'Inclusão',
+    description:
+      'A tecnologia respeita pessoas e contextos.',
+  },
+  {
+    label: 'Inteligência',
+    description:
+      'Dados apoiam decisões educacionais.',
+  },
+]
+
 export function AgendaInteligente() {
-  const fluxo = [
-    {
-      numero: '01',
-      titulo: 'Planejar',
-      descricao:
-        'Organizar objetivos, ações, projetos, formações, intervenções e metas de desenvolvimento educacional.',
-    },
-    {
-      numero: '02',
-      titulo: 'Registrar',
-      descricao:
-        'Documentar aulas, reuniões, apoios, práticas pedagógicas, atividades adaptadas e ações institucionais.',
-    },
-    {
-      numero: '03',
-      titulo: 'Evidenciar',
-      descricao:
-        'Associar registros a evidências, relatos, documentos, produções, links, imagens e resultados observáveis.',
-    },
-    {
-      numero: '04',
-      titulo: 'Analisar',
-      descricao:
-        'Transformar registros em indicadores para acompanhamento, tomada de decisão e melhoria contínua.',
-    },
-  ]
-
-  const aplicacoes = [
-    'Planejamento docente',
-    'Agenda pedagógica',
-    'Registro de evidências',
-    'Indicadores educacionais',
-    'Relatórios institucionais',
-    'IA aplicada à gestão pedagógica',
-  ]
-
   return (
-    <section id="agenda" className="bg-white px-6 py-24">
-      <div className="mx-auto max-w-7xl">
-        <div className="grid gap-16 md:grid-cols-[0.95fr_1.05fr] md:items-start">
-          <div>
-            <div className="mb-4 flex flex-wrap items-center gap-3">
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#5C1A8C]">
-                Agenda Inteligente EDI
-              </p>
+    <section
+      id="agenda"
+      className="overflow-hidden bg-[#EEF3F7]"
+    >
+      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] lg:items-start lg:gap-14">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#075F78]">
+                Produto especializado
+              </span>
 
-              <span className="rounded-full bg-[#5C1A8C]/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-[#5C1A8C]">
-                Em desenvolvimento
+              <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                Integrado ao EIOS
               </span>
             </div>
 
-            <h2 className="text-4xl font-bold leading-tight tracking-tight text-slate-950 md:text-6xl">
-              A plataforma estratégica para planejamento, evidências e
-              inteligência educacional.
+            <p className="mt-7 text-xs font-bold uppercase tracking-[0.22em] text-[#0B7491]">
+              Agenda Inteligente EDI
+            </p>
+
+            <h2 className="mt-4 max-w-4xl text-4xl font-bold leading-[1.08] tracking-tight text-[#071827] sm:text-5xl lg:text-6xl">
+              O ambiente operacional para organizar o trabalho educacional.
             </h2>
 
-            <p className="mt-8 max-w-2xl text-lg leading-8 text-slate-600">
-              A Agenda Inteligente EDI está em desenvolvimento e será a
-              plataforma que conectará planejamento, gestão, evidências e
-              inteligência educacional.
+            <p className="mt-6 max-w-3xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
+              A Agenda Inteligente EDI conecta planejamento, calendário,
+              tarefas, turmas, evidências, indicadores e histórico em um
+              fluxo integrado à plataforma EduData IA.
             </p>
 
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-500">
-              Ela está sendo construída a partir dos desafios reais de
-              professores, coordenadores e gestores escolares, para apoiar o
-              acompanhamento pedagógico, a organização da prática profissional e
-              a tomada de decisão baseada em dados.
+            <p className="mt-5 max-w-3xl text-base leading-7 text-slate-500">
+              Construída a partir dos desafios reais de professores,
+              coordenadores e gestores, ela reduz fragmentação,
+              preserva a memória pedagógica e fortalece decisões
+              fundamentadas em evidências.
             </p>
 
-            <a
-              href="#participacao"
-              className="mt-10 inline-flex rounded-full bg-[#5C1A8C] px-7 py-4 font-semibold text-white transition hover:opacity-90"
-            >
-              Entrar na Lista de Interesse
-            </a>
-
-            <div className="mt-10 rounded-[2rem] bg-[#081C2E] p-8 text-white shadow-xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-300">
-                Conexão estratégica
-              </p>
-
-              <div className="mt-6 space-y-3 text-lg font-semibold">
-                <p>Agenda Inteligente EDI</p>
-                <p className="text-[#7DD3FC]">↓</p>
-                <p>EduData Analytics</p>
-                <p className="text-[#A7F3D0]">↓</p>
-                <p>SGPA</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-5">
-            {fluxo.map((item) => (
-              <div
-                key={item.numero}
-                className="rounded-3xl border border-slate-200 bg-[#F5F6F8] p-6 shadow-sm"
+            <div className="mt-8 grid gap-3 sm:flex sm:flex-wrap">
+              <Link
+                href="/agenda"
+                className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#071827] px-7 py-4 text-center font-semibold text-white transition hover:bg-[#0B2940]"
               >
-                <div className="grid gap-5 md:grid-cols-[72px_1fr]">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#5C1A8C] text-sm font-bold text-white">
-                    {item.numero}
-                  </div>
+                Conhecer a Agenda
+              </Link>
 
-                  <div>
-                    <h3 className="text-2xl font-bold text-slate-950">
-                      {item.titulo}
-                    </h3>
+              <Link
+                href="/agenda/dashboard"
+                className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0B7491] px-7 py-4 text-center font-semibold text-white transition hover:bg-[#09657E]"
+              >
+                Acessar ambiente
+              </Link>
+            </div>
 
-                    <p className="mt-2 leading-7 text-slate-600">
-                      {item.descricao}
-                    </p>
-                  </div>
+            <section className="mt-10 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[#071827] text-white shadow-sm">
+              <header className="border-b border-white/10 px-5 py-5 sm:px-7">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">
+                  Arquitetura oficial
+                </p>
+
+                <h3 className="mt-2 text-xl font-bold sm:text-2xl">
+                  Um produto construído sobre o EIOS
+                </h3>
+              </header>
+
+              <div className="divide-y divide-white/10">
+                <div className="flex items-center justify-between gap-4 px-5 py-4 sm:px-7">
+                  <span className="font-semibold">
+                    Framework EDI
+                  </span>
+
+                  <span className="font-mono text-xs font-bold text-cyan-300">
+                    01
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-4 px-5 py-4 sm:px-7">
+                  <span className="font-semibold">
+                    EIOS
+                  </span>
+
+                  <span className="font-mono text-xs font-bold text-cyan-300">
+                    02
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-4 px-5 py-4 sm:px-7">
+                  <span className="font-semibold">
+                    Core compartilhado
+                  </span>
+
+                  <span className="font-mono text-xs font-bold text-cyan-300">
+                    03
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-4 bg-cyan-300/10 px-5 py-4 sm:px-7">
+                  <span className="font-bold text-cyan-100">
+                    Agenda Inteligente EDI
+                  </span>
+
+                  <span className="font-mono text-xs font-bold text-cyan-300">
+                    04
+                  </span>
                 </div>
               </div>
-            ))}
+            </section>
           </div>
+
+          <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
+            <header className="border-b border-slate-200 px-5 py-5 sm:px-7">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                Fluxo operacional EDI
+              </p>
+
+              <h3 className="mt-2 text-2xl font-bold text-[#071827]">
+                Do planejamento à análise
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Um ciclo contínuo para organizar, documentar e acompanhar
+                o trabalho educacional.
+              </p>
+            </header>
+
+            <div className="divide-y divide-slate-200">
+              {operationalFlow.map(
+                (step) => (
+                  <article
+                    key={step.code}
+                    className="grid grid-cols-[42px_minmax(0,1fr)] gap-4 px-5 py-5 sm:px-7"
+                  >
+                    <span className="font-mono text-xs font-bold text-[#0B7491]">
+                      {step.code}
+                    </span>
+
+                    <div>
+                      <h4 className="text-lg font-bold text-[#071827]">
+                        {step.title}
+                      </h4>
+
+                      <p className="mt-2 text-sm leading-6 text-slate-600">
+                        {step.description}
+                      </p>
+                    </div>
+                  </article>
+                ),
+              )}
+            </div>
+
+            <footer className="border-t border-cyan-200 bg-cyan-50 px-5 py-5 sm:px-7">
+              <p className="text-sm font-semibold leading-6 text-cyan-950">
+                Planejar → Registrar → Evidenciar → Analisar
+              </p>
+            </footer>
+          </section>
         </div>
 
-        <div className="mt-16">
-          <p className="mb-8 text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">
-            Aplicações previstas
-          </p>
+        <section className="mt-14 sm:mt-16">
+          <div className="max-w-3xl">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0B7491]">
+              Aplicações operacionais
+            </p>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            {aplicacoes.map((item) => (
-              <div
-                key={item}
-                className="rounded-2xl border border-slate-200 bg-white p-5 text-lg font-semibold text-slate-800 shadow-sm"
+            <h3 className="mt-4 text-3xl font-bold tracking-tight text-[#071827] sm:text-4xl">
+              Módulos conectados em uma única experiência.
+            </h3>
+
+            <p className="mt-5 text-base leading-7 text-slate-600">
+              Cada módulo compartilha identidade, acesso, segurança,
+              governança e dados com o restante da plataforma.
+            </p>
+          </div>
+
+          <div className="mt-9 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {applications.map(
+              (application) => (
+                <article
+                  key={application.code}
+                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                >
+                  <header className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+                    <span className="font-mono text-xs font-bold text-[#0B7491]">
+                      {application.code}
+                    </span>
+                  </header>
+
+                  <div className="p-5">
+                    <h4 className="text-xl font-bold text-[#071827]">
+                      {application.title}
+                    </h4>
+
+                    <p className="mt-3 text-sm leading-6 text-slate-600">
+                      {application.description}
+                    </p>
+                  </div>
+                </article>
+              ),
+            )}
+          </div>
+        </section>
+
+        <section className="mt-14 grid overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm sm:grid-cols-3 sm:mt-16">
+          {ediPillars.map(
+            (
+              pillar,
+              index,
+            ) => (
+              <article
+                key={pillar.label}
+                className={`px-5 py-6 sm:px-7 ${
+                  index < 2
+                    ? 'border-b border-slate-200 sm:border-b-0 sm:border-r'
+                    : ''
+                }`}
               >
-                {item}
-              </div>
-            ))}
-          </div>
-        </div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0B7491]">
+                  {pillar.label}
+                </p>
 
-        <div className="mt-16 grid gap-6 md:grid-cols-3">
-          <div className="border-t border-[#0A3A5E] pt-6">
-            <h3 className="text-xl font-bold text-[#0A3A5E]">
-              Planejamento organiza a prática.
-            </h3>
-          </div>
-
-          <div className="border-t border-[#1B6B3A] pt-6">
-            <h3 className="text-xl font-bold text-[#1B6B3A]">
-              Evidências sustentam decisões.
-            </h3>
-          </div>
-
-          <div className="border-t border-[#5C1A8C] pt-6">
-            <h3 className="text-xl font-bold text-[#5C1A8C]">
-              Dados alimentam inteligência.
-            </h3>
-          </div>
-        </div>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {pillar.description}
+                </p>
+              </article>
+            ),
+          )}
+        </section>
       </div>
     </section>
   )
