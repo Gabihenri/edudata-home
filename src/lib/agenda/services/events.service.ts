@@ -11,9 +11,15 @@ import {
 
 const MAX_RECURRENCE_OCCURRENCES = 104
 const MAX_DELETION_REASON_LENGTH = 500
+const MAX_RESTORATION_REASON_LENGTH = 500
 const AGENDA_TIMEZONE = 'America/Sao_Paulo'
 
 export type DeleteAgendaEventContext = {
+  actorUserId: string
+  reason: string
+}
+
+export type RestoreAgendaEventContext = {
   actorUserId: string
   reason: string
 }
@@ -54,6 +60,29 @@ function validateDeletionReason(
   return normalizedValue
 }
 
+function validateRestorationReason(
+  value: string,
+): string {
+  const normalizedValue = value?.trim()
+
+  if (!normalizedValue) {
+    throw new Error(
+      'Motivo da restauração é obrigatório.',
+    )
+  }
+
+  if (
+    normalizedValue.length >
+    MAX_RESTORATION_REASON_LENGTH
+  ) {
+    throw new Error(
+      `O motivo da restauração não pode ultrapassar ${MAX_RESTORATION_REASON_LENGTH} caracteres.`,
+    )
+  }
+
+  return normalizedValue
+}
+
 function normalizeDeleteContext(
   context: DeleteAgendaEventContext,
 ): DeleteAgendaEventContext {
@@ -70,6 +99,27 @@ function normalizeDeleteContext(
     ),
 
     reason: validateDeletionReason(
+      context.reason,
+    ),
+  }
+}
+
+function normalizeRestoreContext(
+  context: RestoreAgendaEventContext,
+): RestoreAgendaEventContext {
+  if (!context) {
+    throw new Error(
+      'Os dados de auditoria da restauração são obrigatórios.',
+    )
+  }
+
+  return {
+    actorUserId: validateRequiredId(
+      context.actorUserId,
+      'ID do usuário responsável',
+    ),
+
+    reason: validateRestorationReason(
       context.reason,
     ),
   }
@@ -758,6 +808,46 @@ class EventsService {
     }
 
     await eventsRepository.delete(
+      normalizedId,
+      normalizedContext.actorUserId,
+      normalizedContext.reason,
+    )
+  }
+
+  async restore(
+    id: string,
+    context: RestoreAgendaEventContext,
+  ): Promise<AgendaEvent> {
+    const normalizedId =
+      validateRequiredId(
+        id,
+        'ID do evento',
+      )
+
+    const normalizedContext =
+      normalizeRestoreContext(
+        context,
+      )
+
+    const existingEvent =
+      await eventsRepository
+        .findByIdIncludingDeleted(
+          normalizedId,
+        )
+
+    if (!existingEvent) {
+      throw new Error(
+        'Evento não encontrado.',
+      )
+    }
+
+    if (!existingEvent.deleted_at) {
+      throw new Error(
+        'O evento não está excluído.',
+      )
+    }
+
+    return eventsRepository.restore(
       normalizedId,
       normalizedContext.actorUserId,
       normalizedContext.reason,
