@@ -26,6 +26,7 @@ export type AgendaEvent = {
   status: string
   priority: string
 
+  organization_id: string | null
   school_id: string | null
   user_id: string | null
 
@@ -47,6 +48,17 @@ export type AgendaEvent = {
   original_start_at: string | null
 
   is_exception: boolean
+
+  created_by: string | null
+  updated_by: string | null
+
+  deleted_at: string | null
+  deleted_by: string | null
+  deletion_reason: string | null
+
+  restored_at: string | null
+  restored_by: string | null
+  restore_reason: string | null
 
   created_at: string
   updated_at: string
@@ -89,6 +101,11 @@ export type CreateAgendaEventInput = {
 
 export type UpdateAgendaEventInput =
   Partial<CreateAgendaEventInput>
+
+export type DeleteAgendaEventContext = {
+  actorUserId: string
+  reason: string
+}
 
 const AGENDA_TIMEZONE =
   'America/Sao_Paulo'
@@ -199,6 +216,34 @@ function calculateWeekReference(
     .slice(0, 10)
 }
 
+function normalizeDeletionContext(
+  actorUserId?: string,
+  reason?: string,
+): DeleteAgendaEventContext {
+  const normalizedActorUserId =
+    actorUserId?.trim()
+
+  if (!normalizedActorUserId) {
+    throw new Error(
+      'ID do usuário responsável pela exclusão é obrigatório.',
+    )
+  }
+
+  const normalizedReason =
+    reason?.trim()
+
+  if (!normalizedReason) {
+    throw new Error(
+      'Motivo da exclusão é obrigatório.',
+    )
+  }
+
+  return {
+    actorUserId: normalizedActorUserId,
+    reason: normalizedReason,
+  }
+}
+
 function buildCreatePayload(
   input: CreateAgendaEventInput,
 ) {
@@ -262,6 +307,12 @@ function buildCreatePayload(
 
     is_exception:
       input.is_exception ?? false,
+
+    created_by:
+      input.user_id ?? null,
+
+    updated_by:
+      input.user_id ?? null,
   }
 }
 
@@ -415,6 +466,7 @@ class EventsRepository {
       await this.client
         .from('agenda_events')
         .select('*')
+        .is('deleted_at', null)
         .order('start_at', {
           ascending: true,
         })
@@ -436,11 +488,31 @@ class EventsRepository {
         .from('agenda_events')
         .select('*')
         .eq('id', id)
+        .is('deleted_at', null)
         .maybeSingle()
 
     if (error) {
       throw new Error(
         `Erro ao buscar evento: ${error.message}`,
+      )
+    }
+
+    return data as AgendaEvent | null
+  }
+
+  async findByIdIncludingDeleted(
+    id: string,
+  ): Promise<AgendaEvent | null> {
+    const { data, error } =
+      await this.client
+        .from('agenda_events')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle()
+
+    if (error) {
+      throw new Error(
+        `Erro ao buscar evento com histórico: ${error.message}`,
       )
     }
 
@@ -455,6 +527,7 @@ class EventsRepository {
         .from('agenda_events')
         .select('*')
         .eq('user_id', userId)
+        .is('deleted_at', null)
         .order('start_at', {
           ascending: true,
         })
@@ -481,6 +554,7 @@ class EventsRepository {
           'week_reference',
           weekReference,
         )
+        .is('deleted_at', null)
         .order('start_at', {
           ascending: true,
         })
@@ -502,6 +576,7 @@ class EventsRepository {
         .from('agenda_events')
         .select('*')
         .eq('school_id', schoolId)
+        .is('deleted_at', null)
         .order('start_at', {
           ascending: true,
         })
@@ -523,6 +598,7 @@ class EventsRepository {
         .from('agenda_events')
         .select('*')
         .eq('series_id', seriesId)
+        .is('deleted_at', null)
         .order('start_at', {
           ascending: true,
         })
@@ -595,6 +671,7 @@ class EventsRepository {
         .from('agenda_events')
         .update(payload)
         .eq('id', id)
+        .is('deleted_at', null)
         .select('*')
         .single()
 
@@ -609,12 +686,32 @@ class EventsRepository {
 
   async delete(
     id: string,
+    actorUserId?: string,
+    reason?: string,
   ): Promise<void> {
+    const context =
+      normalizeDeletionContext(
+        actorUserId,
+        reason,
+      )
+
     const { error } =
-      await this.client
-        .from('agenda_events')
-        .delete()
-        .eq('id', id)
+      await this.client.rpc(
+        'soft_delete_agenda_record',
+        {
+          requested_resource_type:
+            'agenda_events',
+
+          requested_resource_id:
+            id,
+
+          requested_reason:
+            context.reason,
+
+          requested_actor_user_id:
+            context.actorUserId,
+        },
+      )
 
     if (error) {
       throw new Error(
@@ -626,17 +723,32 @@ class EventsRepository {
   async deleteSeriesFromDate(
     seriesId: string,
     startAt: string,
+    actorUserId?: string,
+    reason?: string,
   ): Promise<void> {
-    const { error } =
-      await this.client
-        .from('agenda_events')
-        .delete()
-        .eq('series_id', seriesId)
-        .gte('start_at', startAt)
+    const context =
+      normalizeDeletionContext(
+        actorUserId,
+        reason,
+      )
 
-    if (error) {
-      throw new Error(
-        `Erro ao excluir eventos futuros da série: ${error.message}`,
+    const events =
+      await this.findBySeriesId(
+        seriesId,
+      )
+
+    const eventsToDelete =
+      events.filter(
+        (event) =>
+          new Date(event.start_at).getTime() >=
+          new Date(startAt).getTime(),
+      )
+
+    for (const event of eventsToDelete) {
+      await this.delete(
+        event.id,
+        context.actorUserId,
+        context.reason,
       )
     }
   }
