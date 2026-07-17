@@ -8,11 +8,13 @@ import {
 
 import {
   AgendaEventVersionsDialog,
-} from './AgendaEventVersionsDialog'
+} from '@/components/agenda/AgendaEventVersionsDialog'
+import {
+  AgendaPageShell,
+} from '@/components/agenda/AgendaPageShell'
 import {
   AgendaRestoreDialog,
-} from './AgendaRestoreDialog'
-
+} from '@/components/agenda/AgendaRestoreDialog'
 import {
   useHistory,
 } from '@/lib/agenda/hooks'
@@ -25,9 +27,11 @@ import type {
 
 type HistoryFormState = {
   search: string
+
   type:
     | ''
     | AgendaHistoryItemType
+
   startDate: string
   endDate: string
 }
@@ -49,6 +53,7 @@ type VersionsTarget = {
 
 type HistoryRecordCardProps = {
   item: AgendaHistoryItem
+  sequence: number
 
   restoringEventId:
     | string
@@ -67,22 +72,62 @@ type HistoryRecordCardProps = {
   ) => void
 }
 
-const initialForm: HistoryFormState = {
+type TypePresentation = {
+  label: string
+  classes: string
+}
+
+const initialForm:
+  HistoryFormState = {
   search: '',
   type: '',
   startDate: '',
   endDate: '',
 }
 
-const typeLabels:
+const inputClassName = [
+  'min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3',
+  'text-slate-950 outline-none transition placeholder:text-slate-400',
+  'focus:border-[#0B7491] focus:ring-4 focus:ring-cyan-100',
+  'disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500',
+].join(' ')
+
+const typePresentations:
   Record<
     AgendaHistoryItemType,
-    string
+    TypePresentation
   > = {
-    evento: 'Evento',
-    planejamento: 'Planejamento',
-    evidencia: 'Evidência',
-    tarefa: 'Tarefa',
+    evento: {
+      label:
+        'Evento',
+
+      classes:
+        'border-blue-200 bg-blue-50 text-blue-800',
+    },
+
+    planejamento: {
+      label:
+        'Planejamento',
+
+      classes:
+        'border-cyan-200 bg-cyan-50 text-[#075F78]',
+    },
+
+    evidencia: {
+      label:
+        'Evidência',
+
+      classes:
+        'border-emerald-200 bg-emerald-50 text-emerald-800',
+    },
+
+    tarefa: {
+      label:
+        'Tarefa',
+
+      classes:
+        'border-amber-200 bg-amber-50 text-amber-800',
+    },
   }
 
 function formatDate(
@@ -102,8 +147,11 @@ function formatDate(
   return new Intl.DateTimeFormat(
     'pt-BR',
     {
-      dateStyle: 'long',
-      timeStyle: 'short',
+      dateStyle:
+        'medium',
+
+      timeStyle:
+        'short',
     },
   ).format(date)
 }
@@ -125,7 +173,17 @@ function formatDay(
   return new Intl.DateTimeFormat(
     'pt-BR',
     {
-      dateStyle: 'full',
+      weekday:
+        'long',
+
+      day:
+        '2-digit',
+
+      month:
+        'long',
+
+      year:
+        'numeric',
     },
   ).format(date)
 }
@@ -165,10 +223,14 @@ function getActorReference(
 }
 
 function getRestoreButtonLabel(
-  type: RestorableHistoryItemType,
+  type:
+    RestorableHistoryItemType,
   restoring: boolean,
 ): string {
-  if (type === 'evento') {
+  if (
+    type ===
+    'evento'
+  ) {
     return restoring
       ? 'Restaurando evento...'
       : 'Restaurar evento'
@@ -181,21 +243,29 @@ function getRestoreButtonLabel(
 
 function HistoryRecordCard({
   item,
+  sequence,
   restoringEventId,
   restoringEvidenceId,
   onRestore,
   onOpenVersions,
 }: HistoryRecordCardProps) {
+  const presentation =
+    typePresentations[
+      item.type
+    ]
+
   const actorReference =
     getActorReference(
       item.deleted_by,
     )
 
   const isEvent =
-    item.type === 'evento'
+    item.type ===
+    'evento'
 
   const isEvidence =
-    item.type === 'evidencia'
+    item.type ===
+    'evidencia'
 
   const restorableType:
     | RestorableHistoryItemType
@@ -208,10 +278,13 @@ function HistoryRecordCard({
 
   const canRestore =
     item.is_deleted &&
-    Boolean(restorableType)
+    Boolean(
+      restorableType,
+    )
 
   const restoringRecordId =
-    restorableType === 'evento'
+    restorableType ===
+    'evento'
       ? restoringEventId
       : restorableType ===
           'evidencia'
@@ -222,7 +295,7 @@ function HistoryRecordCard({
     restoringRecordId ===
     item.source_id
 
-  const hasProtectedLinks =
+  const hasAvailableLinks =
     !item.is_deleted &&
     Boolean(
       item.file_url ||
@@ -232,135 +305,192 @@ function HistoryRecordCard({
   const hasActions =
     isEvent ||
     canRestore ||
-    hasProtectedLinks
+    hasAvailableLinks
 
   return (
     <article
-      className={`overflow-hidden rounded-2xl border bg-white shadow-sm ${
+      className={`overflow-hidden rounded-2xl border bg-white ${
         item.is_deleted
           ? 'border-amber-300'
           : 'border-slate-200'
       }`}
     >
       {item.is_deleted ? (
-        <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 sm:px-6">
-          <p className="text-sm font-bold text-amber-900">
-            Registro excluído e
-            preservado para histórico e
-            auditoria
-          </p>
+        <div className="border-b border-amber-200 bg-amber-50 px-5 py-3">
+          <div className="flex items-center gap-3">
+            <span
+              aria-hidden="true"
+              className="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-500"
+            />
+
+            <p className="text-sm font-bold text-amber-950">
+              Registro excluído e preservado para auditoria
+            </p>
+          </div>
         </div>
       ) : null}
 
-      <div className="p-5 sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-cyan-800">
+      <header className="border-b border-slate-200 bg-slate-50 px-5 py-4 sm:px-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="font-mono text-xs font-bold text-[#0B7491]">
+              {String(
+                sequence,
+              ).padStart(
+                2,
+                '0',
+              )}
+            </span>
+
+            <div className="min-w-0">
+              <div className="flex flex-wrap gap-2">
+                <span
+                  className={`inline-flex rounded-lg border px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] ${presentation.classes}`}
+                >
+                  {
+                    presentation.label
+                  }
+                </span>
+
+                <span
+                  className={`inline-flex rounded-lg border px-3 py-1 text-xs font-bold ${
+                    item.is_deleted
+                      ? 'border-amber-200 bg-amber-50 text-amber-800'
+                      : 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                  }`}
+                >
+                  {item.is_deleted
+                    ? 'Excluído'
+                    : 'Ativo'}
+                </span>
+
+                {isEvent ? (
+                  <span className="inline-flex rounded-lg border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800">
+                    Versionado
+                  </span>
+                ) : null}
+              </div>
+
+              <h3 className="mt-3 break-words text-xl font-bold leading-7 text-[#071827] sm:text-2xl">
+                {item.title}
+              </h3>
+            </div>
+          </div>
+
+          <div
+            className={`shrink-0 rounded-xl px-4 py-3 ${
+              item.is_deleted
+                ? 'border border-amber-200 bg-amber-50'
+                : 'bg-[#071827] text-white'
+            }`}
+          >
+            <p
+              className={`text-[10px] font-bold uppercase tracking-[0.14em] ${
+                item.is_deleted
+                  ? 'text-amber-800'
+                  : 'text-slate-300'
+              }`}
+            >
+              {item.is_deleted
+                ? 'Excluído em'
+                : 'Registrado em'}
+            </p>
+
+            <p
+              className={`mt-1 text-xs font-bold ${
+                item.is_deleted
+                  ? 'text-amber-950'
+                  : 'text-white'
+              }`}
+            >
+              {formatDate(
+                item.occurred_at,
+              )}
+            </p>
+          </div>
+        </div>
+      </header>
+
+      <div className="space-y-5 p-5 sm:p-6">
+        {item.description ? (
+          <p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-600 sm:text-base sm:leading-7">
+            {
+              item.description
+            }
+          </p>
+        ) : (
+          <p className="text-sm italic text-slate-400">
+            Registro sem descrição complementar.
+          </p>
+        )}
+
+        {item.status ||
+        item.category ||
+        item.subject ||
+        item.class_name ? (
+          <div className="flex flex-wrap gap-2">
+            {item.status &&
+            !item.is_deleted ? (
+              <span className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">
+                Status:{' '}
+                {formatLabel(
+                  item.status,
+                )}
+              </span>
+            ) : null}
+
+            {item.category ? (
+              <span className="rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-[#075F78]">
+                {formatLabel(
+                  item.category,
+                )}
+              </span>
+            ) : null}
+
+            {item.subject ? (
+              <span className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">
+                Disciplina:{' '}
+                {item.subject}
+              </span>
+            ) : null}
+
+            {item.class_name ? (
+              <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
+                Turma:{' '}
                 {
-                  typeLabels[
-                    item.type
-                  ]
+                  item.class_name
                 }
               </span>
-
-              {item.is_deleted ? (
-                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900">
-                  Excluído
-                </span>
-              ) : (
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">
-                  Ativo
-                </span>
-              )}
-
-              {isEvent ? (
-                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800">
-                  Versionado
-                </span>
-              ) : null}
-            </div>
-
-            <h3 className="mt-3 break-words text-xl font-bold text-slate-950 sm:text-2xl">
-              {item.title}
-            </h3>
+            ) : null}
           </div>
-
-          <div className="rounded-xl bg-[#081C2E] px-4 py-2 text-xs font-bold text-white">
-            {item.is_deleted
-              ? 'Excluído em '
-              : 'Registrado em '}
-
-            {formatDate(
-              item.occurred_at,
-            )}
-          </div>
-        </div>
-
-        {item.description ? (
-          <p className="mt-5 whitespace-pre-wrap break-words leading-7 text-slate-600">
-            {item.description}
-          </p>
         ) : null}
 
-        <div className="mt-5 flex flex-wrap gap-2">
-          {item.status &&
-          !item.is_deleted ? (
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-              Status:{' '}
-              {formatLabel(
-                item.status,
-              )}
-            </span>
-          ) : null}
-
-          {item.category ? (
-            <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-800">
-              {formatLabel(
-                item.category,
-              )}
-            </span>
-          ) : null}
-
-          {item.subject ? (
-            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800">
-              Disciplina:{' '}
-              {item.subject}
-            </span>
-          ) : null}
-
-          {item.class_name ? (
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
-              Turma:{' '}
-              {item.class_name}
-            </span>
-          ) : null}
-        </div>
-
         {item.is_deleted ? (
-          <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-            <h4 className="font-bold text-amber-950">
-              Informações da exclusão
-            </h4>
+          <section className="overflow-hidden rounded-xl border border-amber-200 bg-amber-50">
+            <header className="border-b border-amber-200 px-4 py-3">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-amber-800">
+                Informações da exclusão
+              </p>
+            </header>
 
-            <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+            <dl className="grid gap-5 p-4 text-sm sm:grid-cols-2">
               <div>
-                <dt className="font-semibold text-amber-900">
+                <dt className="font-bold text-amber-900">
                   Motivo
                 </dt>
 
-                <dd className="mt-1 whitespace-pre-wrap break-words text-amber-950">
+                <dd className="mt-1 whitespace-pre-wrap break-words leading-6 text-amber-950">
                   {item.deletion_reason ??
                     'Motivo não informado.'}
                 </dd>
               </div>
 
               <div>
-                <dt className="font-semibold text-amber-900">
+                <dt className="font-bold text-amber-900">
                   Data da exclusão
                 </dt>
 
-                <dd className="mt-1 text-amber-950">
+                <dd className="mt-1 leading-6 text-amber-950">
                   {item.deleted_at
                     ? formatDate(
                         item.deleted_at,
@@ -370,11 +500,11 @@ function HistoryRecordCard({
               </div>
 
               <div>
-                <dt className="font-semibold text-amber-900">
+                <dt className="font-bold text-amber-900">
                   Responsável
                 </dt>
 
-                <dd className="mt-1 text-amber-950">
+                <dd className="mt-1 leading-6 text-amber-950">
                   {item.deleted_by
                     ? 'Usuário identificado pelo sistema'
                     : 'Identificação não disponível'}
@@ -382,33 +512,33 @@ function HistoryRecordCard({
               </div>
 
               <div>
-                <dt className="font-semibold text-amber-900">
+                <dt className="font-bold text-amber-900">
                   Referência de auditoria
                 </dt>
 
-                <dd className="mt-1 break-all font-mono text-xs text-amber-950">
+                <dd className="mt-1 break-all font-mono text-xs leading-6 text-amber-950">
                   {actorReference ??
                     'Não disponível'}
                 </dd>
               </div>
 
               <div className="sm:col-span-2">
-                <dt className="font-semibold text-amber-900">
+                <dt className="font-bold text-amber-900">
                   Data original do registro
                 </dt>
 
-                <dd className="mt-1 text-amber-950">
+                <dd className="mt-1 leading-6 text-amber-950">
                   {formatDate(
                     item.source_occurred_at,
                   )}
                 </dd>
               </div>
             </dl>
-          </div>
+          </section>
         ) : null}
 
         {hasActions ? (
-          <div className="mt-6 flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:flex-wrap">
+          <footer className="flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:flex-wrap">
             {isEvent ? (
               <button
                 type="button"
@@ -421,7 +551,7 @@ function HistoryRecordCard({
                       item.title,
                   })
                 }
-                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-cyan-700 bg-white px-5 py-3 font-semibold text-cyan-800 transition hover:bg-cyan-50 sm:w-auto"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[#0B7491] bg-white px-5 py-3 text-sm font-semibold text-[#075F78] transition hover:bg-cyan-50 sm:w-auto"
               >
                 Ver versões
               </button>
@@ -447,7 +577,7 @@ function HistoryRecordCard({
                       restorableType,
                   })
                 }
-                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#0A6F8F] px-5 py-3 font-semibold text-white transition hover:bg-[#085A75] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#0B7491] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#09657E] disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
               >
                 {getRestoreButtonLabel(
                   restorableType,
@@ -464,7 +594,7 @@ function HistoryRecordCard({
                 }
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-cyan-700 bg-white px-5 py-3 font-semibold text-cyan-800 transition hover:bg-cyan-50 sm:w-auto"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#071827] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B2940] sm:w-auto"
               >
                 Abrir arquivo
               </a>
@@ -478,12 +608,12 @@ function HistoryRecordCard({
                 }
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] sm:w-auto"
               >
                 Abrir link
               </a>
             ) : null}
-          </div>
+          </footer>
         ) : null}
       </div>
     </article>
@@ -557,6 +687,20 @@ export function AgendaHistory() {
             item.is_deleted,
         ).length
 
+      const events =
+        history.filter(
+          (item) =>
+            item.type ===
+            'evento',
+        ).length
+
+      const evidences =
+        history.filter(
+          (item) =>
+            item.type ===
+            'evidencia',
+        ).length
+
       return {
         total:
           history.length,
@@ -566,6 +710,8 @@ export function AgendaHistory() {
           deleted,
 
         deleted,
+        events,
+        evidences,
       }
     }, [history])
 
@@ -586,8 +732,14 @@ export function AgendaHistory() {
               item.occurred_at,
             )
 
-          if (!groups[dateKey]) {
-            groups[dateKey] = []
+          if (
+            !groups[
+              dateKey
+            ]
+          ) {
+            groups[
+              dateKey
+            ] = []
           }
 
           groups[
@@ -599,6 +751,22 @@ export function AgendaHistory() {
         {},
       )
     }, [history])
+
+  function updateForm<
+    Key extends
+      keyof HistoryFormState,
+  >(
+    key: Key,
+    value:
+      HistoryFormState[Key],
+  ): void {
+    setForm(
+      (current) => ({
+        ...current,
+        [key]: value,
+      }),
+    )
+  }
 
   async function handleSubmit(
     event:
@@ -626,7 +794,8 @@ export function AgendaHistory() {
         form.endDate ||
         null,
 
-      limit: 200,
+      limit:
+        200,
     }
 
     setActiveFilters(
@@ -648,7 +817,8 @@ export function AgendaHistory() {
 
     const filters:
       AgendaHistoryFilters = {
-      limit: 200,
+      limit:
+        200,
     }
 
     setActiveFilters(
@@ -744,66 +914,112 @@ export function AgendaHistory() {
 
   return (
     <>
-      <section className="px-4 py-10 sm:px-6 sm:py-14">
-        <div className="mx-auto max-w-7xl">
-          <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-            <div className="bg-[#081C2E] px-6 py-8 text-white sm:px-8 sm:py-10">
-              <p className="text-xs font-bold uppercase tracking-[0.24em] text-cyan-300">
-                Agenda Inteligente EDI
+      <AgendaPageShell
+        eyebrow="Memória, versões e auditoria"
+        title="Histórico pedagógico"
+        description="Consulte eventos, planejamentos, evidências e tarefas preservados na trajetória pedagógica, incluindo registros excluídos e versões auditáveis."
+      >
+        <div className="space-y-6 sm:space-y-8">
+          <section
+            aria-label="Resumo do histórico"
+            className="grid overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm sm:grid-cols-2 xl:grid-cols-4"
+          >
+            <article className="border-b border-slate-200 p-5 sm:border-r xl:border-b-0">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                Registros
               </p>
 
-              <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
-                Histórico pedagógico
-              </h1>
-
-              <p className="mt-4 max-w-3xl text-base leading-7 text-slate-200 sm:text-lg">
-                Consulte eventos,
-                planejamentos, evidências e
-                tarefas preservados na sua
-                trajetória pedagógica.
+              <p className="mt-3 text-3xl font-bold text-[#071827]">
+                {
+                  summary.total
+                }
               </p>
 
-              <div className="mt-7 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-300">
-                    Registros
-                  </p>
+              <p className="mt-1 text-sm text-slate-500">
+                Itens encontrados
+              </p>
+            </article>
 
-                  <p className="mt-2 text-3xl font-bold">
-                    {summary.total}
-                  </p>
+            <article className="border-b border-slate-200 p-5 xl:border-b-0 xl:border-r">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                Ativos
+              </p>
+
+              <p className="mt-3 text-3xl font-bold text-[#071827]">
+                {
+                  summary.active
+                }
+              </p>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Disponíveis nos módulos
+              </p>
+            </article>
+
+            <article className="border-b border-slate-200 p-5 sm:border-r sm:border-b-0">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                Preservados
+              </p>
+
+              <p className="mt-3 text-3xl font-bold text-[#071827]">
+                {
+                  summary.deleted
+                }
+              </p>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Excluídos com auditoria
+              </p>
+            </article>
+
+            <article className="p-5">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                Eventos versionados
+              </p>
+
+              <p className="mt-3 text-3xl font-bold text-[#071827]">
+                {
+                  summary.events
+                }
+              </p>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Com consulta de versões
+              </p>
+            </article>
+          </section>
+
+          <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
+            <header className="border-b border-slate-200 px-5 py-5 sm:px-7">
+              <div className="flex items-start gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#071827] font-mono text-xs font-bold text-cyan-300">
+                  10
                 </div>
 
-                <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.15em] text-cyan-100">
-                    Ativos
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                    Consulta avançada
                   </p>
 
-                  <p className="mt-2 text-3xl font-bold text-cyan-200">
-                    {summary.active}
-                  </p>
-                </div>
+                  <h2 className="mt-2 text-2xl font-bold text-[#071827]">
+                    Filtrar histórico
+                  </h2>
 
-                <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.15em] text-amber-100">
-                    Excluídos e preservados
-                  </p>
-
-                  <p className="mt-2 text-3xl font-bold text-amber-200">
-                    {summary.deleted}
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    Localize registros por texto, tipo e período.
                   </p>
                 </div>
               </div>
-            </div>
+            </header>
 
             <form
               onSubmit={
                 handleSubmit
               }
-              className="border-b border-slate-200 bg-slate-50 p-6 sm:p-8"
+              className="p-5 sm:p-7"
             >
-              <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-                <div className="lg:col-span-2">
+              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+                <div className="md:col-span-2">
                   <label
                     htmlFor="history-search"
                     className="mb-2 block text-sm font-semibold text-slate-700"
@@ -820,21 +1036,16 @@ export function AgendaHistory() {
                     onChange={(
                       event,
                     ) =>
-                      setForm(
-                        (
-                          current,
-                        ) => ({
-                          ...current,
-
-                          search:
-                            event
-                              .target
-                              .value,
-                        }),
+                      updateForm(
+                        'search',
+                        event.target
+                          .value,
                       )
                     }
-                    placeholder="Título, descrição, disciplina, turma, motivo da exclusão..."
-                    className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-600/20"
+                    placeholder="Título, descrição, turma, disciplina ou motivo da exclusão"
+                    className={
+                      inputClassName
+                    }
                   />
                 </div>
 
@@ -854,22 +1065,17 @@ export function AgendaHistory() {
                     onChange={(
                       event,
                     ) =>
-                      setForm(
-                        (
-                          current,
-                        ) => ({
-                          ...current,
-
-                          type:
-                            event
-                              .target
-                              .value as
-                              | ''
-                              | AgendaHistoryItemType,
-                        }),
+                      updateForm(
+                        'type',
+                        event.target
+                          .value as
+                          | ''
+                          | AgendaHistoryItemType,
                       )
                     }
-                    className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-600/20"
+                    className={
+                      inputClassName
+                    }
                   >
                     <option value="">
                       Todos
@@ -910,20 +1116,15 @@ export function AgendaHistory() {
                     onChange={(
                       event,
                     ) =>
-                      setForm(
-                        (
-                          current,
-                        ) => ({
-                          ...current,
-
-                          startDate:
-                            event
-                              .target
-                              .value,
-                        }),
+                      updateForm(
+                        'startDate',
+                        event.target
+                          .value,
                       )
                     }
-                    className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-600/20"
+                    className={
+                      inputClassName
+                    }
                   />
                 </div>
 
@@ -944,37 +1145,20 @@ export function AgendaHistory() {
                     onChange={(
                       event,
                     ) =>
-                      setForm(
-                        (
-                          current,
-                        ) => ({
-                          ...current,
-
-                          endDate:
-                            event
-                              .target
-                              .value,
-                        }),
+                      updateForm(
+                        'endDate',
+                        event.target
+                          .value,
                       )
                     }
-                    className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-600/20"
+                    className={
+                      inputClassName
+                    }
                   />
                 </div>
               </div>
 
-              <div className="mt-6 flex flex-wrap gap-3">
-                <button
-                  type="submit"
-                  disabled={
-                    loading
-                  }
-                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0A6F8F] px-6 py-3 font-semibold text-white transition hover:bg-[#085A75] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {loading
-                    ? 'Carregando...'
-                    : 'Aplicar filtros'}
-                </button>
-
+              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row">
                 <button
                   type="button"
                   disabled={
@@ -983,73 +1167,50 @@ export function AgendaHistory() {
                   onClick={() =>
                     void handleClearFilters()
                   }
-                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Limpar filtros
                 </button>
+
+                <button
+                  type="submit"
+                  disabled={
+                    loading
+                  }
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0B7491] px-6 py-3 font-semibold text-white transition hover:bg-[#09657E] disabled:cursor-not-allowed disabled:bg-slate-400"
+                >
+                  {loading
+                    ? 'Carregando...'
+                    : 'Aplicar filtros'}
+                </button>
               </div>
             </form>
+          </section>
 
-            <div className="p-6 sm:p-8">
-              {actionMessage ? (
-                <div
-                  className="mb-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900"
-                  role="status"
-                  aria-live="polite"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                      <p className="font-bold">
-                        Restauração concluída
-                      </p>
-
-                      <p className="mt-1">
-                        {actionMessage}
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={
-                        clearActionFeedback
-                      }
-                      className="rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm font-semibold text-emerald-900 transition hover:bg-emerald-100"
-                    >
-                      Fechar
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-
-              {actionError &&
-              !restoreTarget ? (
-                <div
-                  className="mb-8 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-800"
-                  role="alert"
-                >
-                  <p className="font-bold">
-                    Não foi possível
-                    restaurar o registro
+          <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
+            <header className="border-b border-slate-200 px-5 py-5 sm:px-7">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                    Linha do tempo
                   </p>
 
-                  <p className="mt-1">
-                    {actionError}
+                  <h2 className="mt-2 text-2xl font-bold text-[#071827]">
+                    Registros encontrados
+                  </h2>
+
+                  <p className="mt-2 text-sm text-slate-500">
+                    {history.length}{' '}
+                    registro
+                    {history.length === 1
+                      ? ''
+                      : 's'}{' '}
+                    encontrado
+                    {history.length === 1
+                      ? ''
+                      : 's'}
                   </p>
                 </div>
-              ) : null}
-
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <p className="text-sm font-semibold text-slate-600">
-                  {history.length}{' '}
-                  registro
-                  {history.length === 1
-                    ? ''
-                    : 's'}{' '}
-                  encontrado
-                  {history.length === 1
-                    ? ''
-                    : 's'}
-                </p>
 
                 <button
                   type="button"
@@ -1063,36 +1224,86 @@ export function AgendaHistory() {
                       activeFilters,
                     )
                   }}
-                  className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {loading
                     ? 'Atualizando...'
                     : 'Atualizar histórico'}
                 </button>
               </div>
+            </header>
+
+            <div className="p-5 sm:p-7">
+              {actionMessage ? (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900"
+                >
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="font-bold">
+                        Restauração concluída
+                      </p>
+
+                      <p className="mt-1 text-sm leading-6">
+                        {
+                          actionMessage
+                        }
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={
+                        clearActionFeedback
+                      }
+                      className="inline-flex min-h-10 items-center justify-center rounded-xl border border-emerald-300 bg-white px-4 py-2 text-sm font-semibold text-emerald-900 transition hover:bg-emerald-100"
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {actionError &&
+              !restoreTarget ? (
+                <div
+                  role="alert"
+                  className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-red-800"
+                >
+                  <p className="font-bold">
+                    Não foi possível restaurar o registro
+                  </p>
+
+                  <p className="mt-1 text-sm leading-6">
+                    {
+                      actionError
+                    }
+                  </p>
+                </div>
+              ) : null}
 
               {loading ? (
                 <div
-                  className="mt-8 rounded-2xl border border-cyan-200 bg-cyan-50 p-6 text-cyan-900"
                   role="status"
                   aria-live="polite"
+                  className="rounded-xl border border-cyan-200 bg-cyan-50 p-5 text-sm font-semibold text-cyan-900"
                 >
-                  Carregando o histórico
-                  pedagógico...
+                  Carregando o histórico pedagógico...
                 </div>
               ) : null}
 
               {error ? (
                 <div
-                  className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-6 text-red-800"
                   role="alert"
+                  className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-800"
                 >
                   <p className="font-bold">
-                    Não foi possível
-                    carregar o histórico.
+                    Não foi possível carregar o histórico
                   </p>
 
-                  <p className="mt-2">
+                  <p className="mt-2 text-sm leading-6">
                     {error}
                   </p>
                 </div>
@@ -1100,18 +1311,24 @@ export function AgendaHistory() {
 
               {!loading &&
               !error &&
-              history.length === 0 ? (
-                <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-8 text-slate-600">
-                  Nenhum registro foi
-                  encontrado para os
-                  filtros informados.
+              history.length ===
+                0 ? (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                  <h3 className="text-lg font-bold text-[#071827]">
+                    Nenhum registro encontrado
+                  </h3>
+
+                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                    Revise os filtros ou registre novas atividades nos módulos da Agenda.
+                  </p>
                 </div>
               ) : null}
 
               {!loading &&
               !error &&
-              history.length > 0 ? (
-                <div className="mt-10 space-y-10">
+              history.length >
+                0 ? (
+                <div className="space-y-10">
                   {Object.entries(
                     groupedHistory,
                   ).map(
@@ -1127,9 +1344,9 @@ export function AgendaHistory() {
                         <div className="flex items-center gap-4">
                           <div className="h-px flex-1 bg-slate-200" />
 
-                          <h2 className="text-center text-base font-bold capitalize text-slate-700 sm:text-lg">
+                          <h3 className="text-center text-sm font-bold capitalize text-slate-700 sm:text-base">
                             {date}
-                          </h2>
+                          </h3>
 
                           <div className="h-px flex-1 bg-slate-200" />
                         </div>
@@ -1138,6 +1355,7 @@ export function AgendaHistory() {
                           {items.map(
                             (
                               item,
+                              index,
                             ) => (
                               <HistoryRecordCard
                                 key={
@@ -1145,6 +1363,10 @@ export function AgendaHistory() {
                                 }
                                 item={
                                   item
+                                }
+                                sequence={
+                                  index +
+                                  1
                                 }
                                 restoringEventId={
                                   restoringEventId
@@ -1168,9 +1390,53 @@ export function AgendaHistory() {
                 </div>
               ) : null}
             </div>
-          </div>
+          </section>
+
+          <section className="grid gap-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7 lg:grid-cols-3">
+            <article>
+              <p className="font-mono text-xs font-bold text-[#0B7491]">
+                01
+              </p>
+
+              <h3 className="mt-3 font-bold text-[#071827]">
+                Preservação
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Exclusões permanecem registradas com motivo, data e referência de auditoria.
+              </p>
+            </article>
+
+            <article>
+              <p className="font-mono text-xs font-bold text-[#0B7491]">
+                02
+              </p>
+
+              <h3 className="mt-3 font-bold text-[#071827]">
+                Restauração governada
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Eventos e evidências excluídos podem ser restaurados mediante justificativa.
+              </p>
+            </article>
+
+            <article>
+              <p className="font-mono text-xs font-bold text-[#0B7491]">
+                03
+              </p>
+
+              <h3 className="mt-3 font-bold text-[#071827]">
+                Versionamento
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Alterações de eventos podem ser consultadas para preservar sua evolução histórica.
+              </p>
+            </article>
+          </section>
         </div>
-      </section>
+      </AgendaPageShell>
 
       <AgendaRestoreDialog
         open={
