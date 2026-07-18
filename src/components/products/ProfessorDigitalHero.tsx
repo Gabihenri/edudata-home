@@ -1,39 +1,34 @@
 import Image from 'next/image'
 import Link from 'next/link'
 
-type OperationalStep = {
+type IntegrationLayer = {
   code: string
   title: string
   description: string
+  highlighted?: boolean
 }
 
-const operationalFlow:
-  OperationalStep[] = [
-    {
-      code: '01',
-      title: 'Planejar',
-      description:
-        'Organize aulas, objetivos, estratégias e recursos pedagógicos.',
-    },
-    {
-      code: '02',
-      title: 'Registrar',
-      description:
-        'Documente práticas, produções, evidências e informações relevantes.',
-    },
-    {
-      code: '03',
-      title: 'Acompanhar',
-      description:
-        'Consulte turmas, tarefas, compromissos e trajetórias de aprendizagem.',
-    },
-    {
-      code: '04',
-      title: 'Analisar',
-      description:
-        'Utilize dados e recomendações para apoiar decisões pedagógicas.',
-    },
-  ]
+const integrationLayers: IntegrationLayer[] = [
+  {
+    code: '01',
+    title: 'Professor Digital',
+    description:
+      'Ambiente principal de trabalho do professor, reunindo recursos pedagógicos, informações e apoio à tomada de decisão.',
+    highlighted: true,
+  },
+  {
+    code: '02',
+    title: 'Agenda Inteligente EDI',
+    description:
+      'Componente operacional integrado para organizar compromissos, planejamentos, registros, tarefas e evidências.',
+  },
+  {
+    code: '03',
+    title: 'EIOS',
+    description:
+      'Base tecnológica compartilhada responsável por identidade, acesso, segurança, dados e inteligência educacional.',
+  },
+]
 
 const ediPillars = [
   'Evidências',
@@ -80,41 +75,39 @@ export function ProfessorDigitalHero() {
           </h1>
 
           <p className="mt-6 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
-            Planeje aulas, organize evidências, acompanhe estudantes e
-            reduza tarefas operacionais com recursos integrados ao
-            ecossistema EduData IA.
+            Acesse em um único ambiente recursos para planejamento,
+            organização, acompanhamento e análise do trabalho docente,
+            incluindo a integração com a Agenda Inteligente EDI.
           </p>
 
           <p className="mt-4 max-w-3xl text-base leading-7 text-slate-400">
-            O Professor Digital preserva a autonomia docente e transforma
-            registros cotidianos em apoio ao planejamento, ao
-            acompanhamento e à tomada de decisão.
+            O Professor Digital preserva a autonomia do professor e
+            transforma registros cotidianos em informações organizadas
+            para apoiar decisões pedagógicas.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-2">
-            {ediPillars.map(
-              (pillar) => (
-                <span
-                  key={pillar}
-                  className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200"
-                >
-                  {pillar}
-                </span>
-              ),
-            )}
+            {ediPillars.map((pillar) => (
+              <span
+                key={pillar}
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200"
+              >
+                {pillar}
+              </span>
+            ))}
           </div>
 
           <div className="mt-9 grid gap-3 sm:flex sm:flex-wrap">
             <Link
-              href="/professor-digital/agenda"
-              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0B7491] px-7 py-4 text-center font-semibold text-white transition hover:bg-[#09657E]"
+              href="/login?redirectTo=/professor-digital/agenda"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0B7491] px-7 py-4 text-center font-semibold text-white transition hover:bg-[#09657E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#071827]"
             >
-              Acessar o Professor Digital
+              Entrar no Professor Digital
             </Link>
 
             <Link
               href="#recursos-professor-digital"
-              className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-7 py-4 text-center font-semibold text-white transition hover:border-cyan-300/40 hover:bg-white/10"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-7 py-4 text-center font-semibold text-white transition hover:border-cyan-300/40 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#071827]"
             >
               Conhecer recursos
             </Link>
@@ -126,11 +119,11 @@ export function ProfessorDigitalHero() {
             <div className="flex items-center justify-between gap-5">
               <div className="min-w-0">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">
-                  Fluxo operacional
+                  Integração do produto
                 </p>
 
                 <h2 className="mt-2 text-xl font-bold text-white sm:text-2xl">
-                  Trabalho docente conectado
+                  Uma experiência docente conectada.
                 </h2>
               </div>
 
@@ -146,34 +139,43 @@ export function ProfessorDigitalHero() {
           </header>
 
           <div className="divide-y divide-white/10">
-            {operationalFlow.map(
-              (step) => (
-                <article
-                  key={step.code}
-                  className="grid grid-cols-[40px_minmax(0,1fr)] gap-4 px-5 py-5 sm:px-7"
-                >
-                  <span className="font-mono text-xs font-bold text-cyan-300">
-                    {step.code}
-                  </span>
+            {integrationLayers.map((layer) => (
+              <article
+                key={layer.code}
+                className={`grid grid-cols-[40px_minmax(0,1fr)] gap-4 px-5 py-5 sm:px-7 ${
+                  layer.highlighted
+                    ? 'bg-cyan-300/[0.06]'
+                    : ''
+                }`}
+              >
+                <span className="font-mono text-xs font-bold text-cyan-300">
+                  {layer.code}
+                </span>
 
-                  <div>
-                    <h3 className="font-bold text-white">
-                      {step.title}
-                    </h3>
+                <div>
+                  <h3
+                    className={
+                      layer.highlighted
+                        ? 'font-bold text-cyan-100'
+                        : 'font-bold text-white'
+                    }
+                  >
+                    {layer.title}
+                  </h3>
 
-                    <p className="mt-1 text-sm leading-6 text-slate-300">
-                      {step.description}
-                    </p>
-                  </div>
-                </article>
-              ),
-            )}
+                  <p className="mt-1 text-sm leading-6 text-slate-300">
+                    {layer.description}
+                  </p>
+                </div>
+              </article>
+            ))}
           </div>
 
           <footer className="border-t border-cyan-300/20 bg-cyan-300/10 px-5 py-5 sm:px-7">
             <p className="text-sm font-semibold leading-6 text-cyan-100">
-              Planejar, registrar, acompanhar e analisar em um único
-              ambiente.
+              O Professor Digital reúne a experiência docente, a Agenda
+              Inteligente EDI organiza a operação cotidiana e o EIOS
+              sustenta todo o ecossistema.
             </p>
           </footer>
         </aside>
