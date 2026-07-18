@@ -33,19 +33,24 @@ BEGIN
       'Tabela obrigatória não encontrada: auth.users.';
   END IF;
 
+
   IF to_regclass('public.plans') IS NULL THEN
     RAISE EXCEPTION
       'Tabela obrigatória não encontrada: public.plans.';
   END IF;
+
 
   IF to_regclass('public.subscriptions') IS NULL THEN
     RAISE EXCEPTION
       'Tabela obrigatória não encontrada: public.subscriptions.';
   END IF;
 
+
   IF NOT EXISTS (
     SELECT 1
+
     FROM information_schema.columns
+
     WHERE table_schema = 'public'
       AND table_name = 'subscriptions'
       AND column_name = 'is_default_free'
@@ -54,9 +59,12 @@ BEGIN
       'A coluna public.subscriptions.is_default_free não existe.';
   END IF;
 
+
   IF NOT EXISTS (
     SELECT 1
+
     FROM public.plans
+
     WHERE lower(code) = 'edi_free'
   ) THEN
     RAISE EXCEPTION
@@ -120,7 +128,10 @@ SET
       true,
 
       'integrity_checked_by',
-      '22_default_free_integrity'
+      '22_default_free_integrity',
+
+      'integrity_checked_at',
+      now()
     ),
 
   updated_at = now()
@@ -136,13 +147,13 @@ WHERE lower(code) IN (
 -- 3. REPARO DE ASSINATURAS PADRÃO INCORRETAS
 -- =========================================================
 --
--- Assinaturas com:
+-- Uma assinatura com:
 -- - is_default_free = true;
 -- - source = default;
 -- - plano diferente de edi_free;
 --
--- são assinaturas gratuitas padrão inconsistentes e devem
--- ser redirecionadas ao plano edi_free.
+-- é uma assinatura gratuita padrão associada ao plano errado.
+-- Ela deve ser redirecionada ao edi_free.
 -- =========================================================
 
 WITH free_plan AS (
@@ -221,14 +232,14 @@ SET
 
   updated_at = now()
 
-FROM free_plan
+FROM
+  free_plan,
+  public.plans AS current_plan
 
-INNER JOIN public.plans
-  AS current_plan
-  ON current_plan.id =
-     subscription.plan_id
+WHERE current_plan.id =
+      subscription.plan_id
 
-WHERE subscription.is_default_free = true
+  AND subscription.is_default_free = true
 
   AND COALESCE(
     NULLIF(
@@ -246,10 +257,11 @@ WHERE subscription.is_default_free = true
 -- 4. PRESERVAÇÃO DE ASSINATURAS PAGAS LEGÍTIMAS
 -- =========================================================
 --
--- Caso uma assinatura paga não originada pelo provisionamento
--- automático tenha sido marcada incorretamente como gratuita,
--- o plano pago é preservado e somente a marca indevida é
--- removida.
+-- Uma assinatura paga que não veio do provisionamento
+-- automático deve preservar o plano pago.
+--
+-- Nesse caso, somente a marca indevida is_default_free
+-- é removida.
 -- =========================================================
 
 UPDATE public.subscriptions AS subscription
@@ -293,7 +305,101 @@ WHERE subscription.plan_id =
 
 
 -- =========================================================
--- 5. NORMALIZAÇÃO DAS ASSINATURAS EDI_FREE
+-- 5. REMOÇÃO DE DUPLICIDADES ATIVAS DO EDI_FREE
+-- =========================================================
+--
+-- Caso existam duas assinaturas ativas apontando para o
+-- edi_free para o mesmo usuário, apenas uma será preservada.
+--
+-- A prioridade para preservação é:
+-- 1. assinatura já marcada como padrão;
+-- 2. assinatura criada mais recentemente.
+-- =========================================================
+
+WITH ranked_free_subscriptions AS (
+  SELECT
+    subscription.id,
+
+    row_number() OVER (
+      PARTITION BY subscription.user_id
+
+      ORDER BY
+        subscription.is_default_free DESC,
+        subscription.created_at DESC,
+        subscription.id DESC
+    ) AS position
+
+  FROM public.subscriptions AS subscription
+
+  INNER JOIN public.plans AS plan_record
+    ON plan_record.id =
+       subscription.plan_id
+
+  WHERE subscription.user_id IS NOT NULL
+
+    AND subscription.organization_id
+        IS NULL
+
+    AND lower(plan_record.code) =
+        'edi_free'
+
+    AND subscription.status IN (
+      'pending',
+      'trialing',
+      'active',
+      'past_due',
+      'paused',
+      'incomplete'
+    )
+)
+
+UPDATE public.subscriptions AS subscription
+SET
+  status = 'canceled',
+
+  is_default_free = false,
+
+  cancel_at_period_end = false,
+
+  canceled_at =
+    COALESCE(
+      subscription.canceled_at,
+      now()
+    ),
+
+  ended_at =
+    COALESCE(
+      subscription.ended_at,
+      now()
+    ),
+
+  metadata =
+    COALESCE(
+      subscription.metadata,
+      '{}'::jsonb
+    ) || jsonb_build_object(
+      'integrity_repair',
+      'duplicate_active_edi_free',
+
+      'integrity_repaired_at',
+      now(),
+
+      'migration',
+      '22_default_free_integrity'
+    ),
+
+  updated_at = now()
+
+FROM ranked_free_subscriptions AS ranked
+
+WHERE ranked.id =
+      subscription.id
+
+  AND ranked.position > 1;
+
+
+-- =========================================================
+-- 6. NORMALIZAÇÃO DAS ASSINATURAS EDI_FREE
 -- =========================================================
 
 UPDATE public.subscriptions AS subscription
@@ -321,6 +427,8 @@ SET
 
   cancel_at_period_end = false,
 
+  is_default_free = true,
+
   metadata =
     COALESCE(
       subscription.metadata,
@@ -330,7 +438,10 @@ SET
       true,
 
       'integrity_checked_by',
-      '22_default_free_integrity'
+      '22_default_free_integrity',
+
+      'integrity_checked_at',
+      now()
     ),
 
   updated_at = now()
@@ -340,14 +451,16 @@ FROM public.plans AS plan_record
 WHERE subscription.plan_id =
       plan_record.id
 
-  AND subscription.is_default_free = true
-
   AND lower(plan_record.code) =
-      'edi_free';
+      'edi_free'
+
+  AND subscription.user_id IS NOT NULL
+
+  AND subscription.organization_id IS NULL;
 
 
 -- =========================================================
--- 6. REGRAS DE INTEGRIDADE DO PLANO
+-- 7. REGRAS DE INTEGRIDADE DOS PLANOS
 -- =========================================================
 
 ALTER TABLE public.plans
@@ -360,25 +473,39 @@ ALTER TABLE public.plans
     plans_edi_free_integrity_check
   CHECK (
     lower(code) <> 'edi_free'
+
     OR (
       is_free = true
+
       AND is_active = true
-      AND audience_type = 'individual'
-      AND audience = 'individual'
-      AND billing_model = 'free'
-      AND billing_mode = 'free'
+
+      AND audience_type =
+          'individual'
+
+      AND audience =
+          'individual'
+
+      AND billing_model =
+          'free'
+
+      AND billing_mode =
+          'free'
+
       AND COALESCE(
         monthly_price_cents,
         0
       ) = 0
+
       AND COALESCE(
         annual_price_cents,
         0
       ) = 0
+
       AND COALESCE(
         yearly_price_cents,
         0
       ) = 0
+
       AND COALESCE(
         setup_price_cents,
         0
@@ -401,12 +528,13 @@ ALTER TABLE public.plans
       'edi_escola',
       'edi_rede'
     )
+
     OR is_free = false
   );
 
 
 -- =========================================================
--- 7. PROTEÇÃO AUTOMÁTICA DOS PLANOS OFICIAIS
+-- 8. PROTEÇÃO AUTOMÁTICA DOS PLANOS OFICIAIS
 -- =========================================================
 
 CREATE OR REPLACE FUNCTION
@@ -416,20 +544,45 @@ LANGUAGE plpgsql
 SET search_path = pg_catalog, public
 AS $$
 BEGIN
+  IF TG_OP = 'UPDATE' THEN
+    IF lower(OLD.code) IN (
+      'edi_free',
+      'edi_professor_pro',
+      'edi_escola',
+      'edi_rede'
+    )
+    AND lower(NEW.code) <>
+        lower(OLD.code)
+    THEN
+      RAISE EXCEPTION
+        'O código de um plano oficial não pode ser alterado: %.',
+        OLD.code;
+    END IF;
+  END IF;
+
+
   IF lower(NEW.code) = 'edi_free' THEN
     NEW.is_free := true;
+
     NEW.is_active := true;
 
-    NEW.audience_type := 'individual';
-    NEW.audience := 'individual';
+    NEW.audience_type :=
+      'individual';
 
-    NEW.billing_model := 'free';
-    NEW.billing_mode := 'free';
+    NEW.audience :=
+      'individual';
+
+    NEW.billing_model :=
+      'free';
+
+    NEW.billing_mode :=
+      'free';
 
     NEW.monthly_price_cents := 0;
     NEW.annual_price_cents := 0;
     NEW.yearly_price_cents := 0;
     NEW.setup_price_cents := 0;
+
 
   ELSIF lower(NEW.code) IN (
     'edi_professor_pro',
@@ -458,7 +611,13 @@ $$;
 COMMENT ON FUNCTION
   public.enforce_official_plan_integrity()
 IS
-  'Mantém a classificação comercial dos planos oficiais da EduData IA.';
+  'Mantém a classificação e os códigos dos planos comerciais oficiais da EduData IA.';
+
+
+REVOKE ALL
+ON FUNCTION
+  public.enforce_official_plan_integrity()
+FROM PUBLIC;
 
 
 DROP TRIGGER IF EXISTS
@@ -479,26 +638,30 @@ EXECUTE FUNCTION
 
 
 -- =========================================================
--- 8. PROTEÇÃO DAS ASSINATURAS GRATUITAS PADRÃO
+-- 9. PROTEÇÃO DAS ASSINATURAS GRATUITAS PADRÃO
 -- =========================================================
 
 CREATE OR REPLACE FUNCTION
   public.enforce_default_free_subscription_integrity()
 RETURNS trigger
 LANGUAGE plpgsql
+SECURITY DEFINER
 SET search_path = pg_catalog, public
 AS $$
 DECLARE
   selected_plan_code text;
   selected_plan_is_free boolean;
+  selected_plan_is_active boolean;
 BEGIN
   SELECT
     lower(code),
-    is_free
+    is_free,
+    is_active
 
   INTO
     selected_plan_code,
-    selected_plan_is_free
+    selected_plan_is_free,
+    selected_plan_is_active
 
   FROM public.plans
 
@@ -513,11 +676,17 @@ BEGIN
 
 
   IF NEW.is_default_free = true THEN
-    IF selected_plan_code <> 'edi_free'
-       OR selected_plan_is_free IS DISTINCT FROM true
+    IF selected_plan_code <>
+       'edi_free'
+
+       OR selected_plan_is_free
+          IS DISTINCT FROM true
+
+       OR selected_plan_is_active
+          IS DISTINCT FROM true
     THEN
       RAISE EXCEPTION
-        'Uma assinatura gratuita padrão somente pode utilizar o plano edi_free.';
+        'Uma assinatura gratuita padrão somente pode utilizar o plano edi_free ativo.';
     END IF;
 
 
@@ -533,12 +702,17 @@ BEGIN
     END IF;
 
 
-    NEW.subscriber_type := 'user';
-    NEW.owner_type := 'user';
+    NEW.subscriber_type :=
+      'user';
 
-    NEW.organization_id := NULL;
+    NEW.owner_type :=
+      'user';
 
-    NEW.source := 'default';
+    NEW.organization_id :=
+      NULL;
+
+    NEW.source :=
+      'default';
 
     NEW.starts_at :=
       COALESCE(
@@ -547,14 +721,17 @@ BEGIN
         now()
       );
 
-    NEW.billing_cycle := 'free';
+    NEW.billing_cycle :=
+      'free';
+
     NEW.quantity := 1;
     NEW.currency := 'BRL';
 
     NEW.unit_amount_cents := 0;
     NEW.total_amount_cents := 0;
 
-    NEW.cancel_at_period_end := false;
+    NEW.cancel_at_period_end :=
+      false;
 
     NEW.metadata :=
       COALESCE(
@@ -581,6 +758,12 @@ IS
   'Impede que uma assinatura marcada como gratuita padrão utilize um plano diferente de edi_free.';
 
 
+REVOKE ALL
+ON FUNCTION
+  public.enforce_default_free_subscription_integrity()
+FROM PUBLIC;
+
+
 DROP TRIGGER IF EXISTS
   trg_enforce_default_free_subscription_integrity
 ON public.subscriptions;
@@ -589,20 +772,7 @@ ON public.subscriptions;
 CREATE TRIGGER
   trg_enforce_default_free_subscription_integrity
 
-BEFORE INSERT OR UPDATE OF
-  plan_id,
-  subscriber_type,
-  owner_type,
-  user_id,
-  organization_id,
-  source,
-  billing_cycle,
-  quantity,
-  currency,
-  unit_amount_cents,
-  total_amount_cents,
-  is_default_free
-
+BEFORE INSERT OR UPDATE
 ON public.subscriptions
 
 FOR EACH ROW
@@ -612,7 +782,7 @@ EXECUTE FUNCTION
 
 
 -- =========================================================
--- 9. PROVISIONAMENTO FORTALECIDO DO EDI_FREE
+-- 10. PROVISIONAMENTO FORTALECIDO DO EDI_FREE
 -- =========================================================
 
 CREATE OR REPLACE FUNCTION
@@ -636,7 +806,9 @@ BEGIN
 
   IF NOT EXISTS (
     SELECT 1
+
     FROM auth.users
+
     WHERE id = target_user_id
   ) THEN
     RAISE EXCEPTION
@@ -651,10 +823,22 @@ BEGIN
   FROM public.plans
 
   WHERE lower(code) = 'edi_free'
+
     AND is_active = true
+
     AND is_free = true
-    AND billing_model = 'free'
-    AND billing_mode = 'free'
+
+    AND audience_type =
+        'individual'
+
+    AND audience =
+        'individual'
+
+    AND billing_model =
+        'free'
+
+    AND billing_mode =
+        'free'
 
   ORDER BY
     sort_order ASC,
@@ -729,7 +913,10 @@ BEGIN
     total_amount_cents,
 
     current_period_start,
+    current_period_end,
+
     current_period_starts_at,
+    current_period_ends_at,
 
     cancel_at_period_end,
 
@@ -762,7 +949,10 @@ BEGIN
     0,
 
     now(),
+    NULL,
+
     now(),
+    NULL,
 
     false,
 
@@ -848,7 +1038,9 @@ DO $$
 BEGIN
   IF EXISTS (
     SELECT 1
+
     FROM pg_roles
+
     WHERE rolname = 'postgres'
   ) THEN
     EXECUTE
@@ -858,7 +1050,9 @@ BEGIN
 
   IF EXISTS (
     SELECT 1
+
     FROM pg_roles
+
     WHERE rolname = 'service_role'
   ) THEN
     EXECUTE
@@ -868,7 +1062,9 @@ BEGIN
 
   IF EXISTS (
     SELECT 1
+
     FROM pg_roles
+
     WHERE rolname = 'supabase_auth_admin'
   ) THEN
     EXECUTE
@@ -879,7 +1075,31 @@ $$;
 
 
 -- =========================================================
--- 10. VALIDAÇÃO FINAL
+-- 11. GARANTIA DO EDI_FREE PARA TODOS OS USUÁRIOS
+-- =========================================================
+
+DO $$
+DECLARE
+  user_record record;
+BEGIN
+  FOR user_record IN
+    SELECT id
+
+    FROM auth.users
+
+    ORDER BY created_at ASC
+  LOOP
+    PERFORM
+      public.ensure_default_free_subscription(
+        user_record.id
+      );
+  END LOOP;
+END;
+$$;
+
+
+-- =========================================================
+-- 12. VALIDAÇÃO FINAL
 -- =========================================================
 
 DO $$
@@ -887,6 +1107,8 @@ DECLARE
   free_plan_count integer;
   invalid_default_subscriptions integer;
   invalid_paid_plans integer;
+  users_without_free integer;
+  duplicated_active_free integer;
 BEGIN
   SELECT count(*)
   INTO free_plan_count
@@ -894,24 +1116,38 @@ BEGIN
   FROM public.plans
 
   WHERE lower(code) = 'edi_free'
+
     AND is_free = true
+
     AND is_active = true
-    AND audience_type = 'individual'
-    AND audience = 'individual'
-    AND billing_model = 'free'
-    AND billing_mode = 'free'
+
+    AND audience_type =
+        'individual'
+
+    AND audience =
+        'individual'
+
+    AND billing_model =
+        'free'
+
+    AND billing_mode =
+        'free'
+
     AND COALESCE(
       monthly_price_cents,
       0
     ) = 0
+
     AND COALESCE(
       annual_price_cents,
       0
     ) = 0
+
     AND COALESCE(
       yearly_price_cents,
       0
     ) = 0
+
     AND COALESCE(
       setup_price_cents,
       0
@@ -943,6 +1179,9 @@ BEGIN
         'edi_free'
 
       OR plan_record.is_free
+        IS DISTINCT FROM true
+
+      OR plan_record.is_active
         IS DISTINCT FROM true
 
       OR subscription.user_id
@@ -984,6 +1223,102 @@ BEGIN
     RAISE EXCEPTION
       'Existem % plano(s) pago(s) marcado(s) como gratuito(s).',
       invalid_paid_plans;
+  END IF;
+
+
+  SELECT count(*)
+  INTO users_without_free
+
+  FROM auth.users AS auth_user
+
+  WHERE NOT EXISTS (
+    SELECT 1
+
+    FROM public.subscriptions
+      AS subscription
+
+    INNER JOIN public.plans
+      AS plan_record
+      ON plan_record.id =
+         subscription.plan_id
+
+    WHERE subscription.user_id =
+          auth_user.id
+
+      AND subscription.organization_id
+          IS NULL
+
+      AND subscription.is_default_free =
+          true
+
+      AND lower(plan_record.code) =
+          'edi_free'
+
+      AND plan_record.is_free = true
+
+      AND plan_record.is_active = true
+
+      AND subscription.status IN (
+        'pending',
+        'trialing',
+        'active',
+        'past_due',
+        'paused',
+        'incomplete'
+      )
+  );
+
+
+  IF users_without_free <> 0 THEN
+    RAISE EXCEPTION
+      'Existem % usuário(s) sem assinatura edi_free ativa.',
+      users_without_free;
+  END IF;
+
+
+  SELECT count(*)
+  INTO duplicated_active_free
+
+  FROM (
+    SELECT
+      subscription.user_id
+
+    FROM public.subscriptions
+      AS subscription
+
+    INNER JOIN public.plans
+      AS plan_record
+      ON plan_record.id =
+         subscription.plan_id
+
+    WHERE subscription.user_id
+          IS NOT NULL
+
+      AND subscription.is_default_free =
+          true
+
+      AND lower(plan_record.code) =
+          'edi_free'
+
+      AND subscription.status IN (
+        'pending',
+        'trialing',
+        'active',
+        'past_due',
+        'paused',
+        'incomplete'
+      )
+
+    GROUP BY
+      subscription.user_id
+
+    HAVING count(*) > 1
+  ) AS duplicates;
+
+
+  IF duplicated_active_free <> 0 THEN
+    RAISE EXCEPTION
+      'Existem usuários com mais de uma assinatura edi_free ativa.';
   END IF;
 
 
