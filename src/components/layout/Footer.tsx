@@ -27,22 +27,22 @@ const upcomingProducts = [
 export default function Footer() {
   return (
     <footer className="bg-[#081C2E] text-white">
-      <div className="mx-auto max-w-7xl px-6 py-20">
-        <div className="grid gap-12 md:grid-cols-2 md:items-center">
+      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+        <div className="grid gap-12 md:grid-cols-2 md:items-start">
           <div>
             <Link
               href="/"
               aria-label="Ir para a página inicial da EduData IA"
-              className="inline-block"
+              className="flex w-full justify-center"
             >
               <img
                 src="/logo-edudata-ia-dark.png"
                 alt="EduData IA"
-                className="h-40 w-auto object-contain"
+                className="h-auto w-full max-w-[290px] object-contain sm:max-w-[340px]"
               />
             </Link>
 
-            <p className="mt-8 max-w-xl text-xl leading-8 text-slate-300">
+            <p className="mt-8 max-w-xl text-lg leading-8 text-slate-300 sm:text-xl">
               Ecossistema de Inteligência Educacional baseado em Evidências,
               Inclusão e Inteligência.
             </p>
@@ -89,9 +89,11 @@ export default function Footer() {
                     key={product}
                     className="flex flex-wrap items-center gap-2 text-slate-500"
                   >
-                    <span>{product}</span>
+                    <span>
+                      {product}
+                    </span>
 
-                    <span className="rounded-full border border-white/10 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    <span className="rounded-lg border border-white/10 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
                       Em desenvolvimento
                     </span>
                   </li>
@@ -180,7 +182,9 @@ export default function Footer() {
               Framework EDI
             </Link>
 
-            <span aria-hidden="true">•</span>
+            <span aria-hidden="true">
+              •
+            </span>
 
             <Link
               href="/professor-digital"
@@ -189,7 +193,9 @@ export default function Footer() {
               Professor Digital
             </Link>
 
-            <span aria-hidden="true">•</span>
+            <span aria-hidden="true">
+              •
+            </span>
 
             <Link
               href="/agenda"
@@ -198,7 +204,9 @@ export default function Footer() {
               Agenda Inteligente EDI
             </Link>
 
-            <span aria-hidden="true">•</span>
+            <span aria-hidden="true">
+              •
+            </span>
 
             <Link
               href="/academy"
