@@ -1,4 +1,4 @@
-'use client'
+'use client';
 
 import {
   type FormEvent,
@@ -7,86 +7,106 @@ import {
   useMemo,
   useRef,
   useState,
-} from 'react'
+} from 'react';
 
 import {
   AgendaPageShell,
-} from '@/components/agenda/AgendaPageShell'
+} from '@/components/agenda/AgendaPageShell';
+
 import {
   ScheduleTemplatesPanel,
-} from '@/components/agenda/ScheduleTemplatesPanel'
+} from '@/components/agenda/ScheduleTemplatesPanel';
+
+import {
+  UpgradePrompt,
+} from '@/components/commercial/UpgradePrompt';
+
+import {
+  getApiErrorMessage,
+  parseUpgradeAccessResponse,
+  type UpgradeAccessContext,
+} from '@/lib/commercial/upgrade-access';
 
 type ScheduleMode =
   | 'pontual'
-  | 'recorrente'
+  | 'recorrente';
 
 type AgendaEvent = {
-  id: string
-  title: string
-  description: string | null
-  event_type: string
-  start_at: string
-  end_at: string | null
-  status: string
-  priority: string
+  id: string;
+  title: string;
+  description: string | null;
+  event_type: string;
+  start_at: string;
+  end_at: string | null;
+  status: string;
+  priority: string;
 
   schedule_mode:
     | ScheduleMode
-    | 'modelo'
+    | 'modelo';
 
   recurrence_frequency:
     | 'none'
-    | 'weekly'
+    | 'weekly';
 
-  recurrence_interval: number
-  recurrence_until: string | null
-  series_id: string | null
-  source_template_id: string | null
-  week_reference: string | null
-}
+  recurrence_interval: number;
+  recurrence_until: string | null;
+  series_id: string | null;
+  source_template_id: string | null;
+  week_reference: string | null;
+};
 
 type EventsApiResponse = {
-  success: boolean
-  total?: number
-  message?: string
-  data?: AgendaEvent[]
-  error?: string
-}
+  success?: boolean;
+  total?: number;
+  message?: string;
+  data?: AgendaEvent[];
+  error?: string;
+};
 
 type BasicApiResponse = {
-  success: boolean
-  message?: string
-  error?: string
-}
+  success?: boolean;
+  message?: string;
+  error?: string;
+};
 
 type EventFormData = {
-  title: string
-  description: string
-  eventType: string
-  priority: string
-  startAt: string
-  endAt: string
-  scheduleMode: ScheduleMode
-  recurrenceInterval: string
-  recurrenceUntil: string
-  saveAsTemplate: boolean
-  templateValidUntil: string
-}
+  title: string;
+  description: string;
+  eventType: string;
+  priority: string;
+  startAt: string;
+  endAt: string;
+  scheduleMode: ScheduleMode;
+  recurrenceInterval: string;
+  recurrenceUntil: string;
+  saveAsTemplate: boolean;
+  templateValidUntil: string;
+};
 
 type QuickAction = {
-  code: string
-  label: string
-  title: string
-  description: string
-  mode?: ScheduleMode
-  action: 'form' | 'next-week'
-}
+  code: string;
+  label: string;
+  title: string;
+  description: string;
+  mode?: ScheduleMode;
+  action:
+    | 'form'
+    | 'next-week';
+};
+
+type SummaryCardProps = {
+  label: string;
+  value: number;
+  description: string;
+  className?: string;
+};
 
 const TIMEZONE =
-  'America/Sao_Paulo'
+  'America/Sao_Paulo';
 
 const MAX_DELETION_REASON_LENGTH =
-  500
+  500;
 
 const timePresets = [
   {
@@ -131,72 +151,88 @@ const timePresets = [
     value:
       '19:40|20:30',
   },
-]
+];
 
 const quickActions:
   QuickAction[] = [
     {
       code:
         '01',
-
       label:
         'Pontual',
-
       title:
         'Novo evento',
-
       description:
         'Registre uma ação específica em uma única data e horário.',
-
       mode:
         'pontual',
-
       action:
         'form',
     },
     {
       code:
         '02',
-
       label:
         'Recorrência',
-
       title:
         'Repetir horário',
-
       description:
         'Gere o mesmo compromisso automaticamente nas próximas semanas.',
-
       mode:
         'recorrente',
-
       action:
         'form',
     },
     {
       code:
         '03',
-
       label:
         'Antecipação',
-
       title:
         'Próxima semana',
-
       description:
         'Avance para organizar antecipadamente o próximo período semanal.',
-
       action:
         'next-week',
     },
-  ]
+  ];
 
 const inputClassName = [
   'min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3',
   'text-slate-950 outline-none transition placeholder:text-slate-400',
   'focus:border-[#0B7491] focus:ring-4 focus:ring-cyan-100',
   'disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500',
-].join(' ')
+].join(' ');
+
+function SummaryCard({
+  label,
+  value,
+  description,
+  className,
+}: SummaryCardProps) {
+  return (
+    <article
+      className={[
+        'p-5',
+        className,
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+        {label}
+      </p>
+
+      <p className="mt-3 text-3xl font-bold text-[#071827]">
+        {value}
+      </p>
+
+      <p className="mt-1 text-sm text-slate-500">
+        {description}
+      </p>
+    </article>
+  );
+}
 
 function padNumber(
   value: number,
@@ -206,7 +242,7 @@ function padNumber(
   ).padStart(
     2,
     '0',
-  )
+  );
 }
 
 function formatDateInput(
@@ -214,14 +250,16 @@ function formatDateInput(
 ): string {
   return [
     date.getFullYear(),
+
     padNumber(
       date.getMonth() +
         1,
     ),
+
     padNumber(
       date.getDate(),
     ),
-  ].join('-')
+  ].join('-');
 }
 
 function parseDateInput(
@@ -234,7 +272,7 @@ function parseDateInput(
   ] =
     value
       .split('-')
-      .map(Number)
+      .map(Number);
 
   return new Date(
     year,
@@ -244,7 +282,7 @@ function parseDateInput(
     0,
     0,
     0,
-  )
+  );
 }
 
 function addDays(
@@ -252,14 +290,14 @@ function addDays(
   numberOfDays: number,
 ): Date {
   const result =
-    new Date(date)
+    new Date(date);
 
   result.setDate(
     result.getDate() +
       numberOfDays,
-  )
+  );
 
-  return result
+  return result;
 }
 
 function addWeeksToDateInput(
@@ -273,52 +311,49 @@ function addWeeksToDateInput(
       ),
       weeks * 7,
     ),
-  )
+  );
 }
 
 function getWeekReference(
   date: Date,
 ): string {
   const result =
-    new Date(date)
+    new Date(date);
 
   result.setHours(
     12,
     0,
     0,
     0,
-  )
+  );
 
   const weekday =
     result.getDay() === 0
       ? 7
-      : result.getDay()
+      : result.getDay();
 
   result.setDate(
     result.getDate() -
       weekday +
       1,
-  )
+  );
 
   return formatDateInput(
     result,
-  )
+  );
 }
 
 function getWeekdayFromDateInput(
   dateInput: string,
 ): number {
-  const date =
+  const weekday =
     parseDateInput(
       dateInput,
-    )
-
-  const weekday =
-    date.getDay()
+    ).getDay();
 
   return weekday === 0
     ? 7
-    : weekday
+    : weekday;
 }
 
 function formatWeekLabel(
@@ -327,13 +362,13 @@ function formatWeekLabel(
   const startDate =
     parseDateInput(
       weekReference,
-    )
+    );
 
   const endDate =
     addDays(
       startDate,
       6,
-    )
+    );
 
   const formatter =
     new Intl.DateTimeFormat(
@@ -348,27 +383,27 @@ function formatWeekLabel(
         year:
           'numeric',
       },
-    )
+    );
 
   return `${formatter.format(
     startDate,
   )} a ${formatter.format(
     endDate,
-  )}`
+  )}`;
 }
 
 function formatEventDateTime(
   value: string,
 ): string {
   const date =
-    new Date(value)
+    new Date(value);
 
   if (
     Number.isNaN(
       date.getTime(),
     )
   ) {
-    return 'Data não informada'
+    return 'Data não informada';
   }
 
   return new Intl.DateTimeFormat(
@@ -392,7 +427,7 @@ function formatEventDateTime(
       minute:
         '2-digit',
     },
-  ).format(date)
+  ).format(date);
 }
 
 function formatLabel(
@@ -409,9 +444,9 @@ function formatLabel(
     )
     .replace(
       /\b\w/g,
-      (character) =>
+      character =>
         character.toUpperCase(),
-    )
+    );
 }
 
 function getEventTypeLabel(
@@ -442,12 +477,12 @@ function getEventTypeLabel(
 
       outro:
         'Outro',
-    }
+    };
 
   return (
     labels[value] ??
     formatLabel(value)
-  )
+  );
 }
 
 function getPriorityLabel(
@@ -466,12 +501,12 @@ function getPriorityLabel(
 
       urgente:
         'Urgente',
-    }
+    };
 
   return (
     labels[value] ??
     formatLabel(value)
-  )
+  );
 }
 
 function getPriorityClasses(
@@ -485,7 +520,7 @@ function getPriorityClasses(
       'border-red-200',
       'bg-red-50',
       'text-red-800',
-    ].join(' ')
+    ].join(' ');
   }
 
   if (
@@ -495,64 +530,68 @@ function getPriorityClasses(
       'border-amber-200',
       'bg-amber-50',
       'text-amber-800',
-    ].join(' ')
+    ].join(' ');
   }
 
   return [
     'border-emerald-200',
     'bg-emerald-50',
     'text-emerald-800',
-  ].join(' ')
+  ].join(' ');
 }
 
 function getScheduleModeLabel(
-  event: AgendaEvent,
+  agendaEvent: AgendaEvent,
 ): string {
   if (
-    event.source_template_id
+    agendaEvent
+      .source_template_id
   ) {
-    return 'Horário-padrão'
+    return 'Horário-padrão';
   }
 
   if (
-    event.schedule_mode ===
+    agendaEvent
+      .schedule_mode ===
     'recorrente'
   ) {
-    return 'Semanal'
+    return 'Semanal';
   }
 
-  return 'Pontual'
+  return 'Pontual';
 }
 
 function getScheduleModeClasses(
-  event: AgendaEvent,
+  agendaEvent: AgendaEvent,
 ): string {
   if (
-    event.source_template_id
+    agendaEvent
+      .source_template_id
   ) {
     return [
       'border-emerald-200',
       'bg-emerald-50',
       'text-emerald-800',
-    ].join(' ')
+    ].join(' ');
   }
 
   if (
-    event.schedule_mode ===
+    agendaEvent
+      .schedule_mode ===
     'recorrente'
   ) {
     return [
       'border-blue-200',
       'bg-blue-50',
       'text-blue-800',
-    ].join(' ')
+    ].join(' ');
   }
 
   return [
     'border-slate-200',
     'bg-slate-50',
     'text-slate-700',
-  ].join(' ')
+  ].join(' ');
 }
 
 function createInitialForm(
@@ -597,7 +636,7 @@ function createInitialForm(
         weekReference,
         16,
       ),
-  }
+  };
 }
 
 async function readJsonResponse<T>(
@@ -606,24 +645,41 @@ async function readJsonResponse<T>(
   try {
     return (
       await response.json()
-    ) as T
+    ) as T;
   } catch {
     throw new Error(
       'A resposta do servidor é inválida.',
-    )
+    );
   }
+}
+
+function normalizePayload<T>(
+  payload: unknown,
+): T {
+  if (
+    typeof payload ===
+      'object' &&
+    payload !== null &&
+    !Array.isArray(
+      payload,
+    )
+  ) {
+    return payload as T;
+  }
+
+  return {} as T;
 }
 
 export default function AgendaCalendarPage() {
   const formSectionRef =
     useRef<HTMLElement | null>(
       null,
-    )
+    );
 
   const eventsSectionRef =
     useRef<HTMLElement | null>(
       null,
-    )
+    );
 
   const [
     selectedWeek,
@@ -633,7 +689,7 @@ export default function AgendaCalendarPage() {
       getWeekReference(
         new Date(),
       ),
-    )
+    );
 
   const [
     events,
@@ -641,7 +697,7 @@ export default function AgendaCalendarPage() {
   ] =
     useState<AgendaEvent[]>(
       [],
-    )
+    );
 
   const [
     formData,
@@ -655,7 +711,7 @@ export default function AgendaCalendarPage() {
           ),
           'pontual',
         ),
-    )
+    );
 
   const [
     selectedPreset,
@@ -663,25 +719,25 @@ export default function AgendaCalendarPage() {
   ] =
     useState(
       '14:20|15:10',
-    )
+    );
 
   const [
     showForm,
     setShowForm,
   ] =
-    useState(false)
+    useState(false);
 
   const [
     isLoading,
     setIsLoading,
   ] =
-    useState(true)
+    useState(true);
 
   const [
     isSaving,
     setIsSaving,
   ] =
-    useState(false)
+    useState(false);
 
   const [
     deletingEventId,
@@ -689,94 +745,112 @@ export default function AgendaCalendarPage() {
   ] =
     useState<string | null>(
       null,
-    )
+    );
 
   const [
     errorMessage,
     setErrorMessage,
   ] =
-    useState('')
+    useState('');
 
   const [
     successMessage,
     setSuccessMessage,
   ] =
-    useState('')
+    useState('');
 
   const [
     warningMessage,
     setWarningMessage,
   ] =
-    useState('')
+    useState('');
+
+  const [
+    recurringUpgradeAccess,
+    setRecurringUpgradeAccess,
+  ] =
+    useState<
+      UpgradeAccessContext |
+      null
+    >(null);
 
   const [
     templatesRefreshKey,
     setTemplatesRefreshKey,
   ] =
-    useState(0)
+    useState(0);
 
   const summary =
     useMemo(() => {
       const recurring =
         events.filter(
-          (event) =>
-            event.schedule_mode ===
+          agendaEvent =>
+            agendaEvent
+              .schedule_mode ===
             'recorrente',
-        ).length
+        ).length;
 
       const fromTemplates =
         events.filter(
-          (event) =>
+          agendaEvent =>
             Boolean(
-              event
+              agendaEvent
                 .source_template_id,
             ),
-        ).length
+        ).length;
 
       const highPriority =
         events.filter(
-          (event) =>
-            event.priority ===
+          agendaEvent =>
+            agendaEvent.priority ===
               'alta' ||
-            event.priority ===
+            agendaEvent.priority ===
               'urgente',
-        ).length
+        ).length;
 
       return {
         total:
           events.length,
 
         recurring,
+
         fromTemplates,
+
         highPriority,
-      }
-    }, [events])
+      };
+    }, [
+      events,
+    ]);
 
   const clearMessages =
     useCallback(() => {
       setErrorMessage(
         '',
-      )
+      );
 
       setSuccessMessage(
         '',
-      )
+      );
 
       setWarningMessage(
         '',
-      )
-    }, [])
+      );
+
+      setRecurringUpgradeAccess(
+        null,
+      );
+    }, []);
 
   const loadEvents =
     useCallback(
       async () => {
         setIsLoading(
           true,
-        )
+        );
 
         setErrorMessage(
           '',
-        )
+        );
 
         try {
           const response =
@@ -794,53 +868,61 @@ export default function AgendaCalendarPage() {
                 cache:
                   'no-store',
               },
-            )
+            );
+
+          const payload =
+            await readJsonResponse<unknown>(
+              response,
+            );
 
           const result =
-            await readJsonResponse<EventsApiResponse>(
-              response,
-            )
+            normalizePayload<
+              EventsApiResponse
+            >(payload);
 
           if (
             !response.ok ||
-            !result.success
+            result.success !==
+              true
           ) {
             throw new Error(
-              result.error ??
+              getApiErrorMessage(
+                payload,
                 'Não foi possível carregar a semana.',
-            )
+              ),
+            );
           }
 
           setEvents(
             result.data ??
               [],
-          )
+          );
         } catch (error) {
           setEvents(
             [],
-          )
+          );
 
           setErrorMessage(
             error instanceof Error
               ? error.message
               : 'Não foi possível carregar os eventos.',
-          )
+          );
         } finally {
           setIsLoading(
             false,
-          )
+          );
         }
       },
       [
         selectedWeek,
       ],
-    )
+    );
 
   useEffect(() => {
-    void loadEvents()
+    void loadEvents();
   }, [
     loadEvents,
-  ])
+  ]);
 
   function updateFormField(
     field: Exclude<
@@ -850,13 +932,14 @@ export default function AgendaCalendarPage() {
     value: string,
   ): void {
     setFormData(
-      (current) => ({
+      current => ({
         ...current,
-        [field]: value,
+        [field]:
+          value,
       }),
-    )
+    );
 
-    clearMessages()
+    clearMessages();
   }
 
   function selectWeek(
@@ -864,9 +947,9 @@ export default function AgendaCalendarPage() {
   ): void {
     setSelectedWeek(
       weekReference,
-    )
+    );
 
-    clearMessages()
+    clearMessages();
   }
 
   function selectCurrentWeek():
@@ -875,7 +958,7 @@ export default function AgendaCalendarPage() {
       getWeekReference(
         new Date(),
       ),
-    )
+    );
   }
 
   function selectNextWeek():
@@ -887,7 +970,7 @@ export default function AgendaCalendarPage() {
         ),
         1,
       ),
-    )
+    );
   }
 
   function moveWeek(
@@ -898,7 +981,7 @@ export default function AgendaCalendarPage() {
         selectedWeek,
         direction,
       ),
-    )
+    );
   }
 
   function openEventForm(
@@ -909,17 +992,17 @@ export default function AgendaCalendarPage() {
         selectedWeek,
         scheduleMode,
       ),
-    )
+    );
 
     setSelectedPreset(
       '14:20|15:10',
-    )
+    );
 
-    clearMessages()
+    clearMessages();
 
     setShowForm(
       true,
-    )
+    );
 
     window.setTimeout(
       () => {
@@ -931,10 +1014,10 @@ export default function AgendaCalendarPage() {
 
             block:
               'start',
-          })
+          });
       },
       50,
-    )
+    );
   }
 
   function applyTimePreset(
@@ -942,29 +1025,30 @@ export default function AgendaCalendarPage() {
   ): void {
     setSelectedPreset(
       value,
-    )
+    );
 
     if (
-      value === 'custom'
+      value ===
+      'custom'
     ) {
-      return
+      return;
     }
 
     const [
       startTime,
       endTime,
     ] =
-      value.split('|')
+      value.split('|');
 
     const selectedDate =
       formData.startAt.slice(
         0,
         10,
       ) ||
-      selectedWeek
+      selectedWeek;
 
     setFormData(
-      (current) => ({
+      current => ({
         ...current,
 
         startAt:
@@ -973,9 +1057,9 @@ export default function AgendaCalendarPage() {
         endAt:
           `${selectedDate}T${endTime}`,
       }),
-    )
+    );
 
-    clearMessages()
+    clearMessages();
   }
 
   async function saveScheduleTemplate():
@@ -984,13 +1068,13 @@ export default function AgendaCalendarPage() {
       formData.startAt.slice(
         0,
         10,
-      )
+      );
 
     const startTime =
       formData.startAt.slice(
         11,
         16,
-      )
+      );
 
     const endTime =
       formData.endAt
@@ -998,7 +1082,7 @@ export default function AgendaCalendarPage() {
             11,
             16,
           )
-        : null
+        : null;
 
     const response =
       await fetch(
@@ -1037,6 +1121,7 @@ export default function AgendaCalendarPage() {
                 ),
 
               startTime,
+
               endTime,
 
               timezone:
@@ -1054,51 +1139,59 @@ export default function AgendaCalendarPage() {
                 null,
             }),
         },
-      )
+      );
+
+    const payload =
+      await readJsonResponse<unknown>(
+        response,
+      );
 
     const result =
-      await readJsonResponse<BasicApiResponse>(
-        response,
-      )
+      normalizePayload<
+        BasicApiResponse
+      >(payload);
 
     if (
       !response.ok ||
-      !result.success
+      result.success !==
+        true
     ) {
       throw new Error(
-        result.error ??
+        getApiErrorMessage(
+          payload,
           'Não foi possível guardar o horário-padrão.',
-      )
+        ),
+      );
     }
 
     setTemplatesRefreshKey(
-      (current) =>
+      current =>
         current + 1,
-    )
+    );
 
     return (
       result.message ??
       'Horário-padrão salvo.'
-    )
+    );
   }
 
   async function handleCreateEvent(
     event:
       FormEvent<HTMLFormElement>,
   ): Promise<void> {
-    event.preventDefault()
+    event.preventDefault();
 
-    clearMessages()
+    clearMessages();
 
     const title =
-      formData.title.trim()
+      formData.title.trim();
 
     if (!title) {
       setErrorMessage(
         'Informe o título do evento.',
-      )
+      );
 
-      return
+      return;
     }
 
     if (
@@ -1106,22 +1199,22 @@ export default function AgendaCalendarPage() {
     ) {
       setErrorMessage(
         'Informe a data e o horário inicial.',
-      )
+      );
 
-      return
+      return;
     }
 
     const startDate =
       new Date(
         formData.startAt,
-      )
+      );
 
     const endDate =
       formData.endAt
         ? new Date(
             formData.endAt,
           )
-        : null
+        : null;
 
     if (
       Number.isNaN(
@@ -1130,9 +1223,9 @@ export default function AgendaCalendarPage() {
     ) {
       setErrorMessage(
         'A data inicial é inválida.',
-      )
+      );
 
-      return
+      return;
     }
 
     if (
@@ -1143,9 +1236,9 @@ export default function AgendaCalendarPage() {
     ) {
       setErrorMessage(
         'A data final é inválida.',
-      )
+      );
 
-      return
+      return;
     }
 
     if (
@@ -1155,9 +1248,9 @@ export default function AgendaCalendarPage() {
     ) {
       setErrorMessage(
         'O término precisa ser posterior ao início.',
-      )
+      );
 
-      return
+      return;
     }
 
     if (
@@ -1168,9 +1261,9 @@ export default function AgendaCalendarPage() {
     ) {
       setErrorMessage(
         'Informe até quando o horário deverá se repetir.',
-      )
+      );
 
-      return
+      return;
     }
 
     if (
@@ -1185,9 +1278,9 @@ export default function AgendaCalendarPage() {
     ) {
       setErrorMessage(
         'A repetição não pode terminar antes do primeiro evento.',
-      )
+      );
 
-      return
+      return;
     }
 
     if (
@@ -1203,14 +1296,14 @@ export default function AgendaCalendarPage() {
     ) {
       setErrorMessage(
         'A vigência do horário-padrão não pode terminar antes do primeiro evento.',
-      )
+      );
 
-      return
+      return;
     }
 
     setIsSaving(
       true,
-    )
+    );
 
     try {
       const response =
@@ -1284,26 +1377,67 @@ export default function AgendaCalendarPage() {
                     : null,
               }),
           },
-        )
+        );
+
+      const payload =
+        await readJsonResponse<unknown>(
+          response,
+        );
+
+      const commercialBlock =
+        parseUpgradeAccessResponse(
+          payload,
+        );
+
+      if (
+        commercialBlock &&
+        formData.scheduleMode ===
+          'recorrente'
+      ) {
+        setRecurringUpgradeAccess(
+          commercialBlock,
+        );
+
+        setShowForm(
+          false,
+        );
+
+        setErrorMessage(
+          '',
+        );
+
+        setWarningMessage(
+          '',
+        );
+
+        setSuccessMessage(
+          '',
+        );
+
+        return;
+      }
 
       const result =
-        await readJsonResponse<EventsApiResponse>(
-          response,
-        )
+        normalizePayload<
+          EventsApiResponse
+        >(payload);
 
       if (
         !response.ok ||
-        !result.success
+        result.success !==
+          true
       ) {
         throw new Error(
-          result.error ??
+          getApiErrorMessage(
+            payload,
             'Não foi possível salvar o evento.',
-        )
+          ),
+        );
       }
 
       let finalMessage =
         result.message ??
-        'Evento salvo com sucesso.'
+        'Evento salvo com sucesso.';
 
       if (
         formData.scheduleMode ===
@@ -1313,10 +1447,10 @@ export default function AgendaCalendarPage() {
       ) {
         try {
           const templateMessage =
-            await saveScheduleTemplate()
+            await saveScheduleTemplate();
 
           finalMessage =
-            `${finalMessage} ${templateMessage}`
+            `${finalMessage} ${templateMessage}`;
         } catch (
           templateError
         ) {
@@ -1324,32 +1458,32 @@ export default function AgendaCalendarPage() {
             templateError instanceof Error
               ? `O evento foi salvo, mas o horário-padrão não foi criado: ${templateError.message}`
               : 'O evento foi salvo, mas o horário-padrão não foi criado.',
-          )
+          );
         }
       }
 
       setSuccessMessage(
         finalMessage,
-      )
+      );
 
       setShowForm(
         false,
-      )
+      );
 
       const eventWeek =
         getWeekReference(
           startDate,
-        )
+        );
 
       setSelectedWeek(
         eventWeek,
-      )
+      );
 
       if (
         eventWeek ===
         selectedWeek
       ) {
-        await loadEvents()
+        await loadEvents();
       }
 
       window.setTimeout(
@@ -1362,20 +1496,20 @@ export default function AgendaCalendarPage() {
 
               block:
                 'start',
-            })
+            });
         },
         100,
-      )
+      );
     } catch (error) {
       setErrorMessage(
         error instanceof Error
           ? error.message
           : 'Não foi possível salvar o evento.',
-      )
+      );
     } finally {
       setIsSaving(
         false,
-      )
+      );
     }
   }
 
@@ -1383,30 +1517,30 @@ export default function AgendaCalendarPage() {
     agendaEvent:
       AgendaEvent,
   ): Promise<void> {
-    clearMessages()
+    clearMessages();
 
     const reason =
       window.prompt(
         `Informe o motivo da exclusão de "${agendaEvent.title}".`,
-      )
+      );
 
     if (
       reason === null
     ) {
-      return
+      return;
     }
 
     const normalizedReason =
-      reason.trim()
+      reason.trim();
 
     if (
       !normalizedReason
     ) {
       setErrorMessage(
         'O motivo da exclusão é obrigatório.',
-      )
+      );
 
-      return
+      return;
     }
 
     if (
@@ -1415,23 +1549,23 @@ export default function AgendaCalendarPage() {
     ) {
       setErrorMessage(
         `O motivo da exclusão não pode ultrapassar ${MAX_DELETION_REASON_LENGTH} caracteres.`,
-      )
+      );
 
-      return
+      return;
     }
 
     const confirmed =
       window.confirm(
         `Confirmar a exclusão de "${agendaEvent.title}"?\n\nO evento sairá da agenda, mas permanecerá preservado no histórico institucional.`,
-      )
+      );
 
     if (!confirmed) {
-      return
+      return;
     }
 
     setDeletingEventId(
       agendaEvent.id,
-    )
+    );
 
     try {
       const response =
@@ -1457,50 +1591,54 @@ export default function AgendaCalendarPage() {
                   normalizedReason,
               }),
           },
-        )
+        );
+
+      const payload =
+        await readJsonResponse<unknown>(
+          response,
+        );
 
       const result =
-        await readJsonResponse<BasicApiResponse>(
-          response,
-        )
+        normalizePayload<
+          BasicApiResponse
+        >(payload);
 
       if (
         !response.ok ||
-        !result.success
+        result.success !==
+          true
       ) {
         throw new Error(
-          result.error ??
+          getApiErrorMessage(
+            payload,
             'Não foi possível excluir o evento.',
-        )
+          ),
+        );
       }
 
       setEvents(
-        (
-          currentEvents,
-        ) =>
+        currentEvents =>
           currentEvents.filter(
-            (
-              currentEvent,
-            ) =>
+            currentEvent =>
               currentEvent.id !==
               agendaEvent.id,
           ),
-      )
+      );
 
       setSuccessMessage(
         result.message ??
           'Evento excluído com sucesso.',
-      )
+      );
     } catch (error) {
       setErrorMessage(
         error instanceof Error
           ? error.message
           : 'Não foi possível excluir o evento.',
-      )
+      );
     } finally {
       setDeletingEventId(
         null,
-      )
+      );
     }
   }
 
@@ -1510,17 +1648,17 @@ export default function AgendaCalendarPage() {
   ): void {
     if (
       action.action ===
-      'form' &&
+        'form' &&
       action.mode
     ) {
       openEventForm(
         action.mode,
-      )
+      );
 
-      return
+      return;
     }
 
-    selectNextWeek()
+    selectNextWeek();
 
     window.setTimeout(
       () => {
@@ -1532,10 +1670,10 @@ export default function AgendaCalendarPage() {
 
             block:
               'start',
-          })
+          });
       },
       100,
-    )
+    );
   }
 
   return (
@@ -1549,69 +1687,40 @@ export default function AgendaCalendarPage() {
           aria-label="Resumo da semana"
           className="grid overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm sm:grid-cols-2 xl:grid-cols-4"
         >
-          <article className="border-b border-slate-200 p-5 sm:border-r xl:border-b-0">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-              Eventos
-            </p>
+          <SummaryCard
+            label="Eventos"
+            value={
+              summary.total
+            }
+            description="Registros na semana"
+            className="border-b border-slate-200 sm:border-r xl:border-b-0"
+          />
 
-            <p className="mt-3 text-3xl font-bold text-[#071827]">
-              {
-                summary.total
-              }
-            </p>
+          <SummaryCard
+            label="Recorrentes"
+            value={
+              summary.recurring
+            }
+            description="Compromissos semanais"
+            className="border-b border-slate-200 xl:border-b-0 xl:border-r"
+          />
 
-            <p className="mt-1 text-sm text-slate-500">
-              Registros na semana
-            </p>
-          </article>
+          <SummaryCard
+            label="Horários-padrão"
+            value={
+              summary.fromTemplates
+            }
+            description="Aplicados por modelo"
+            className="border-b border-slate-200 sm:border-r sm:border-b-0"
+          />
 
-          <article className="border-b border-slate-200 p-5 xl:border-b-0 xl:border-r">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-              Recorrentes
-            </p>
-
-            <p className="mt-3 text-3xl font-bold text-[#071827]">
-              {
-                summary.recurring
-              }
-            </p>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Compromissos semanais
-            </p>
-          </article>
-
-          <article className="border-b border-slate-200 p-5 sm:border-r sm:border-b-0">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-              Horários-padrão
-            </p>
-
-            <p className="mt-3 text-3xl font-bold text-[#071827]">
-              {
-                summary.fromTemplates
-              }
-            </p>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Aplicados por modelo
-            </p>
-          </article>
-
-          <article className="p-5">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-              Alta prioridade
-            </p>
-
-            <p className="mt-3 text-3xl font-bold text-[#071827]">
-              {
-                summary.highPriority
-              }
-            </p>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Itens que exigem atenção
-            </p>
-          </article>
+          <SummaryCard
+            label="Alta prioridade"
+            value={
+              summary.highPriority
+            }
+            description="Itens que exigem atenção"
+          />
         </section>
 
         <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[#071827] text-white shadow-sm">
@@ -1674,25 +1783,25 @@ export default function AgendaCalendarPage() {
               value={
                 selectedWeek
               }
-              onChange={(
-                event,
-              ) => {
-                if (
-                  !event.target
-                    .value
-                ) {
-                  return
-                }
+              onChange={
+                event => {
+                  if (
+                    !event.target
+                      .value
+                  ) {
+                    return;
+                  }
 
-                selectWeek(
-                  getWeekReference(
-                    parseDateInput(
-                      event.target
-                        .value,
+                  selectWeek(
+                    getWeekReference(
+                      parseDateInput(
+                        event.target
+                          .value,
+                      ),
                     ),
-                  ),
-                )
-              }}
+                  );
+                }
+              }
               aria-label="Selecionar semana"
               className="min-h-[52px] w-full rounded-xl border border-white/20 bg-white px-4 font-semibold text-[#071827] outline-none transition focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/20"
             />
@@ -1712,9 +1821,7 @@ export default function AgendaCalendarPage() {
 
         <section className="grid gap-4 md:grid-cols-3">
           {quickActions.map(
-            (
-              action,
-            ) => (
+            action => (
               <button
                 key={
                   action.code
@@ -2054,7 +2161,29 @@ export default function AgendaCalendarPage() {
           </div>
         </section>
 
-        {showForm ? (
+        {recurringUpgradeAccess ? (
+          <UpgradePrompt
+            featureCode={
+              recurringUpgradeAccess
+                .featureCode
+            }
+            featureName={
+              recurringUpgradeAccess
+                .featureName ??
+              'Eventos recorrentes'
+            }
+            currentPlanName={
+              recurringUpgradeAccess
+                .currentPlanName
+            }
+            requestedPlanCode="edi_professor_pro"
+            requestedPlanName="EDI Professor Pro"
+            sourceProduct="agenda_edi"
+            sourceModule="calendario"
+            sourcePath="/agenda/calendario"
+            returnHref="/agenda/calendario"
+          />
+        ) : showForm ? (
           <section
             ref={
               formSectionRef
@@ -2094,11 +2223,9 @@ export default function AgendaCalendarPage() {
                   onClick={() => {
                     setShowForm(
                       false,
-                    )
+                    );
 
-                    setErrorMessage(
-                      '',
-                    )
+                    clearMessages();
                   }}
                   className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78]"
                 >
@@ -2134,14 +2261,13 @@ export default function AgendaCalendarPage() {
                         value={
                           formData.title
                         }
-                        onChange={(
-                          event,
-                        ) =>
-                          updateFormField(
-                            'title',
-                            event.target
-                              .value,
-                          )
+                        onChange={
+                          event =>
+                            updateFormField(
+                              'title',
+                              event.target
+                                .value,
+                            )
                         }
                         placeholder="Ex.: Planejamento semanal"
                         className={
@@ -2164,14 +2290,13 @@ export default function AgendaCalendarPage() {
                         value={
                           formData.description
                         }
-                        onChange={(
-                          event,
-                        ) =>
-                          updateFormField(
-                            'description',
-                            event.target
-                              .value,
-                          )
+                        onChange={
+                          event =>
+                            updateFormField(
+                              'description',
+                              event.target
+                                .value,
+                            )
                         }
                         placeholder="Descreva a ação pedagógica."
                         className={`${inputClassName} resize-y`}
@@ -2201,14 +2326,13 @@ export default function AgendaCalendarPage() {
                         value={
                           formData.eventType
                         }
-                        onChange={(
-                          event,
-                        ) =>
-                          updateFormField(
-                            'eventType',
-                            event.target
-                              .value,
-                          )
+                        onChange={
+                          event =>
+                            updateFormField(
+                              'eventType',
+                              event.target
+                                .value,
+                            )
                         }
                         className={
                           inputClassName
@@ -2261,14 +2385,13 @@ export default function AgendaCalendarPage() {
                         value={
                           formData.priority
                         }
-                        onChange={(
-                          event,
-                        ) =>
-                          updateFormField(
-                            'priority',
-                            event.target
-                              .value,
-                          )
+                        onChange={
+                          event =>
+                            updateFormField(
+                              'priority',
+                              event.target
+                                .value,
+                            )
                         }
                         className={
                           inputClassName
@@ -2315,22 +2438,19 @@ export default function AgendaCalendarPage() {
                         value={
                           selectedPreset
                         }
-                        onChange={(
-                          event,
-                        ) =>
-                          applyTimePreset(
-                            event.target
-                              .value,
-                          )
+                        onChange={
+                          event =>
+                            applyTimePreset(
+                              event.target
+                                .value,
+                            )
                         }
                         className={
                           inputClassName
                         }
                       >
                         {timePresets.map(
-                          (
-                            preset,
-                          ) => (
+                          preset => (
                             <option
                               key={
                                 preset.value
@@ -2364,19 +2484,19 @@ export default function AgendaCalendarPage() {
                           value={
                             formData.startAt
                           }
-                          onChange={(
-                            event,
-                          ) => {
-                            updateFormField(
-                              'startAt',
-                              event.target
-                                .value,
-                            )
+                          onChange={
+                            event => {
+                              updateFormField(
+                                'startAt',
+                                event.target
+                                  .value,
+                              );
 
-                            setSelectedPreset(
-                              'custom',
-                            )
-                          }}
+                              setSelectedPreset(
+                                'custom',
+                              );
+                            }
+                          }
                           className={
                             inputClassName
                           }
@@ -2401,19 +2521,19 @@ export default function AgendaCalendarPage() {
                             formData.startAt ||
                             undefined
                           }
-                          onChange={(
-                            event,
-                          ) => {
-                            updateFormField(
-                              'endAt',
-                              event.target
-                                .value,
-                            )
+                          onChange={
+                            event => {
+                              updateFormField(
+                                'endAt',
+                                event.target
+                                  .value,
+                              );
 
-                            setSelectedPreset(
-                              'custom',
-                            )
-                          }}
+                              setSelectedPreset(
+                                'custom',
+                              );
+                            }
+                          }
                           className={
                             inputClassName
                           }
@@ -2447,18 +2567,18 @@ export default function AgendaCalendarPage() {
                           formData.scheduleMode ===
                           'pontual'
                         }
-                        onChange={() =>
+                        onChange={() => {
                           setFormData(
-                            (
-                              current,
-                            ) => ({
+                            current => ({
                               ...current,
 
                               scheduleMode:
                                 'pontual',
                             }),
-                          )
-                        }
+                          );
+
+                          clearMessages();
+                        }}
                         className="sr-only"
                       />
 
@@ -2501,11 +2621,9 @@ export default function AgendaCalendarPage() {
                           formData.scheduleMode ===
                           'recorrente'
                         }
-                        onChange={() =>
+                        onChange={() => {
                           setFormData(
-                            (
-                              current,
-                            ) => ({
+                            current => ({
                               ...current,
 
                               scheduleMode:
@@ -2514,8 +2632,10 @@ export default function AgendaCalendarPage() {
                               saveAsTemplate:
                                 false,
                             }),
-                          )
-                        }
+                          );
+
+                          clearMessages();
+                        }}
                         className="sr-only"
                       />
 
@@ -2560,14 +2680,13 @@ export default function AgendaCalendarPage() {
                         value={
                           formData.recurrenceInterval
                         }
-                        onChange={(
-                          event,
-                        ) =>
-                          updateFormField(
-                            'recurrenceInterval',
-                            event.target
-                              .value,
-                          )
+                        onChange={
+                          event =>
+                            updateFormField(
+                              'recurrenceInterval',
+                              event.target
+                                .value,
+                            )
                         }
                         className={
                           inputClassName
@@ -2613,14 +2732,13 @@ export default function AgendaCalendarPage() {
                         value={
                           formData.recurrenceUntil
                         }
-                        onChange={(
-                          event,
-                        ) =>
-                          updateFormField(
-                            'recurrenceUntil',
-                            event.target
-                              .value,
-                          )
+                        onChange={
+                          event =>
+                            updateFormField(
+                              'recurrenceUntil',
+                              event.target
+                                .value,
+                            )
                         }
                         className={
                           inputClassName
@@ -2636,23 +2754,21 @@ export default function AgendaCalendarPage() {
                         checked={
                           formData.saveAsTemplate
                         }
-                        onChange={(
-                          event,
-                        ) => {
-                          setFormData(
-                            (
-                              current,
-                            ) => ({
-                              ...current,
+                        onChange={
+                          event => {
+                            setFormData(
+                              current => ({
+                                ...current,
 
-                              saveAsTemplate:
-                                event.target
-                                  .checked,
-                            }),
-                          )
+                                saveAsTemplate:
+                                  event.target
+                                    .checked,
+                              }),
+                            );
 
-                          clearMessages()
-                        }}
+                            clearMessages();
+                          }
+                        }
                         className="mt-1 h-5 w-5 shrink-0 accent-[#0B7491]"
                       />
 
@@ -2689,14 +2805,13 @@ export default function AgendaCalendarPage() {
                           value={
                             formData.templateValidUntil
                           }
-                          onChange={(
-                            event,
-                          ) =>
-                            updateFormField(
-                              'templateValidUntil',
-                              event.target
-                                .value,
-                            )
+                          onChange={
+                            event =>
+                              updateFormField(
+                                'templateValidUntil',
+                                event.target
+                                  .value,
+                              )
                           }
                           className={
                             inputClassName
@@ -2731,13 +2846,13 @@ export default function AgendaCalendarPage() {
                         selectedWeek,
                         formData.scheduleMode,
                       ),
-                    )
+                    );
 
                     setSelectedPreset(
                       '14:20|15:10',
-                    )
+                    );
 
-                    clearMessages()
+                    clearMessages();
                   }}
                   className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:opacity-60"
                 >
@@ -2810,5 +2925,5 @@ export default function AgendaCalendarPage() {
         </section>
       </div>
     </AgendaPageShell>
-  )
+  );
 }
