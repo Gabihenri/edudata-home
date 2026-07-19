@@ -7,6 +7,16 @@ import {
   useState,
 } from 'react'
 
+import {
+  UpgradePrompt,
+} from '@/components/commercial/UpgradePrompt'
+
+import {
+  getApiErrorMessage,
+  parseUpgradeAccessResponse,
+  type UpgradeAccessContext,
+} from '@/lib/commercial/upgrade-access'
+
 type AgendaScheduleTemplate = {
   id: string
   title: string
@@ -37,29 +47,39 @@ type AgendaScheduleTemplate = {
 }
 
 type TemplatesApiResponse = {
-  success: boolean
+  success?: boolean
   total?: number
-  data?: AgendaScheduleTemplate[]
+
+  data?:
+    AgendaScheduleTemplate[]
+
   error?: string
+  message?: string
 }
 
 type ApplyTemplatesApiResponse = {
-  success: boolean
+  success?: boolean
+
   message?: string
+  error?: string
 
   data?: {
     weekReference: string
+
     totalTemplates: number
     totalCreated: number
     totalSkipped: number
   }
-
-  error?: string
 }
 
 type ScheduleTemplatesPanelProps = {
   selectedWeek: string
-  onApplied?: () => void | Promise<void>
+
+  onApplied?:
+    () =>
+      void |
+      Promise<void>
+
   refreshKey?: number
 }
 
@@ -177,8 +197,11 @@ function formatWeekReference(
     new Intl.DateTimeFormat(
       'pt-BR',
       {
-        day: '2-digit',
-        month: 'short',
+        day:
+          '2-digit',
+
+        month:
+          'short',
       },
     )
 
@@ -241,9 +264,14 @@ function getEventTypeLabel(
         ' ',
       )
       .replace(
+        /-/g,
+        ' ',
+      )
+      .replace(
         /\b\w/g,
-        (character) =>
-          character.toUpperCase(),
+        character =>
+          character
+            .toUpperCase(),
       )
   )
 }
@@ -303,9 +331,36 @@ function getPriorityClasses(
   ].join(' ')
 }
 
+async function readJsonPayload(
+  response: Response,
+): Promise<unknown> {
+  try {
+    return await response.json()
+  } catch {
+    return null
+  }
+}
+
+function normalizeApiPayload<T>(
+  payload: unknown,
+): T {
+  if (
+    typeof payload ===
+      'object' &&
+    payload !== null &&
+    !Array.isArray(payload)
+  ) {
+    return payload as T
+  }
+
+  return {} as T
+}
+
 export function ScheduleTemplatesPanel({
   selectedWeek,
+
   onApplied,
+
   refreshKey = 0,
 }: ScheduleTemplatesPanelProps) {
   const [
@@ -348,6 +403,15 @@ export function ScheduleTemplatesPanel({
   ] =
     useState('')
 
+  const [
+    upgradeAccess,
+    setUpgradeAccess,
+  ] =
+    useState<
+      UpgradeAccessContext |
+      null
+    >(null)
+
   const selectedCount =
     selectedIds.length
 
@@ -368,13 +432,13 @@ export function ScheduleTemplatesPanel({
     useMemo(() => {
       const active =
         templates.filter(
-          (template) =>
+          template =>
             template.active,
         ).length
 
       const weekly =
         templates.filter(
-          (template) =>
+          template =>
             template
               .repeat_interval_weeks <=
             1,
@@ -383,7 +447,7 @@ export function ScheduleTemplatesPanel({
       const days =
         new Set(
           templates.map(
-            (template) =>
+            template =>
               template.weekday,
           ),
         ).size
@@ -393,19 +457,23 @@ export function ScheduleTemplatesPanel({
           templates.length,
 
         active,
+
         weekly,
+
         days,
       }
-    }, [templates])
+    }, [
+      templates,
+    ])
 
   const loadTemplates =
     useCallback(
       async () => {
         setIsLoading(true)
 
-        setErrorMessage(
-          '',
-        )
+        setErrorMessage('')
+        setSuccessMessage('')
+        setUpgradeAccess(null)
 
         try {
           const response =
@@ -423,17 +491,42 @@ export function ScheduleTemplatesPanel({
               },
             )
 
+          const payload =
+            await readJsonPayload(
+              response,
+            )
+
+          const commercialBlock =
+            parseUpgradeAccessResponse(
+              payload,
+            )
+
+          if (commercialBlock) {
+            setTemplates([])
+            setSelectedIds([])
+
+            setUpgradeAccess(
+              commercialBlock,
+            )
+
+            return
+          }
+
           const result =
-            (await response.json()) as
+            normalizeApiPayload<
               TemplatesApiResponse
+            >(payload)
 
           if (
             !response.ok ||
-            !result.success
+            result.success !==
+              true
           ) {
             throw new Error(
-              result.error ??
+              getApiErrorMessage(
+                payload,
                 'Não foi possível carregar os horários-padrão.',
+              ),
             )
           }
 
@@ -446,44 +539,33 @@ export function ScheduleTemplatesPanel({
           )
 
           setSelectedIds(
-            (
-              currentIds,
-            ) => {
-              const validCurrentIds =
+            currentIds => {
+              const validIds =
                 currentIds.filter(
-                  (id) =>
+                  id =>
                     loadedTemplates.some(
-                      (
-                        template,
-                      ) =>
+                      template =>
                         template.id ===
                         id,
                     ),
                 )
 
               if (
-                validCurrentIds.length >
+                validIds.length >
                 0
               ) {
-                return validCurrentIds
+                return validIds
               }
 
               return loadedTemplates.map(
-                (
-                  template,
-                ) =>
+                template =>
                   template.id,
               )
             },
           )
         } catch (error) {
-          setTemplates(
-            [],
-          )
-
-          setSelectedIds(
-            [],
-          )
+          setTemplates([])
+          setSelectedIds([])
 
           setErrorMessage(
             error instanceof Error
@@ -491,9 +573,7 @@ export function ScheduleTemplatesPanel({
               : 'Não foi possível carregar os horários-padrão.',
           )
         } finally {
-          setIsLoading(
-            false,
-          )
+          setIsLoading(false)
         }
       },
       [],
@@ -508,13 +588,8 @@ export function ScheduleTemplatesPanel({
 
   function clearMessages():
     void {
-    setSuccessMessage(
-      '',
-    )
-
-    setErrorMessage(
-      '',
-    )
+    setErrorMessage('')
+    setSuccessMessage('')
   }
 
   function toggleTemplate(
@@ -523,16 +598,14 @@ export function ScheduleTemplatesPanel({
     clearMessages()
 
     setSelectedIds(
-      (
-        currentIds,
-      ) => {
+      currentIds => {
         if (
           currentIds.includes(
             templateId,
           )
         ) {
           return currentIds.filter(
-            (id) =>
+            id =>
               id !==
               templateId,
           )
@@ -550,7 +623,7 @@ export function ScheduleTemplatesPanel({
     void {
     setSelectedIds(
       templates.map(
-        (template) =>
+        template =>
           template.id,
       ),
     )
@@ -560,10 +633,7 @@ export function ScheduleTemplatesPanel({
 
   function clearSelection():
     void {
-    setSelectedIds(
-      [],
-    )
-
+    setSelectedIds([])
     clearMessages()
   }
 
@@ -582,9 +652,7 @@ export function ScheduleTemplatesPanel({
       return
     }
 
-    setIsApplying(
-      true,
-    )
+    setIsApplying(true)
 
     try {
       const response =
@@ -613,17 +681,42 @@ export function ScheduleTemplatesPanel({
           },
         )
 
+      const payload =
+        await readJsonPayload(
+          response,
+        )
+
+      const commercialBlock =
+        parseUpgradeAccessResponse(
+          payload,
+        )
+
+      if (commercialBlock) {
+        setUpgradeAccess(
+          commercialBlock,
+        )
+
+        setTemplates([])
+        setSelectedIds([])
+
+        return
+      }
+
       const result =
-        (await response.json()) as
+        normalizeApiPayload<
           ApplyTemplatesApiResponse
+        >(payload)
 
       if (
         !response.ok ||
-        !result.success
+        result.success !==
+          true
       ) {
         throw new Error(
-          result.error ??
+          getApiErrorMessage(
+            payload,
             'Não foi possível aplicar os horários-padrão.',
+          ),
         )
       }
 
@@ -642,10 +735,37 @@ export function ScheduleTemplatesPanel({
           : 'Não foi possível aplicar os horários-padrão.',
       )
     } finally {
-      setIsApplying(
-        false,
-      )
+      setIsApplying(false)
     }
+  }
+
+  if (
+    !isLoading &&
+    upgradeAccess
+  ) {
+    return (
+      <UpgradePrompt
+        featureCode={
+          upgradeAccess
+            .featureCode
+        }
+        featureName={
+          upgradeAccess
+            .featureName ??
+          'Horários-padrão'
+        }
+        currentPlanName={
+          upgradeAccess
+            .currentPlanName
+        }
+        requestedPlanCode="edi_professor_pro"
+        requestedPlanName="EDI Professor Pro"
+        sourceProduct="agenda_edi"
+        sourceModule="calendario"
+        sourcePath="/agenda/calendario"
+        returnHref="/agenda/calendario"
+      />
+    )
   }
 
   return (
@@ -697,9 +817,7 @@ export function ScheduleTemplatesPanel({
           </p>
 
           <p className="mt-2 text-2xl font-bold text-[#071827]">
-            {
-              summary.total
-            }
+            {summary.total}
           </p>
         </article>
 
@@ -709,9 +827,7 @@ export function ScheduleTemplatesPanel({
           </p>
 
           <p className="mt-2 text-2xl font-bold text-[#071827]">
-            {
-              summary.active
-            }
+            {summary.active}
           </p>
         </article>
 
@@ -721,9 +837,7 @@ export function ScheduleTemplatesPanel({
           </p>
 
           <p className="mt-2 text-2xl font-bold text-[#071827]">
-            {
-              summary.weekly
-            }
+            {summary.weekly}
           </p>
         </article>
 
@@ -733,9 +847,7 @@ export function ScheduleTemplatesPanel({
           </p>
 
           <p className="mt-2 text-2xl font-bold text-[#071827]">
-            {
-              summary.days
-            }
+            {summary.days}
           </p>
         </article>
       </div>
@@ -761,9 +873,7 @@ export function ScheduleTemplatesPanel({
               </p>
 
               <p className="mt-1 text-xl font-bold text-[#071827]">
-                {
-                  selectedCount
-                }
+                {selectedCount}
               </p>
             </div>
           </div>
@@ -783,9 +893,7 @@ export function ScheduleTemplatesPanel({
             role="status"
             className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold leading-6 text-emerald-800"
           >
-            {
-              successMessage
-            }
+            {successMessage}
           </div>
         ) : null}
 
@@ -1071,3 +1179,5 @@ export function ScheduleTemplatesPanel({
     </section>
   )
 }
+
+export default ScheduleTemplatesPanel
