@@ -3,12 +3,18 @@
 import {
   type FormEvent,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 
 import {
   AgendaPageShell,
 } from '@/components/agenda/AgendaPageShell'
+
+import type {
+  AgendaClass,
+} from '@/lib/agenda'
+
 import {
   useClasses,
 } from '@/lib/agenda/hooks/useClasses'
@@ -19,6 +25,7 @@ type ClassFormState = {
   grade: string
   subject: string
   studentsCount: string
+  active: boolean
 }
 
 const initialForm:
@@ -28,6 +35,7 @@ const initialForm:
   grade: '',
   subject: '',
   studentsCount: '0',
+  active: true,
 }
 
 const inputClassName = [
@@ -43,8 +51,10 @@ function normalizeText(
   const normalized =
     value?.trim() ?? ''
 
-  return normalized ||
+  return (
+    normalized ||
     null
+  )
 }
 
 function formatStudentCount(
@@ -55,13 +65,52 @@ function formatStudentCount(
   ).format(value)
 }
 
+function validateSchoolYear(
+  value: string,
+): void {
+  const normalizedValue =
+    value.trim()
+
+  if (!normalizedValue) {
+    return
+  }
+
+  if (
+    !/^\d{4}$/.test(
+      normalizedValue,
+    )
+  ) {
+    throw new Error(
+      'O ano letivo deve possuir quatro números. Exemplo: 2026.',
+    )
+  }
+
+  const numericYear =
+    Number(normalizedValue)
+
+  if (
+    numericYear < 2000 ||
+    numericYear > 2100
+  ) {
+    throw new Error(
+      'Informe um ano letivo entre 2000 e 2100.',
+    )
+  }
+}
+
 export function AgendaClasses() {
+  const formRef =
+    useRef<HTMLFormElement | null>(
+      null,
+    )
+
   const {
     classes,
     loading,
     error,
     reload,
     createClass,
+    updateClass,
   } = useClasses()
 
   const [
@@ -70,6 +119,14 @@ export function AgendaClasses() {
   ] =
     useState<ClassFormState>(
       initialForm,
+    )
+
+  const [
+    editingClassId,
+    setEditingClassId,
+  ] =
+    useState<string | null>(
+      null,
     )
 
   const [
@@ -94,11 +151,14 @@ export function AgendaClasses() {
       null,
     )
 
+  const isEditing =
+    editingClassId !== null
+
   const summary =
     useMemo(() => {
       const activeClasses =
         classes.filter(
-          (agendaClass) =>
+          agendaClass =>
             agendaClass.active,
         )
 
@@ -122,7 +182,7 @@ export function AgendaClasses() {
         new Set(
           activeClasses
             .map(
-              (agendaClass) =>
+              agendaClass =>
                 agendaClass
                   .subject
                   ?.trim(),
@@ -141,7 +201,7 @@ export function AgendaClasses() {
         new Set(
           activeClasses
             .map(
-              (agendaClass) =>
+              agendaClass =>
                 agendaClass
                   .school_year
                   ?.trim(),
@@ -164,13 +224,27 @@ export function AgendaClasses() {
           activeClasses.length,
 
         students,
+
         subjects:
           subjects.size,
 
         schoolYears:
           schoolYears.size,
       }
-    }, [classes])
+    }, [
+      classes,
+    ])
+
+  function clearMessages():
+    void {
+    setFormError(
+      null,
+    )
+
+    setSuccessMessage(
+      null,
+    )
+  }
 
   function updateField<
     Key extends
@@ -181,36 +255,87 @@ export function AgendaClasses() {
       ClassFormState[Key],
   ): void {
     setForm(
-      (current) => ({
+      current => ({
         ...current,
-        [key]: value,
+        [key]:
+          value,
       }),
     )
 
-    setFormError(
-      null,
-    )
-
-    setSuccessMessage(
-      null,
-    )
+    clearMessages()
   }
 
-  function clearForm(): void {
-    if (submitting) {
-      return
-    }
-
+  function resetForm():
+    void {
     setForm(
       initialForm,
     )
 
-    setFormError(
+    setEditingClassId(
       null,
     )
+  }
 
-    setSuccessMessage(
-      null,
+  function clearForm():
+    void {
+    if (submitting) {
+      return
+    }
+
+    resetForm()
+    clearMessages()
+  }
+
+  function startEditing(
+    agendaClass:
+      AgendaClass,
+  ): void {
+    setEditingClassId(
+      agendaClass.id,
+    )
+
+    setForm({
+      name:
+        agendaClass.name,
+
+      schoolYear:
+        agendaClass
+          .school_year ??
+        '',
+
+      grade:
+        agendaClass.grade ??
+        '',
+
+      subject:
+        agendaClass.subject ??
+        '',
+
+      studentsCount:
+        String(
+          agendaClass
+            .students_count ??
+            0,
+        ),
+
+      active:
+        agendaClass.active,
+    })
+
+    clearMessages()
+
+    window.setTimeout(
+      () => {
+        formRef.current
+          ?.scrollIntoView({
+            behavior:
+              'smooth',
+
+            block:
+              'start',
+          })
+      },
+      50,
     )
   }
 
@@ -224,13 +349,7 @@ export function AgendaClasses() {
       true,
     )
 
-    setFormError(
-      null,
-    )
-
-    setSuccessMessage(
-      null,
-    )
+    clearMessages()
 
     try {
       const name =
@@ -241,6 +360,10 @@ export function AgendaClasses() {
           'Informe o nome da turma.',
         )
       }
+
+      validateSchoolYear(
+        form.schoolYear,
+      )
 
       const studentsCount =
         Number(
@@ -256,6 +379,46 @@ export function AgendaClasses() {
         throw new Error(
           'A quantidade de estudantes deve ser um número inteiro igual ou maior que zero.',
         )
+      }
+
+      if (
+        editingClassId
+      ) {
+        await updateClass(
+          editingClassId,
+          {
+            name,
+
+            school_year:
+              normalizeText(
+                form.schoolYear,
+              ),
+
+            grade:
+              normalizeText(
+                form.grade,
+              ),
+
+            subject:
+              normalizeText(
+                form.subject,
+              ),
+
+            students_count:
+              studentsCount,
+
+            active:
+              form.active,
+          },
+        )
+
+        resetForm()
+
+        setSuccessMessage(
+          'Turma atualizada com sucesso.',
+        )
+
+        return
       }
 
       await createClass({
@@ -283,18 +446,21 @@ export function AgendaClasses() {
           true,
       })
 
-      setForm(
-        initialForm,
-      )
+      resetForm()
 
       setSuccessMessage(
         'Turma criada com sucesso.',
       )
-    } catch (createError) {
+    } catch (
+      submitError
+    ) {
       setFormError(
-        createError instanceof Error
-          ? createError.message
-          : 'Não foi possível criar a turma.',
+        submitError instanceof
+          Error
+          ? submitError.message
+          : isEditing
+            ? 'Não foi possível atualizar a turma.'
+            : 'Não foi possível criar a turma.',
       )
     } finally {
       setSubmitting(
@@ -381,10 +547,17 @@ export function AgendaClasses() {
 
         <div className="grid gap-6 xl:grid-cols-[minmax(320px,0.8fr)_minmax(0,1.2fr)]">
           <form
+            ref={
+              formRef
+            }
             onSubmit={
               handleSubmit
             }
-            className="self-start overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm xl:sticky xl:top-[176px]"
+            className={`scroll-mt-28 self-start overflow-hidden rounded-[1.75rem] border bg-white shadow-sm xl:sticky xl:top-[176px] ${
+              isEditing
+                ? 'border-cyan-400 ring-4 ring-cyan-100'
+                : 'border-slate-200'
+            }`}
           >
             <header className="border-b border-slate-200 px-5 py-5 sm:px-7">
               <div className="flex items-start gap-4">
@@ -394,21 +567,39 @@ export function AgendaClasses() {
 
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
-                    Novo contexto
+                    {isEditing
+                      ? 'Atualização do contexto'
+                      : 'Novo contexto'}
                   </p>
 
                   <h2 className="mt-2 text-2xl font-bold text-[#071827]">
-                    Cadastrar turma
+                    {isEditing
+                      ? 'Editar turma'
+                      : 'Cadastrar turma'}
                   </h2>
 
                   <p className="mt-2 text-sm leading-6 text-slate-600">
-                    Registre as informações essenciais para relacionar planejamentos, aulas e evidências.
+                    {isEditing
+                      ? 'Revise os dados da turma selecionada e salve as alterações.'
+                      : 'Registre as informações essenciais para relacionar planejamentos, aulas e evidências.'}
                   </p>
                 </div>
               </div>
             </header>
 
             <div className="space-y-6 p-5 sm:p-7">
+              {isEditing ? (
+                <section className="rounded-xl border border-cyan-200 bg-cyan-50 p-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#075F78]">
+                    Modo de edição
+                  </p>
+
+                  <p className="mt-2 text-sm leading-6 text-cyan-950">
+                    Você está alterando uma turma existente. O cadastro original será atualizado.
+                  </p>
+                </section>
+              ) : null}
+
               <div>
                 <label
                   htmlFor="class-name"
@@ -424,14 +615,13 @@ export function AgendaClasses() {
                   value={
                     form.name
                   }
-                  onChange={(
-                    event,
-                  ) =>
-                    updateField(
-                      'name',
-                      event.target
-                        .value,
-                    )
+                  onChange={
+                    event =>
+                      updateField(
+                        'name',
+                        event.target
+                          .value,
+                      )
                   }
                   className={
                     inputClassName
@@ -453,17 +643,25 @@ export function AgendaClasses() {
                     id="class-school-year"
                     type="text"
                     inputMode="numeric"
+                    maxLength={4}
                     value={
                       form.schoolYear
                     }
-                    onChange={(
-                      event,
-                    ) =>
-                      updateField(
-                        'schoolYear',
-                        event.target
-                          .value,
-                      )
+                    onChange={
+                      event =>
+                        updateField(
+                          'schoolYear',
+                          event.target
+                            .value
+                            .replace(
+                              /\D/g,
+                              '',
+                            )
+                            .slice(
+                              0,
+                              4,
+                            ),
+                        )
                     }
                     className={
                       inputClassName
@@ -488,14 +686,13 @@ export function AgendaClasses() {
                     value={
                       form.studentsCount
                     }
-                    onChange={(
-                      event,
-                    ) =>
-                      updateField(
-                        'studentsCount',
-                        event.target
-                          .value,
-                      )
+                    onChange={
+                      event =>
+                        updateField(
+                          'studentsCount',
+                          event.target
+                            .value,
+                        )
                     }
                     className={
                       inputClassName
@@ -518,14 +715,13 @@ export function AgendaClasses() {
                   value={
                     form.grade
                   }
-                  onChange={(
-                    event,
-                  ) =>
-                    updateField(
-                      'grade',
-                      event.target
-                        .value,
-                    )
+                  onChange={
+                    event =>
+                      updateField(
+                        'grade',
+                        event.target
+                          .value,
+                      )
                   }
                   className={
                     inputClassName
@@ -548,14 +744,13 @@ export function AgendaClasses() {
                   value={
                     form.subject
                   }
-                  onChange={(
-                    event,
-                  ) =>
-                    updateField(
-                      'subject',
-                      event.target
-                        .value,
-                    )
+                  onChange={
+                    event =>
+                      updateField(
+                        'subject',
+                        event.target
+                          .value,
+                      )
                   }
                   className={
                     inputClassName
@@ -563,6 +758,46 @@ export function AgendaClasses() {
                   placeholder="Ex.: Física"
                 />
               </div>
+
+              {isEditing ? (
+                <div>
+                  <label
+                    htmlFor="class-active"
+                    className="mb-2 block text-sm font-semibold text-slate-700"
+                  >
+                    Situação da turma
+                  </label>
+
+                  <select
+                    id="class-active"
+                    value={
+                      form.active
+                        ? 'active'
+                        : 'inactive'
+                    }
+                    onChange={
+                      event =>
+                        updateField(
+                          'active',
+                          event.target
+                            .value ===
+                            'active',
+                        )
+                    }
+                    className={
+                      inputClassName
+                    }
+                  >
+                    <option value="active">
+                      Ativa — em acompanhamento
+                    </option>
+
+                    <option value="inactive">
+                      Inativa — fora do acompanhamento
+                    </option>
+                  </select>
+                </div>
+              ) : null}
 
               <section className="rounded-xl border border-cyan-200 bg-cyan-50 p-4">
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#075F78]">
@@ -579,7 +814,9 @@ export function AgendaClasses() {
                   role="alert"
                   className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold leading-6 text-red-700"
                 >
-                  {formError}
+                  {
+                    formError
+                  }
                 </div>
               ) : null}
 
@@ -606,7 +843,9 @@ export function AgendaClasses() {
                 }
                 className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Limpar
+                {isEditing
+                  ? 'Cancelar edição'
+                  : 'Limpar'}
               </button>
 
               <button
@@ -618,7 +857,9 @@ export function AgendaClasses() {
               >
                 {submitting
                   ? 'Salvando...'
-                  : 'Criar turma'}
+                  : isEditing
+                    ? 'Salvar alterações'
+                    : 'Criar turma'}
               </button>
             </footer>
           </form>
@@ -656,7 +897,8 @@ export function AgendaClasses() {
                     void reload()
                   }
                   disabled={
-                    loading
+                    loading ||
+                    submitting
                   }
                   className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:opacity-60"
                 >
@@ -673,7 +915,9 @@ export function AgendaClasses() {
                   role="alert"
                   className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700"
                 >
-                  {error}
+                  {
+                    error
+                  }
                 </div>
               ) : null}
 
@@ -709,112 +953,141 @@ export function AgendaClasses() {
                     (
                       agendaClass,
                       index,
-                    ) => (
-                      <article
-                        key={
-                          agendaClass.id
-                        }
-                        className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
-                      >
-                        <header className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex min-w-0 items-start gap-3">
-                              <span className="font-mono text-xs font-bold text-[#0B7491]">
-                                {String(
-                                  index +
-                                    1,
-                                ).padStart(
-                                  2,
-                                  '0',
-                                )}
-                              </span>
+                    ) => {
+                      const isSelected =
+                        editingClassId ===
+                        agendaClass.id
 
-                              <div className="min-w-0">
-                                <span
-                                  className={`inline-flex rounded-lg border px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] ${
-                                    agendaClass.active
-                                      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                                      : 'border-slate-200 bg-slate-100 text-slate-600'
-                                  }`}
-                                >
-                                  {agendaClass.active
-                                    ? 'Ativa'
-                                    : 'Inativa'}
+                      return (
+                        <article
+                          key={
+                            agendaClass.id
+                          }
+                          className={`overflow-hidden rounded-2xl border bg-white transition ${
+                            isSelected
+                              ? 'border-cyan-400 ring-4 ring-cyan-100'
+                              : 'border-slate-200'
+                          }`}
+                        >
+                          <header className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex min-w-0 items-start gap-3">
+                                <span className="font-mono text-xs font-bold text-[#0B7491]">
+                                  {String(
+                                    index +
+                                      1,
+                                  ).padStart(
+                                    2,
+                                    '0',
+                                  )}
                                 </span>
 
-                                <h3 className="mt-3 break-words text-xl font-bold text-[#071827]">
-                                  {
-                                    agendaClass.name
-                                  }
-                                </h3>
+                                <div className="min-w-0">
+                                  <span
+                                    className={`inline-flex rounded-lg border px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] ${
+                                      agendaClass.active
+                                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                                        : 'border-slate-200 bg-slate-100 text-slate-600'
+                                    }`}
+                                  >
+                                    {agendaClass.active
+                                      ? 'Ativa'
+                                      : 'Inativa'}
+                                  </span>
+
+                                  <h3 className="mt-3 break-words text-xl font-bold text-[#071827]">
+                                    {
+                                      agendaClass.name
+                                    }
+                                  </h3>
+                                </div>
+                              </div>
+
+                              <div className="shrink-0 rounded-xl bg-[#071827] px-4 py-3 text-center text-white">
+                                <p className="text-xl font-bold">
+                                  {formatStudentCount(
+                                    agendaClass.students_count ??
+                                      0,
+                                  )}
+                                </p>
+
+                                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-300">
+                                  Estudantes
+                                </p>
                               </div>
                             </div>
+                          </header>
 
-                            <div className="shrink-0 rounded-xl bg-[#071827] px-4 py-3 text-center text-white">
-                              <p className="text-xl font-bold">
-                                {formatStudentCount(
-                                  agendaClass.students_count ??
-                                    0,
-                                )}
-                              </p>
+                          <div className="space-y-4 p-5">
+                            <div className="grid grid-cols-2 gap-3">
+                              <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                                  Ano letivo
+                                </p>
 
-                              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-300">
-                                Estudantes
-                              </p>
+                                <p className="mt-2 text-sm font-semibold text-slate-700">
+                                  {agendaClass.school_year ??
+                                    'Não informado'}
+                                </p>
+                              </section>
+
+                              <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                                  Situação
+                                </p>
+
+                                <p className="mt-2 text-sm font-semibold text-slate-700">
+                                  {agendaClass.active
+                                    ? 'Em acompanhamento'
+                                    : 'Fora do acompanhamento'}
+                                </p>
+                              </section>
                             </div>
-                          </div>
-                        </header>
 
-                        <div className="space-y-4 p-5">
-                          <div className="grid grid-cols-2 gap-3">
-                            <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                                Ano letivo
+                            <section className="rounded-xl border border-slate-200 p-4">
+                              <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
+                                Série ou etapa
                               </p>
 
-                              <p className="mt-2 text-sm font-semibold text-slate-700">
-                                {agendaClass.school_year ??
-                                  'Não informado'}
+                              <p className="mt-2 text-sm leading-6 text-slate-700">
+                                {agendaClass.grade ??
+                                  'Não informada'}
                               </p>
                             </section>
 
-                            <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                                Situação
+                            <section className="rounded-xl border border-cyan-200 bg-cyan-50 p-4">
+                              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#075F78]">
+                                Disciplina ou área
                               </p>
 
-                              <p className="mt-2 text-sm font-semibold text-slate-700">
-                                {agendaClass.active
-                                  ? 'Em acompanhamento'
-                                  : 'Fora do acompanhamento'}
+                              <p className="mt-2 text-sm font-semibold leading-6 text-cyan-950">
+                                {agendaClass.subject ??
+                                  'Não informada'}
                               </p>
                             </section>
+
+                            <footer className="border-t border-slate-200 pt-4">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  startEditing(
+                                    agendaClass,
+                                  )
+                                }
+                                disabled={
+                                  submitting
+                                }
+                                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[#0B7491] bg-white px-5 py-3 text-sm font-semibold text-[#075F78] transition hover:bg-cyan-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400"
+                              >
+                                {isSelected
+                                  ? 'Editando esta turma'
+                                  : 'Editar turma'}
+                              </button>
+                            </footer>
                           </div>
-
-                          <section className="rounded-xl border border-slate-200 p-4">
-                            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
-                              Série ou etapa
-                            </p>
-
-                            <p className="mt-2 text-sm leading-6 text-slate-700">
-                              {agendaClass.grade ??
-                                'Não informada'}
-                            </p>
-                          </section>
-
-                          <section className="rounded-xl border border-cyan-200 bg-cyan-50 p-4">
-                            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#075F78]">
-                              Disciplina ou área
-                            </p>
-
-                            <p className="mt-2 text-sm font-semibold leading-6 text-cyan-950">
-                              {agendaClass.subject ??
-                                'Não informada'}
-                            </p>
-                          </section>
-                        </div>
-                      </article>
-                    ),
+                        </article>
+                      )
+                    },
                   )}
                 </div>
               ) : null}
