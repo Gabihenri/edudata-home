@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+
 import {
   type FormEvent,
   useCallback,
@@ -115,7 +117,9 @@ interface CreateSupportTicketResponse {
   error?: string
 }
 
-interface SelectOption<T extends string> {
+interface SelectOption<
+  T extends string,
+> {
   value: T
   label: string
 }
@@ -144,7 +148,8 @@ const CATEGORY_OPTIONS:
     },
     {
       value: 'privacy',
-      label: 'Privacidade e proteção de dados',
+      label:
+        'Privacidade e proteção de dados',
     },
     {
       value: 'suggestion',
@@ -187,7 +192,8 @@ const PRODUCT_OPTIONS = [
   },
   {
     value: 'agenda_edi',
-    label: 'Agenda Inteligente EDI',
+    label:
+      'Agenda Inteligente EDI',
   },
   {
     value: 'academy',
@@ -203,11 +209,13 @@ const PRODUCT_OPTIONS = [
   },
   {
     value: 'observatory',
-    label: 'Observatório da Educação',
+    label:
+      'Observatório da Educação',
   },
   {
     value: 'community',
-    label: 'Comunidade EduData IA',
+    label:
+      'Comunidade EduData IA',
   },
   {
     value: 'backoffice',
@@ -220,7 +228,10 @@ const PRODUCT_OPTIONS = [
 ] as const
 
 const CATEGORY_LABELS:
-  Record<SupportCategory, string> = {
+  Record<
+    SupportCategory,
+    string
+  > = {
     technical:
       'Problema técnico',
 
@@ -247,7 +258,10 @@ const CATEGORY_LABELS:
   }
 
 const PRIORITY_LABELS:
-  Record<SupportPriority, string> = {
+  Record<
+    SupportPriority,
+    string
+  > = {
     low:
       'Baixa',
 
@@ -262,7 +276,10 @@ const PRIORITY_LABELS:
   }
 
 const STATUS_LABELS:
-  Record<SupportStatus, string> = {
+  Record<
+    SupportStatus,
+    string
+  > = {
     open:
       'Aberto',
 
@@ -516,7 +533,9 @@ export default function SupportPage() {
           setTickets(
             result.data ?? [],
           )
-        } catch (loadError) {
+        } catch (
+          loadError
+        ) {
           setError(
             loadError instanceof
               Error
@@ -597,7 +616,8 @@ export default function SupportPage() {
         )
 
       if (
-        response.status === 401
+        response.status ===
+        401
       ) {
         window.location.assign(
           `/login?redirectTo=${encodeURIComponent(
@@ -632,7 +652,9 @@ export default function SupportPage() {
       setPriority('normal')
 
       await loadTickets()
-    } catch (submitError) {
+    } catch (
+      submitError
+    ) {
       setError(
         submitError instanceof
           Error
@@ -657,9 +679,12 @@ export default function SupportPage() {
           </h1>
 
           <p className="mt-5 max-w-3xl text-base leading-8 text-slate-300 sm:text-lg">
-            Abra solicitações, acompanhe protocolos e
-            mantenha a comunicação com a equipe da
-            EduData IA dentro da própria plataforma.
+            Abra solicitações,
+            acompanhe protocolos e
+            mantenha a comunicação
+            com a equipe da EduData IA
+            dentro da própria
+            plataforma.
           </p>
 
           <div className="mt-8 grid max-w-3xl gap-4 sm:grid-cols-2">
@@ -669,7 +694,8 @@ export default function SupportPage() {
               </p>
 
               <p className="mt-1 text-sm leading-6 text-slate-300">
-                As mensagens ficam registradas no
+                As mensagens ficam
+                registradas no
                 histórico do chamado.
               </p>
             </div>
@@ -680,8 +706,10 @@ export default function SupportPage() {
               </p>
 
               <p className="mt-1 text-sm leading-6 text-slate-300">
-                Cada usuário acessa somente os chamados
-                autorizados para sua conta.
+                Cada usuário acessa
+                somente os chamados
+                autorizados para sua
+                conta.
               </p>
             </div>
           </div>
@@ -700,8 +728,10 @@ export default function SupportPage() {
             </h2>
 
             <p className="mt-3 text-sm leading-7 text-slate-600">
-              Descreva o que aconteceu e informe o produto
-              relacionado. O sistema gerará um protocolo
+              Descreva o que aconteceu
+              e informe o produto
+              relacionado. O sistema
+              gerará um protocolo
               automaticamente.
             </p>
           </div>
@@ -725,11 +755,12 @@ export default function SupportPage() {
                 value={
                   productCode
                 }
-                onChange={event =>
-                  setProductCode(
-                    event.target
-                      .value,
-                  )
+                onChange={
+                  event =>
+                    setProductCode(
+                      event.target
+                        .value,
+                    )
                 }
                 className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-950 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
               >
@@ -743,7 +774,9 @@ export default function SupportPage() {
                         option.value
                       }
                     >
-                      {option.label}
+                      {
+                        option.label
+                      }
                     </option>
                   ),
                 )}
@@ -763,12 +796,13 @@ export default function SupportPage() {
                 value={
                   category
                 }
-                onChange={event =>
-                  setCategory(
-                    event.target
-                      .value as
-                      SupportCategory,
-                  )
+                onChange={
+                  event =>
+                    setCategory(
+                      event.target
+                        .value as
+                        SupportCategory,
+                    )
                 }
                 className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-950 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
               >
@@ -782,7 +816,9 @@ export default function SupportPage() {
                         option.value
                       }
                     >
-                      {option.label}
+                      {
+                        option.label
+                      }
                     </option>
                   ),
                 )}
@@ -802,12 +838,13 @@ export default function SupportPage() {
                 value={
                   priority
                 }
-                onChange={event =>
-                  setPriority(
-                    event.target
-                      .value as
-                      SupportPriority,
-                  )
+                onChange={
+                  event =>
+                    setPriority(
+                      event.target
+                        .value as
+                        SupportPriority,
+                    )
                 }
                 className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-950 outline-none transition focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
               >
@@ -821,15 +858,19 @@ export default function SupportPage() {
                         option.value
                       }
                     >
-                      {option.label}
+                      {
+                        option.label
+                      }
                     </option>
                   ),
                 )}
               </select>
 
               <p className="mt-2 text-xs leading-5 text-slate-500">
-                Use urgente somente quando o problema impedir
-                o acesso ou o uso da plataforma.
+                Use urgente somente
+                quando o problema
+                impedir o acesso ou o
+                uso da plataforma.
               </p>
             </div>
 
@@ -850,11 +891,12 @@ export default function SupportPage() {
                 value={
                   subject
                 }
-                onChange={event =>
-                  setSubject(
-                    event.target
-                      .value,
-                  )
+                onChange={
+                  event =>
+                    setSubject(
+                      event.target
+                        .value,
+                    )
                 }
                 placeholder="Exemplo: não consigo acessar meu planejamento"
                 className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
@@ -882,11 +924,12 @@ export default function SupportPage() {
                 value={
                   message
                 }
-                onChange={event =>
-                  setMessage(
-                    event.target
-                      .value,
-                  )
+                onChange={
+                  event =>
+                    setMessage(
+                      event.target
+                        .value,
+                    )
                 }
                 placeholder="Explique o problema, o resultado esperado e o que já tentou fazer."
                 className="mt-2 w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm leading-6 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-cyan-700 focus:ring-4 focus:ring-cyan-100"
@@ -909,7 +952,9 @@ export default function SupportPage() {
 
               {successMessage ? (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold leading-6 text-emerald-800">
-                  {successMessage}
+                  {
+                    successMessage
+                  }
                 </div>
               ) : null}
             </div>
@@ -927,8 +972,10 @@ export default function SupportPage() {
             </button>
 
             <p className="text-center text-xs leading-5 text-slate-500">
-              A primeira versão aceita mensagens de texto.
-              Anexos serão incorporados posteriormente em
+              A primeira versão aceita
+              mensagens de texto.
+              Anexos serão incorporados
+              posteriormente em
               armazenamento privado.
             </p>
           </form>
@@ -976,7 +1023,8 @@ export default function SupportPage() {
                   <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-cyan-700" />
 
                   <p className="mt-4 text-sm font-semibold text-slate-600">
-                    Carregando chamados...
+                    Carregando
+                    chamados...
                   </p>
                 </div>
               </div>
@@ -993,9 +1041,11 @@ export default function SupportPage() {
                 </h3>
 
                 <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-slate-600">
-                  Quando você abrir uma solicitação, o
-                  protocolo e o andamento aparecerão nesta
-                  área.
+                  Quando você abrir uma
+                  solicitação, o
+                  protocolo e o
+                  andamento aparecerão
+                  nesta área.
                 </p>
               </div>
             ) : null}
@@ -1006,98 +1056,116 @@ export default function SupportPage() {
               <div className="space-y-4">
                 {tickets.map(
                   ticket => (
-                    <article
+                    <Link
                       key={
                         ticket.id
                       }
-                      className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                      href={`/suporte/${encodeURIComponent(
+                        ticket.id,
+                      )}`}
+                      aria-label={`Abrir chamado ${ticket.protocol}: ${ticket.subject}`}
+                      className="group block overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-cyan-100"
                     >
-                      <div className="h-1 bg-cyan-700" />
+                      <article>
+                        <div className="h-1 bg-cyan-700 transition group-hover:bg-cyan-600" />
 
-                      <div className="p-5 sm:p-6">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-700">
+                        <div className="p-5 sm:p-6">
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-700">
+                                {
+                                  ticket.protocol
+                                }
+                              </p>
+
+                              <h3 className="mt-2 break-words text-lg font-bold text-[#071827]">
+                                {
+                                  ticket.subject
+                                }
+                              </h3>
+                            </div>
+
+                            <span
+                              className={`inline-flex w-fit shrink-0 rounded-full border px-3 py-1 text-xs font-bold ${getStatusClasses(
+                                ticket.status,
+                              )}`}
+                            >
                               {
-                                ticket.protocol
+                                STATUS_LABELS[
+                                  ticket.status
+                                ]
                               }
+                            </span>
+                          </div>
+
+                          <dl className="mt-5 grid gap-4 border-t border-slate-200 pt-5 sm:grid-cols-2">
+                            <div>
+                              <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+                                Produto
+                              </dt>
+
+                              <dd className="mt-1 text-sm font-semibold text-slate-800">
+                                {getProductLabel(
+                                  ticket.product_code,
+                                )}
+                              </dd>
+                            </div>
+
+                            <div>
+                              <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+                                Categoria
+                              </dt>
+
+                              <dd className="mt-1 text-sm font-semibold text-slate-800">
+                                {
+                                  CATEGORY_LABELS[
+                                    ticket.category
+                                  ]
+                                }
+                              </dd>
+                            </div>
+
+                            <div>
+                              <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+                                Prioridade
+                              </dt>
+
+                              <dd className="mt-1 text-sm font-semibold text-slate-800">
+                                {
+                                  PRIORITY_LABELS[
+                                    ticket.priority
+                                  ]
+                                }
+                              </dd>
+                            </div>
+
+                            <div>
+                              <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+                                Última atualização
+                              </dt>
+
+                              <dd className="mt-1 text-sm font-semibold text-slate-800">
+                                {formatDate(
+                                  ticket.last_message_at,
+                                )}
+                              </dd>
+                            </div>
+                          </dl>
+
+                          <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
+                            <p className="text-xs leading-5 text-slate-500">
+                              Acesse o histórico
+                              e envie novas
+                              mensagens.
                             </p>
 
-                            <h3 className="mt-2 break-words text-lg font-bold text-[#071827]">
-                              {
-                                ticket.subject
-                              }
-                            </h3>
+                            <span className="shrink-0 text-sm font-bold text-cyan-700 transition group-hover:text-cyan-600">
+                              Abrir conversa
+                            </span>
                           </div>
-
-                          <span
-                            className={`inline-flex w-fit shrink-0 rounded-full border px-3 py-1 text-xs font-bold ${getStatusClasses(
-                              ticket.status,
-                            )}`}
-                          >
-                            {
-                              STATUS_LABELS[
-                                ticket.status
-                              ]
-                            }
-                          </span>
                         </div>
-
-                        <dl className="mt-5 grid gap-4 border-t border-slate-200 pt-5 sm:grid-cols-2">
-                          <div>
-                            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-                              Produto
-                            </dt>
-
-                            <dd className="mt-1 text-sm font-semibold text-slate-800">
-                              {getProductLabel(
-                                ticket.product_code,
-                              )}
-                            </dd>
-                          </div>
-
-                          <div>
-                            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-                              Categoria
-                            </dt>
-
-                            <dd className="mt-1 text-sm font-semibold text-slate-800">
-                              {
-                                CATEGORY_LABELS[
-                                  ticket.category
-                                ]
-                              }
-                            </dd>
-                          </div>
-
-                          <div>
-                            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-                              Prioridade
-                            </dt>
-
-                            <dd className="mt-1 text-sm font-semibold text-slate-800">
-                              {
-                                PRIORITY_LABELS[
-                                  ticket.priority
-                                ]
-                              }
-                            </dd>
-                          </div>
-
-                          <div>
-                            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-                              Última atualização
-                            </dt>
-
-                            <dd className="mt-1 text-sm font-semibold text-slate-800">
-                              {formatDate(
-                                ticket.last_message_at,
-                              )}
-                            </dd>
-                          </div>
-                        </dl>
-                      </div>
-                    </article>
+                      </article>
+                    </Link>
                   ),
                 )}
               </div>
