@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 
 import {
@@ -67,6 +68,9 @@ const PROMOTIONAL_ACCESS_DAYS = 30
 
 const MERCADO_PAGO_PAYMENT_URL =
   'https://mpago.la/2XBhHCe'
+
+const MERCADO_PAGO_LOGO_PATH =
+  '/mercado-pago-logo.svg.webp'
 
 const DEFAULT_CONTEXT: UpgradeContext = {
   featureCode: null,
@@ -664,7 +668,7 @@ export default function UpgradePage() {
                 origin:
                   'upgrade_page',
                 pageVersion:
-                  'v1.2',
+                  'v1.3',
                 requestedFeature:
                   context
                     .featureCode ??
@@ -1230,6 +1234,50 @@ export default function UpgradePage() {
                   Agenda Inteligente EDI
                   por 30 dias.
                 </p>
+              </div>
+
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                <div className="flex flex-col items-center px-5 py-6 text-center">
+                  <Image
+                    src={
+                      MERCADO_PAGO_LOGO_PATH
+                    }
+                    alt="Mercado Pago"
+                    width={420}
+                    height={140}
+                    className="h-auto w-full max-w-[260px] object-contain"
+                  />
+
+                  <p className="mt-5 text-sm font-bold text-[#071827]">
+                    Pagamento realizado no
+                    ambiente do Mercado Pago
+                  </p>
+
+                  <p className="mt-2 max-w-sm text-xs leading-5 text-slate-500">
+                    Ao continuar, uma nova
+                    página será aberta para
+                    que você confira o valor
+                    e escolha o meio de
+                    pagamento disponível.
+                  </p>
+                </div>
+
+                <div className="border-t border-slate-200 bg-slate-50 px-5 py-4 text-center">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
+                    Link de pagamento
+                  </p>
+
+                  <a
+                    href={
+                      MERCADO_PAGO_PAYMENT_URL
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex break-all text-sm font-bold text-[#0B7491] underline decoration-cyan-300 underline-offset-4 transition hover:text-[#075E75] focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                  >
+                    mpago.la/2XBhHCe
+                  </a>
+                </div>
               </div>
 
               <a
