@@ -15,234 +15,207 @@ type ContactPreference =
   | 'whatsapp'
   | 'no_preference'
 
+type CopyStatus =
+  | 'idle'
+  | 'copied'
+  | 'error'
+
 type UpgradeContext = {
   featureCode: string | null
-
   requestedPlanCode: string
-
   sourceProduct: string
-
   sourceModule: string | null
-
   sourcePath: string | null
-
   returnTo: string
 }
 
 type FeatureContent = {
   eyebrow: string
-
   name: string
-
   title: string
-
   description: string
-
   benefits: readonly string[]
 }
 
 type ProfileApiResponse = {
   success: boolean
-
   error?: string
-
   user?: {
     id: string
     email: string | null
   }
-
   profile?: {
     userId: string
-
     displayName: string | null
-
     phone: string | null
-
     role: string
-
     status: string
-
     onboardingCompleted: boolean
   }
 }
 
 type UpgradeApiResponse = {
   success: boolean
-
   error?: string
-
   message?: string
-
   data?: {
     id: string
-
     requestedPlanCode: string
-
     featureCode: string | null
-
     sourceProduct: string
   }
 }
 
-const DEFAULT_CONTEXT:
-  UpgradeContext = {
-    featureCode: null,
+const PROMOTIONAL_PRICE = 'R$ 15,00'
+const PROMOTIONAL_PRICE_NUMBER = 15
+const PROMOTIONAL_ACCESS_DAYS = 30
 
-    requestedPlanCode:
-      'edi_professor_pro',
+const PIX_COPY_AND_PASTE =
+  '00020126400014br.gov.bcb.pix0118sabinohc@gmail.com520400005303986540515.005802BR5925LEANDRO SABINO DOS SANTOS6009Sao Paulo62210517daqr864118000450963040E20'
 
-    sourceProduct:
-      'agenda_edi',
+const DEFAULT_CONTEXT: UpgradeContext = {
+  featureCode: null,
+  requestedPlanCode: 'edi_professor_pro',
+  sourceProduct: 'agenda_edi',
+  sourceModule: null,
+  sourcePath: null,
+  returnTo: '/agenda',
+}
 
-    sourceModule: null,
+const CONTACT_OPTIONS: readonly {
+  value: ContactPreference
+  label: string
+}[] = [
+  {
+    value: 'email',
+    label: 'E-mail',
+  },
+  {
+    value: 'whatsapp',
+    label: 'WhatsApp',
+  },
+  {
+    value: 'phone',
+    label: 'Telefone',
+  },
+  {
+    value: 'no_preference',
+    label: 'Sem preferência',
+  },
+]
 
-    sourcePath: null,
+const OFFER_CONDITIONS = [
+  'Acesso individual por 30 dias corridos.',
+  'O período começa na data da ativação do plano.',
+  'Pagamento único por Pix.',
+  'Sem renovação ou cobrança automática.',
+  'Ativação manual após confirmação do pagamento.',
+  'Oferta destinada a usuários individuais.',
+  'Não inclui perfil institucional de coordenação, direção ou gestão.',
+  'O valor promocional não garante o mesmo preço em futuras renovações.',
+] as const
 
-    returnTo:
-      '/agenda',
-  }
-
-const FEATURE_CONTENT:
-  Record<
-    string,
-    FeatureContent
-  > = {
-    'agenda.recurring': {
-      eyebrow:
-        'Automação da rotina',
-
-      name:
-        'Eventos recorrentes',
-
-      title:
-        'Organize compromissos semanais de forma automática',
-
-      description:
-        'Configure uma única vez os compromissos que se repetem durante o período letivo e deixe a Agenda Inteligente EDI estruturar as próximas semanas.',
-
-      benefits: [
-        'Criação automática de eventos semanais',
-        'Menos preenchimento repetitivo',
-        'Maior continuidade na rotina pedagógica',
-        'Visualização organizada dos compromissos futuros',
-      ],
-    },
-
-    'agenda.templates': {
-      eyebrow:
-        'Horários-padrão',
-
-      name:
-        'Horários-padrão reutilizáveis',
-
-      title:
-        'Cadastre sua rotina uma vez e aplique quando precisar',
-
-      description:
-        'Salve estruturas de horários e utilize modelos para preencher semanas letivas com mais rapidez e consistência.',
-
-      benefits: [
-        'Modelos reutilizáveis de horários',
-        'Aplicação rápida na semana selecionada',
-        'Redução de tarefas manuais',
-        'Maior padronização da agenda docente',
-      ],
-    },
-
-    'agenda.planning': {
-      eyebrow:
-        'Planejamento pedagógico',
-
-      name:
-        'Planejamento avançado',
-
-      title:
-        'Conecte planejamento, turmas e compromissos pedagógicos',
-
-      description:
-        'Amplie a organização do trabalho docente com registros estruturados e integrados aos demais módulos da Agenda EDI.',
-
-      benefits: [
-        'Planejamento organizado por período',
-        'Integração com turmas e agenda',
-        'Histórico pedagógico estruturado',
-        'Acompanhamento contínuo das ações',
-      ],
-    },
-
-    'evidences.upload': {
-      eyebrow:
-        'Evidências protegidas',
-
-      name:
-        'Upload de evidências',
-
-      title:
-        'Organize imagens e documentos em um ambiente protegido',
-
-      description:
-        'Vincule arquivos aos registros pedagógicos e mantenha as evidências organizadas, rastreáveis e protegidas.',
-
-      benefits: [
-        'Upload protegido de documentos',
-        'Vínculo com registros pedagógicos',
-        'Organização das evidências',
-        'Rastreabilidade dos arquivos',
-      ],
-    },
-
-    'evidences.text': {
-      eyebrow:
-        'Registro pedagógico',
-
-      name:
-        'Evidências textuais',
-
-      title:
-        'Transforme acontecimentos pedagógicos em registros organizados',
-
-      description:
-        'Registre observações, resultados e ações desenvolvidas diretamente no fluxo operacional da Agenda Inteligente EDI.',
-
-      benefits: [
-        'Registros pedagógicos estruturados',
-        'Histórico vinculado à rotina docente',
-        'Acompanhamento das ações realizadas',
-        'Base organizada para análise posterior',
-      ],
-    },
-  }
-
-const DEFAULT_FEATURE_CONTENT:
-  FeatureContent = {
-    eyebrow:
-      'Experiência avançada',
-
-    name:
-      'Recursos do Professor Digital Pro',
-
+const FEATURE_CONTENT: Record<
+  string,
+  FeatureContent
+> = {
+  'agenda.recurring': {
+    eyebrow: 'Automação da rotina',
+    name: 'Eventos recorrentes',
     title:
-      'Amplie sua experiência na Plataforma EduData IA',
-
+      'Organize compromissos semanais de forma automática',
     description:
-      'Ative recursos adicionais para reduzir tarefas manuais, organizar sua rotina e utilizar uma camada mais completa de inteligência educacional.',
-
+      'Configure uma única vez os compromissos que se repetem durante o período letivo e deixe a Agenda Inteligente EDI estruturar as próximas semanas.',
     benefits: [
-      'Mais automação para sua rotina',
-      'Recursos avançados da Agenda EDI',
-      'Integração com o Professor Digital',
-      'Evolução contínua da experiência',
+      'Criação automática de eventos semanais',
+      'Menos preenchimento repetitivo',
+      'Maior continuidade na rotina pedagógica',
+      'Visualização organizada dos compromissos futuros',
     ],
-  }
+  },
+
+  'agenda.templates': {
+    eyebrow: 'Horários-padrão',
+    name: 'Horários-padrão reutilizáveis',
+    title:
+      'Cadastre sua rotina uma vez e aplique quando precisar',
+    description:
+      'Salve estruturas de horários e utilize modelos para preencher semanas letivas com mais rapidez e consistência.',
+    benefits: [
+      'Modelos reutilizáveis de horários',
+      'Aplicação rápida na semana selecionada',
+      'Redução de tarefas manuais',
+      'Maior padronização da agenda docente',
+    ],
+  },
+
+  'agenda.planning': {
+    eyebrow: 'Planejamento pedagógico',
+    name: 'Planejamento avançado',
+    title:
+      'Conecte planejamento, turmas e compromissos pedagógicos',
+    description:
+      'Amplie a organização do trabalho docente com registros estruturados e integrados aos demais módulos da Agenda EDI.',
+    benefits: [
+      'Planejamento organizado por período',
+      'Integração com turmas e agenda',
+      'Histórico pedagógico estruturado',
+      'Acompanhamento contínuo das ações',
+    ],
+  },
+
+  'evidences.upload': {
+    eyebrow: 'Evidências protegidas',
+    name: 'Upload de evidências',
+    title:
+      'Organize imagens e documentos em um ambiente protegido',
+    description:
+      'Vincule arquivos aos registros pedagógicos e mantenha as evidências organizadas, rastreáveis e protegidas.',
+    benefits: [
+      'Upload protegido de documentos',
+      'Vínculo com registros pedagógicos',
+      'Organização das evidências',
+      'Rastreabilidade dos arquivos',
+    ],
+  },
+
+  'evidences.text': {
+    eyebrow: 'Registro pedagógico',
+    name: 'Evidências textuais',
+    title:
+      'Transforme acontecimentos pedagógicos em registros organizados',
+    description:
+      'Registre observações, resultados e ações desenvolvidas diretamente no fluxo operacional da Agenda Inteligente EDI.',
+    benefits: [
+      'Registros pedagógicos estruturados',
+      'Histórico vinculado à rotina docente',
+      'Acompanhamento das ações realizadas',
+      'Base organizada para análise posterior',
+    ],
+  },
+}
+
+const DEFAULT_FEATURE_CONTENT: FeatureContent = {
+  eyebrow: 'Experiência avançada',
+  name: 'Recursos do Professor Digital Pro',
+  title:
+    'Amplie sua experiência na Plataforma EduData IA',
+  description:
+    'Ative recursos adicionais para reduzir tarefas manuais, organizar sua rotina e utilizar uma camada mais completa de inteligência educacional.',
+  benefits: [
+    'Mais automação para sua rotina',
+    'Recursos avançados da Agenda EDI',
+    'Integração com o Professor Digital',
+    'Evolução contínua da experiência',
+  ],
+}
 
 function normalizeCode(
   value: string | null,
   fallback: string,
 ): string {
   const normalizedValue =
-    value
-      ?.trim()
-      .toLowerCase() ?? ''
+    value?.trim().toLowerCase() ?? ''
 
   if (
     normalizedValue &&
@@ -260,9 +233,7 @@ function normalizeOptionalCode(
   value: string | null,
 ): string | null {
   const normalizedValue =
-    value
-      ?.trim()
-      .toLowerCase() ?? ''
+    value?.trim().toLowerCase() ?? ''
 
   if (
     normalizedValue &&
@@ -308,8 +279,7 @@ function getSafeInternalPath(
   return fallback
 }
 
-function readUpgradeContext():
-  UpgradeContext {
+function readUpgradeContext(): UpgradeContext {
   if (
     typeof window ===
     'undefined'
@@ -324,9 +294,7 @@ function readUpgradeContext():
 
   const featureCode =
     normalizeOptionalCode(
-      searchParams.get(
-        'feature',
-      ),
+      searchParams.get('feature'),
     )
 
   const requestedPlanCode =
@@ -339,32 +307,24 @@ function readUpgradeContext():
 
   const sourceProduct =
     normalizeCode(
-      searchParams.get(
-        'product',
-      ),
+      searchParams.get('product'),
       'agenda_edi',
     )
 
   const sourceModule =
     normalizeOptionalCode(
-      searchParams.get(
-        'module',
-      ),
+      searchParams.get('module'),
     )
 
   const sourcePath =
     normalizeOptionalText(
-      searchParams.get(
-        'source',
-      ),
+      searchParams.get('source'),
       500,
     )
 
   const returnTo =
     getSafeInternalPath(
-      searchParams.get(
-        'returnTo',
-      ),
+      searchParams.get('returnTo'),
       sourcePath?.startsWith('/')
         ? sourcePath
         : '/agenda',
@@ -372,15 +332,10 @@ function readUpgradeContext():
 
   return {
     featureCode,
-
     requestedPlanCode,
-
     sourceProduct,
-
     sourceModule,
-
     sourcePath,
-
     returnTo,
   }
 }
@@ -394,6 +349,71 @@ function getErrorMessage(
     : fallbackMessage
 }
 
+async function copyTextToClipboard(
+  text: string,
+): Promise<void> {
+  if (
+    typeof navigator !==
+      'undefined' &&
+    navigator.clipboard?.writeText
+  ) {
+    await navigator.clipboard.writeText(
+      text,
+    )
+
+    return
+  }
+
+  if (
+    typeof document ===
+    'undefined'
+  ) {
+    throw new Error(
+      'A cópia automática não está disponível.',
+    )
+  }
+
+  const temporaryTextarea =
+    document.createElement(
+      'textarea',
+    )
+
+  temporaryTextarea.value = text
+  temporaryTextarea.setAttribute(
+    'readonly',
+    '',
+  )
+
+  temporaryTextarea.style.position =
+    'fixed'
+  temporaryTextarea.style.left =
+    '-9999px'
+  temporaryTextarea.style.top = '0'
+
+  document.body.appendChild(
+    temporaryTextarea,
+  )
+
+  temporaryTextarea.select()
+  temporaryTextarea.setSelectionRange(
+    0,
+    text.length,
+  )
+
+  const copied =
+    document.execCommand('copy')
+
+  document.body.removeChild(
+    temporaryTextarea,
+  )
+
+  if (!copied) {
+    throw new Error(
+      'Não foi possível copiar o código Pix.',
+    )
+  }
+}
+
 export default function UpgradePage() {
   const [
     context,
@@ -405,6 +425,11 @@ export default function UpgradePage() {
   const [
     displayName,
     setDisplayName,
+  ] = useState('')
+
+  const [
+    payerName,
+    setPayerName,
   ] = useState('')
 
   const [
@@ -426,8 +451,13 @@ export default function UpgradePage() {
     )
 
   const [
-    consent,
-    setConsent,
+    commercialConsent,
+    setCommercialConsent,
+  ] = useState(false)
+
+  const [
+    offerAccepted,
+    setOfferAccepted,
   ] = useState(false)
 
   const [
@@ -460,6 +490,12 @@ export default function UpgradePage() {
     setRequestId,
   ] = useState('')
 
+  const [
+    copyStatus,
+    setCopyStatus,
+  ] =
+    useState<CopyStatus>('idle')
+
   useEffect(() => {
     setContext(
       readUpgradeContext(),
@@ -479,12 +515,8 @@ export default function UpgradePage() {
             '/api/profile',
             {
               method: 'GET',
-
-              credentials:
-                'include',
-
-              cache:
-                'no-store',
+              credentials: 'include',
+              cache: 'no-store',
             },
           )
 
@@ -516,21 +548,20 @@ export default function UpgradePage() {
           )
         }
 
-        setDisplayName(
+        const profileName =
           result.profile
-            ?.displayName ??
-            '',
-        )
+            ?.displayName?.trim() ??
+          ''
+
+        setDisplayName(profileName)
+        setPayerName(profileName)
 
         setEmail(
-          result.user?.email ??
-            '',
+          result.user?.email ?? '',
         )
 
         setPhone(
-          result.profile
-            ?.phone ??
-            '',
+          result.profile?.phone ?? '',
         )
 
         if (
@@ -575,10 +606,8 @@ export default function UpgradePage() {
         return (
           FEATURE_CONTENT[
             context.featureCode
-          ] ??
-          {
+          ] ?? {
             ...DEFAULT_FEATURE_CONTENT,
-
             name:
               context.featureCode,
           }
@@ -586,9 +615,7 @@ export default function UpgradePage() {
       }
 
       return DEFAULT_FEATURE_CONTENT
-    }, [
-      context.featureCode,
-    ])
+    }, [context.featureCode])
 
   const loginHref =
     useMemo(() => {
@@ -615,8 +642,25 @@ export default function UpgradePage() {
     setErrorMessage('')
     setSuccessMessage('')
     setRequestId('')
+    setCopyStatus('idle')
 
-    if (!consent) {
+    if (!payerName.trim()) {
+      setErrorMessage(
+        'Informe o nome que será utilizado no pagamento.',
+      )
+
+      return
+    }
+
+    if (!offerAccepted) {
+      setErrorMessage(
+        'Confirme que leu e aceitou as condições da oferta promocional.',
+      )
+
+      return
+    }
+
+    if (!commercialConsent) {
       setErrorMessage(
         'Confirme a autorização para contato sobre o upgrade.',
       )
@@ -660,67 +704,68 @@ export default function UpgradePage() {
           '/api/commercial/upgrade-requests',
           {
             method: 'POST',
-
-            credentials:
-              'include',
-
+            credentials: 'include',
             headers: {
               'Content-Type':
                 'application/json',
             },
+            body: JSON.stringify({
+              requestedPlanCode:
+                context
+                  .requestedPlanCode,
 
-            body:
-              JSON.stringify({
-                requestedPlanCode:
+              featureCode:
+                context.featureCode,
+
+              sourceProduct:
+                context.sourceProduct,
+
+              sourceModule:
+                context.sourceModule,
+
+              sourcePath:
+                context.sourcePath,
+
+              contactPreference,
+
+              contactEmail:
+                email.trim() || null,
+
+              contactPhone:
+                phone.trim() || null,
+
+              commercialContactConsent:
+                true,
+
+              sourceContext: {
+                origin:
+                  'upgrade_page',
+                pageVersion:
+                  'v1.1',
+                requestedFeature:
                   context
-                    .requestedPlanCode,
-
-                featureCode:
-                  context
-                    .featureCode,
-
-                sourceProduct:
-                  context
-                    .sourceProduct,
-
-                sourceModule:
-                  context
-                    .sourceModule,
-
-                sourcePath:
-                  context
-                    .sourcePath,
-
-                contactPreference,
-
-                contactEmail:
-                  email.trim() ||
-                  null,
-
-                contactPhone:
-                  phone.trim() ||
-                  null,
-
-                commercialContactConsent:
+                    .featureCode ??
+                  'general',
+                returnTo:
+                  context.returnTo,
+                offerCode:
+                  'professor_pro_launch_15_30d',
+                offerPrice:
+                  PROMOTIONAL_PRICE_NUMBER,
+                offerCurrency:
+                  'BRL',
+                accessDays:
+                  PROMOTIONAL_ACCESS_DAYS,
+                paymentMethod:
+                  'pix_manual',
+                payerName:
+                  payerName.trim(),
+                termsAccepted:
                   true,
-
-                sourceContext: {
-                  origin:
-                    'upgrade_page',
-
-                  pageVersion:
-                    'v1.0',
-
-                  requestedFeature:
-                    context
-                      .featureCode ??
-                    'general',
-
-                  returnTo:
-                    context
-                      .returnTo,
-                },
-              }),
+                automaticRenewal:
+                  false,
+              },
+            }),
           },
         )
 
@@ -749,13 +794,11 @@ export default function UpgradePage() {
       }
 
       setSuccessMessage(
-        result.message ??
-          'Solicitação de upgrade registrada com sucesso.',
+        'Sua solicitação foi registrada. Agora realize o pagamento Pix de R$ 15,00 para iniciar o processo de ativação.',
       )
 
       setRequestId(
-        result.data?.id ??
-          '',
+        result.data?.id ?? '',
       )
     } catch (error) {
       setErrorMessage(
@@ -766,6 +809,24 @@ export default function UpgradePage() {
       )
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function handleCopyPix() {
+    setCopyStatus('idle')
+
+    try {
+      await copyTextToClipboard(
+        PIX_COPY_AND_PASTE,
+      )
+
+      setCopyStatus('copied')
+
+      window.setTimeout(() => {
+        setCopyStatus('idle')
+      }, 3000)
+    } catch {
+      setCopyStatus('error')
     }
   }
 
@@ -793,18 +854,22 @@ export default function UpgradePage() {
               </p>
 
               <h1 className="mt-4 text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
-                Evolua sua experiência com o Professor Digital Pro
+                Professor Pro com Agenda
+                Inteligente EDI
               </h1>
 
               <p className="mt-5 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
-                Ative recursos avançados para automatizar sua rotina, organizar registros pedagógicos e aproveitar melhor a inteligência operacional da plataforma.
+                Ative recursos avançados
+                para organizar sua rotina,
+                planejar o trabalho docente
+                e registrar evidências
+                pedagógicas em um único
+                ecossistema.
               </p>
             </div>
 
             <Link
-              href={
-                context.returnTo
-              }
+              href={context.returnTo}
               className="inline-flex min-h-12 w-fit items-center justify-center rounded-xl border border-white/20 px-5 py-3 text-sm font-bold text-white transition hover:border-white/40 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-300"
             >
               Voltar para a Agenda
@@ -825,30 +890,50 @@ export default function UpgradePage() {
           </div>
 
           <div className="relative">
-            <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-start justify-between gap-5">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#0B7491]">
-                  {
-                    featureContent.eyebrow
-                  }
+                  Oferta promocional
                 </p>
 
                 <p className="mt-2 text-sm font-semibold text-slate-500">
-                  Recurso solicitado
+                  Professor Digital Pro
                 </p>
               </div>
 
               <div className="rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2">
                 <p className="text-xs font-bold text-[#075E75]">
-                  Disponível no Pro
+                  Primeiros usuários
                 </p>
               </div>
             </div>
 
-            <h2 className="mt-7 text-3xl font-bold leading-tight tracking-tight text-[#071827] sm:text-4xl">
-              {
-                featureContent.title
-              }
+            <div className="mt-7 rounded-[1.5rem] border border-cyan-200 bg-[#071827] px-6 py-6 text-white sm:px-7">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">
+                Acesso por 30 dias
+              </p>
+
+              <div className="mt-3 flex flex-wrap items-end gap-3">
+                <p className="text-4xl font-bold tracking-tight sm:text-5xl">
+                  {PROMOTIONAL_PRICE}
+                </p>
+
+                <p className="pb-1 text-sm font-semibold text-slate-300">
+                  pagamento único
+                </p>
+              </div>
+
+              <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300">
+                Sem assinatura e sem
+                renovação automática nesta
+                fase inicial. A ativação será
+                realizada após a confirmação
+                do pagamento.
+              </p>
+            </div>
+
+            <h2 className="mt-8 text-3xl font-bold leading-tight tracking-tight text-[#071827] sm:text-4xl">
+              {featureContent.title}
             </h2>
 
             <p className="mt-4 text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
@@ -858,82 +943,64 @@ export default function UpgradePage() {
             </p>
 
             <div className="mt-7 grid gap-3 sm:grid-cols-2">
-              {
-                featureContent
-                  .benefits
-                  .map(
-                    (
-                      benefit,
-                      index,
-                    ) => (
-                      <div
-                        key={
-                          benefit
-                        }
-                        className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
+              {featureContent.benefits.map(
+                (
+                  benefit,
+                  index,
+                ) => (
+                  <div
+                    key={benefit}
+                    className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan-200 bg-white text-[10px] font-bold text-[#0B7491]"
+                    >
+                      {String(
+                        index + 1,
+                      ).padStart(
+                        2,
+                        '0',
+                      )}
+                    </span>
+
+                    <p className="text-sm font-semibold leading-6 text-slate-700">
+                      {benefit}
+                    </p>
+                  </div>
+                ),
+              )}
+            </div>
+
+            <div className="mt-8">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                Condições da promoção
+              </p>
+
+              <div className="mt-4 grid gap-3">
+                {OFFER_CONDITIONS.map(
+                  (
+                    condition,
+                    index,
+                  ) => (
+                    <div
+                      key={condition}
+                      className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cyan-50 text-[10px] font-bold text-[#0B7491]"
                       >
-                        <span
-                          aria-hidden="true"
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan-200 bg-white text-[10px] font-bold text-[#0B7491]"
-                        >
-                          {
-                            String(
-                              index +
-                                1,
-                            ).padStart(
-                              2,
-                              '0',
-                            )
-                          }
-                        </span>
+                        {index + 1}
+                      </span>
 
-                        <p className="text-sm font-semibold leading-6 text-slate-700">
-                          {
-                            benefit
-                          }
-                        </p>
-                      </div>
-                    ),
-                  )
-              }
-            </div>
-
-            <div className="mt-7 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
-                  Recurso
-                </p>
-
-                <p className="mt-2 text-base font-bold text-slate-900">
-                  {
-                    featureContent.name
-                  }
-                </p>
+                      <p className="text-sm leading-6 text-slate-600">
+                        {condition}
+                      </p>
+                    </div>
+                  ),
+                )}
               </div>
-
-              <div className="rounded-2xl border border-cyan-200 bg-cyan-50 px-5 py-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0B7491]">
-                  Plano recomendado
-                </p>
-
-                <p className="mt-2 text-base font-bold text-[#064E63]">
-                  EDI Professor Pro
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-7 rounded-2xl border border-slate-200 bg-[#071827] px-5 py-5 text-white">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">
-                Processo inicial
-              </p>
-
-              <p className="mt-2 text-base font-bold">
-                Solicitação sem cobrança automática
-              </p>
-
-              <p className="mt-3 text-sm leading-6 text-slate-300">
-                A equipe da EduData IA receberá seu interesse e apresentará as condições disponíveis antes de qualquer contratação.
-              </p>
             </div>
           </div>
         </section>
@@ -942,307 +1009,425 @@ export default function UpgradePage() {
           <div className="h-1 w-16 bg-[#0B7491]" />
 
           <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
-            Solicitação de upgrade
+            Ativação promocional
           </p>
 
           <h2 className="mt-3 text-2xl font-bold tracking-tight text-[#071827]">
-            Receba as condições do plano Pro
+            Registre seu interesse
           </h2>
 
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            Confirme seus dados e escolha como prefere receber o contato da EduData IA.
+            A solicitação será vinculada
+            à sua conta antes da exibição
+            do código Pix.
           </p>
 
-          {
-            isLoadingProfile ? (
-              <div className="mt-7 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-6">
-                <p className="text-sm font-semibold text-slate-600">
-                  Carregando seus dados de acesso...
-                </p>
-              </div>
-            ) : null
-          }
+          {isLoadingProfile ? (
+            <div className="mt-7 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-6">
+              <p className="text-sm font-semibold text-slate-600">
+                Carregando seus dados de
+                acesso...
+              </p>
+            </div>
+          ) : null}
 
-          {
-            authenticationRequired ? (
-              <div className="mt-7 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-5">
-                <p className="text-sm font-bold text-amber-900">
-                  Entre na plataforma para continuar
-                </p>
+          {authenticationRequired ? (
+            <div className="mt-7 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-5">
+              <p className="text-sm font-bold text-amber-900">
+                Entre na plataforma para
+                continuar
+              </p>
 
-                <p className="mt-2 text-sm leading-6 text-amber-800">
-                  A solicitação de upgrade precisa ser vinculada à sua conta.
-                </p>
+              <p className="mt-2 text-sm leading-6 text-amber-800">
+                A solicitação e o
+                pagamento precisam ser
+                vinculados à conta que
+                receberá o plano.
+              </p>
 
-                <Link
-                  href={loginHref}
-                  className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#071827] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#0B2B43] focus:outline-none focus:ring-2 focus:ring-[#0B7491]"
-                >
-                  Entrar na plataforma
-                </Link>
-              </div>
-            ) : null
-          }
-
-          {
-            !isLoadingProfile &&
-            !authenticationRequired ? (
-              <form
-                onSubmit={
-                  handleSubmit
-                }
-                className="mt-7 space-y-5"
+              <Link
+                href={loginHref}
+                className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#071827] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#0B2B43] focus:outline-none focus:ring-2 focus:ring-[#0B7491]"
               >
-                <div>
-                  <label
-                    htmlFor="upgrade-name"
-                    className="block text-sm font-bold text-slate-800"
-                  >
-                    Nome
-                  </label>
+                Entrar na plataforma
+              </Link>
+            </div>
+          ) : null}
 
-                  <input
-                    id="upgrade-name"
-                    type="text"
-                    value={
-                      displayName
-                    }
-                    readOnly
-                    className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-700 outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="upgrade-email"
-                    className="block text-sm font-bold text-slate-800"
-                  >
-                    E-mail
-                  </label>
-
-                  <input
-                    id="upgrade-email"
-                    type="email"
-                    value={email}
-                    onChange={(
-                      event,
-                    ) =>
-                      setEmail(
-                        event
-                          .target
-                          .value,
-                      )
-                    }
-                    autoComplete="email"
-                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-cyan-100"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="upgrade-phone"
-                    className="block text-sm font-bold text-slate-800"
-                  >
-                    Telefone ou WhatsApp
-                  </label>
-
-                  <input
-                    id="upgrade-phone"
-                    type="tel"
-                    value={phone}
-                    onChange={(
-                      event,
-                    ) =>
-                      setPhone(
-                        event
-                          .target
-                          .value,
-                      )
-                    }
-                    autoComplete="tel"
-                    placeholder="(11) 99999-9999"
-                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-cyan-100"
-                  />
-                </div>
-
-                <fieldset>
-                  <legend className="text-sm font-bold text-slate-800">
-                    Preferência de contato
-                  </legend>
-
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    {[
-                      {
-                        value:
-                          'email',
-                        label:
-                          'E-mail',
-                      },
-
-                      {
-                        value:
-                          'whatsapp',
-                        label:
-                          'WhatsApp',
-                      },
-
-                      {
-                        value:
-                          'phone',
-                        label:
-                          'Telefone',
-                      },
-
-                      {
-                        value:
-                          'no_preference',
-                        label:
-                          'Sem preferência',
-                      },
-                    ].map(
-                      option => (
-                        <label
-                          key={
-                            option.value
-                          }
-                          className={[
-                            'flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition',
-
-                            contactPreference ===
-                            option.value
-                              ? 'border-cyan-300 bg-cyan-50 text-[#064E63]'
-                              : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300',
-                          ].join(
-                            ' ',
-                          )}
-                        >
-                          <input
-                            type="radio"
-                            name="contactPreference"
-                            value={
-                              option.value
-                            }
-                            checked={
-                              contactPreference ===
-                              option.value
-                            }
-                            onChange={() =>
-                              setContactPreference(
-                                option.value as ContactPreference,
-                              )
-                            }
-                            className="h-4 w-4 accent-[#0B7491]"
-                          />
-
-                          <span className="text-sm font-semibold">
-                            {
-                              option.label
-                            }
-                          </span>
-                        </label>
-                      ),
-                    )}
-                  </div>
-                </fieldset>
-
-                <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                  <input
-                    type="checkbox"
-                    checked={
-                      consent
-                    }
-                    onChange={(
-                      event,
-                    ) =>
-                      setConsent(
-                        event
-                          .target
-                          .checked,
-                      )
-                    }
-                    className="mt-1 h-4 w-4 shrink-0 accent-[#0B7491]"
-                  />
-
-                  <span className="text-sm leading-6 text-slate-600">
-                    Autorizo a EduData IA a entrar em contato para apresentar informações e condições relacionadas ao upgrade solicitado.
-                  </span>
+          {!isLoadingProfile &&
+          !authenticationRequired &&
+          !successMessage ? (
+            <form
+              onSubmit={handleSubmit}
+              className="mt-7 space-y-5"
+            >
+              <div>
+                <label
+                  htmlFor="account-name"
+                  className="block text-sm font-bold text-slate-800"
+                >
+                  Nome da conta
                 </label>
 
-                {
-                  errorMessage ? (
-                    <div
-                      role="alert"
-                      className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4"
-                    >
-                      <p className="text-sm font-semibold leading-6 text-red-700">
-                        {
-                          errorMessage
-                        }
-                      </p>
-                    </div>
-                  ) : null
-                }
+                <input
+                  id="account-name"
+                  type="text"
+                  value={displayName}
+                  readOnly
+                  placeholder="Nome não informado no perfil"
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-700 outline-none"
+                />
+              </div>
 
-                {
-                  successMessage ? (
-                    <div
-                      role="status"
-                      className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4"
-                    >
-                      <p className="text-sm font-bold text-emerald-800">
-                        Solicitação registrada
-                      </p>
+              <div>
+                <label
+                  htmlFor="payer-name"
+                  className="block text-sm font-bold text-slate-800"
+                >
+                  Nome utilizado no
+                  pagamento
+                </label>
 
-                      <p className="mt-2 text-sm leading-6 text-emerald-700">
-                        {
-                          successMessage
-                        }
-                      </p>
+                <input
+                  id="payer-name"
+                  type="text"
+                  value={payerName}
+                  onChange={event =>
+                    setPayerName(
+                      event.target.value,
+                    )
+                  }
+                  autoComplete="name"
+                  maxLength={150}
+                  placeholder="Nome completo do pagador"
+                  className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-cyan-100"
+                />
 
-                      {
-                        requestId ? (
-                          <p className="mt-2 text-xs text-emerald-700">
-                            Seu interesse já está vinculado à sua conta.
-                          </p>
-                        ) : null
-                      }
-                    </div>
-                  ) : null
-                }
-
-                {
-                  successMessage ? (
-                    <Link
-                      href={
-                        context.returnTo
-                      }
-                      className="inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-slate-300 px-5 py-3 text-sm font-bold text-slate-800 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300"
-                    >
-                      Voltar para a Agenda
-                    </Link>
-                  ) : (
-                    <button
-                      type="submit"
-                      disabled={
-                        isSubmitting
-                      }
-                      className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#071827] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#0B2B43] focus:outline-none focus:ring-2 focus:ring-[#0B7491] disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {
-                        isSubmitting
-                          ? 'Registrando solicitação...'
-                          : 'Solicitar upgrade'
-                      }
-                    </button>
-                  )
-                }
-
-                <p className="text-center text-xs leading-5 text-slate-500">
-                  Esta etapa registra apenas seu interesse. Nenhuma cobrança será realizada automaticamente.
+                <p className="mt-2 text-xs leading-5 text-slate-500">
+                  Use o mesmo nome que
+                  aparecerá no comprovante
+                  para facilitar a
+                  conferência.
                 </p>
-              </form>
-            ) : null
-          }
+              </div>
+
+              <div>
+                <label
+                  htmlFor="upgrade-email"
+                  className="block text-sm font-bold text-slate-800"
+                >
+                  E-mail da conta
+                </label>
+
+                <input
+                  id="upgrade-email"
+                  type="email"
+                  value={email}
+                  onChange={event =>
+                    setEmail(
+                      event.target.value,
+                    )
+                  }
+                  autoComplete="email"
+                  className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-cyan-100"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="upgrade-phone"
+                  className="block text-sm font-bold text-slate-800"
+                >
+                  Telefone ou WhatsApp
+                </label>
+
+                <input
+                  id="upgrade-phone"
+                  type="tel"
+                  value={phone}
+                  onChange={event =>
+                    setPhone(
+                      event.target.value,
+                    )
+                  }
+                  autoComplete="tel"
+                  placeholder="(11) 99999-9999"
+                  className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#0B7491] focus:ring-2 focus:ring-cyan-100"
+                />
+              </div>
+
+              <fieldset>
+                <legend className="text-sm font-bold text-slate-800">
+                  Preferência de contato
+                </legend>
+
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {CONTACT_OPTIONS.map(
+                    option => (
+                      <label
+                        key={
+                          option.value
+                        }
+                        className={[
+                          'flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition',
+                          contactPreference ===
+                          option.value
+                            ? 'border-cyan-300 bg-cyan-50 text-[#064E63]'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300',
+                        ].join(' ')}
+                      >
+                        <input
+                          type="radio"
+                          name="contactPreference"
+                          value={
+                            option.value
+                          }
+                          checked={
+                            contactPreference ===
+                            option.value
+                          }
+                          onChange={() =>
+                            setContactPreference(
+                              option.value,
+                            )
+                          }
+                          className="h-4 w-4 accent-[#0B7491]"
+                        />
+
+                        <span className="text-sm font-semibold">
+                          {
+                            option.label
+                          }
+                        </span>
+                      </label>
+                    ),
+                  )}
+                </div>
+              </fieldset>
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-4">
+                <input
+                  type="checkbox"
+                  checked={offerAccepted}
+                  onChange={event =>
+                    setOfferAccepted(
+                      event.target
+                        .checked,
+                    )
+                  }
+                  className="mt-1 h-4 w-4 shrink-0 accent-[#0B7491]"
+                />
+
+                <span className="text-sm leading-6 text-slate-700">
+                  Li e aceito as
+                  condições da oferta de{' '}
+                  <strong>
+                    {PROMOTIONAL_PRICE}
+                  </strong>{' '}
+                  por 30 dias, com
+                  pagamento único e sem
+                  renovação automática.
+                </span>
+              </label>
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                <input
+                  type="checkbox"
+                  checked={
+                    commercialConsent
+                  }
+                  onChange={event =>
+                    setCommercialConsent(
+                      event.target
+                        .checked,
+                    )
+                  }
+                  className="mt-1 h-4 w-4 shrink-0 accent-[#0B7491]"
+                />
+
+                <span className="text-sm leading-6 text-slate-600">
+                  Autorizo a EduData IA
+                  a entrar em contato
+                  para confirmar o
+                  pagamento, realizar a
+                  ativação e prestar as
+                  orientações iniciais.
+                </span>
+              </label>
+
+              {errorMessage ? (
+                <div
+                  role="alert"
+                  className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4"
+                >
+                  <p className="text-sm font-semibold leading-6 text-red-700">
+                    {errorMessage}
+                  </p>
+                </div>
+              ) : null}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#071827] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#0B2B43] focus:outline-none focus:ring-2 focus:ring-[#0B7491] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSubmitting
+                  ? 'Registrando solicitação...'
+                  : 'Registrar e acessar o Pix'}
+              </button>
+
+              <p className="text-center text-xs leading-5 text-slate-500">
+                O envio do formulário
+                não ativa o plano e não
+                realiza cobrança
+                automática.
+              </p>
+            </form>
+          ) : null}
+
+          {!isLoadingProfile &&
+          !authenticationRequired &&
+          successMessage ? (
+            <div className="mt-7 space-y-5">
+              <div
+                role="status"
+                className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-5"
+              >
+                <p className="text-sm font-bold text-emerald-800">
+                  Solicitação registrada
+                </p>
+
+                <p className="mt-2 text-sm leading-6 text-emerald-700">
+                  {successMessage}
+                </p>
+
+                {requestId ? (
+                  <p className="mt-2 text-xs text-emerald-700">
+                    A solicitação está
+                    vinculada à sua conta.
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="rounded-2xl border border-cyan-200 bg-cyan-50 px-5 py-5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                  Valor da cobrança
+                </p>
+
+                <p className="mt-2 text-3xl font-bold tracking-tight text-[#071827]">
+                  {PROMOTIONAL_PRICE}
+                </p>
+
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Professor Pro —
+                  Agenda Inteligente EDI
+                  por 30 dias.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5">
+                <label
+                  htmlFor="pix-code"
+                  className="text-sm font-bold text-slate-800"
+                >
+                  Pix Copia e Cola
+                </label>
+
+                <textarea
+                  id="pix-code"
+                  value={
+                    PIX_COPY_AND_PASTE
+                  }
+                  readOnly
+                  rows={6}
+                  className="mt-3 w-full resize-none rounded-xl border border-slate-300 bg-white px-4 py-3 font-mono text-xs leading-5 text-slate-700 outline-none"
+                />
+
+                <button
+                  type="button"
+                  onClick={
+                    handleCopyPix
+                  }
+                  className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#0B7491] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#075E75] focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                >
+                  {copyStatus ===
+                  'copied'
+                    ? 'Código Pix copiado'
+                    : 'Copiar código Pix'}
+                </button>
+
+                {copyStatus ===
+                'error' ? (
+                  <p
+                    role="alert"
+                    className="mt-3 text-sm font-semibold leading-6 text-red-700"
+                  >
+                    Não foi possível
+                    copiar automaticamente.
+                    Selecione o código e
+                    copie manualmente.
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-5">
+                <p className="text-sm font-bold text-amber-900">
+                  Como concluir
+                </p>
+
+                <ol className="mt-3 space-y-2 text-sm leading-6 text-amber-800">
+                  <li>
+                    1. Copie o código
+                    Pix.
+                  </li>
+
+                  <li>
+                    2. Abra o aplicativo
+                    do seu banco.
+                  </li>
+
+                  <li>
+                    3. Escolha Pix Copia
+                    e Cola.
+                  </li>
+
+                  <li>
+                    4. Confirme o valor
+                    de R$ 15,00.
+                  </li>
+
+                  <li>
+                    5. Finalize o
+                    pagamento.
+                  </li>
+                </ol>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white px-5 py-5">
+                <p className="text-sm font-bold text-[#071827]">
+                  Ativação manual
+                </p>
+
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Após a confirmação do
+                  pagamento, a equipe da
+                  EduData IA verificará
+                  os dados e realizará a
+                  ativação do Professor
+                  Pro. O prazo de 30 dias
+                  começará na data da
+                  ativação.
+                </p>
+              </div>
+
+              <Link
+                href={context.returnTo}
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-slate-300 px-5 py-3 text-sm font-bold text-slate-800 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300"
+              >
+                Voltar para a Agenda
+              </Link>
+            </div>
+          ) : null}
         </section>
       </div>
     </main>
