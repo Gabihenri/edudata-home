@@ -113,6 +113,7 @@ export const config = {
   matcher: [
     '/portal/:path*',
     '/perfil/:path*',
+    '/suporte/:path*',
     '/agenda/:path*',
     '/professor-digital/:path*',
     '/dashboard/:path*',
@@ -124,6 +125,7 @@ export const config = {
 
     '/api/portal/:path*',
     '/api/profile/:path*',
+    '/api/support/:path*',
     '/api/agenda/:path*',
   ],
 }
