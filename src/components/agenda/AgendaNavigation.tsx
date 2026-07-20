@@ -49,98 +49,152 @@ type ProfileApiResponse = {
   }
 }
 
-const navigationItems: NavigationItem[] = [
-  {
-    code: '01',
-    label: 'Dashboard',
-    description: 'Visão geral da operação',
-    href: '/agenda/dashboard',
-    group: 'Operação',
-  },
-  {
-    code: '02',
-    label: 'Calendário',
-    description: 'Compromissos e prazos',
-    href: '/agenda/calendario',
-    group: 'Operação',
-  },
-  {
-    code: '03',
-    label: 'Planejamento',
-    description: 'Planos e ações pedagógicas',
-    href: '/agenda/planejamento',
-    group: 'Operação',
-  },
-  {
-    code: '04',
-    label: 'Evidências',
-    description: 'Registros e arquivos protegidos',
-    href: '/agenda/evidencias',
-    group: 'Operação',
-  },
-  {
-    code: '05',
-    label: 'Tarefas',
-    description: 'Pendências e entregas',
-    href: '/agenda/tarefas',
-    group: 'Organização',
-  },
-  {
-    code: '06',
-    label: 'Turmas',
-    description: 'Contextos de aprendizagem',
-    href: '/agenda/turmas',
-    group: 'Organização',
-  },
-  {
-    code: '07',
-    label: 'Aulas',
-    description: 'Registros de aula',
-    href: '/agenda/aulas',
-    group: 'Organização',
-  },
-  {
-    code: '08',
-    label: 'Objetivos',
-    description: 'Metas e acompanhamento',
-    href: '/agenda/objetivos',
-    group: 'Inteligência',
-  },
-  {
-    code: '09',
-    label: 'Indicadores',
-    description: 'Leitura e análise de dados',
-    href: '/agenda/indicadores',
-    group: 'Inteligência',
-  },
-  {
-    code: '10',
-    label: 'Histórico',
-    description: 'Memória e auditoria',
-    href: '/agenda/historico',
-    group: 'Inteligência',
-  },
-]
+const navigationItems:
+  NavigationItem[] = [
+    {
+      code: '01',
+      label: 'Dashboard',
+      description:
+        'Visão geral da operação',
+      href:
+        '/agenda/dashboard',
+      group:
+        'Operação',
+    },
+    {
+      code: '02',
+      label: 'Calendário',
+      description:
+        'Compromissos e prazos',
+      href:
+        '/agenda/calendario',
+      group:
+        'Operação',
+    },
+    {
+      code: '03',
+      label: 'Planejamento',
+      description:
+        'Planos e ações pedagógicas',
+      href:
+        '/agenda/planejamento',
+      group:
+        'Operação',
+    },
+    {
+      code: '04',
+      label: 'Evidências',
+      description:
+        'Registros e arquivos protegidos',
+      href:
+        '/agenda/evidencias',
+      group:
+        'Operação',
+    },
+    {
+      code: '05',
+      label: 'Tarefas',
+      description:
+        'Pendências e entregas',
+      href:
+        '/agenda/tarefas',
+      group:
+        'Organização',
+    },
+    {
+      code: '06',
+      label: 'Turmas',
+      description:
+        'Contextos de aprendizagem',
+      href:
+        '/agenda/turmas',
+      group:
+        'Organização',
+    },
+    {
+      code: '07',
+      label: 'Aulas',
+      description:
+        'Registros de aula',
+      href:
+        '/agenda/aulas',
+      group:
+        'Organização',
+    },
+    {
+      code: '08',
+      label: 'Objetivos',
+      description:
+        'Metas e acompanhamento',
+      href:
+        '/agenda/objetivos',
+      group:
+        'Inteligência',
+    },
+    {
+      code: '09',
+      label: 'Indicadores',
+      description:
+        'Leitura e análise de dados',
+      href:
+        '/agenda/indicadores',
+      group:
+        'Inteligência',
+    },
+    {
+      code: '10',
+      label: 'Histórico',
+      description:
+        'Memória e auditoria',
+      href:
+        '/agenda/historico',
+      group:
+        'Inteligência',
+    },
+  ]
 
-const navigationGroups: NavigationGroup[] = [
-  'Operação',
-  'Organização',
-  'Inteligência',
-]
+const navigationGroups:
+  NavigationGroup[] = [
+    'Operação',
+    'Organização',
+    'Inteligência',
+  ]
 
-const ROLE_LABELS: Record<string, string> = {
-  individual: 'Usuário individual',
-  teacher: 'Professor',
-  professor: 'Professor',
-  coordinator: 'Coordenador',
-  pedagogical_coordinator: 'Coordenador pedagógico',
-  principal: 'Diretor',
-  vice_principal: 'Vice-diretor',
-  manager: 'Gestor',
-  institution_admin: 'Administrador institucional',
-  platform_admin: 'Administrador da plataforma',
-  super_admin: 'Superadministrador',
-}
+const ROLE_LABELS:
+  Record<string, string> = {
+    individual:
+      'Usuário individual',
+
+    teacher:
+      'Professor',
+
+    professor:
+      'Professor',
+
+    coordinator:
+      'Coordenador',
+
+    pedagogical_coordinator:
+      'Coordenador pedagógico',
+
+    principal:
+      'Diretor',
+
+    vice_principal:
+      'Vice-diretor',
+
+    manager:
+      'Gestor',
+
+    institution_admin:
+      'Administrador institucional',
+
+    platform_admin:
+      'Administrador da plataforma',
+
+    super_admin:
+      'Superadministrador',
+  }
 
 function isActivePath(
   pathname: string,
@@ -148,7 +202,9 @@ function isActivePath(
 ): boolean {
   return (
     pathname === href ||
-    pathname.startsWith(`${href}/`)
+    pathname.startsWith(
+      `${href}/`,
+    )
   )
 }
 
@@ -171,7 +227,9 @@ function getRoleLabel(
     role.trim().toLowerCase()
 
   const knownLabel =
-    ROLE_LABELS[normalizedRole]
+    ROLE_LABELS[
+      normalizedRole
+    ]
 
   if (knownLabel) {
     return knownLabel
@@ -186,7 +244,9 @@ function getRoleLabel(
     .filter(Boolean)
     .map(
       part =>
-        part.charAt(0).toUpperCase() +
+        part
+          .charAt(0)
+          .toUpperCase() +
         part.slice(1),
     )
     .join(' ')
@@ -200,44 +260,59 @@ function getStatusLabel(
 
   const statusLabels:
     Record<string, string> = {
-      active: 'Conta ativa',
-      pending: 'Conta pendente',
-      inactive: 'Conta inativa',
-      suspended: 'Conta suspensa',
+      active:
+        'Conta ativa',
+
+      pending:
+        'Conta pendente',
+
+      inactive:
+        'Conta inativa',
+
+      suspended:
+        'Conta suspensa',
     }
 
   return (
-    statusLabels[normalizedStatus] ??
+    statusLabels[
+      normalizedStatus
+    ] ??
     'Status não informado'
   )
 }
 
 export function AgendaNavigation() {
-  const pathname = usePathname()
-  const router = useRouter()
+  const pathname =
+    usePathname()
+
+  const router =
+    useRouter()
 
   const [
     mobileMenuOpen,
     setMobileMenuOpen,
-  ] = useState(false)
+  ] =
+    useState(false)
 
   const [
     accountProfile,
     setAccountProfile,
   ] =
-    useState<AccountProfile | null>(
-      null,
-    )
+    useState<
+      AccountProfile | null
+    >(null)
 
   const [
     profileLoading,
     setProfileLoading,
-  ] = useState(true)
+  ] =
+    useState(true)
 
   const [
     loggingOut,
     setLoggingOut,
-  ] = useState(false)
+  ] =
+    useState(false)
 
   const currentItem =
     navigationItems.find(
@@ -246,11 +321,127 @@ export function AgendaNavigation() {
           pathname,
           item.href,
         ),
-    ) ?? navigationItems[0]
+    ) ??
+    navigationItems[0]
 
   useEffect(() => {
-    setMobileMenuOpen(false)
+    setMobileMenuOpen(
+      false,
+    )
   }, [pathname])
+
+  useEffect(() => {
+    if (
+      !mobileMenuOpen ||
+      typeof window ===
+        'undefined'
+    ) {
+      return
+    }
+
+    const scrollPosition =
+      window.scrollY
+
+    const previousBodyStyles = {
+      position:
+        document.body.style
+          .position,
+
+      top:
+        document.body.style.top,
+
+      left:
+        document.body.style.left,
+
+      right:
+        document.body.style.right,
+
+      width:
+        document.body.style.width,
+
+      overflow:
+        document.body.style
+          .overflow,
+    }
+
+    const previousHtmlOverflow =
+      document.documentElement
+        .style.overflow
+
+    document.body.style.position =
+      'fixed'
+
+    document.body.style.top =
+      `-${scrollPosition}px`
+
+    document.body.style.left =
+      '0'
+
+    document.body.style.right =
+      '0'
+
+    document.body.style.width =
+      '100%'
+
+    document.body.style.overflow =
+      'hidden'
+
+    document.documentElement
+      .style.overflow =
+      'hidden'
+
+    function handleKeyDown(
+      event: KeyboardEvent,
+    ) {
+      if (
+        event.key ===
+        'Escape'
+      ) {
+        setMobileMenuOpen(
+          false,
+        )
+      }
+    }
+
+    window.addEventListener(
+      'keydown',
+      handleKeyDown,
+    )
+
+    return () => {
+      window.removeEventListener(
+        'keydown',
+        handleKeyDown,
+      )
+
+      document.body.style.position =
+        previousBodyStyles.position
+
+      document.body.style.top =
+        previousBodyStyles.top
+
+      document.body.style.left =
+        previousBodyStyles.left
+
+      document.body.style.right =
+        previousBodyStyles.right
+
+      document.body.style.width =
+        previousBodyStyles.width
+
+      document.body.style.overflow =
+        previousBodyStyles.overflow
+
+      document.documentElement
+        .style.overflow =
+        previousHtmlOverflow
+
+      window.scrollTo(
+        0,
+        scrollPosition,
+      )
+    }
+  }, [mobileMenuOpen])
 
   useEffect(() => {
     let active = true
@@ -261,19 +452,35 @@ export function AgendaNavigation() {
     async function loadProfile() {
       try {
         const response =
-          await fetch('/api/profile', {
-            method: 'GET',
-            credentials: 'include',
-            cache: 'no-store',
-            signal: controller.signal,
-          })
+          await fetch(
+            '/api/profile',
+            {
+              method:
+                'GET',
+
+              credentials:
+                'include',
+
+              cache:
+                'no-store',
+
+              signal:
+                controller.signal,
+            },
+          )
 
         const result =
           (await response.json()) as
             ProfileApiResponse
 
-        if (response.status === 401) {
-          router.replace('/login')
+        if (
+          response.status ===
+          401
+        ) {
+          router.replace(
+            '/login',
+          )
+
           return
         }
 
@@ -291,28 +498,40 @@ export function AgendaNavigation() {
 
         setAccountProfile({
           displayName:
-            result.profile.displayName,
+            result.profile
+              .displayName,
+
           email:
-            result.user?.email ?? null,
+            result.user?.email ??
+            null,
+
           role:
             result.profile.role,
+
           status:
-            result.profile.status,
+            result.profile
+              .status,
         })
       } catch (error) {
         if (
-          error instanceof Error &&
-          error.name === 'AbortError'
+          error instanceof
+            Error &&
+          error.name ===
+            'AbortError'
         ) {
           return
         }
 
         if (active) {
-          setAccountProfile(null)
+          setAccountProfile(
+            null,
+          )
         }
       } finally {
         if (active) {
-          setProfileLoading(false)
+          setProfileLoading(
+            false,
+          )
         }
       }
     }
@@ -333,11 +552,19 @@ export function AgendaNavigation() {
     setLoggingOut(true)
 
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-        cache: 'no-store',
-      })
+      await fetch(
+        '/api/auth/logout',
+        {
+          method:
+            'POST',
+
+          credentials:
+            'include',
+
+          cache:
+            'no-store',
+        },
+      )
     } finally {
       window.location.assign(
         '/login?changeAccount=1&redirectTo=%2Fagenda%2Fdashboard',
@@ -376,7 +603,8 @@ export function AgendaNavigation() {
             aria-controls="agenda-mobile-navigation"
             onClick={() =>
               setMobileMenuOpen(
-                current => !current,
+                current =>
+                  !current,
               )
             }
             className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] lg:hidden"
@@ -403,8 +631,12 @@ export function AgendaNavigation() {
 
             <button
               type="button"
-              onClick={handleLogout}
-              disabled={loggingOut}
+              onClick={
+                handleLogout
+              }
+              disabled={
+                loggingOut
+              }
               className="inline-flex min-h-10 items-center justify-center rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loggingOut
@@ -417,76 +649,181 @@ export function AgendaNavigation() {
         {mobileMenuOpen ? (
           <div
             id="agenda-mobile-navigation"
-            className="border-t border-slate-200 pb-5 pt-4 lg:hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu da Agenda Inteligente EDI"
+            className="fixed inset-x-0 bottom-0 top-[calc(5rem+72px)] z-[70] border-t border-slate-200 bg-white lg:hidden"
           >
-            <section
-              aria-label="Conta ativa"
-              className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
-            >
-              <header className="border-b border-slate-200 bg-white px-4 py-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0B7491]">
-                  Conta ativa
-                </p>
-
-                {profileLoading ? (
-                  <p className="mt-2 text-sm text-slate-500">
-                    Carregando informações da conta...
-                  </p>
-                ) : (
-                  <>
-                    <p className="mt-2 font-bold text-[#071827]">
-                      {accountProfile
-                        ?.displayName ??
-                        'Usuário EduData IA'}
+            <div className="mx-auto flex h-full w-full max-w-7xl flex-col">
+              <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-4 py-4 sm:px-6">
+                <section
+                  aria-label="Conta ativa"
+                  className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
+                >
+                  <header className="border-b border-slate-200 bg-white px-4 py-4">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                      Conta ativa
                     </p>
 
-                    {accountProfile
-                      ?.email ? (
-                      <p className="mt-1 break-all text-sm text-slate-600">
-                        {accountProfile.email}
+                    {profileLoading ? (
+                      <p className="mt-2 text-sm text-slate-500">
+                        Carregando informações da conta...
                       </p>
-                    ) : null}
+                    ) : (
+                      <>
+                        <p className="mt-2 font-bold text-[#071827]">
+                          {accountProfile
+                            ?.displayName ??
+                            'Usuário EduData IA'}
+                        </p>
 
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-[#075F78]">
-                        {getRoleLabel(
-                          accountProfile
-                            ?.role ?? '',
-                        )}
-                      </span>
+                        {accountProfile
+                          ?.email ? (
+                          <p className="mt-1 break-all text-sm text-slate-600">
+                            {
+                              accountProfile.email
+                            }
+                          </p>
+                        ) : null}
 
-                      <span className="rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600">
-                        {getStatusLabel(
-                          accountProfile
-                            ?.status ?? '',
-                        )}
-                      </span>
-                    </div>
-                  </>
-                )}
-              </header>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className="rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-[#075F78]">
+                            {getRoleLabel(
+                              accountProfile
+                                ?.role ??
+                                '',
+                            )}
+                          </span>
 
-              <div className="grid gap-2 p-4 sm:grid-cols-2">
-                <Link
-                  href="/perfil"
-                  className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78]"
-                >
-                  Meu perfil
-                </Link>
+                          <span className="rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600">
+                            {getStatusLabel(
+                              accountProfile
+                                ?.status ??
+                                '',
+                            )}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </header>
 
-                <Link
-                  href="/portal"
-                  className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78]"
-                >
-                  Central EIOS
-                </Link>
+                  <div className="grid gap-2 p-4 sm:grid-cols-2">
+                    <Link
+                      href="/perfil"
+                      className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78]"
+                    >
+                      Meu perfil
+                    </Link>
+
+                    <Link
+                      href="/portal"
+                      className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78]"
+                    >
+                      Central EIOS
+                    </Link>
+                  </div>
+                </section>
+
+                <div className="mt-6 space-y-6 pb-6">
+                  {navigationGroups.map(
+                    group => {
+                      const items =
+                        navigationItems.filter(
+                          item =>
+                            item.group ===
+                            group,
+                        )
+
+                      return (
+                        <section
+                          key={group}
+                        >
+                          <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
+                            {group}
+                          </p>
+
+                          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                            {items.map(
+                              item => {
+                                const active =
+                                  isActivePath(
+                                    pathname,
+                                    item.href,
+                                  )
+
+                                return (
+                                  <Link
+                                    key={
+                                      item.href
+                                    }
+                                    href={
+                                      item.href
+                                    }
+                                    aria-current={
+                                      active
+                                        ? 'page'
+                                        : undefined
+                                    }
+                                    className={`rounded-xl border p-4 transition ${
+                                      active
+                                        ? 'border-[#071827] bg-[#071827] text-white'
+                                        : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-cyan-300 hover:bg-cyan-50'
+                                    }`}
+                                  >
+                                    <div className="flex items-start gap-3">
+                                      <span
+                                        className={`font-mono text-xs font-bold ${
+                                          active
+                                            ? 'text-cyan-300'
+                                            : 'text-[#0B7491]'
+                                        }`}
+                                      >
+                                        {
+                                          item.code
+                                        }
+                                      </span>
+
+                                      <div className="min-w-0">
+                                        <p className="font-bold">
+                                          {
+                                            item.label
+                                          }
+                                        </p>
+
+                                        <p
+                                          className={`mt-1 text-xs leading-5 ${
+                                            active
+                                              ? 'text-slate-300'
+                                              : 'text-slate-500'
+                                          }`}
+                                        >
+                                          {
+                                            item.description
+                                          }
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </Link>
+                                )
+                              },
+                            )}
+                          </div>
+                        </section>
+                      )
+                    },
+                  )}
+                </div>
               </div>
 
-              <div className="border-t border-red-100 bg-red-50 p-4">
+              <footer className="shrink-0 border-t border-red-100 bg-red-50 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 sm:px-6">
                 <button
                   type="button"
-                  onClick={handleLogout}
-                  disabled={loggingOut}
+                  onClick={
+                    handleLogout
+                  }
+                  disabled={
+                    loggingOut
+                  }
                   className="inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-red-300 bg-white px-5 py-3 text-sm font-bold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {loggingOut
@@ -497,89 +834,7 @@ export function AgendaNavigation() {
                 <p className="mt-2 text-center text-xs leading-5 text-red-700">
                   Encerra o acesso atual e retorna à tela de login.
                 </p>
-              </div>
-            </section>
-
-            <div className="mt-6 space-y-6">
-              {navigationGroups.map(
-                group => {
-                  const items =
-                    navigationItems.filter(
-                      item =>
-                        item.group ===
-                        group,
-                    )
-
-                  return (
-                    <section key={group}>
-                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-                        {group}
-                      </p>
-
-                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                        {items.map(
-                          item => {
-                            const active =
-                              isActivePath(
-                                pathname,
-                                item.href,
-                              )
-
-                            return (
-                              <Link
-                                key={
-                                  item.href
-                                }
-                                href={
-                                  item.href
-                                }
-                                aria-current={
-                                  active
-                                    ? 'page'
-                                    : undefined
-                                }
-                                className={`rounded-xl border p-4 transition ${
-                                  active
-                                    ? 'border-[#071827] bg-[#071827] text-white'
-                                    : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-cyan-300 hover:bg-cyan-50'
-                                }`}
-                              >
-                                <div className="flex items-start gap-3">
-                                  <span
-                                    className={`font-mono text-xs font-bold ${
-                                      active
-                                        ? 'text-cyan-300'
-                                        : 'text-[#0B7491]'
-                                    }`}
-                                  >
-                                    {item.code}
-                                  </span>
-
-                                  <div className="min-w-0">
-                                    <p className="font-bold">
-                                      {item.label}
-                                    </p>
-
-                                    <p
-                                      className={`mt-1 text-xs leading-5 ${
-                                        active
-                                          ? 'text-slate-300'
-                                          : 'text-slate-500'
-                                      }`}
-                                    >
-                                      {item.description}
-                                    </p>
-                                  </div>
-                                </div>
-                              </Link>
-                            )
-                          },
-                        )}
-                      </div>
-                    </section>
-                  )
-                },
-              )}
+              </footer>
             </div>
           </div>
         ) : null}
