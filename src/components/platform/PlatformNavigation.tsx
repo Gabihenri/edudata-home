@@ -150,10 +150,17 @@ const GROUP_LABELS:
     NavigationItem['group'],
     string
   > = {
-    core: 'Central',
-    product: 'Produtos',
-    management: 'Gestão',
-    account: 'Conta',
+    core:
+      'Central',
+
+    product:
+      'Produtos',
+
+    management:
+      'Gestão',
+
+    account:
+      'Conta',
   }
 
 function isActivePath(
@@ -215,18 +222,45 @@ function createNavigationItems(
   if (!context) {
     return [
       {
-        key: 'portal',
+        key:
+          'portal',
+
         label:
           'Central da Plataforma',
-        href: '/portal',
-        group: 'core',
+
+        href:
+          '/portal',
+
+        group:
+          'core',
       },
 
       {
-        key: 'profile',
-        label: 'Meu perfil',
-        href: '/perfil',
-        group: 'account',
+        key:
+          'support',
+
+        label:
+          'Suporte EDI',
+
+        href:
+          '/suporte',
+
+        group:
+          'core',
+      },
+
+      {
+        key:
+          'profile',
+
+        label:
+          'Meu perfil',
+
+        href:
+          '/perfil',
+
+        group:
+          'account',
       },
     ]
   }
@@ -234,11 +268,31 @@ function createNavigationItems(
   const items:
     NavigationItem[] = [
       {
-        key: 'portal',
+        key:
+          'portal',
+
         label:
           'Central da Plataforma',
-        href: '/portal',
-        group: 'core',
+
+        href:
+          '/portal',
+
+        group:
+          'core',
+      },
+
+      {
+        key:
+          'support',
+
+        label:
+          'Suporte EDI',
+
+        href:
+          '/suporte',
+
+        group:
+          'core',
       },
     ]
 
@@ -335,17 +389,31 @@ function createNavigationItems(
 
   items.push(
     {
-      key: 'profile',
-      label: 'Meu perfil',
-      href: '/perfil',
-      group: 'account',
+      key:
+        'profile',
+
+      label:
+        'Meu perfil',
+
+      href:
+        '/perfil',
+
+      group:
+        'account',
     },
 
     {
-      key: 'home',
-      label: 'Home EduData IA',
-      href: '/',
-      group: 'account',
+      key:
+        'home',
+
+      label:
+        'Home EduData IA',
+
+      href:
+        '/',
+
+      group:
+        'account',
     },
   )
 
@@ -651,6 +719,20 @@ export function PlatformNavigation() {
 
               {
                 key:
+                  'support',
+
+                label:
+                  'Suporte EDI',
+
+                href:
+                  '/suporte',
+
+                group:
+                  'core' as const,
+              },
+
+              {
+                key:
                   'profile',
 
                 label:
@@ -680,6 +762,7 @@ export function PlatformNavigation() {
       const preferredKeys =
         new Set([
           'portal',
+          'support',
           'product:professor_digital',
           'product:agenda_edi',
           'institution-core',
