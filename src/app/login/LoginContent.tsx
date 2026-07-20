@@ -17,14 +17,18 @@ import {
   type SupabaseClient,
 } from '@supabase/supabase-js'
 
-type ScreenMode = 'login' | 'recovery'
+type ScreenMode =
+  | 'login'
+  | 'recovery'
 
 type LoginApiResponse = {
   success: boolean
   error?: string
 }
 
-let browserSupabaseClient: SupabaseClient | null = null
+let browserSupabaseClient:
+  | SupabaseClient
+  | null = null
 
 function getBrowserSupabaseClient(): SupabaseClient {
   if (browserSupabaseClient) {
@@ -37,32 +41,40 @@ function getBrowserSupabaseClient(): SupabaseClient {
   const supabaseAnonKey =
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (
+    !supabaseUrl ||
+    !supabaseAnonKey
+  ) {
     throw new Error(
       'A conexão com o Supabase não está configurada.',
     )
   }
 
   if (
-    !supabaseUrl.startsWith('https://') ||
-    !supabaseUrl.includes('.supabase.co')
+    !supabaseUrl.startsWith(
+      'https://',
+    ) ||
+    !supabaseUrl.includes(
+      '.supabase.co',
+    )
   ) {
     throw new Error(
       'A URL configurada para o Supabase é inválida.',
     )
   }
 
-  browserSupabaseClient = createClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
+  browserSupabaseClient =
+    createClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+        },
       },
-    },
-  )
+    )
 
   return browserSupabaseClient
 }
@@ -92,58 +104,107 @@ function getErrorMessage(
 
 export default function LoginContent() {
   const router = useRouter()
-  const searchParams = useSearchParams()
+  const searchParams =
+    useSearchParams()
 
-  const [mode, setMode] =
-    useState<ScreenMode>('login')
+  const [
+    mode,
+    setMode,
+  ] =
+    useState<ScreenMode>(
+      'login',
+    )
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [
+    email,
+    setEmail,
+  ] =
+    useState('')
 
-  const [newPassword, setNewPassword] =
+  const [
+    password,
+    setPassword,
+  ] =
+    useState('')
+
+  const [
+    newPassword,
+    setNewPassword,
+  ] =
     useState('')
 
   const [
     confirmNewPassword,
     setConfirmNewPassword,
-  ] = useState('')
+  ] =
+    useState('')
 
-  const [isLoading, setIsLoading] =
+  const [
+    isLoading,
+    setIsLoading,
+  ] =
     useState(false)
 
   const [
     isGoogleLoading,
     setIsGoogleLoading,
-  ] = useState(false)
+  ] =
+    useState(false)
 
   const [
     isSendingRecovery,
     setIsSendingRecovery,
-  ] = useState(false)
+  ] =
+    useState(false)
 
-  const [errorMessage, setErrorMessage] =
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] =
     useState('')
 
   const [
     successMessage,
     setSuccessMessage,
-  ] = useState('')
+  ] =
+    useState('')
 
-  const redirectTo = useMemo(() => {
-    const requestedRedirect =
-      searchParams.get('redirectTo') ??
-      searchParams.get('redirect') ??
-      searchParams.get('next')
+  const redirectTo =
+    useMemo(() => {
+      const requestedRedirect =
+        searchParams.get(
+          'redirectTo',
+        ) ??
+        searchParams.get(
+          'redirect',
+        ) ??
+        searchParams.get(
+          'next',
+        )
 
-    return getSafeRedirect(requestedRedirect)
-  }, [searchParams])
+      return getSafeRedirect(
+        requestedRedirect,
+      )
+    }, [searchParams])
+
+  const changeAccountRequested =
+    useMemo(
+      () =>
+        searchParams.get(
+          'changeAccount',
+        ) === '1',
+      [searchParams],
+    )
 
   useEffect(() => {
     const recoveryRequested =
-      searchParams.get('recovery') === '1'
+      searchParams.get(
+        'recovery',
+      ) === '1'
 
     const recoveryHashDetected =
-      typeof window !== 'undefined' &&
+      typeof window !==
+        'undefined' &&
       window.location.hash.includes(
         'type=recovery',
       )
@@ -166,46 +227,69 @@ export default function LoginContent() {
         getBrowserSupabaseClient()
 
       const {
-        data: { subscription },
-      } = supabase.auth.onAuthStateChange(
-        (event, session) => {
-          if (!isMounted) {
-            return
-          }
-
-          if (
-            event === 'PASSWORD_RECOVERY' ||
-            session
-          ) {
-            setMode('recovery')
-            setErrorMessage('')
-            setSuccessMessage('')
-          }
+        data: {
+          subscription,
         },
-      )
+      } =
+        supabase.auth
+          .onAuthStateChange(
+            (
+              event,
+              session,
+            ) => {
+              if (!isMounted) {
+                return
+              }
+
+              if (
+                event ===
+                  'PASSWORD_RECOVERY' ||
+                session
+              ) {
+                setMode(
+                  'recovery',
+                )
+
+                setErrorMessage(
+                  '',
+                )
+
+                setSuccessMessage(
+                  '',
+                )
+              }
+            },
+          )
 
       unsubscribe = () =>
         subscription.unsubscribe()
 
       void supabase.auth
         .getSession()
-        .then(({ data, error }) => {
-          if (!isMounted) {
-            return
-          }
+        .then(
+          ({
+            data,
+            error,
+          }) => {
+            if (!isMounted) {
+              return
+            }
 
-          if (error) {
-            setErrorMessage(
-              'Não foi possível validar o link de recuperação.',
-            )
+            if (error) {
+              setErrorMessage(
+                'Não foi possível validar o link de recuperação.',
+              )
 
-            return
-          }
+              return
+            }
 
-          if (data.session) {
-            setMode('recovery')
-          }
-        })
+            if (data.session) {
+              setMode(
+                'recovery',
+              )
+            }
+          },
+        )
     } catch (error) {
       setErrorMessage(
         getErrorMessage(
@@ -234,31 +318,46 @@ export default function LoginContent() {
       const supabase =
         getBrowserSupabaseClient()
 
-      const callbackUrl = new URL(
-        '/auth/callback',
-        window.location.origin,
-      )
+      const callbackUrl =
+        new URL(
+          '/auth/callback',
+          window.location.origin,
+        )
 
       callbackUrl.searchParams.set(
         'redirectTo',
         redirectTo,
       )
 
-      const { error } =
-        await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo:
-              callbackUrl.toString(),
-          },
-        })
+      const {
+        error,
+      } =
+        await supabase.auth
+          .signInWithOAuth({
+            provider: 'google',
+
+            options: {
+              redirectTo:
+                callbackUrl.toString(),
+
+              queryParams:
+                changeAccountRequested
+                  ? {
+                      prompt:
+                        'select_account',
+                    }
+                  : undefined,
+            },
+          })
 
       if (error) {
         setErrorMessage(
           'Não foi possível iniciar o acesso com o Google.',
         )
 
-        setIsGoogleLoading(false)
+        setIsGoogleLoading(
+          false,
+        )
       }
     } catch (error) {
       setErrorMessage(
@@ -268,12 +367,15 @@ export default function LoginContent() {
         ),
       )
 
-      setIsGoogleLoading(false)
+      setIsGoogleLoading(
+        false,
+      )
     }
   }
 
   async function handleLogin(
-    event: FormEvent<HTMLFormElement>,
+    event:
+      FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault()
 
@@ -281,24 +383,33 @@ export default function LoginContent() {
     setIsLoading(true)
 
     try {
-      const response = await fetch(
-        '/api/auth/login',
-        {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type':
-              'application/json',
+      const response =
+        await fetch(
+          '/api/auth/login',
+          {
+            method: 'POST',
+
+            credentials:
+              'include',
+
+            headers: {
+              'Content-Type':
+                'application/json',
+            },
+
+            body:
+              JSON.stringify({
+                email:
+                  email.trim(),
+
+                password,
+              }),
           },
-          body: JSON.stringify({
-            email: email.trim(),
-            password,
-          }),
-        },
-      )
+        )
 
       const result =
-        (await response.json()) as LoginApiResponse
+        (await response.json()) as
+          LoginApiResponse
 
       if (
         !response.ok ||
@@ -312,7 +423,10 @@ export default function LoginContent() {
         return
       }
 
-      router.replace(redirectTo)
+      router.replace(
+        redirectTo,
+      )
+
       router.refresh()
     } catch {
       setErrorMessage(
@@ -327,7 +441,9 @@ export default function LoginContent() {
     clearMessages()
 
     const normalizedEmail =
-      email.trim().toLowerCase()
+      email
+        .trim()
+        .toLowerCase()
 
     if (!normalizedEmail) {
       setErrorMessage(
@@ -337,7 +453,9 @@ export default function LoginContent() {
       return
     }
 
-    setIsSendingRecovery(true)
+    setIsSendingRecovery(
+      true,
+    )
 
     try {
       const supabase =
@@ -346,13 +464,17 @@ export default function LoginContent() {
       const recoveryUrl =
         `${window.location.origin}/login?recovery=1`
 
-      const { error } =
-        await supabase.auth.resetPasswordForEmail(
-          normalizedEmail,
-          {
-            redirectTo: recoveryUrl,
-          },
-        )
+      const {
+        error,
+      } =
+        await supabase.auth
+          .resetPasswordForEmail(
+            normalizedEmail,
+            {
+              redirectTo:
+                recoveryUrl,
+            },
+          )
 
       if (error) {
         setErrorMessage(
@@ -373,18 +495,23 @@ export default function LoginContent() {
         ),
       )
     } finally {
-      setIsSendingRecovery(false)
+      setIsSendingRecovery(
+        false,
+      )
     }
   }
 
   async function handleUpdatePassword(
-    event: FormEvent<HTMLFormElement>,
+    event:
+      FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault()
 
     clearMessages()
 
-    if (newPassword.length < 8) {
+    if (
+      newPassword.length < 8
+    ) {
       setErrorMessage(
         'A nova senha deve possuir pelo menos 8 caracteres.',
       )
@@ -409,10 +536,14 @@ export default function LoginContent() {
       const supabase =
         getBrowserSupabaseClient()
 
-      const { error } =
-        await supabase.auth.updateUser({
-          password: newPassword,
-        })
+      const {
+        error,
+      } =
+        await supabase.auth
+          .updateUser({
+            password:
+              newPassword,
+          })
 
       if (error) {
         setErrorMessage(
@@ -422,7 +553,8 @@ export default function LoginContent() {
         return
       }
 
-      await supabase.auth.signOut()
+      await supabase.auth
+        .signOut()
 
       setNewPassword('')
       setConfirmNewPassword('')
@@ -433,7 +565,10 @@ export default function LoginContent() {
         'Senha atualizada. Entre novamente com sua nova senha.',
       )
 
-      router.replace('/login')
+      router.replace(
+        '/login',
+      )
+
       router.refresh()
     } catch (error) {
       setErrorMessage(
@@ -461,24 +596,43 @@ export default function LoginContent() {
           </p>
 
           <h1 className="mt-3 text-3xl font-bold text-slate-900">
-            {mode === 'recovery'
+            {mode ===
+            'recovery'
               ? 'Redefinir senha'
-              : 'Acessar plataforma'}
+              : changeAccountRequested
+                ? 'Trocar de conta'
+                : 'Acessar plataforma'}
           </h1>
 
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            {mode === 'recovery'
+            {mode ===
+            'recovery'
               ? 'Crie uma nova senha para continuar acessando o ecossistema EDI.'
-              : 'Entre com sua conta Google ou utilize suas credenciais.'}
+              : changeAccountRequested
+                ? 'Escolha a conta que deseja utilizar na plataforma.'
+                : 'Entre com sua conta Google ou utilize suas credenciais.'}
           </p>
         </div>
 
         {mode === 'login' ? (
           <>
+            {changeAccountRequested ? (
+              <div
+                role="status"
+                className="mb-5 rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm leading-6 text-cyan-900"
+              >
+                A sessão anterior foi encerrada. Selecione outra conta Google ou entre com outro e-mail.
+              </div>
+            ) : null}
+
             <button
               type="button"
-              onClick={handleGoogleLogin}
-              disabled={isAnyActionLoading}
+              onClick={
+                handleGoogleLogin
+              }
+              disabled={
+                isAnyActionLoading
+              }
               className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <svg
@@ -509,7 +663,9 @@ export default function LoginContent() {
 
               {isGoogleLoading
                 ? 'Conectando ao Google...'
-                : 'Continuar com Google'}
+                : changeAccountRequested
+                  ? 'Escolher conta Google'
+                  : 'Continuar com Google'}
             </button>
 
             <div className="my-6 flex items-center gap-4">
@@ -523,7 +679,9 @@ export default function LoginContent() {
             </div>
 
             <form
-              onSubmit={handleLogin}
+              onSubmit={
+                handleLogin
+              }
               className="space-y-5"
             >
               <div>
@@ -541,9 +699,10 @@ export default function LoginContent() {
                   autoComplete="email"
                   required
                   value={email}
-                  onChange={(event) =>
+                  onChange={event =>
                     setEmail(
-                      event.target.value,
+                      event.target
+                        .value,
                     )
                   }
                   placeholder="seuemail@exemplo.com"
@@ -583,9 +742,10 @@ export default function LoginContent() {
                   autoComplete="current-password"
                   required
                   value={password}
-                  onChange={(event) =>
+                  onChange={event =>
                     setPassword(
-                      event.target.value,
+                      event.target
+                        .value,
                     )
                   }
                   placeholder="Digite sua senha"
@@ -647,9 +807,10 @@ export default function LoginContent() {
                 required
                 minLength={8}
                 value={newPassword}
-                onChange={(event) =>
+                onChange={event =>
                   setNewPassword(
-                    event.target.value,
+                    event.target
+                      .value,
                   )
                 }
                 placeholder="Digite a nova senha"
@@ -675,9 +836,10 @@ export default function LoginContent() {
                 value={
                   confirmNewPassword
                 }
-                onChange={(event) =>
+                onChange={event =>
                   setConfirmNewPassword(
-                    event.target.value,
+                    event.target
+                      .value,
                   )
                 }
                 placeholder="Repita a nova senha"
@@ -709,7 +871,9 @@ export default function LoginContent() {
               onClick={() => {
                 clearMessages()
                 setMode('login')
-                router.replace('/login')
+                router.replace(
+                  '/login',
+                )
               }}
               className="w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold text-slate-700 transition hover:bg-slate-50"
             >
