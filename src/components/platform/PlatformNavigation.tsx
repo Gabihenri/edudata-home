@@ -246,11 +246,11 @@ function createNavigationItems(
     new Map(
       (portal.products ?? [])
         .filter(
-          (product) =>
+          product =>
             product.enabled,
         )
         .map(
-          (product) => [
+          product => [
             product.code,
             product,
           ],
@@ -258,7 +258,7 @@ function createNavigationItems(
     )
 
   PRODUCT_ORDER.forEach(
-    (productCode) => {
+    productCode => {
       const product =
         enabledProducts.get(
           productCode,
@@ -355,7 +355,7 @@ function createNavigationItems(
       NavigationItem
     >()
 
-  items.forEach((item) => {
+  items.forEach(item => {
     uniqueItems.set(
       item.href,
       item,
@@ -382,11 +382,15 @@ function groupNavigationItems(
       return groups
     },
     {
-      core: [] as NavigationItem[],
+      core:
+        [] as NavigationItem[],
+
       product:
         [] as NavigationItem[],
+
       management:
         [] as NavigationItem[],
+
       account:
         [] as NavigationItem[],
     },
@@ -438,17 +442,28 @@ export function PlatformNavigation() {
           await fetch(
             '/api/portal',
             {
-              method: 'GET',
-              cache: 'no-store',
+              method:
+                'GET',
+
+              credentials:
+                'include',
+
+              cache:
+                'no-store',
+
               signal:
                 controller.signal,
             },
           )
 
         if (
-          response.status === 401
+          response.status ===
+          401
         ) {
-          router.replace('/login')
+          router.replace(
+            '/login',
+          )
+
           return
         }
 
@@ -471,7 +486,8 @@ export function PlatformNavigation() {
         }
       } catch (error) {
         if (
-          error instanceof Error &&
+          error instanceof
+            Error &&
           error.name ===
             'AbortError'
         ) {
@@ -509,19 +525,29 @@ export function PlatformNavigation() {
             )
           : [
               {
-                key: 'portal',
+                key:
+                  'portal',
+
                 label:
                   'Central da Plataforma',
-                href: '/portal',
+
+                href:
+                  '/portal',
+
                 group:
                   'core' as const,
               },
 
               {
-                key: 'profile',
+                key:
+                  'profile',
+
                 label:
                   'Meu perfil',
-                href: '/perfil',
+
+                href:
+                  '/perfil',
+
                 group:
                   'account' as const,
               },
@@ -551,7 +577,7 @@ export function PlatformNavigation() {
         ])
 
       return navigationItems.filter(
-        (item) =>
+        item =>
           preferredKeys.has(
             item.key,
           ),
@@ -569,11 +595,21 @@ export function PlatformNavigation() {
       await fetch(
         '/api/auth/logout',
         {
-          method: 'POST',
+          method:
+            'POST',
+
+          credentials:
+            'include',
+
+          cache:
+            'no-store',
         },
       )
     } finally {
-      router.replace('/login')
+      router.replace(
+        '/login',
+      )
+
       router.refresh()
     }
   }
@@ -624,7 +660,7 @@ export function PlatformNavigation() {
 
           <nav className="hidden items-center gap-2 xl:flex">
             {primaryItems.map(
-              (item) => {
+              item => {
                 const activePath =
                   isActivePath(
                     pathname,
@@ -688,7 +724,7 @@ export function PlatformNavigation() {
             type="button"
             onClick={() =>
               setMenuOpen(
-                (current) =>
+                current =>
                   !current,
               )
             }
@@ -713,7 +749,9 @@ export function PlatformNavigation() {
             user ? (
               <div className="mb-5 rounded-xl border border-white/10 bg-white/5 p-4">
                 <p className="font-semibold text-white">
-                  {user.displayName}
+                  {
+                    user.displayName
+                  }
                 </p>
 
                 {user.email ? (
@@ -743,12 +781,13 @@ export function PlatformNavigation() {
                 ) as Array<
                   keyof typeof groupedItems
                 >
-              ).map((group) => {
+              ).map(group => {
                 const items =
                   groupedItems[group]
 
                 if (
-                  items.length === 0
+                  items.length ===
+                  0
                 ) {
                   return null
                 }
@@ -767,7 +806,7 @@ export function PlatformNavigation() {
 
                     <div className="mt-2 grid gap-2 sm:grid-cols-2">
                       {items.map(
-                        (item) => {
+                        item => {
                           const activePath =
                             isActivePath(
                               pathname,
@@ -806,20 +845,58 @@ export function PlatformNavigation() {
               })}
             </div>
 
-            <button
-              type="button"
-              onClick={
-                handleLogout
-              }
-              disabled={
-                loggingOut
-              }
-              className="mt-6 inline-flex w-full items-center justify-center rounded-lg border border-red-300/40 px-5 py-3 text-sm font-semibold text-red-100 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loggingOut
-                ? 'Saindo...'
-                : 'Sair da plataforma'}
-            </button>
+            <div className="mt-6 border-t border-white/10 pt-5 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+              <button
+                type="button"
+                onClick={
+                  handleLogout
+                }
+                disabled={
+                  loggingOut
+                }
+                aria-label="Sair da plataforma"
+                className="mx-auto flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-300/30 bg-red-500/[0.06] px-5 py-3 text-sm font-semibold text-red-100 transition hover:border-red-300/50 hover:bg-red-500/10 focus:outline-none focus:ring-4 focus:ring-red-300/10 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="h-5 w-5 shrink-0"
+                >
+                  <path
+                    d="M10 5H6.75A1.75 1.75 0 0 0 5 6.75v10.5A1.75 1.75 0 0 0 6.75 19H10"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
+
+                  <path
+                    d="M14 8l4 4-4 4"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+
+                  <path
+                    d="M18 12H9"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
+                </svg>
+
+                <span>
+                  {loggingOut
+                    ? 'Encerrando sessão...'
+                    : 'Sair da plataforma'}
+                </span>
+              </button>
+
+              <p className="mt-2 text-center text-xs leading-5 text-slate-400">
+                Encerra com segurança a sessão atual.
+              </p>
+            </div>
           </div>
         ) : null}
       </div>
