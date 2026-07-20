@@ -15,11 +15,6 @@ type ContactPreference =
   | 'whatsapp'
   | 'no_preference'
 
-type CopyStatus =
-  | 'idle'
-  | 'copied'
-  | 'error'
-
 type UpgradeContext = {
   featureCode: string | null
   requestedPlanCode: string
@@ -70,8 +65,8 @@ const PROMOTIONAL_PRICE = 'R$ 15,00'
 const PROMOTIONAL_PRICE_NUMBER = 15
 const PROMOTIONAL_ACCESS_DAYS = 30
 
-const PIX_COPY_AND_PASTE =
-  '00020126400014br.gov.bcb.pix0118sabinohc@gmail.com520400005303986540515.005802BR5925LEANDRO SABINO DOS SANTOS6009Sao Paulo62210517daqr864118000450963040E20'
+const MERCADO_PAGO_PAYMENT_URL =
+  'https://mpago.la/2XBhHCe'
 
 const DEFAULT_CONTEXT: UpgradeContext = {
   featureCode: null,
@@ -107,7 +102,7 @@ const CONTACT_OPTIONS: readonly {
 const OFFER_CONDITIONS = [
   'Acesso individual por 30 dias corridos.',
   'O período começa na data da ativação do plano.',
-  'Pagamento único por Pix.',
+  'Pagamento único pelo Mercado Pago.',
   'Sem renovação ou cobrança automática.',
   'Ativação manual após confirmação do pagamento.',
   'Oferta destinada a usuários individuais.',
@@ -349,71 +344,6 @@ function getErrorMessage(
     : fallbackMessage
 }
 
-async function copyTextToClipboard(
-  text: string,
-): Promise<void> {
-  if (
-    typeof navigator !==
-      'undefined' &&
-    navigator.clipboard?.writeText
-  ) {
-    await navigator.clipboard.writeText(
-      text,
-    )
-
-    return
-  }
-
-  if (
-    typeof document ===
-    'undefined'
-  ) {
-    throw new Error(
-      'A cópia automática não está disponível.',
-    )
-  }
-
-  const temporaryTextarea =
-    document.createElement(
-      'textarea',
-    )
-
-  temporaryTextarea.value = text
-  temporaryTextarea.setAttribute(
-    'readonly',
-    '',
-  )
-
-  temporaryTextarea.style.position =
-    'fixed'
-  temporaryTextarea.style.left =
-    '-9999px'
-  temporaryTextarea.style.top = '0'
-
-  document.body.appendChild(
-    temporaryTextarea,
-  )
-
-  temporaryTextarea.select()
-  temporaryTextarea.setSelectionRange(
-    0,
-    text.length,
-  )
-
-  const copied =
-    document.execCommand('copy')
-
-  document.body.removeChild(
-    temporaryTextarea,
-  )
-
-  if (!copied) {
-    throw new Error(
-      'Não foi possível copiar o código Pix.',
-    )
-  }
-}
-
 export default function UpgradePage() {
   const [
     context,
@@ -489,12 +419,6 @@ export default function UpgradePage() {
     requestId,
     setRequestId,
   ] = useState('')
-
-  const [
-    copyStatus,
-    setCopyStatus,
-  ] =
-    useState<CopyStatus>('idle')
 
   useEffect(() => {
     setContext(
@@ -642,7 +566,6 @@ export default function UpgradePage() {
     setErrorMessage('')
     setSuccessMessage('')
     setRequestId('')
-    setCopyStatus('idle')
 
     if (!payerName.trim()) {
       setErrorMessage(
@@ -741,7 +664,7 @@ export default function UpgradePage() {
                 origin:
                   'upgrade_page',
                 pageVersion:
-                  'v1.1',
+                  'v1.2',
                 requestedFeature:
                   context
                     .featureCode ??
@@ -757,7 +680,9 @@ export default function UpgradePage() {
                 accessDays:
                   PROMOTIONAL_ACCESS_DAYS,
                 paymentMethod:
-                  'pix_manual',
+                  'mercado_pago_payment_link',
+                paymentProvider:
+                  'mercado_pago',
                 payerName:
                   payerName.trim(),
                 termsAccepted:
@@ -794,7 +719,7 @@ export default function UpgradePage() {
       }
 
       setSuccessMessage(
-        'Sua solicitação foi registrada. Agora realize o pagamento Pix de R$ 15,00 para iniciar o processo de ativação.',
+        'Sua solicitação foi registrada. Agora utilize o botão abaixo para realizar o pagamento de R$ 15,00 no Mercado Pago.',
       )
 
       setRequestId(
@@ -809,24 +734,6 @@ export default function UpgradePage() {
       )
     } finally {
       setIsSubmitting(false)
-    }
-  }
-
-  async function handleCopyPix() {
-    setCopyStatus('idle')
-
-    try {
-      await copyTextToClipboard(
-        PIX_COPY_AND_PASTE,
-      )
-
-      setCopyStatus('copied')
-
-      window.setTimeout(() => {
-        setCopyStatus('idle')
-      }, 3000)
-    } catch {
-      setCopyStatus('error')
     }
   }
 
@@ -1018,8 +925,8 @@ export default function UpgradePage() {
 
           <p className="mt-3 text-sm leading-6 text-slate-600">
             A solicitação será vinculada
-            à sua conta antes da exibição
-            do código Pix.
+            à sua conta antes de liberar
+            o acesso ao pagamento.
           </p>
 
           {isLoadingProfile ? (
@@ -1273,7 +1180,7 @@ export default function UpgradePage() {
               >
                 {isSubmitting
                   ? 'Registrando solicitação...'
-                  : 'Registrar e acessar o Pix'}
+                  : 'Registrar e continuar para o pagamento'}
               </button>
 
               <p className="text-center text-xs leading-5 text-slate-500">
@@ -1325,50 +1232,17 @@ export default function UpgradePage() {
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5">
-                <label
-                  htmlFor="pix-code"
-                  className="text-sm font-bold text-slate-800"
-                >
-                  Pix Copia e Cola
-                </label>
-
-                <textarea
-                  id="pix-code"
-                  value={
-                    PIX_COPY_AND_PASTE
-                  }
-                  readOnly
-                  rows={6}
-                  className="mt-3 w-full resize-none rounded-xl border border-slate-300 bg-white px-4 py-3 font-mono text-xs leading-5 text-slate-700 outline-none"
-                />
-
-                <button
-                  type="button"
-                  onClick={
-                    handleCopyPix
-                  }
-                  className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#0B7491] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#075E75] focus:outline-none focus:ring-2 focus:ring-cyan-300"
-                >
-                  {copyStatus ===
-                  'copied'
-                    ? 'Código Pix copiado'
-                    : 'Copiar código Pix'}
-                </button>
-
-                {copyStatus ===
-                'error' ? (
-                  <p
-                    role="alert"
-                    className="mt-3 text-sm font-semibold leading-6 text-red-700"
-                  >
-                    Não foi possível
-                    copiar automaticamente.
-                    Selecione o código e
-                    copie manualmente.
-                  </p>
-                ) : null}
-              </div>
+              <a
+                href={
+                  MERCADO_PAGO_PAYMENT_URL
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-[#0B7491] px-5 py-4 text-center text-sm font-bold text-white transition hover:bg-[#075E75] focus:outline-none focus:ring-2 focus:ring-cyan-300"
+              >
+                Pagar R$ 15,00 no Mercado
+                Pago
+              </a>
 
               <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-5">
                 <p className="text-sm font-bold text-amber-900">
@@ -1377,28 +1251,29 @@ export default function UpgradePage() {
 
                 <ol className="mt-3 space-y-2 text-sm leading-6 text-amber-800">
                   <li>
-                    1. Copie o código
-                    Pix.
-                  </li>
-
-                  <li>
-                    2. Abra o aplicativo
-                    do seu banco.
-                  </li>
-
-                  <li>
-                    3. Escolha Pix Copia
-                    e Cola.
-                  </li>
-
-                  <li>
-                    4. Confirme o valor
-                    de R$ 15,00.
-                  </li>
-
-                  <li>
-                    5. Finalize o
+                    1. Toque no botão de
                     pagamento.
+                  </li>
+
+                  <li>
+                    2. Confira o valor de
+                    R$ 15,00.
+                  </li>
+
+                  <li>
+                    3. Escolha o meio de
+                    pagamento disponível.
+                  </li>
+
+                  <li>
+                    4. Confirme os dados
+                    antes de finalizar.
+                  </li>
+
+                  <li>
+                    5. Conclua o
+                    pagamento no Mercado
+                    Pago.
                   </li>
                 </ol>
               </div>
