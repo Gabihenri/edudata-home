@@ -516,6 +516,117 @@ export function PlatformNavigation() {
     setMenuOpen(false)
   }, [pathname])
 
+  useEffect(() => {
+    if (
+      !menuOpen ||
+      typeof window ===
+        'undefined'
+    ) {
+      return
+    }
+
+    const scrollPosition =
+      window.scrollY
+
+    const previousBodyStyles = {
+      position:
+        document.body.style
+          .position,
+
+      top:
+        document.body.style.top,
+
+      left:
+        document.body.style.left,
+
+      right:
+        document.body.style.right,
+
+      width:
+        document.body.style.width,
+
+      overflow:
+        document.body.style
+          .overflow,
+    }
+
+    const previousHtmlOverflow =
+      document.documentElement
+        .style.overflow
+
+    document.body.style.position =
+      'fixed'
+
+    document.body.style.top =
+      `-${scrollPosition}px`
+
+    document.body.style.left =
+      '0'
+
+    document.body.style.right =
+      '0'
+
+    document.body.style.width =
+      '100%'
+
+    document.body.style.overflow =
+      'hidden'
+
+    document.documentElement
+      .style.overflow =
+      'hidden'
+
+    function handleKeyDown(
+      event: KeyboardEvent,
+    ) {
+      if (
+        event.key ===
+        'Escape'
+      ) {
+        setMenuOpen(false)
+      }
+    }
+
+    window.addEventListener(
+      'keydown',
+      handleKeyDown,
+    )
+
+    return () => {
+      window.removeEventListener(
+        'keydown',
+        handleKeyDown,
+      )
+
+      document.body.style.position =
+        previousBodyStyles.position
+
+      document.body.style.top =
+        previousBodyStyles.top
+
+      document.body.style.left =
+        previousBodyStyles.left
+
+      document.body.style.right =
+        previousBodyStyles.right
+
+      document.body.style.width =
+        previousBodyStyles.width
+
+      document.body.style.overflow =
+        previousBodyStyles.overflow
+
+      document.documentElement
+        .style.overflow =
+        previousHtmlOverflow
+
+      window.scrollTo(
+        0,
+        scrollPosition,
+      )
+    }
+  }, [menuOpen])
+
   const navigationItems =
     useMemo(
       () =>
@@ -743,159 +854,166 @@ export function PlatformNavigation() {
         {menuOpen ? (
           <div
             id="platform-navigation-menu"
-            className="border-t border-white/10 py-5 xl:hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu da Central da Plataforma"
+            className="fixed inset-x-0 top-20 z-[80] h-[calc(100dvh-5rem)] bg-[#071827] xl:hidden"
           >
-            {!loading &&
-            user ? (
-              <div className="mb-5 rounded-xl border border-white/10 bg-white/5 p-4">
-                <p className="font-semibold text-white">
-                  {
-                    user.displayName
-                  }
-                </p>
-
-                {user.email ? (
-                  <p className="mt-1 break-all text-sm text-slate-300">
-                    {user.email}
-                  </p>
-                ) : null}
-
-                {activeContext ? (
-                  <p className="mt-3 text-sm text-cyan-200">
-                    {
-                      activeContext.roleLabel
-                    }
-                    {' — '}
-                    {getContextName(
-                      activeContext,
-                    )}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-
-            <div className="space-y-6">
-              {(
-                Object.keys(
-                  groupedItems,
-                ) as Array<
-                  keyof typeof groupedItems
-                >
-              ).map(group => {
-                const items =
-                  groupedItems[group]
-
-                if (
-                  items.length ===
-                  0
-                ) {
-                  return null
-                }
-
-                return (
-                  <section
-                    key={group}
-                  >
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+            <div className="mx-auto flex h-full w-full max-w-7xl flex-col px-4 sm:px-6">
+              <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain py-5">
+                {!loading &&
+                user ? (
+                  <div className="mb-5 rounded-xl border border-white/10 bg-white/5 p-4">
+                    <p className="font-semibold text-white">
                       {
-                        GROUP_LABELS[
-                          group
-                        ]
+                        user.displayName
                       }
                     </p>
 
-                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                      {items.map(
-                        item => {
-                          const activePath =
-                            isActivePath(
-                              pathname,
-                              item.href,
-                            )
+                    {user.email ? (
+                      <p className="mt-1 break-all text-sm text-slate-300">
+                        {user.email}
+                      </p>
+                    ) : null}
 
-                          return (
-                            <Link
-                              key={
-                                item.key
-                              }
-                              href={
-                                item.href
-                              }
-                              aria-current={
-                                activePath
-                                  ? 'page'
-                                  : undefined
-                              }
-                              className={`rounded-lg border px-4 py-3 text-sm font-semibold transition ${
-                                activePath
-                                  ? 'border-white bg-white text-[#071827]'
-                                  : 'border-white/10 bg-white/5 text-white hover:border-white/30 hover:bg-white/10'
-                              }`}
-                            >
-                              {
-                                item.label
-                              }
-                            </Link>
-                          )
-                        },
-                      )}
-                    </div>
-                  </section>
-                )
-              })}
-            </div>
+                    {activeContext ? (
+                      <p className="mt-3 text-sm text-cyan-200">
+                        {
+                          activeContext.roleLabel
+                        }
+                        {' — '}
+                        {getContextName(
+                          activeContext,
+                        )}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
 
-            <div className="mt-6 border-t border-white/10 pt-5 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-              <button
-                type="button"
-                onClick={
-                  handleLogout
-                }
-                disabled={
-                  loggingOut
-                }
-                aria-label="Sair da plataforma"
-                className="mx-auto flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-300/30 bg-red-500/[0.06] px-5 py-3 text-sm font-semibold text-red-100 transition hover:border-red-300/50 hover:bg-red-500/10 focus:outline-none focus:ring-4 focus:ring-red-300/10 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  className="h-5 w-5 shrink-0"
+                <div className="space-y-6 pb-6">
+                  {(
+                    Object.keys(
+                      groupedItems,
+                    ) as Array<
+                      keyof typeof groupedItems
+                    >
+                  ).map(group => {
+                    const items =
+                      groupedItems[group]
+
+                    if (
+                      items.length ===
+                      0
+                    ) {
+                      return null
+                    }
+
+                    return (
+                      <section
+                        key={group}
+                      >
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                          {
+                            GROUP_LABELS[
+                              group
+                            ]
+                          }
+                        </p>
+
+                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                          {items.map(
+                            item => {
+                              const activePath =
+                                isActivePath(
+                                  pathname,
+                                  item.href,
+                                )
+
+                              return (
+                                <Link
+                                  key={
+                                    item.key
+                                  }
+                                  href={
+                                    item.href
+                                  }
+                                  aria-current={
+                                    activePath
+                                      ? 'page'
+                                      : undefined
+                                  }
+                                  className={`rounded-lg border px-4 py-3 text-sm font-semibold transition ${
+                                    activePath
+                                      ? 'border-white bg-white text-[#071827]'
+                                      : 'border-white/10 bg-white/5 text-white hover:border-white/30 hover:bg-white/10'
+                                  }`}
+                                >
+                                  {
+                                    item.label
+                                  }
+                                </Link>
+                              )
+                            },
+                          )}
+                        </div>
+                      </section>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <footer className="shrink-0 border-t border-white/10 bg-[#071827] pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-4">
+                <button
+                  type="button"
+                  onClick={
+                    handleLogout
+                  }
+                  disabled={
+                    loggingOut
+                  }
+                  aria-label="Sair da plataforma"
+                  className="mx-auto flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-300/30 bg-red-500/[0.06] px-5 py-3 text-sm font-semibold text-red-100 transition hover:border-red-300/50 hover:bg-red-500/10 focus:outline-none focus:ring-4 focus:ring-red-300/10 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <path
-                    d="M10 5H6.75A1.75 1.75 0 0 0 5 6.75v10.5A1.75 1.75 0 0 0 6.75 19H10"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                  />
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    className="h-5 w-5 shrink-0"
+                  >
+                    <path
+                      d="M10 5H6.75A1.75 1.75 0 0 0 5 6.75v10.5A1.75 1.75 0 0 0 6.75 19H10"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
 
-                  <path
-                    d="M14 8l4 4-4 4"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
+                    <path
+                      d="M14 8l4 4-4 4"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
 
-                  <path
-                    d="M18 12H9"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                  />
-                </svg>
+                    <path
+                      d="M18 12H9"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
 
-                <span>
-                  {loggingOut
-                    ? 'Encerrando sessão...'
-                    : 'Sair da plataforma'}
-                </span>
-              </button>
+                  <span>
+                    {loggingOut
+                      ? 'Encerrando sessão...'
+                      : 'Sair da plataforma'}
+                  </span>
+                </button>
 
-              <p className="mt-2 text-center text-xs leading-5 text-slate-400">
-                Encerra com segurança a sessão atual.
-              </p>
+                <p className="mt-2 text-center text-xs leading-5 text-slate-400">
+                  Encerra com segurança a sessão atual.
+                </p>
+              </footer>
             </div>
           </div>
         ) : null}
