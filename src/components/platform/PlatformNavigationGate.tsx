@@ -16,6 +16,7 @@ const PUBLIC_PRODUCT_ROUTES = [
 const EXACT_PRIVATE_ROUTES = [
   '/portal',
   '/perfil',
+  '/suporte',
   '/organizations',
   '/schools',
   '/backoffice',
@@ -27,6 +28,7 @@ const EXACT_PRIVATE_ROUTES = [
 const PRIVATE_ROUTE_PREFIXES = [
   '/portal/',
   '/perfil/',
+  '/suporte/',
   '/professor-digital/',
   '/organizations/',
   '/schools/',
@@ -86,6 +88,7 @@ export default function PlatformNavigationGate() {
    * /agenda/planejamento
    * /agenda/evidencias
    * /professor-digital/...
+   * /suporte
    */
   if (
     isPublicProductRoute(
