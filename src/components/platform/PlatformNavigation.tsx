@@ -822,25 +822,25 @@ export function PlatformNavigation() {
       : false
 
   return (
-    <header className="sticky top-0 z-[70] border-b border-white/10 bg-[#071827] text-white shadow-lg shadow-slate-950/10">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="flex min-h-20 items-center justify-between gap-4">
+    <header className="sticky top-0 z-[70] w-full max-w-full overflow-x-hidden border-b border-white/10 bg-[#071827] text-white shadow-lg shadow-slate-950/10">
+      <div className="mx-auto w-full max-w-7xl overflow-x-hidden px-4 sm:px-6">
+        <div className="flex min-h-20 w-full min-w-0 max-w-full items-center justify-between gap-3 sm:gap-4">
           <Link
             href="/portal"
-            className="min-w-0"
+            className="min-w-0 flex-1 overflow-hidden"
             aria-label="Abrir a Central da Plataforma"
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
+            <p className="max-w-full truncate text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
               EIOS
             </p>
 
-            <p className="truncate text-base font-bold text-white">
+            <p className="max-w-full truncate text-base font-bold text-white">
               Central da Plataforma
             </p>
 
             {!loading &&
             activeContext ? (
-              <p className="mt-1 truncate text-xs text-slate-300">
+              <p className="mt-1 max-w-full truncate text-xs text-slate-300">
                 {getContextName(
                   activeContext,
                 )}
@@ -852,7 +852,7 @@ export function PlatformNavigation() {
             ) : null}
           </Link>
 
-          <nav className="hidden items-center gap-2 xl:flex">
+          <nav className="hidden min-w-0 items-center gap-2 xl:flex">
             {primaryItems.map(
               item => {
                 const activePath =
@@ -870,7 +870,7 @@ export function PlatformNavigation() {
                         ? 'page'
                         : undefined
                     }
-                    className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                    className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
                       activePath
                         ? 'bg-white text-[#071827]'
                         : 'text-slate-200 hover:bg-white/10 hover:text-white'
@@ -883,8 +883,8 @@ export function PlatformNavigation() {
             )}
           </nav>
 
-          <div className="hidden shrink-0 items-center gap-4 xl:flex">
-            <div className="max-w-48 text-right">
+          <div className="hidden min-w-0 shrink-0 items-center gap-4 xl:flex">
+            <div className="min-w-0 max-w-48 text-right">
               <p className="truncate text-sm font-semibold text-white">
                 {user?.displayName ??
                   'Usuário EduData IA'}
@@ -906,7 +906,7 @@ export function PlatformNavigation() {
               disabled={
                 loggingOut
               }
-              className="rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+              className="shrink-0 rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loggingOut
                 ? 'Saindo...'
@@ -926,7 +926,7 @@ export function PlatformNavigation() {
               menuOpen
             }
             aria-controls="platform-navigation-menu"
-            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-white/20 px-4 text-sm font-semibold text-white transition hover:bg-white/10 xl:hidden"
+            className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg border border-white/20 px-4 text-sm font-semibold text-white transition hover:bg-white/10 xl:hidden"
           >
             {menuOpen
               ? 'Fechar'
@@ -940,27 +940,27 @@ export function PlatformNavigation() {
             role="dialog"
             aria-modal="true"
             aria-label="Menu da Central da Plataforma"
-            className="fixed inset-x-0 top-20 z-[80] h-[calc(100dvh-5rem)] bg-[#071827] xl:hidden"
+            className="fixed inset-x-0 top-20 z-[80] h-[calc(100dvh-5rem)] w-screen max-w-full overflow-x-hidden bg-[#071827] xl:hidden"
           >
-            <div className="mx-auto flex h-full w-full max-w-7xl flex-col px-4 sm:px-6">
-              <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain py-5">
+            <div className="mx-auto flex h-full w-full max-w-7xl min-w-0 flex-col overflow-x-hidden px-4 sm:px-6">
+              <div className="min-h-0 min-w-0 flex-1 touch-pan-y overflow-x-hidden overflow-y-auto overscroll-contain py-5">
                 {!loading &&
                 user ? (
-                  <div className="mb-5 rounded-xl border border-white/10 bg-white/5 p-4">
-                    <p className="font-semibold text-white">
+                  <div className="mb-5 min-w-0 max-w-full overflow-hidden rounded-xl border border-white/10 bg-white/5 p-4">
+                    <p className="max-w-full truncate font-semibold text-white">
                       {
                         user.displayName
                       }
                     </p>
 
                     {user.email ? (
-                      <p className="mt-1 break-all text-sm text-slate-300">
+                      <p className="mt-1 max-w-full break-all text-sm text-slate-300">
                         {user.email}
                       </p>
                     ) : null}
 
                     {activeContext ? (
-                      <p className="mt-3 text-sm text-cyan-200">
+                      <p className="mt-3 max-w-full break-words text-sm text-cyan-200">
                         {
                           activeContext.roleLabel
                         }
@@ -973,7 +973,7 @@ export function PlatformNavigation() {
                   </div>
                 ) : null}
 
-                <div className="space-y-6 pb-6">
+                <div className="min-w-0 max-w-full space-y-6 pb-6">
                   {(
                     Object.keys(
                       groupedItems,
@@ -994,8 +994,9 @@ export function PlatformNavigation() {
                     return (
                       <section
                         key={group}
+                        className="min-w-0 max-w-full"
                       >
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                        <p className="max-w-full truncate text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
                           {
                             GROUP_LABELS[
                               group
@@ -1003,7 +1004,7 @@ export function PlatformNavigation() {
                           }
                         </p>
 
-                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                        <div className="mt-2 grid min-w-0 max-w-full gap-2 sm:grid-cols-2">
                           {items.map(
                             item => {
                               const activePath =
@@ -1025,7 +1026,7 @@ export function PlatformNavigation() {
                                       ? 'page'
                                       : undefined
                                   }
-                                  className={`rounded-lg border px-4 py-3 text-sm font-semibold transition ${
+                                  className={`min-w-0 max-w-full break-words rounded-lg border px-4 py-3 text-sm font-semibold transition ${
                                     activePath
                                       ? 'border-white bg-white text-[#071827]'
                                       : 'border-white/10 bg-white/5 text-white hover:border-white/30 hover:bg-white/10'
@@ -1045,7 +1046,7 @@ export function PlatformNavigation() {
                 </div>
               </div>
 
-              <footer className="shrink-0 border-t border-white/10 bg-[#071827] pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-4">
+              <footer className="min-w-0 max-w-full shrink-0 overflow-x-hidden border-t border-white/10 bg-[#071827] pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-4">
                 <button
                   type="button"
                   onClick={
@@ -1055,7 +1056,7 @@ export function PlatformNavigation() {
                     loggingOut
                   }
                   aria-label="Sair da plataforma"
-                  className="mx-auto flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-300/30 bg-red-500/[0.06] px-5 py-3 text-sm font-semibold text-red-100 transition hover:border-red-300/50 hover:bg-red-500/10 focus:outline-none focus:ring-4 focus:ring-red-300/10 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mx-auto flex min-h-11 max-w-full items-center justify-center gap-2 rounded-xl border border-red-300/30 bg-red-500/[0.06] px-5 py-3 text-sm font-semibold text-red-100 transition hover:border-red-300/50 hover:bg-red-500/10 focus:outline-none focus:ring-4 focus:ring-red-300/10 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <svg
                     aria-hidden="true"
@@ -1086,14 +1087,14 @@ export function PlatformNavigation() {
                     />
                   </svg>
 
-                  <span>
+                  <span className="truncate">
                     {loggingOut
                       ? 'Encerrando sessão...'
                       : 'Sair da plataforma'}
                   </span>
                 </button>
 
-                <p className="mt-2 text-center text-xs leading-5 text-slate-400">
+                <p className="mt-2 max-w-full break-words text-center text-xs leading-5 text-slate-400">
                   Encerra com segurança a sessão atual.
                 </p>
               </footer>
