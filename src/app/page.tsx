@@ -39,6 +39,9 @@ type HeroAction = {
   primary?: boolean
 }
 
+const PROFESSOR_PRO_UPGRADE_HREF =
+  '/upgrade?requestedPlan=edi_professor_pro&product=agenda_edi&source=%2F&returnTo=%2F'
+
 const heroActions:
   HeroAction[] = [
     {
@@ -150,8 +153,79 @@ export default function Page() {
               </p>
 
               <section
+                aria-labelledby="professor-pro-offer-title"
+                className="mt-9 overflow-hidden rounded-2xl border border-cyan-300/30 bg-white/[0.06] shadow-xl shadow-black/10"
+              >
+                <div className="grid gap-6 p-5 sm:p-6 md:grid-cols-[minmax(0,1fr)_190px] md:items-center">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-lg border border-cyan-300/30 bg-cyan-300/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-200">
+                        Oferta de lançamento
+                      </span>
+
+                      <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
+                        Usuário individual
+                      </span>
+                    </div>
+
+                    <p className="mt-5 text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">
+                      Professor Pro
+                    </p>
+
+                    <h2
+                      id="professor-pro-offer-title"
+                      className="mt-2 text-2xl font-bold leading-tight text-white sm:text-3xl"
+                    >
+                      Agenda Inteligente EDI para organizar sua rotina docente.
+                    </h2>
+
+                    <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base sm:leading-7">
+                      Planeje compromissos, organize horários, registre ações
+                      pedagógicas e utilize os recursos avançados disponíveis
+                      no ecossistema Professor Digital.
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-cyan-300/20 bg-[#061521] p-5 md:text-right">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">
+                      Acesso por 30 dias
+                    </p>
+
+                    <p className="mt-2 text-4xl font-bold tracking-tight text-white">
+                      R$ 15,00
+                    </p>
+
+                    <p className="mt-1 text-xs font-semibold text-slate-400">
+                      pagamento único
+                    </p>
+
+                    <Link
+                      href={PROFESSOR_PRO_UPGRADE_HREF}
+                      className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#0B7491] px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-[#09657E] focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                    >
+                      Conhecer e ativar
+                    </Link>
+                  </div>
+                </div>
+
+                <footer className="flex flex-wrap gap-x-5 gap-y-2 border-t border-white/10 bg-black/10 px-5 py-4 text-xs font-semibold text-slate-300 sm:px-6">
+                  <span>
+                    Pagamento pelo Mercado Pago
+                  </span>
+
+                  <span>
+                    Ativação manual
+                  </span>
+
+                  <span>
+                    Sem renovação automática
+                  </span>
+                </footer>
+              </section>
+
+              <section
                 aria-label="Acessos principais da EduData IA"
-                className="mt-9 grid gap-3 md:grid-cols-3"
+                className="mt-5 grid gap-3 md:grid-cols-3"
               >
                 {heroActions.map(
                   (action) => (
