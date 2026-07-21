@@ -66,6 +66,12 @@ type SupportPriority =
   | 'high'
   | 'urgent'
 
+type ManagementAction =
+  | 'status'
+  | 'assign'
+  | 'assign_self'
+  | 'classify'
+
 type PostBody = {
   message?: unknown
   visibility?: unknown
@@ -81,6 +87,18 @@ type PatchBody = {
   manualPriority?: unknown
 }
 
+type ActiveStaffMember = {
+  id: string
+  userId: string
+  displayName: string
+  role: string
+  roleLabel: string
+  status: string
+  canViewAll: boolean
+  canAssign: boolean
+  canManageStaff: boolean
+}
+
 const NO_CACHE_HEADERS = {
   'Cache-Control':
     'no-store, no-cache, must-revalidate',
@@ -90,7 +108,7 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 const SUPPORT_STATUSES:
-  SupportStatus[] = [
+  readonly SupportStatus[] = [
     'open',
     'in_analysis',
     'waiting_user',
@@ -101,13 +119,13 @@ const SUPPORT_STATUSES:
   ]
 
 const MESSAGE_VISIBILITIES:
-  MessageVisibility[] = [
+  readonly MessageVisibility[] = [
     'shared',
     'internal',
   ]
 
 const SUPPORT_IMPACTS:
-  SupportImpact[] = [
+  readonly SupportImpact[] = [
     'single_user',
     'multiple_users',
     'school',
@@ -117,7 +135,7 @@ const SUPPORT_IMPACTS:
   ]
 
 const SUPPORT_URGENCIES:
-  SupportUrgency[] = [
+  readonly SupportUrgency[] = [
     'low',
     'normal',
     'high',
@@ -125,22 +143,20 @@ const SUPPORT_URGENCIES:
   ]
 
 const SUPPORT_PRIORITIES:
-  SupportPriority[] = [
+  readonly SupportPriority[] = [
     'low',
     'normal',
     'high',
     'urgent',
   ]
 
-const MANAGEMENT_ACTIONS = [
-  'status',
-  'assign',
-  'assign_self',
-  'classify',
-] as const
-
-type ManagementAction =
-  (typeof MANAGEMENT_ACTIONS)[number]
+const MANAGEMENT_ACTIONS:
+  readonly ManagementAction[] = [
+    'status',
+    'assign',
+    'assign_self',
+    'classify',
+  ]
 
 function getAccessToken(
   request: NextRequest,
@@ -202,29 +218,10 @@ function createAuthenticatedClient(
 function normalizeTicketId(
   value: unknown,
 ): string {
-  if (
-    typeof value !==
-    'string'
-  ) {
-    throw new Error(
-      'O identificador do chamado é inválido.',
-    )
-  }
-
-  const normalizedValue =
-    value.trim()
-
-  if (
-    !UUID_PATTERN.test(
-      normalizedValue,
-    )
-  ) {
-    throw new Error(
-      'O identificador do chamado é inválido.',
-    )
-  }
-
-  return normalizedValue
+  return normalizeUuid(
+    value,
+    'O identificador do chamado',
+  )
 }
 
 function normalizeUuid(
@@ -297,7 +294,8 @@ function normalizeOptionalText(
 ): string | null {
   if (
     value === null ||
-    value === undefined
+    value === undefined ||
+    value === ''
   ) {
     return null
   }
@@ -386,6 +384,26 @@ function normalizeOptionalEnum<
   )
 }
 
+function getRoleLabel(
+  role: string,
+): string {
+  if (
+    role ===
+    'administrator'
+  ) {
+    return 'Administrador'
+  }
+
+  if (
+    role ===
+    'manager'
+  ) {
+    return 'Gestor'
+  }
+
+  return 'Agente'
+}
+
 function getErrorStatus(
   error: unknown,
 ): number {
@@ -462,6 +480,9 @@ function getErrorStatus(
     ) ||
     message.includes(
       'justificativa',
+    ) ||
+    message.includes(
+      'precisa ser reaberto',
     )
   ) {
     return 400
@@ -588,70 +609,7 @@ async function requireTicketAccess(
       .from(
         'support_ticket_operations',
       )
-      .select(`
-        id,
-        protocol,
-        requester_user_id,
-        requester_account_type,
-        requester_role,
-        requester_hierarchy_level,
-        requester_plan_code,
-        requester_service_tier,
-        organization_id,
-        school_id,
-        product_code,
-        source_module,
-        source_path,
-        source_context,
-        category,
-        subject,
-        requested_priority,
-        calculated_priority,
-        priority,
-        priority_score,
-        priority_overridden,
-        priority_override_reason,
-        priority_changed_at,
-        impact,
-        urgency,
-        status,
-        operational_status,
-        assigned_to_user_id,
-        privacy_notice_version,
-        metadata,
-        sla_policy_id,
-        sla_policy_code,
-        sla_policy_name,
-        warning_percent,
-        critical_percent,
-        is_contractual,
-        sla_started_at,
-        first_response_due_at,
-        resolution_due_at,
-        first_response_at,
-        sla_clock_status,
-        sla_paused_at,
-        sla_paused_seconds,
-        sla_pause_reason,
-        first_response_breached_at,
-        resolution_breached_at,
-        sla_completed_at,
-        last_sla_evaluated_at,
-        active_sla_due_at,
-        sla_light,
-        seconds_until_sla_breach,
-        sla_sort_rank,
-        priority_sort_rank,
-        requester_sort_rank,
-        last_message_at,
-        last_requester_message_at,
-        last_support_message_at,
-        status_changed_at,
-        resolved_at,
-        closed_at,
-        created_at,
-        updated_at
-      `)
+      .select('*')
       .eq(
         'id',
         ticketId,
@@ -673,12 +631,127 @@ async function requireTicketAccess(
   return data
 }
 
+async function loadActiveStaffMembers(
+  supabase: SupabaseClient,
+  currentUserId: string,
+  staff: SupportStaffContext,
+): Promise<ActiveStaffMember[]> {
+  if (!staff.canAssign) {
+    return [
+      {
+        id:
+          staff.id,
+
+        userId:
+          staff.userId,
+
+        displayName:
+          'Você',
+
+        role:
+          staff.role,
+
+        roleLabel:
+          getRoleLabel(
+            staff.role,
+          ),
+
+        status:
+          'active',
+
+        canViewAll:
+          staff.canViewAll,
+
+        canAssign:
+          staff.canAssign,
+
+        canManageStaff:
+          staff.canManageStaff,
+      },
+    ]
+  }
+
+  const {
+    data,
+    error,
+  } =
+    await supabase.rpc(
+      'list_active_support_staff',
+    )
+
+  if (error) {
+    throw new Error(
+      error.message,
+    )
+  }
+
+  return (
+    data ?? []
+  ).map(
+    member => {
+      const userId =
+        String(
+          member.user_id,
+        )
+
+      const role =
+        String(
+          member.staff_role,
+        )
+
+      const originalDisplayName =
+        typeof member.display_name ===
+          'string' &&
+        member.display_name.trim()
+          ? member.display_name.trim()
+          : 'Operador de suporte'
+
+      return {
+        id:
+          String(
+            member.id,
+          ),
+
+        userId,
+
+        displayName:
+          userId ===
+          currentUserId
+            ? `${originalDisplayName} (você)`
+            : originalDisplayName,
+
+        role,
+
+        roleLabel:
+          getRoleLabel(role),
+
+        status:
+          String(
+            member.status,
+          ),
+
+        canViewAll:
+          member.can_view_all ===
+          true,
+
+        canAssign:
+          member.can_assign ===
+          true,
+
+        canManageStaff:
+          member
+            .can_manage_staff ===
+          true,
+      }
+    },
+  )
+}
+
 async function loadTicketDetail(
   supabase: SupabaseClient,
   ticketId: string,
   currentUserId: string,
-  staff:
-    SupportStaffContext,
+  staff: SupportStaffContext,
 ) {
   const ticket =
     await requireTicketAccess(
@@ -692,8 +765,8 @@ async function loadTicketDetail(
     assignmentHistoryResult,
     priorityHistoryResult,
     slaHistoryResult,
-    staffMembersResult,
     markReadResult,
+    staffMembers,
   ] =
     await Promise.all([
       supabase
@@ -833,36 +906,18 @@ async function loadTicketDetail(
           },
         ),
 
-      supabase
-        .from(
-          'support_staff_members',
-        )
-        .select(`
-          id,
-          user_id,
-          staff_role,
-          status,
-          can_view_all,
-          can_assign,
-          can_manage_staff
-        `)
-        .eq(
-          'status',
-          'active',
-        )
-        .order(
-          'staff_role',
-          {
-            ascending: true,
-          },
-        ),
-
       supabase.rpc(
         'mark_support_ticket_read',
         {
           p_ticket_id:
             ticketId,
         },
+      ),
+
+      loadActiveStaffMembers(
+        supabase,
+        currentUserId,
+        staff,
       ),
     ])
 
@@ -901,114 +956,10 @@ async function loadTicketDetail(
     )
   }
 
-  if (staffMembersResult.error) {
-    throw new Error(
-      staffMembersResult
-        .error.message,
-    )
-  }
-
   if (markReadResult.error) {
     throw new Error(
       markReadResult.error.message,
     )
-  }
-
-  const staffMembers =
-    (
-      staffMembersResult.data ??
-      []
-    ).map(member => {
-      const userId =
-        String(member.user_id)
-
-      const role =
-        String(
-          member.staff_role,
-        )
-
-      const roleLabel =
-        role ===
-        'administrator'
-          ? 'Administrador'
-          : role ===
-              'manager'
-            ? 'Gestor'
-            : 'Agente'
-
-      return {
-        id:
-          String(member.id),
-
-        userId,
-
-        role,
-
-        roleLabel,
-
-        displayName:
-          userId ===
-          currentUserId
-            ? 'Você'
-            : `${roleLabel} • ${userId.slice(
-                0,
-                8,
-              )}`,
-
-        canViewAll:
-          member.can_view_all ===
-          true,
-
-        canAssign:
-          member.can_assign ===
-          true,
-
-        canManageStaff:
-          member
-            .can_manage_staff ===
-          true,
-      }
-    })
-
-  const currentStaffExists =
-    staffMembers.some(
-      member =>
-        member.userId ===
-        currentUserId,
-    )
-
-  if (!currentStaffExists) {
-    staffMembers.unshift({
-      id:
-        staff.id,
-
-      userId:
-        staff.userId,
-
-      role:
-        staff.role,
-
-      roleLabel:
-        staff.role ===
-        'administrator'
-          ? 'Administrador'
-          : staff.role ===
-              'manager'
-            ? 'Gestor'
-            : 'Agente',
-
-      displayName:
-        'Você',
-
-      canViewAll:
-        staff.canViewAll,
-
-      canAssign:
-        staff.canAssign,
-
-      canManageStaff:
-        staff.canManageStaff,
-    })
   }
 
   return {
@@ -1210,7 +1161,7 @@ export async function POST(
         createdMessageError,
     } =
       await supabase.rpc(
-        'send_support_message',
+        'send_support_staff_message',
         {
           p_ticket_id:
             ticketId,
@@ -1360,7 +1311,7 @@ export async function PATCH(
         error,
       } =
         await supabase.rpc(
-          'change_support_ticket_status',
+          'change_support_staff_ticket_status',
           {
             p_ticket_id:
               ticketId,
@@ -1557,8 +1508,10 @@ export async function PATCH(
     return NextResponse.json(
       {
         success: true,
+
         message:
           successMessage,
+
         data,
       },
       {
