@@ -1,10 +1,16 @@
 'use client'
 
 import Link from 'next/link'
+
 import {
   useEffect,
   useState,
 } from 'react'
+
+import {
+  createPortal,
+} from 'react-dom'
+
 import {
   usePathname,
   useRouter,
@@ -52,102 +58,162 @@ type ProfileApiResponse = {
 const navigationItems:
   NavigationItem[] = [
     {
-      code: '01',
-      label: 'Dashboard',
+      code:
+        '01',
+
+      label:
+        'Dashboard',
+
       description:
         'Visão geral da operação',
+
       href:
         '/agenda/dashboard',
+
       group:
         'Operação',
     },
     {
-      code: '02',
-      label: 'Calendário',
+      code:
+        '02',
+
+      label:
+        'Calendário',
+
       description:
         'Compromissos e prazos',
+
       href:
         '/agenda/calendario',
+
       group:
         'Operação',
     },
     {
-      code: '03',
-      label: 'Planejamento',
+      code:
+        '03',
+
+      label:
+        'Planejamento',
+
       description:
         'Planos e ações pedagógicas',
+
       href:
         '/agenda/planejamento',
+
       group:
         'Operação',
     },
     {
-      code: '04',
-      label: 'Evidências',
+      code:
+        '04',
+
+      label:
+        'Evidências',
+
       description:
         'Registros e arquivos protegidos',
+
       href:
         '/agenda/evidencias',
+
       group:
         'Operação',
     },
     {
-      code: '05',
-      label: 'Tarefas',
+      code:
+        '05',
+
+      label:
+        'Tarefas',
+
       description:
         'Pendências e entregas',
+
       href:
         '/agenda/tarefas',
+
       group:
         'Organização',
     },
     {
-      code: '06',
-      label: 'Turmas',
+      code:
+        '06',
+
+      label:
+        'Turmas',
+
       description:
         'Contextos de aprendizagem',
+
       href:
         '/agenda/turmas',
+
       group:
         'Organização',
     },
     {
-      code: '07',
-      label: 'Aulas',
+      code:
+        '07',
+
+      label:
+        'Aulas',
+
       description:
         'Registros de aula',
+
       href:
         '/agenda/aulas',
+
       group:
         'Organização',
     },
     {
-      code: '08',
-      label: 'Objetivos',
+      code:
+        '08',
+
+      label:
+        'Objetivos',
+
       description:
         'Metas e acompanhamento',
+
       href:
         '/agenda/objetivos',
+
       group:
         'Inteligência',
     },
     {
-      code: '09',
-      label: 'Indicadores',
+      code:
+        '09',
+
+      label:
+        'Indicadores',
+
       description:
         'Leitura e análise de dados',
+
       href:
         '/agenda/indicadores',
+
       group:
         'Inteligência',
     },
     {
-      code: '10',
-      label: 'Histórico',
+      code:
+        '10',
+
+      label:
+        'Histórico',
+
       description:
         'Memória e auditoria',
+
       href:
         '/agenda/historico',
+
       group:
         'Inteligência',
     },
@@ -201,7 +267,8 @@ function isActivePath(
   href: string,
 ): boolean {
   return (
-    pathname === href ||
+    pathname ===
+      href ||
     pathname.startsWith(
       `${href}/`,
     )
@@ -224,7 +291,9 @@ function getRoleLabel(
   role: string,
 ): string {
   const normalizedRole =
-    role.trim().toLowerCase()
+    role
+      .trim()
+      .toLowerCase()
 
   const knownLabel =
     ROLE_LABELS[
@@ -256,9 +325,11 @@ function getStatusLabel(
   status: string,
 ): string {
   const normalizedStatus =
-    status.trim().toLowerCase()
+    status
+      .trim()
+      .toLowerCase()
 
-  const statusLabels:
+  const labels:
     Record<string, string> = {
       active:
         'Conta ativa',
@@ -274,7 +345,7 @@ function getStatusLabel(
     }
 
   return (
-    statusLabels[
+    labels[
       normalizedStatus
     ] ??
     'Status não informado'
@@ -295,11 +366,18 @@ export function AgendaNavigation() {
     useState(false)
 
   const [
+    mounted,
+    setMounted,
+  ] =
+    useState(false)
+
+  const [
     accountProfile,
     setAccountProfile,
   ] =
     useState<
-      AccountProfile | null
+      AccountProfile |
+      null
     >(null)
 
   const [
@@ -325,10 +403,24 @@ export function AgendaNavigation() {
     navigationItems[0]
 
   useEffect(() => {
+    setMounted(
+      true,
+    )
+
+    return () => {
+      setMounted(
+        false,
+      )
+    }
+  }, [])
+
+  useEffect(() => {
     setMobileMenuOpen(
       false,
     )
-  }, [pathname])
+  }, [
+    pathname,
+  ])
 
   useEffect(() => {
     if (
@@ -339,60 +431,49 @@ export function AgendaNavigation() {
       return
     }
 
-    const scrollPosition =
-      window.scrollY
-
-    const previousBodyStyles = {
-      position:
-        document.body.style
-          .position,
-
-      top:
-        document.body.style.top,
-
-      left:
-        document.body.style.left,
-
-      right:
-        document.body.style.right,
-
-      width:
-        document.body.style.width,
-
-      overflow:
-        document.body.style
-          .overflow,
-    }
-
-    const previousHtmlOverflow =
-      document.documentElement
+    const previousBodyOverflow =
+      document.body
         .style.overflow
 
-    document.body.style.position =
-      'fixed'
+    const previousBodyOverscroll =
+      document.body
+        .style
+        .overscrollBehavior
 
-    document.body.style.top =
-      `-${scrollPosition}px`
+    const previousHtmlOverflow =
+      document
+        .documentElement
+        .style.overflow
 
-    document.body.style.left =
-      '0'
+    const previousHtmlOverscroll =
+      document
+        .documentElement
+        .style
+        .overscrollBehavior
 
-    document.body.style.right =
-      '0'
-
-    document.body.style.width =
-      '100%'
-
-    document.body.style.overflow =
-      'hidden'
-
-    document.documentElement
+    document.body
       .style.overflow =
       'hidden'
 
+    document.body
+      .style
+      .overscrollBehavior =
+      'none'
+
+    document
+      .documentElement
+      .style.overflow =
+      'hidden'
+
+    document
+      .documentElement
+      .style
+      .overscrollBehavior =
+      'none'
+
     function handleKeyDown(
       event: KeyboardEvent,
-    ) {
+    ): void {
       if (
         event.key ===
         'Escape'
@@ -414,42 +495,39 @@ export function AgendaNavigation() {
         handleKeyDown,
       )
 
-      document.body.style.position =
-        previousBodyStyles.position
+      document.body
+        .style.overflow =
+        previousBodyOverflow
 
-      document.body.style.top =
-        previousBodyStyles.top
+      document.body
+        .style
+        .overscrollBehavior =
+        previousBodyOverscroll
 
-      document.body.style.left =
-        previousBodyStyles.left
-
-      document.body.style.right =
-        previousBodyStyles.right
-
-      document.body.style.width =
-        previousBodyStyles.width
-
-      document.body.style.overflow =
-        previousBodyStyles.overflow
-
-      document.documentElement
+      document
+        .documentElement
         .style.overflow =
         previousHtmlOverflow
 
-      window.scrollTo(
-        0,
-        scrollPosition,
-      )
+      document
+        .documentElement
+        .style
+        .overscrollBehavior =
+        previousHtmlOverscroll
     }
-  }, [mobileMenuOpen])
+  }, [
+    mobileMenuOpen,
+  ])
 
   useEffect(() => {
-    let active = true
+    let active =
+      true
 
     const controller =
       new AbortController()
 
-    async function loadProfile() {
+    async function loadProfile():
+      Promise<void> {
       try {
         const response =
           await fetch(
@@ -502,11 +580,13 @@ export function AgendaNavigation() {
               .displayName,
 
           email:
-            result.user?.email ??
+            result.user
+              ?.email ??
             null,
 
           role:
-            result.profile.role,
+            result.profile
+              .role,
 
           status:
             result.profile
@@ -539,17 +619,31 @@ export function AgendaNavigation() {
     void loadProfile()
 
     return () => {
-      active = false
+      active =
+        false
+
       controller.abort()
     }
-  }, [router])
+  }, [
+    router,
+  ])
 
-  async function handleLogout() {
+  function closeMobileMenu():
+    void {
+    setMobileMenuOpen(
+      false,
+    )
+  }
+
+  async function handleLogout():
+    Promise<void> {
     if (loggingOut) {
       return
     }
 
-    setLoggingOut(true)
+    setLoggingOut(
+      true,
+    )
 
     try {
       await fetch(
@@ -572,90 +666,60 @@ export function AgendaNavigation() {
     }
   }
 
-  return (
-    <nav
-      aria-label="Módulos da Agenda Inteligente EDI"
-      className="sticky top-20 z-[50] border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur"
-    >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex min-h-[72px] items-center justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#0B7491] sm:text-xs">
-              Módulos operacionais
-            </p>
-
-            <div className="mt-1 flex min-w-0 items-center gap-2">
-              <span className="shrink-0 font-mono text-xs font-bold text-slate-400">
-                {currentItem.code}
-              </span>
-
-              <p className="truncate text-sm font-bold text-[#071827] sm:text-base">
-                {currentItem.label}
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            aria-expanded={
-              mobileMenuOpen
-            }
-            aria-controls="agenda-mobile-navigation"
-            onClick={() =>
-              setMobileMenuOpen(
-                current =>
-                  !current,
-              )
-            }
-            className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] lg:hidden"
-          >
-            {mobileMenuOpen
-              ? 'Fechar menu'
-              : 'Menu'}
-          </button>
-
-          <div className="hidden items-center gap-2 lg:flex">
-            <Link
-              href="/portal"
-              className="inline-flex min-h-10 items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-[#071827]"
-            >
-              Central EIOS
-            </Link>
-
-            <Link
-              href="/perfil"
-              className="inline-flex min-h-10 items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-[#071827]"
-            >
-              Minha conta
-            </Link>
-
-            <button
-              type="button"
-              onClick={
-                handleLogout
-              }
-              disabled={
-                loggingOut
-              }
-              className="inline-flex min-h-10 items-center justify-center rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loggingOut
-                ? 'Saindo...'
-                : 'Sair e trocar conta'}
-            </button>
-          </div>
-        </div>
-
-        {mobileMenuOpen ? (
-          <div
+  const mobileMenu =
+    mounted &&
+    mobileMenuOpen
+      ? createPortal(
+          <section
             id="agenda-mobile-navigation"
             role="dialog"
             aria-modal="true"
             aria-label="Menu da Agenda Inteligente EDI"
-            className="fixed inset-x-0 bottom-0 top-[calc(5rem+72px)] z-[70] border-t border-slate-200 bg-white lg:hidden"
+            className="fixed inset-0 z-[150] flex h-[100dvh] min-h-0 w-screen max-w-full flex-col overflow-hidden bg-white text-slate-950 lg:hidden"
           >
-            <div className="mx-auto flex h-full w-full max-w-7xl flex-col">
-              <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-4 py-4 sm:px-6">
+            <header className="shrink-0 border-b border-slate-200 bg-[#071827] px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] text-white sm:px-6">
+              <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300">
+                    Agenda Inteligente EDI
+                  </p>
+
+                  <div className="mt-1 flex min-w-0 items-center gap-2">
+                    <span className="shrink-0 font-mono text-xs font-bold text-slate-400">
+                      {
+                        currentItem.code
+                      }
+                    </span>
+
+                    <p className="truncate text-base font-bold text-white">
+                      {
+                        currentItem.label
+                      }
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={
+                    closeMobileMenu
+                  }
+                  aria-label="Fechar menu da Agenda"
+                  className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-4 text-sm font-semibold text-white transition hover:bg-white/10"
+                >
+                  Fechar
+                </button>
+              </div>
+            </header>
+
+            <div
+              className="min-h-0 flex-1 touch-pan-y overflow-x-hidden overflow-y-scroll overscroll-contain bg-white px-4 py-5 sm:px-6"
+              style={{
+                WebkitOverflowScrolling:
+                  'touch',
+              }}
+            >
+              <div className="mx-auto w-full max-w-7xl">
                 <section
                   aria-label="Conta ativa"
                   className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
@@ -671,7 +735,7 @@ export function AgendaNavigation() {
                       </p>
                     ) : (
                       <>
-                        <p className="mt-2 font-bold text-[#071827]">
+                        <p className="mt-2 break-words font-bold text-[#071827]">
                           {accountProfile
                             ?.displayName ??
                             'Usuário EduData IA'}
@@ -710,6 +774,9 @@ export function AgendaNavigation() {
                   <div className="grid gap-2 p-4 sm:grid-cols-2">
                     <Link
                       href="/perfil"
+                      onClick={
+                        closeMobileMenu
+                      }
                       className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78]"
                     >
                       Meu perfil
@@ -717,6 +784,9 @@ export function AgendaNavigation() {
 
                     <Link
                       href="/portal"
+                      onClick={
+                        closeMobileMenu
+                      }
                       className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78]"
                     >
                       Central EIOS
@@ -724,7 +794,7 @@ export function AgendaNavigation() {
                   </div>
                 </section>
 
-                <div className="mt-6 space-y-6 pb-6">
+                <div className="mt-6 space-y-7 pb-8">
                   {navigationGroups.map(
                     group => {
                       const items =
@@ -736,10 +806,14 @@ export function AgendaNavigation() {
 
                       return (
                         <section
-                          key={group}
+                          key={
+                            group
+                          }
                         >
                           <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-                            {group}
+                            {
+                              group
+                            }
                           </p>
 
                           <div className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -758,6 +832,9 @@ export function AgendaNavigation() {
                                     }
                                     href={
                                       item.href
+                                    }
+                                    onClick={
+                                      closeMobileMenu
                                     }
                                     aria-current={
                                       active
@@ -784,7 +861,7 @@ export function AgendaNavigation() {
                                       </span>
 
                                       <div className="min-w-0">
-                                        <p className="font-bold">
+                                        <p className="break-words font-bold">
                                           {
                                             item.label
                                           }
@@ -814,8 +891,10 @@ export function AgendaNavigation() {
                   )}
                 </div>
               </div>
+            </div>
 
-              <footer className="shrink-0 border-t border-red-100 bg-red-50 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 sm:px-6">
+            <footer className="shrink-0 border-t border-red-100 bg-red-50 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 sm:px-6">
+              <div className="mx-auto w-full max-w-7xl">
                 <button
                   type="button"
                   onClick={
@@ -834,66 +913,157 @@ export function AgendaNavigation() {
                 <p className="mt-2 text-center text-xs leading-5 text-red-700">
                   Encerra o acesso atual e retorna à tela de login.
                 </p>
-              </footer>
+              </div>
+            </footer>
+          </section>,
+          document.body,
+        )
+      : null
+
+  return (
+    <>
+      <nav
+        aria-label="Módulos da Agenda Inteligente EDI"
+        className="sticky top-20 z-[50] border-b border-slate-200 bg-white shadow-sm"
+      >
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex min-h-[72px] items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#0B7491] sm:text-xs">
+                Módulos operacionais
+              </p>
+
+              <div className="mt-1 flex min-w-0 items-center gap-2">
+                <span className="shrink-0 font-mono text-xs font-bold text-slate-400">
+                  {
+                    currentItem.code
+                  }
+                </span>
+
+                <p className="truncate text-sm font-bold text-[#071827] sm:text-base">
+                  {
+                    currentItem.label
+                  }
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              aria-expanded={
+                mobileMenuOpen
+              }
+              aria-controls="agenda-mobile-navigation"
+              onClick={() =>
+                setMobileMenuOpen(
+                  true,
+                )
+              }
+              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] lg:hidden"
+            >
+              Menu
+            </button>
+
+            <div className="hidden items-center gap-2 lg:flex">
+              <Link
+                href="/portal"
+                className="inline-flex min-h-10 items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-[#071827]"
+              >
+                Central EIOS
+              </Link>
+
+              <Link
+                href="/perfil"
+                className="inline-flex min-h-10 items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-[#071827]"
+              >
+                Minha conta
+              </Link>
+
+              <button
+                type="button"
+                onClick={
+                  handleLogout
+                }
+                disabled={
+                  loggingOut
+                }
+                className="inline-flex min-h-10 items-center justify-center rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loggingOut
+                  ? 'Saindo...'
+                  : 'Sair e trocar conta'}
+              </button>
             </div>
           </div>
-        ) : null}
 
-        <div className="hidden border-t border-slate-200 py-3 lg:block">
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {navigationItems.map(
-              item => {
-                const active =
-                  isActivePath(
-                    pathname,
-                    item.href,
-                  )
+          <div className="hidden border-t border-slate-200 py-3 lg:block">
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {navigationItems.map(
+                item => {
+                  const active =
+                    isActivePath(
+                      pathname,
+                      item.href,
+                    )
 
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={
-                      active
-                        ? 'page'
-                        : undefined
-                    }
-                    className={getNavigationItemClass(
-                      active,
-                    )}
-                  >
-                    <span
-                      className={`font-mono text-xs font-bold ${
+                  return (
+                    <Link
+                      key={
+                        item.href
+                      }
+                      href={
+                        item.href
+                      }
+                      aria-current={
                         active
-                          ? 'text-cyan-300'
-                          : 'text-[#0B7491]'
-                      }`}
+                          ? 'page'
+                          : undefined
+                      }
+                      className={getNavigationItemClass(
+                        active,
+                      )}
                     >
-                      {item.code}
-                    </span>
-
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-bold">
-                        {item.label}
-                      </p>
-
-                      <p
-                        className={`mt-0.5 truncate text-[11px] ${
+                      <span
+                        className={`font-mono text-xs font-bold ${
                           active
-                            ? 'text-slate-300'
-                            : 'text-slate-500 group-hover:text-slate-600'
+                            ? 'text-cyan-300'
+                            : 'text-[#0B7491]'
                         }`}
                       >
-                        {item.group}
-                      </p>
-                    </div>
-                  </Link>
-                )
-              },
-            )}
+                        {
+                          item.code
+                        }
+                      </span>
+
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold">
+                          {
+                            item.label
+                          }
+                        </p>
+
+                        <p
+                          className={`mt-0.5 truncate text-[11px] ${
+                            active
+                              ? 'text-slate-300'
+                              : 'text-slate-500 group-hover:text-slate-600'
+                          }`}
+                        >
+                          {
+                            item.group
+                          }
+                        </p>
+                      </div>
+                    </Link>
+                  )
+                },
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      {mobileMenu}
+    </>
   )
 }
