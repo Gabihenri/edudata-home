@@ -10,8 +10,7 @@ import {
 
 import { requireSessionUser } from '@/lib/auth/session'
 
-export const dynamic =
-  'force-dynamic'
+export const dynamic = 'force-dynamic'
 
 type RouteContext = {
   params: {
@@ -85,6 +84,17 @@ type PatchBody = {
   impact?: unknown
   urgency?: unknown
   manualPriority?: unknown
+}
+
+type ActiveStaffRpcRow = {
+  id: string
+  user_id: string
+  display_name: string | null
+  staff_role: string
+  status: string
+  can_view_all: boolean
+  can_assign: boolean
+  can_manage_staff: boolean
 }
 
 type ActiveStaffMember = {
@@ -685,10 +695,17 @@ async function loadActiveStaffMembers(
     )
   }
 
-  return (
-    data ?? []
-  ).map(
-    member => {
+  const staffRows:
+    ActiveStaffRpcRow[] =
+    Array.isArray(data)
+      ? data as ActiveStaffRpcRow[]
+      : []
+
+  return staffRows.map(
+    (
+      member:
+        ActiveStaffRpcRow,
+    ): ActiveStaffMember => {
       const userId =
         String(
           member.user_id,
