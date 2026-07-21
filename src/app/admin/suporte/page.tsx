@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+
 import {
   type ChangeEvent,
   useCallback,
@@ -44,7 +46,6 @@ type SupportScope = {
 type SupportTicket = {
   id: string
   protocol: string
-
   requester_user_id: string
 
   requester_account_type:
@@ -54,12 +55,8 @@ type SupportTicket = {
     | null
 
   requester_role: string | null
-
-  requester_hierarchy_level:
-    number | null
-
-  requester_plan_code:
-    string | null
+  requester_hierarchy_level: number | null
+  requester_plan_code: string | null
 
   requester_service_tier:
     | 'individual_free'
@@ -73,21 +70,14 @@ type SupportTicket = {
   school_id: string | null
 
   product_code: string
-
-  source_module:
-    string | null
-
-  source_path:
-    string | null
+  source_module: string | null
+  source_path: string | null
 
   category: string
   subject: string
 
-  requested_priority:
-    string | null
-
-  calculated_priority:
-    string | null
+  requested_priority: string | null
+  calculated_priority: string | null
 
   priority:
     | 'low'
@@ -96,7 +86,6 @@ type SupportTicket = {
     | 'urgent'
 
   priority_score: number
-
   priority_overridden: boolean
 
   impact: string
@@ -105,17 +94,11 @@ type SupportTicket = {
   status: string
   operational_status: string
 
-  assigned_to_user_id:
-    string | null
+  assigned_to_user_id: string | null
 
-  sla_policy_code:
-    string | null
-
-  sla_policy_name:
-    string | null
-
-  is_contractual:
-    boolean | null
+  sla_policy_code: string | null
+  sla_policy_name: string | null
+  is_contractual: boolean | null
 
   sla_light:
     | 'green'
@@ -126,53 +109,27 @@ type SupportTicket = {
 
   sla_clock_status: string
 
-  active_sla_due_at:
-    string | null
+  active_sla_due_at: string | null
+  seconds_until_sla_breach: number | null
 
-  seconds_until_sla_breach:
-    number | null
+  first_response_due_at: string | null
+  resolution_due_at: string | null
+  first_response_at: string | null
 
-  first_response_due_at:
-    string | null
+  first_response_breached_at: string | null
+  resolution_breached_at: string | null
 
-  resolution_due_at:
-    string | null
+  sla_paused_at: string | null
+  sla_paused_seconds: number
+  sla_pause_reason: string | null
 
-  first_response_at:
-    string | null
+  last_message_at: string
+  last_requester_message_at: string | null
+  last_support_message_at: string | null
 
-  first_response_breached_at:
-    string | null
-
-  resolution_breached_at:
-    string | null
-
-  sla_paused_at:
-    string | null
-
-  sla_paused_seconds:
-    number
-
-  sla_pause_reason:
-    string | null
-
-  last_message_at:
-    string
-
-  last_requester_message_at:
-    string | null
-
-  last_support_message_at:
-    string | null
-
-  status_changed_at:
-    string
-
-  resolved_at:
-    string | null
-
-  closed_at:
-    string | null
+  status_changed_at: string
+  resolved_at: string | null
+  closed_at: string | null
 
   created_at: string
   updated_at: string
@@ -190,17 +147,10 @@ type Pagination = {
 type SupportApiResponse = {
   success: boolean
   error?: string
-
   scope?: SupportScope
-
-  metrics:
-    SupportMetrics | null
-
-  pagination:
-    Pagination
-
-  data:
-    SupportTicket[]
+  metrics?: SupportMetrics | null
+  pagination?: Pagination
+  data?: SupportTicket[]
 }
 
 type FilterState = {
@@ -217,6 +167,18 @@ type FilterState = {
   organizationId: string
   schoolId: string
   sort: string
+}
+
+type MetricDefinition = {
+  label: string
+  value: string | number
+  description: string
+  emphasis?: boolean
+}
+
+type SelectOption = {
+  value: string
+  label: string
 }
 
 const INITIAL_FILTERS: FilterState = {
@@ -239,183 +201,298 @@ const NO_VALUE = '—'
 
 const STATUS_LABELS:
   Record<string, string> = {
-    open:
-      'Aberto',
-
-    in_analysis:
-      'Em análise',
-
-    waiting_user:
-      'Aguardando usuário',
-
-    waiting_support:
-      'Aguardando equipe',
-
-    resolved:
-      'Resolvido',
-
-    closed:
-      'Fechado',
-
-    reopened:
-      'Reaberto',
-
-    in_service:
-      'Em atendimento',
+    open: 'Aberto',
+    in_analysis: 'Em análise',
+    waiting_user: 'Aguardando usuário',
+    waiting_support: 'Aguardando equipe',
+    resolved: 'Resolvido',
+    closed: 'Fechado',
+    reopened: 'Reaberto',
+    in_service: 'Em atendimento',
   }
 
 const PRIORITY_LABELS:
   Record<string, string> = {
-    low:
-      'Baixa',
-
-    normal:
-      'Normal',
-
-    high:
-      'Alta',
-
-    urgent:
-      'Urgente',
+    low: 'Baixa',
+    normal: 'Normal',
+    high: 'Alta',
+    urgent: 'Urgente',
   }
 
 const CATEGORY_LABELS:
   Record<string, string> = {
-    technical:
-      'Problema técnico',
-
-    access:
-      'Acesso ou autenticação',
-
-    billing:
-      'Pagamento ou cobrança',
-
-    product:
-      'Produto ou funcionalidade',
-
-    pedagogical:
-      'Orientação pedagógica',
-
-    privacy:
-      'Privacidade ou segurança',
-
-    suggestion:
-      'Sugestão',
-
-    other:
-      'Outro',
+    technical: 'Problema técnico',
+    access: 'Acesso ou autenticação',
+    billing: 'Pagamento ou cobrança',
+    product: 'Produto ou funcionalidade',
+    pedagogical: 'Orientação pedagógica',
+    privacy: 'Privacidade ou segurança',
+    suggestion: 'Sugestão',
+    other: 'Outro',
   }
 
 const ACCOUNT_LABELS:
   Record<string, string> = {
-    individual:
-      'Usuário individual',
-
-    corporate:
-      'Institucional',
-
-    platform:
-      'Operação da plataforma',
+    individual: 'Usuário individual',
+    corporate: 'Institucional',
+    platform: 'Operação da plataforma',
   }
 
 const SERVICE_TIER_LABELS:
   Record<string, string> = {
-    individual_free:
-      'Individual gratuito',
-
-    individual_pro:
-      'Professor Pro',
-
-    institutional:
-      'Institucional',
-
-    network:
-      'Rede de ensino',
-
-    platform:
-      'Plataforma',
+    individual_free: 'Individual gratuito',
+    individual_pro: 'Professor Pro',
+    institutional: 'Institucional',
+    network: 'Rede de ensino',
+    platform: 'Plataforma',
   }
 
 const PRODUCT_LABELS:
   Record<string, string> = {
-    platform:
-      'Central EIOS',
-
-    agenda_edi:
-      'Agenda Inteligente EDI',
-
-    professor_digital:
-      'Professor Digital',
-
-    academy:
-      'EduData Academy',
-
-    analytics:
-      'EduData Analytics',
-
-    sgpa:
-      'SGPA',
-
-    observatory:
-      'Observatório da Educação',
+    platform: 'Central EIOS',
+    agenda_edi: 'Agenda Inteligente EDI',
+    professor_digital: 'Professor Digital',
+    academy: 'EduData Academy',
+    analytics: 'EduData Analytics',
+    sgpa: 'SGPA',
+    observatory: 'Observatório da Educação',
+    community: 'Comunidade EduData IA',
+    backoffice: 'BackOffice',
+    experience_manager: 'Experience Manager',
   }
 
 const SLA_PRESENTATION = {
   green: {
-    label:
-      'Dentro do prazo',
-
-    dot:
-      'bg-emerald-500',
-
+    label: 'Dentro do prazo',
+    dot: 'bg-emerald-500',
     badge:
       'border-emerald-200 bg-emerald-50 text-emerald-800',
   },
 
   yellow: {
-    label:
-      'Atenção',
-
-    dot:
-      'bg-amber-400',
-
+    label: 'Atenção',
+    dot: 'bg-amber-400',
     badge:
       'border-amber-200 bg-amber-50 text-amber-900',
   },
 
   orange: {
-    label:
-      'Prazo crítico',
-
-    dot:
-      'bg-orange-500',
-
+    label: 'Prazo crítico',
+    dot: 'bg-orange-500',
     badge:
       'border-orange-200 bg-orange-50 text-orange-900',
   },
 
   red: {
-    label:
-      'SLA estourado',
-
-    dot:
-      'bg-red-600',
-
+    label: 'SLA estourado',
+    dot: 'bg-red-600',
     badge:
       'border-red-200 bg-red-50 text-red-800',
   },
 
   gray: {
-    label:
-      'Relógio encerrado ou pausado',
-
-    dot:
-      'bg-slate-400',
-
+    label: 'Relógio encerrado ou pausado',
+    dot: 'bg-slate-400',
     badge:
       'border-slate-200 bg-slate-50 text-slate-700',
   },
 } as const
+
+const STATUS_OPTIONS: SelectOption[] = [
+  {
+    value: '',
+    label: 'Todos os status',
+  },
+  {
+    value: 'open',
+    label: 'Aberto',
+  },
+  {
+    value: 'in_service',
+    label: 'Em atendimento',
+  },
+  {
+    value: 'waiting_user',
+    label: 'Aguardando usuário',
+  },
+  {
+    value: 'closed',
+    label: 'Encerrado',
+  },
+]
+
+const SLA_OPTIONS: SelectOption[] = [
+  {
+    value: '',
+    label: 'Todos os faróis',
+  },
+  {
+    value: 'green',
+    label: 'Verde — dentro do prazo',
+  },
+  {
+    value: 'yellow',
+    label: 'Amarelo — atenção',
+  },
+  {
+    value: 'orange',
+    label: 'Laranja — crítico',
+  },
+  {
+    value: 'red',
+    label: 'Vermelho — estourado',
+  },
+  {
+    value: 'gray',
+    label: 'Cinza — pausado ou encerrado',
+  },
+]
+
+const PRIORITY_OPTIONS: SelectOption[] = [
+  {
+    value: '',
+    label: 'Todas as prioridades',
+  },
+  {
+    value: 'urgent',
+    label: 'Urgente',
+  },
+  {
+    value: 'high',
+    label: 'Alta',
+  },
+  {
+    value: 'normal',
+    label: 'Normal',
+  },
+  {
+    value: 'low',
+    label: 'Baixa',
+  },
+]
+
+const ACCOUNT_TYPE_OPTIONS: SelectOption[] = [
+  {
+    value: '',
+    label: 'Todos os tipos',
+  },
+  {
+    value: 'corporate',
+    label: 'Institucional',
+  },
+  {
+    value: 'platform',
+    label: 'Plataforma',
+  },
+  {
+    value: 'individual',
+    label: 'Individual',
+  },
+]
+
+const SERVICE_TIER_OPTIONS: SelectOption[] = [
+  {
+    value: '',
+    label: 'Todos os níveis',
+  },
+  {
+    value: 'network',
+    label: 'Rede de ensino',
+  },
+  {
+    value: 'institutional',
+    label: 'Institucional',
+  },
+  {
+    value: 'platform',
+    label: 'Plataforma',
+  },
+  {
+    value: 'individual_pro',
+    label: 'Professor Pro',
+  },
+  {
+    value: 'individual_free',
+    label: 'Individual gratuito',
+  },
+]
+
+const REQUESTER_ROLE_OPTIONS: SelectOption[] = [
+  {
+    value: '',
+    label: 'Todos os perfis',
+  },
+  {
+    value: 'super_admin',
+    label: 'Superadministrador',
+  },
+  {
+    value: 'platform_admin',
+    label: 'Administrador da plataforma',
+  },
+  {
+    value: 'regional_manager',
+    label: 'Gestor de rede',
+  },
+  {
+    value: 'director',
+    label: 'Diretor',
+  },
+  {
+    value: 'coordinator',
+    label: 'Coordenador',
+  },
+  {
+    value: 'teacher',
+    label: 'Professor',
+  },
+  {
+    value: 'student',
+    label: 'Estudante',
+  },
+]
+
+const ASSIGNMENT_OPTIONS: SelectOption[] = [
+  {
+    value: 'all',
+    label: 'Todos',
+  },
+  {
+    value: 'unassigned',
+    label: 'Sem responsável',
+  },
+  {
+    value: 'assigned',
+    label: 'Com responsável',
+  },
+  {
+    value: 'mine',
+    label: 'Atribuídos a mim',
+  },
+]
+
+const SORT_OPTIONS: SelectOption[] = [
+  {
+    value: 'sla',
+    label: 'Risco de SLA',
+  },
+  {
+    value: 'priority',
+    label: 'Prioridade',
+  },
+  {
+    value: 'oldest',
+    label: 'Mais antigos',
+  },
+  {
+    value: 'newest',
+    label: 'Mais recentes',
+  },
+  {
+    value: 'updated',
+    label: 'Última atualização',
+  },
+]
 
 function formatDateTime(
   value: string | null,
@@ -438,12 +515,8 @@ function formatDateTime(
   return new Intl.DateTimeFormat(
     'pt-BR',
     {
-      dateStyle:
-        'short',
-
-      timeStyle:
-        'short',
-
+      dateStyle: 'short',
+      timeStyle: 'short',
       timeZone:
         'America/Sao_Paulo',
     },
@@ -494,18 +567,14 @@ function formatDurationFromSeconds(
   const breached =
     value < 0
 
-  const absoluteSeconds =
-    Math.abs(value)
-
   const totalMinutes =
     Math.floor(
-      absoluteSeconds / 60,
+      Math.abs(value) / 60,
     )
 
   const days =
     Math.floor(
-      totalMinutes /
-      1440,
+      totalMinutes / 1440,
     )
 
   const hours =
@@ -543,11 +612,9 @@ function formatDurationFromSeconds(
   const duration =
     parts.join(' ')
 
-  if (breached) {
-    return `Estourado há ${duration}`
-  }
-
-  return `${duration} restantes`
+  return breached
+    ? `Estourado há ${duration}`
+    : `${duration} restantes`
 }
 
 function getLabel(
@@ -582,12 +649,7 @@ function buildQueryString(
   )
 
   const entries:
-    Array<
-      [
-        string,
-        string,
-      ]
-    > = [
+    Array<[string, string]> = [
       [
         'search',
         filters.search,
@@ -667,12 +729,7 @@ function MetricCard({
   value,
   description,
   emphasis = false,
-}: {
-  label: string
-  value: string | number
-  description: string
-  emphasis?: boolean
-}) {
+}: MetricDefinition) {
   return (
     <article
       className={`min-w-0 rounded-3xl border p-5 shadow-sm sm:p-6 ${
@@ -718,12 +775,7 @@ function SelectField({
   label: string
   name: keyof FilterState
   value: string
-
-  options:
-    Array<{
-      value: string
-      label: string
-    }>
+  options: SelectOption[]
 
   onChange: (
     name: keyof FilterState,
@@ -815,21 +867,29 @@ export default function AdminSupportPage() {
             await fetch(
               `/api/admin/support/tickets?${queryString}`,
               {
-                method:
-                  'GET',
-
+                method: 'GET',
                 credentials:
                   'include',
-
-                cache:
-                  'no-store',
-
+                cache: 'no-store',
                 headers: {
                   Accept:
                     'application/json',
                 },
               },
             )
+
+          if (
+            request.status ===
+            401
+          ) {
+            window.location.assign(
+              `/login?redirectTo=${encodeURIComponent(
+                '/admin/suporte',
+              )}`,
+            )
+
+            return
+          }
 
           const result =
             (await request.json()) as
@@ -847,7 +907,9 @@ export default function AdminSupportPage() {
           }
 
           setResponse(result)
-        } catch (requestError) {
+        } catch (
+          requestError
+        ) {
           setResponse(null)
 
           setError(
@@ -892,11 +954,10 @@ export default function AdminSupportPage() {
     null
 
   const mainMetrics =
-    useMemo(
+    useMemo<MetricDefinition[]>(
       () => [
         {
-          label:
-            'Total',
+          label: 'Total',
 
           value:
             metrics?.total_tickets ??
@@ -906,8 +967,7 @@ export default function AdminSupportPage() {
             'Chamados autorizados na fila.',
         },
         {
-          label:
-            'Abertos',
+          label: 'Abertos',
 
           value:
             metrics?.open_tickets ??
@@ -960,8 +1020,7 @@ export default function AdminSupportPage() {
           description:
             'Chamados acima do prazo de atendimento.',
 
-          emphasis:
-            true,
+          emphasis: true,
         },
       ],
       [
@@ -978,8 +1037,7 @@ export default function AdminSupportPage() {
     setFilters(
       currentFilters => ({
         ...currentFilters,
-        [name]:
-          value,
+        [name]: value,
       }),
     )
   }
@@ -1227,10 +1285,10 @@ export default function AdminSupportPage() {
 
             <p className="mt-2 text-xl font-bold text-[#081C2E]">
               {metrics
-                ?.sla_compliance_percent ===
+                ?.sla_compliance_percent ==
               null
                 ? NO_VALUE
-                : `${metrics?.sla_compliance_percent}%`}
+                : `${metrics.sla_compliance_percent}%`}
             </p>
           </div>
         </div>
@@ -1295,43 +1353,9 @@ export default function AdminSupportPage() {
             onChange={
               updateFilter
             }
-            options={[
-              {
-                value:
-                  '',
-
-                label:
-                  'Todos os status',
-              },
-              {
-                value:
-                  'open',
-
-                label:
-                  'Aberto',
-              },
-              {
-                value:
-                  'in_service',
-
-                label:
-                  'Em atendimento',
-              },
-              {
-                value:
-                  'waiting_user',
-
-                label:
-                  'Aguardando usuário',
-              },
-              {
-                value:
-                  'closed',
-
-                label:
-                  'Encerrado',
-              },
-            ]}
+            options={
+              STATUS_OPTIONS
+            }
           />
 
           <SelectField
@@ -1343,50 +1367,9 @@ export default function AdminSupportPage() {
             onChange={
               updateFilter
             }
-            options={[
-              {
-                value:
-                  '',
-
-                label:
-                  'Todos os faróis',
-              },
-              {
-                value:
-                  'green',
-
-                label:
-                  'Verde — dentro do prazo',
-              },
-              {
-                value:
-                  'yellow',
-
-                label:
-                  'Amarelo — atenção',
-              },
-              {
-                value:
-                  'orange',
-
-                label:
-                  'Laranja — crítico',
-              },
-              {
-                value:
-                  'red',
-
-                label:
-                  'Vermelho — estourado',
-              },
-              {
-                value:
-                  'gray',
-
-                label:
-                  'Cinza — pausado ou encerrado',
-              },
-            ]}
+            options={
+              SLA_OPTIONS
+            }
           />
 
           <SelectField
@@ -1398,43 +1381,9 @@ export default function AdminSupportPage() {
             onChange={
               updateFilter
             }
-            options={[
-              {
-                value:
-                  '',
-
-                label:
-                  'Todas as prioridades',
-              },
-              {
-                value:
-                  'urgent',
-
-                label:
-                  'Urgente',
-              },
-              {
-                value:
-                  'high',
-
-                label:
-                  'Alta',
-              },
-              {
-                value:
-                  'normal',
-
-                label:
-                  'Normal',
-              },
-              {
-                value:
-                  'low',
-
-                label:
-                  'Baixa',
-              },
-            ]}
+            options={
+              PRIORITY_OPTIONS
+            }
           />
 
           <SelectField
@@ -1448,12 +1397,11 @@ export default function AdminSupportPage() {
             }
             options={[
               {
-                value:
-                  '',
-
+                value: '',
                 label:
                   'Todas as categorias',
               },
+
               ...Object.entries(
                 CATEGORY_LABELS,
               ).map(
@@ -1477,36 +1425,9 @@ export default function AdminSupportPage() {
             onChange={
               updateFilter
             }
-            options={[
-              {
-                value:
-                  '',
-
-                label:
-                  'Todos os tipos',
-              },
-              {
-                value:
-                  'corporate',
-
-                label:
-                  'Institucional',
-              },
-              {
-                value:
-                  'platform',
-
-                label:
-                  'Plataforma',
-              },
-              {
-                value:
-                  'individual',
-
-                label:
-                  'Individual',
-              },
-            ]}
+            options={
+              ACCOUNT_TYPE_OPTIONS
+            }
           />
 
           <SelectField
@@ -1518,50 +1439,9 @@ export default function AdminSupportPage() {
             onChange={
               updateFilter
             }
-            options={[
-              {
-                value:
-                  '',
-
-                label:
-                  'Todos os níveis',
-              },
-              {
-                value:
-                  'network',
-
-                label:
-                  'Rede de ensino',
-              },
-              {
-                value:
-                  'institutional',
-
-                label:
-                  'Institucional',
-              },
-              {
-                value:
-                  'platform',
-
-                label:
-                  'Plataforma',
-              },
-              {
-                value:
-                  'individual_pro',
-
-                label:
-                  'Professor Pro',
-              },
-              {
-                value:
-                  'individual_free',
-
-                label:
-                  'Individual gratuito',
-              },
-            ]}
+            options={
+              SERVICE_TIER_OPTIONS
+            }
           />
 
           <SelectField
@@ -1575,12 +1455,11 @@ export default function AdminSupportPage() {
             }
             options={[
               {
-                value:
-                  '',
-
+                value: '',
                 label:
                   'Todos os produtos',
               },
+
               ...Object.entries(
                 PRODUCT_LABELS,
               ).map(
@@ -1604,64 +1483,9 @@ export default function AdminSupportPage() {
             onChange={
               updateFilter
             }
-            options={[
-              {
-                value:
-                  '',
-
-                label:
-                  'Todos os perfis',
-              },
-              {
-                value:
-                  'super_admin',
-
-                label:
-                  'Superadministrador',
-              },
-              {
-                value:
-                  'platform_admin',
-
-                label:
-                  'Administrador da plataforma',
-              },
-              {
-                value:
-                  'regional_manager',
-
-                label:
-                  'Gestor de rede',
-              },
-              {
-                value:
-                  'director',
-
-                label:
-                  'Diretor',
-              },
-              {
-                value:
-                  'coordinator',
-
-                label:
-                  'Coordenador',
-              },
-              {
-                value:
-                  'teacher',
-
-                label:
-                  'Professor',
-              },
-              {
-                value:
-                  'student',
-
-                label:
-                  'Estudante',
-              },
-            ]}
+            options={
+              REQUESTER_ROLE_OPTIONS
+            }
           />
 
           <SelectField
@@ -1673,36 +1497,9 @@ export default function AdminSupportPage() {
             onChange={
               updateFilter
             }
-            options={[
-              {
-                value:
-                  'all',
-
-                label:
-                  'Todos',
-              },
-              {
-                value:
-                  'unassigned',
-
-                label:
-                  'Sem responsável',
-              },
-              {
-                value:
-                  'assigned',
-
-                label:
-                  'Com responsável',
-              },
-              {
-                value:
-                  'mine',
-
-                label:
-                  'Atribuídos a mim',
-              },
-            ]}
+            options={
+              ASSIGNMENT_OPTIONS
+            }
           />
 
           <SelectField
@@ -1714,43 +1511,9 @@ export default function AdminSupportPage() {
             onChange={
               updateFilter
             }
-            options={[
-              {
-                value:
-                  'sla',
-
-                label:
-                  'Risco de SLA',
-              },
-              {
-                value:
-                  'priority',
-
-                label:
-                  'Prioridade',
-              },
-              {
-                value:
-                  'oldest',
-
-                label:
-                  'Mais antigos',
-              },
-              {
-                value:
-                  'newest',
-
-                label:
-                  'Mais recentes',
-              },
-              {
-                value:
-                  'updated',
-
-                label:
-                  'Última atualização',
-              },
-            ]}
+            options={
+              SORT_OPTIONS
+            }
           />
         </div>
 
@@ -1829,326 +1592,338 @@ export default function AdminSupportPage() {
           </p>
         </div>
 
-        {error && (
+        {error ? (
           <div
             role="alert"
             className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold leading-6 text-red-800"
           >
             {error}
           </div>
-        )}
+        ) : null}
 
-        {loading && (
+        {loading ? (
           <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-600 shadow-sm">
             Carregando fila de suporte...
           </div>
-        )}
+        ) : null}
 
         {!loading &&
-          !error &&
-          tickets.length ===
-            0 && (
-            <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-              <p className="text-lg font-bold text-[#081C2E]">
-                Nenhum chamado encontrado
-              </p>
+        !error &&
+        tickets.length === 0 ? (
+          <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+            <p className="text-lg font-bold text-[#081C2E]">
+              Nenhum chamado encontrado
+            </p>
 
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Ajuste os filtros para
-                consultar outros chamados.
-              </p>
-            </div>
-          )}
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Ajuste os filtros para
+              consultar outros chamados.
+            </p>
+          </div>
+        ) : null}
 
         {!loading &&
-          !error &&
-          tickets.length >
-            0 && (
-            <div className="mt-6 space-y-5">
-              {tickets.map(
-                ticket => {
-                  const sla =
-                    SLA_PRESENTATION[
-                      ticket.sla_light
-                    ]
+        !error &&
+        tickets.length > 0 ? (
+          <div className="mt-6 space-y-5">
+            {tickets.map(
+              ticket => {
+                const sla =
+                  SLA_PRESENTATION[
+                    ticket.sla_light
+                  ]
 
-                  return (
-                    <article
-                      key={
-                        ticket.id
-                      }
-                      className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm"
-                    >
-                      <div
-                        className={`h-1.5 w-full ${sla.dot}`}
-                      />
+                const detailPath =
+                  `/admin/suporte/${encodeURIComponent(
+                    ticket.id,
+                  )}`
 
-                      <div className="p-6 sm:p-7">
-                        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
-                          <div className="min-w-0">
-                            <p className="break-all text-xs font-bold uppercase tracking-[0.18em] text-cyan-700 sm:break-normal">
-                              {
-                                ticket.protocol
-                              }
-                            </p>
+                return (
+                  <article
+                    key={
+                      ticket.id
+                    }
+                    className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm"
+                  >
+                    <div
+                      className={`h-1.5 w-full ${sla.dot}`}
+                    />
 
-                            <h3 className="mt-3 break-words text-2xl font-bold text-[#081C2E]">
-                              {
-                                ticket.subject
-                              }
-                            </h3>
-
-                            <div className="mt-4 flex flex-wrap gap-2">
-                              <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-800">
-                                {getLabel(
-                                  STATUS_LABELS,
-                                  ticket.operational_status,
-                                )}
-                              </span>
-
-                              <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-800">
-                                {getLabel(
-                                  PRIORITY_LABELS,
-                                  ticket.priority,
-                                )}
-                              </span>
-
-                              <span
-                                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${sla.badge}`}
-                              >
-                                <span
-                                  aria-hidden="true"
-                                  className={`h-2.5 w-2.5 rounded-full ${sla.dot}`}
-                                />
-
-                                {
-                                  sla.label
-                                }
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-4 lg:min-w-64">
-                            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-                              Tempo do SLA
-                            </p>
-
-                            <p className="mt-2 break-words text-lg font-bold text-[#081C2E]">
-                              {formatDurationFromSeconds(
-                                ticket.seconds_until_sla_breach,
-                              )}
-                            </p>
-
-                            <p className="mt-2 text-sm leading-6 text-slate-600">
-                              Prazo:{' '}
-                              {formatDateTime(
-                                ticket.active_sla_due_at,
-                              )}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="mt-6 grid gap-5 border-t border-slate-200 pt-6 sm:grid-cols-2 xl:grid-cols-4">
-                          <div>
-                            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
-                              Produto
-                            </p>
-
-                            <p className="mt-2 break-words font-bold text-slate-800">
-                              {getLabel(
-                                PRODUCT_LABELS,
-                                ticket.product_code,
-                              )}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
-                              Categoria
-                            </p>
-
-                            <p className="mt-2 break-words font-bold text-slate-800">
-                              {getLabel(
-                                CATEGORY_LABELS,
-                                ticket.category,
-                              )}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
-                              Solicitante
-                            </p>
-
-                            <p className="mt-2 break-words font-bold text-slate-800">
-                              {getLabel(
-                                ACCOUNT_LABELS,
-                                ticket.requester_account_type,
-                              )}
-                            </p>
-
-                            <p className="mt-1 break-words text-sm text-slate-600">
-                              Perfil:{' '}
-                              {ticket.requester_role ??
-                                NO_VALUE}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
-                              Nível de serviço
-                            </p>
-
-                            <p className="mt-2 break-words font-bold text-slate-800">
-                              {getLabel(
-                                SERVICE_TIER_LABELS,
-                                ticket.requester_service_tier,
-                              )}
-                            </p>
-
-                            <p className="mt-1 break-words text-sm text-slate-600">
-                              {
-                                ticket.sla_policy_code ??
-                                NO_VALUE
-                              }
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="mt-6 grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:grid-cols-2 lg:grid-cols-4">
-                          <div>
-                            <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
-                              Pontuação
-                            </p>
-
-                            <p className="mt-2 font-bold text-slate-800">
-                              {
-                                ticket.priority_score
-                              }
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
-                              Responsável
-                            </p>
-
-                            <p
-                              className={`mt-2 font-bold ${
-                                ticket.assigned_to_user_id
-                                  ? 'text-emerald-700'
-                                  : 'text-red-700'
-                              }`}
-                            >
-                              {ticket.assigned_to_user_id
-                                ? 'Atribuído'
-                                : 'Sem responsável'}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
-                              Criado em
-                            </p>
-
-                            <p className="mt-2 font-bold text-slate-800">
-                              {formatDateTime(
-                                ticket.created_at,
-                              )}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
-                              Atualização
-                            </p>
-
-                            <p className="mt-2 font-bold text-slate-800">
-                              {formatDateTime(
-                                ticket.updated_at,
-                              )}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="mt-6 flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
-                          <p className="text-sm leading-6 text-slate-600">
-                            O atendimento detalhado,
-                            atribuição e alteração de
-                            status serão conectados na
-                            próxima etapa.
+                    <div className="p-6 sm:p-7">
+                      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+                        <div className="min-w-0">
+                          <p className="break-all text-xs font-bold uppercase tracking-[0.18em] text-cyan-700 sm:break-normal">
+                            {
+                              ticket.protocol
+                            }
                           </p>
 
-                          <span className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#081C2E] px-5 py-3 text-center text-sm font-bold text-white">
-                            Chamado na fila
-                          </span>
+                          <h3 className="mt-3 break-words text-2xl font-bold text-[#081C2E]">
+                            {
+                              ticket.subject
+                            }
+                          </h3>
+
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-800">
+                              {getLabel(
+                                STATUS_LABELS,
+                                ticket.operational_status,
+                              )}
+                            </span>
+
+                            <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-800">
+                              {getLabel(
+                                PRIORITY_LABELS,
+                                ticket.priority,
+                              )}
+                            </span>
+
+                            <span
+                              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${sla.badge}`}
+                            >
+                              <span
+                                aria-hidden="true"
+                                className={`h-2.5 w-2.5 rounded-full ${sla.dot}`}
+                              />
+
+                              {
+                                sla.label
+                              }
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-4 lg:min-w-64">
+                          <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                            Tempo do SLA
+                          </p>
+
+                          <p className="mt-2 break-words text-lg font-bold text-[#081C2E]">
+                            {formatDurationFromSeconds(
+                              ticket.seconds_until_sla_breach,
+                            )}
+                          </p>
+
+                          <p className="mt-2 text-sm leading-6 text-slate-600">
+                            Prazo:{' '}
+
+                            {formatDateTime(
+                              ticket.active_sla_due_at,
+                            )}
+                          </p>
                         </div>
                       </div>
-                    </article>
-                  )
-                },
-              )}
-            </div>
-          )}
+
+                      <div className="mt-6 grid gap-5 border-t border-slate-200 pt-6 sm:grid-cols-2 xl:grid-cols-4">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
+                            Produto
+                          </p>
+
+                          <p className="mt-2 break-words font-bold text-slate-800">
+                            {getLabel(
+                              PRODUCT_LABELS,
+                              ticket.product_code,
+                            )}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
+                            Categoria
+                          </p>
+
+                          <p className="mt-2 break-words font-bold text-slate-800">
+                            {getLabel(
+                              CATEGORY_LABELS,
+                              ticket.category,
+                            )}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
+                            Solicitante
+                          </p>
+
+                          <p className="mt-2 break-words font-bold text-slate-800">
+                            {getLabel(
+                              ACCOUNT_LABELS,
+                              ticket.requester_account_type,
+                            )}
+                          </p>
+
+                          <p className="mt-1 break-words text-sm text-slate-600">
+                            Perfil:{' '}
+
+                            {ticket.requester_role ??
+                              NO_VALUE}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
+                            Nível de serviço
+                          </p>
+
+                          <p className="mt-2 break-words font-bold text-slate-800">
+                            {getLabel(
+                              SERVICE_TIER_LABELS,
+                              ticket.requester_service_tier,
+                            )}
+                          </p>
+
+                          <p className="mt-1 break-words text-sm text-slate-600">
+                            {ticket.sla_policy_code ??
+                              NO_VALUE}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:grid-cols-2 lg:grid-cols-4">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+                            Pontuação
+                          </p>
+
+                          <p className="mt-2 font-bold text-slate-800">
+                            {
+                              ticket.priority_score
+                            }
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+                            Responsável
+                          </p>
+
+                          <p
+                            className={`mt-2 font-bold ${
+                              ticket.assigned_to_user_id
+                                ? 'text-emerald-700'
+                                : 'text-red-700'
+                            }`}
+                          >
+                            {ticket.assigned_to_user_id
+                              ? 'Atribuído'
+                              : 'Sem responsável'}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+                            Criado em
+                          </p>
+
+                          <p className="mt-2 font-bold text-slate-800">
+                            {formatDateTime(
+                              ticket.created_at,
+                            )}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+                            Atualização
+                          </p>
+
+                          <p className="mt-2 font-bold text-slate-800">
+                            {formatDateTime(
+                              ticket.updated_at,
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 flex flex-col gap-4 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="max-w-2xl text-sm leading-6 text-slate-600">
+                          Abra o atendimento para
+                          visualizar a conversa,
+                          assumir ou atribuir o
+                          chamado, responder ao
+                          solicitante, registrar
+                          notas internas e atualizar
+                          status, prioridade e SLA.
+                        </p>
+
+                        <Link
+                          href={
+                            detailPath
+                          }
+                          aria-label={`Abrir atendimento do protocolo ${ticket.protocol}`}
+                          className="inline-flex min-h-12 w-full shrink-0 items-center justify-center rounded-xl bg-[#081C2E] px-6 py-3 text-center text-sm font-bold text-white transition hover:bg-cyan-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 sm:w-auto"
+                        >
+                          Abrir atendimento
+                        </Link>
+                      </div>
+                    </div>
+                  </article>
+                )
+              },
+            )}
+          </div>
+        ) : null}
 
         {pagination &&
-          pagination.totalPages >
-            1 && (
-            <nav
-              aria-label="Paginação dos chamados"
-              className="mt-6 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <p className="text-sm font-semibold text-slate-600">
-                Página{' '}
-                {
-                  pagination.page
-                }{' '}
-                de{' '}
-                {
-                  pagination.totalPages
+        pagination.totalPages > 1 ? (
+          <nav
+            aria-label="Paginação dos chamados"
+            className="mt-6 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <p className="text-sm font-semibold text-slate-600">
+              Página{' '}
+
+              {
+                pagination.page
+              }{' '}
+
+              de{' '}
+
+              {
+                pagination.totalPages
+              }
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                disabled={
+                  !pagination.hasPreviousPage
                 }
-              </p>
-
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  disabled={
-                    !pagination.hasPreviousPage
-                  }
-                  onClick={() =>
-                    setPage(
-                      currentPage =>
-                        Math.max(
-                          1,
-                          currentPage -
-                            1,
-                        ),
-                    )
-                  }
-                  className="min-h-11 rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  Anterior
-                </button>
-
-                <button
-                  type="button"
-                  disabled={
-                    !pagination.hasNextPage
-                  }
-                  onClick={() =>
-                    setPage(
-                      currentPage =>
-                        currentPage +
+                onClick={() =>
+                  setPage(
+                    currentPage =>
+                      Math.max(
                         1,
-                    )
-                  }
-                  className="min-h-11 rounded-xl bg-[#081C2E] px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  Próxima
-                </button>
-              </div>
-            </nav>
-          )}
+                        currentPage - 1,
+                      ),
+                  )
+                }
+                className="min-h-11 rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Anterior
+              </button>
+
+              <button
+                type="button"
+                disabled={
+                  !pagination.hasNextPage
+                }
+                onClick={() =>
+                  setPage(
+                    currentPage =>
+                      currentPage + 1,
+                  )
+                }
+                className="min-h-11 rounded-xl bg-[#081C2E] px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Próxima
+              </button>
+            </div>
+          </nav>
+        ) : null}
       </section>
     </div>
   )
