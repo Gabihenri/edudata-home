@@ -54,6 +54,29 @@ export type CreateInstitutionalSchoolYearRequest = {
   calendarVersion?: number
 }
 
+export type UpdateInstitutionalSchoolYearRequest = {
+  year?: number
+
+  name?: string | null
+
+  startDate?: string | null
+  endDate?: string | null
+
+  active?: boolean
+
+  status?:
+    AcademicCalendarStatus
+
+  timezone?: string
+
+  minimumSchoolDays?: number
+
+  minimumInstructionalHours?:
+    number | null
+
+  calendarVersion?: number
+}
+
 type BaseCalendarApiResponse = {
   success: boolean
   error?: string
@@ -75,7 +98,7 @@ type SnapshotApiResponse =
       InstitutionalAcademicCalendarSnapshot
   }
 
-type CreateSchoolYearApiResponse =
+type SchoolYearMutationApiResponse =
   BaseCalendarApiResponse & {
     data?: SchoolYear
   }
@@ -97,6 +120,31 @@ function normalizeRequiredText(
   }
 
   return normalizedValue
+}
+
+function normalizeOptionalName(
+  value:
+    | string
+    | null
+    | undefined,
+): string | null | undefined {
+  if (
+    value === undefined
+  ) {
+    return undefined
+  }
+
+  if (
+    value === null
+  ) {
+    return null
+  }
+
+  const normalizedValue =
+    value.trim()
+
+  return normalizedValue ||
+    null
 }
 
 function buildSchoolYearsUrl(
@@ -225,6 +273,126 @@ function sortSchoolYears(
   )
 }
 
+function replaceSchoolYear(
+  schoolYears:
+    SchoolYear[],
+
+  updatedSchoolYear:
+    SchoolYear,
+): SchoolYear[] {
+  return sortSchoolYears([
+    ...schoolYears.filter(
+      schoolYear =>
+        schoolYear.id !==
+        updatedSchoolYear.id,
+    ),
+
+    updatedSchoolYear,
+  ])
+}
+
+function createUpdatePayload(
+  input:
+    UpdateInstitutionalSchoolYearRequest,
+): Record<string, unknown> {
+  const payload:
+    Record<string, unknown> = {}
+
+  if (
+    input.year !==
+    undefined
+  ) {
+    payload.year =
+      input.year
+  }
+
+  if (
+    input.name !==
+    undefined
+  ) {
+    payload.name =
+      normalizeOptionalName(
+        input.name,
+      )
+  }
+
+  if (
+    input.startDate !==
+    undefined
+  ) {
+    payload.startDate =
+      input.startDate
+  }
+
+  if (
+    input.endDate !==
+    undefined
+  ) {
+    payload.endDate =
+      input.endDate
+  }
+
+  if (
+    input.active !==
+    undefined
+  ) {
+    payload.active =
+      input.active
+  }
+
+  if (
+    input.status !==
+    undefined
+  ) {
+    payload.status =
+      input.status
+  }
+
+  if (
+    input.timezone !==
+    undefined
+  ) {
+    payload.timezone =
+      input.timezone
+  }
+
+  if (
+    input.minimumSchoolDays !==
+    undefined
+  ) {
+    payload.minimumSchoolDays =
+      input.minimumSchoolDays
+  }
+
+  if (
+    input.minimumInstructionalHours !==
+    undefined
+  ) {
+    payload.minimumInstructionalHours =
+      input.minimumInstructionalHours
+  }
+
+  if (
+    input.calendarVersion !==
+    undefined
+  ) {
+    payload.calendarVersion =
+      input.calendarVersion
+  }
+
+  if (
+    Object.keys(
+      payload,
+    ).length === 0
+  ) {
+    throw new Error(
+      'Informe ao menos um campo para atualização.',
+    )
+  }
+
+  return payload
+}
+
 export function useInstitutionalAcademicCalendar() {
   const [
     schoolYears,
@@ -266,6 +434,14 @@ export function useInstitutionalAcademicCalendar() {
     setCreatingSchoolYear,
   ] =
     useState(false)
+
+  const [
+    updatingSchoolYearId,
+    setUpdatingSchoolYearId,
+  ] =
+    useState<string | null>(
+      null,
+    )
 
   const [
     error,
@@ -682,7 +858,7 @@ export function useInstitutionalAcademicCalendar() {
             )
 
           const result =
-            await readApiResponse<CreateSchoolYearApiResponse>(
+            await readApiResponse<SchoolYearMutationApiResponse>(
               response,
             )
 
@@ -704,15 +880,10 @@ export function useInstitutionalAcademicCalendar() {
 
           setSchoolYears(
             currentSchoolYears =>
-              sortSchoolYears([
-                ...currentSchoolYears.filter(
-                  schoolYear =>
-                    schoolYear.id !==
-                    createdSchoolYear.id,
-                ),
-
+              replaceSchoolYear(
+                currentSchoolYears,
                 createdSchoolYear,
-              ]),
+              ),
           )
 
           setSelectedSchoolYearId(
@@ -750,6 +921,144 @@ export function useInstitutionalAcademicCalendar() {
         } finally {
           setCreatingSchoolYear(
             false,
+          )
+        }
+      },
+      [],
+    )
+
+  const updateSchoolYear =
+    useCallback(
+      async (
+        schoolYearId: string,
+
+        input:
+          UpdateInstitutionalSchoolYearRequest,
+      ): Promise<
+        SchoolYear
+      > => {
+        const normalizedSchoolYearId =
+          normalizeRequiredText(
+            schoolYearId,
+            'Ano letivo',
+          )
+
+        const payload =
+          createUpdatePayload(
+            input,
+          )
+
+        setUpdatingSchoolYearId(
+          normalizedSchoolYearId,
+        )
+
+        setError(
+          null,
+        )
+
+        try {
+          const response =
+            await fetch(
+              `${API_URL}/${encodeURIComponent(
+                normalizedSchoolYearId,
+              )}`,
+              {
+                method:
+                  'PATCH',
+
+                headers: {
+                  'Content-Type':
+                    'application/json',
+                },
+
+                credentials:
+                  'include',
+
+                cache:
+                  'no-store',
+
+                body:
+                  JSON.stringify(
+                    payload,
+                  ),
+              },
+            )
+
+          const result =
+            await readApiResponse<SchoolYearMutationApiResponse>(
+              response,
+            )
+
+          if (
+            !response.ok ||
+            !result.success ||
+            !result.data
+          ) {
+            throw new Error(
+              getResponseError(
+                result,
+                'Não foi possível atualizar o ano letivo.',
+              ),
+            )
+          }
+
+          const updatedSchoolYear =
+            result.data
+
+          setSchoolYears(
+            currentSchoolYears =>
+              replaceSchoolYear(
+                currentSchoolYears,
+                updatedSchoolYear,
+              ),
+          )
+
+          setSnapshot(
+            currentSnapshot => {
+              if (
+                !currentSnapshot ||
+                currentSnapshot
+                  .schoolYear.id !==
+                  updatedSchoolYear.id
+              ) {
+                return currentSnapshot
+              }
+
+              return {
+                ...currentSnapshot,
+
+                schoolYear:
+                  updatedSchoolYear,
+              }
+            },
+          )
+
+          setSelectedSchoolYearId(
+            currentId =>
+              currentId ===
+              updatedSchoolYear.id
+                ? updatedSchoolYear.id
+                : currentId,
+          )
+
+          return updatedSchoolYear
+        } catch (updateError) {
+          const message =
+            updateError instanceof
+              Error
+              ? updateError.message
+              : 'Erro inesperado ao atualizar o ano letivo.'
+
+          setError(
+            message,
+          )
+
+          throw new Error(
+            message,
+          )
+        } finally {
+          setUpdatingSchoolYearId(
+            null,
           )
         }
       },
@@ -795,11 +1104,19 @@ export function useInstitutionalAcademicCalendar() {
     loading:
       loadingSchoolYears ||
       loadingSnapshot ||
-      creatingSchoolYear,
+      creatingSchoolYear ||
+      updatingSchoolYearId !==
+        null,
 
     loadingSchoolYears,
     loadingSnapshot,
     creatingSchoolYear,
+
+    updatingSchoolYear:
+      updatingSchoolYearId !==
+      null,
+
+    updatingSchoolYearId,
 
     error,
 
@@ -810,7 +1127,9 @@ export function useInstitutionalAcademicCalendar() {
     reloadSnapshot,
 
     selectSchoolYear,
+
     createSchoolYear,
+    updateSchoolYear,
 
     clearSnapshot,
     clearError,
