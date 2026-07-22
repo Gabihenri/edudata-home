@@ -2,7 +2,6 @@
 
 import {
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -85,14 +84,19 @@ type BaseCalendarApiResponse = {
 
 type SchoolYearsApiResponse =
   BaseCalendarApiResponse & {
-    mode?: 'school-years'
+    mode?:
+      'school-years'
+
     total?: number
-    data?: SchoolYear[]
+
+    data?:
+      SchoolYear[]
   }
 
 type SnapshotApiResponse =
   BaseCalendarApiResponse & {
-    mode?: 'snapshot'
+    mode?:
+      'snapshot'
 
     data?:
       InstitutionalAcademicCalendarSnapshot
@@ -100,7 +104,8 @@ type SnapshotApiResponse =
 
 type SchoolYearMutationApiResponse =
   BaseCalendarApiResponse & {
-    data?: SchoolYear
+    data?:
+      SchoolYear
   }
 
 const API_URL =
@@ -147,6 +152,39 @@ function normalizeOptionalName(
     null
 }
 
+function normalizeOptionalInteger(
+  value:
+    | number
+    | null
+    | undefined,
+
+  fieldName: string,
+): number | null | undefined {
+  if (
+    value === undefined
+  ) {
+    return undefined
+  }
+
+  if (
+    value === null
+  ) {
+    return null
+  }
+
+  if (
+    !Number.isInteger(
+      value,
+    )
+  ) {
+    throw new Error(
+      `${fieldName} deve ser um número inteiro.`,
+    )
+  }
+
+  return value
+}
+
 function buildSchoolYearsUrl(
   filters:
     InstitutionalSchoolYearFilters,
@@ -154,14 +192,18 @@ function buildSchoolYearsUrl(
   const parameters =
     new URLSearchParams()
 
-  if (filters.organizationId) {
+  if (
+    filters.organizationId
+  ) {
     parameters.set(
       'organizationId',
       filters.organizationId,
     )
   }
 
-  if (filters.schoolId) {
+  if (
+    filters.schoolId
+  ) {
     parameters.set(
       'schoolId',
       filters.schoolId,
@@ -191,7 +233,9 @@ function buildSchoolYearsUrl(
     )
   }
 
-  if (filters.includeDeleted) {
+  if (
+    filters.includeDeleted
+  ) {
     parameters.set(
       'includeDeleted',
       'true',
@@ -302,6 +346,16 @@ function createUpdatePayload(
     input.year !==
     undefined
   ) {
+    if (
+      !Number.isInteger(
+        input.year,
+      )
+    ) {
+      throw new Error(
+        'Ano letivo deve ser um número inteiro.',
+      )
+    }
+
     payload.year =
       input.year
   }
@@ -361,7 +415,10 @@ function createUpdatePayload(
     undefined
   ) {
     payload.minimumSchoolDays =
-      input.minimumSchoolDays
+      normalizeOptionalInteger(
+        input.minimumSchoolDays,
+        'Quantidade mínima de dias letivos',
+      )
   }
 
   if (
@@ -369,7 +426,10 @@ function createUpdatePayload(
     undefined
   ) {
     payload.minimumInstructionalHours =
-      input.minimumInstructionalHours
+      normalizeOptionalInteger(
+        input.minimumInstructionalHours,
+        'Carga horária mínima',
+      )
   }
 
   if (
@@ -377,7 +437,10 @@ function createUpdatePayload(
     undefined
   ) {
     payload.calendarVersion =
-      input.calendarVersion
+      normalizeOptionalInteger(
+        input.calendarVersion,
+        'Versão do calendário',
+      )
   }
 
   if (
@@ -398,7 +461,9 @@ export function useInstitutionalAcademicCalendar() {
     schoolYears,
     setSchoolYears,
   ] =
-    useState<SchoolYear[]>([])
+    useState<
+      SchoolYear[]
+    >([])
 
   const [
     snapshot,
@@ -421,7 +486,7 @@ export function useInstitutionalAcademicCalendar() {
     loadingSchoolYears,
     setLoadingSchoolYears,
   ] =
-    useState(true)
+    useState(false)
 
   const [
     loadingSnapshot,
@@ -456,6 +521,50 @@ export function useInstitutionalAcademicCalendar() {
       InstitutionalSchoolYearFilters
     >({})
 
+  const selectedSchoolYearIdRef =
+    useRef<string | null>(
+      null,
+    )
+
+  const snapshotRef =
+    useRef<
+      InstitutionalAcademicCalendarSnapshot |
+      null
+    >(null)
+
+  const commitSelectedSchoolYearId =
+    useCallback(
+      (
+        nextId:
+          string | null,
+      ): void => {
+        selectedSchoolYearIdRef.current =
+          nextId
+
+        setSelectedSchoolYearId(
+          nextId,
+        )
+      },
+      [],
+    )
+
+  const commitSnapshot =
+    useCallback(
+      (
+        nextSnapshot:
+          InstitutionalAcademicCalendarSnapshot |
+          null,
+      ): void => {
+        snapshotRef.current =
+          nextSnapshot
+
+        setSnapshot(
+          nextSnapshot,
+        )
+      },
+      [],
+    )
+
   const selectedSchoolYear =
     useMemo(
       () => {
@@ -482,6 +591,107 @@ export function useInstitutionalAcademicCalendar() {
         schoolYears,
         selectedSchoolYearId,
         snapshot,
+      ],
+    )
+
+  const loadSnapshot =
+    useCallback(
+      async (
+        schoolYearId: string,
+      ): Promise<
+        InstitutionalAcademicCalendarSnapshot
+      > => {
+        const normalizedSchoolYearId =
+          normalizeRequiredText(
+            schoolYearId,
+            'Ano letivo',
+          )
+
+        setLoadingSnapshot(
+          true,
+        )
+
+        setError(
+          null,
+        )
+
+        try {
+          const parameters =
+            new URLSearchParams({
+              schoolYearId:
+                normalizedSchoolYearId,
+            })
+
+          const response =
+            await fetch(
+              `${API_URL}?${parameters.toString()}`,
+              {
+                method:
+                  'GET',
+
+                credentials:
+                  'include',
+
+                cache:
+                  'no-store',
+              },
+            )
+
+          const result =
+            await readApiResponse<SnapshotApiResponse>(
+              response,
+            )
+
+          if (
+            !response.ok ||
+            !result.success ||
+            result.mode !==
+              'snapshot' ||
+            !result.data
+          ) {
+            throw new Error(
+              getResponseError(
+                result,
+                'Não foi possível carregar o calendário letivo.',
+              ),
+            )
+          }
+
+          commitSnapshot(
+            result.data,
+          )
+
+          commitSelectedSchoolYearId(
+            result.data
+              .schoolYear.id,
+          )
+
+          return result.data
+        } catch (
+          snapshotError
+        ) {
+          const message =
+            snapshotError instanceof
+              Error
+              ? snapshotError.message
+              : 'Erro inesperado ao carregar o calendário letivo.'
+
+          setError(
+            message,
+          )
+
+          throw new Error(
+            message,
+          )
+        } finally {
+          setLoadingSnapshot(
+            false,
+          )
+        }
+      },
+      [
+        commitSelectedSchoolYearId,
+        commitSnapshot,
       ],
     )
 
@@ -553,29 +763,68 @@ export function useInstitutionalAcademicCalendar() {
             nextSchoolYears,
           )
 
-          setSelectedSchoolYearId(
-            currentId => {
-              if (
-                currentId &&
-                nextSchoolYears.some(
-                  schoolYear =>
-                    schoolYear.id ===
-                    currentId,
-                )
-              ) {
-                return currentId
-              }
+          const currentSelectedId =
+            selectedSchoolYearIdRef.current
 
-              return (
-                nextSchoolYears[0]
+          const candidateSchoolYearId =
+            currentSelectedId &&
+            nextSchoolYears.some(
+              schoolYear =>
+                schoolYear.id ===
+                currentSelectedId,
+            )
+              ? currentSelectedId
+              : nextSchoolYears[0]
                   ?.id ??
                 null
-              )
-            },
-          )
+
+          if (
+            !candidateSchoolYearId
+          ) {
+            commitSelectedSchoolYearId(
+              null,
+            )
+
+            commitSnapshot(
+              null,
+            )
+
+            return nextSchoolYears
+          }
+
+          const currentSnapshot =
+            snapshotRef.current
+
+          if (
+            currentSnapshot
+              ?.schoolYear.id ===
+            candidateSchoolYearId
+          ) {
+            commitSelectedSchoolYearId(
+              candidateSchoolYearId,
+            )
+
+            return nextSchoolYears
+          }
+
+          try {
+            await loadSnapshot(
+              candidateSchoolYearId,
+            )
+          } catch {
+            commitSelectedSchoolYearId(
+              null,
+            )
+
+            commitSnapshot(
+              null,
+            )
+          }
 
           return nextSchoolYears
-        } catch (loadError) {
+        } catch (
+          loadError
+        ) {
           const message =
             loadError instanceof
               Error
@@ -586,6 +835,18 @@ export function useInstitutionalAcademicCalendar() {
             message,
           )
 
+          setSchoolYears(
+            [],
+          )
+
+          commitSelectedSchoolYearId(
+            null,
+          )
+
+          commitSnapshot(
+            null,
+          )
+
           return []
         } finally {
           setLoadingSchoolYears(
@@ -593,7 +854,11 @@ export function useInstitutionalAcademicCalendar() {
           )
         }
       },
-      [],
+      [
+        commitSelectedSchoolYearId,
+        commitSnapshot,
+        loadSnapshot,
+      ],
     )
 
   const reloadSchoolYears =
@@ -610,121 +875,27 @@ export function useInstitutionalAcademicCalendar() {
       ],
     )
 
-  const loadSnapshot =
-    useCallback(
-      async (
-        schoolYearId: string,
-      ): Promise<
-        InstitutionalAcademicCalendarSnapshot
-      > => {
-        const normalizedSchoolYearId =
-          normalizeRequiredText(
-            schoolYearId,
-            'Ano letivo',
-          )
-
-        setLoadingSnapshot(
-          true,
-        )
-
-        setError(
-          null,
-        )
-
-        try {
-          const parameters =
-            new URLSearchParams({
-              schoolYearId:
-                normalizedSchoolYearId,
-            })
-
-          const response =
-            await fetch(
-              `${API_URL}?${parameters.toString()}`,
-              {
-                method:
-                  'GET',
-
-                credentials:
-                  'include',
-
-                cache:
-                  'no-store',
-              },
-            )
-
-          const result =
-            await readApiResponse<SnapshotApiResponse>(
-              response,
-            )
-
-          if (
-            !response.ok ||
-            !result.success ||
-            result.mode !==
-              'snapshot' ||
-            !result.data
-          ) {
-            throw new Error(
-              getResponseError(
-                result,
-                'Não foi possível carregar o calendário letivo.',
-              ),
-            )
-          }
-
-          setSnapshot(
-            result.data,
-          )
-
-          setSelectedSchoolYearId(
-            result.data
-              .schoolYear.id,
-          )
-
-          return result.data
-        } catch (snapshotError) {
-          const message =
-            snapshotError instanceof
-              Error
-              ? snapshotError.message
-              : 'Erro inesperado ao carregar o calendário letivo.'
-
-          setError(
-            message,
-          )
-
-          throw new Error(
-            message,
-          )
-        } finally {
-          setLoadingSnapshot(
-            false,
-          )
-        }
-      },
-      [],
-    )
-
   const reloadSnapshot =
     useCallback(
       async (): Promise<
         InstitutionalAcademicCalendarSnapshot |
         null
       > => {
+        const currentSchoolYearId =
+          selectedSchoolYearIdRef.current
+
         if (
-          !selectedSchoolYearId
+          !currentSchoolYearId
         ) {
           return null
         }
 
         return loadSnapshot(
-          selectedSchoolYearId,
+          currentSchoolYearId,
         )
       },
       [
         loadSnapshot,
-        selectedSchoolYearId,
       ],
     )
 
@@ -737,12 +908,14 @@ export function useInstitutionalAcademicCalendar() {
         InstitutionalAcademicCalendarSnapshot |
         null
       > => {
-        if (!schoolYearId) {
-          setSelectedSchoolYearId(
+        if (
+          !schoolYearId
+        ) {
+          commitSelectedSchoolYearId(
             null,
           )
 
-          setSnapshot(
+          commitSnapshot(
             null,
           )
 
@@ -754,6 +927,8 @@ export function useInstitutionalAcademicCalendar() {
         )
       },
       [
+        commitSelectedSchoolYearId,
+        commitSnapshot,
         loadSnapshot,
       ],
     )
@@ -818,14 +993,15 @@ export function useInstitutionalAcademicCalendar() {
                 body:
                   JSON.stringify({
                     organizationId,
-
                     schoolId,
 
                     year:
                       input.year,
 
                     name:
-                      input.name,
+                      normalizeOptionalName(
+                        input.name,
+                      ),
 
                     startDate:
                       input.startDate,
@@ -843,16 +1019,22 @@ export function useInstitutionalAcademicCalendar() {
                       input.timezone,
 
                     minimumSchoolDays:
-                      input
-                        .minimumSchoolDays,
+                      normalizeOptionalInteger(
+                        input.minimumSchoolDays,
+                        'Quantidade mínima de dias letivos',
+                      ),
 
                     minimumInstructionalHours:
-                      input
-                        .minimumInstructionalHours,
+                      normalizeOptionalInteger(
+                        input.minimumInstructionalHours,
+                        'Carga horária mínima',
+                      ),
 
                     calendarVersion:
-                      input
-                        .calendarVersion,
+                      normalizeOptionalInteger(
+                        input.calendarVersion,
+                        'Versão do calendário',
+                      ),
                   }),
               },
             )
@@ -886,25 +1068,32 @@ export function useInstitutionalAcademicCalendar() {
               ),
           )
 
-          setSelectedSchoolYearId(
+          const createdSnapshot:
+            InstitutionalAcademicCalendarSnapshot = {
+              schoolYear:
+                createdSchoolYear,
+
+              periods: [],
+
+              events: [],
+
+              operatingHours: [],
+
+              exceptions: [],
+            }
+
+          commitSelectedSchoolYearId(
             createdSchoolYear.id,
           )
 
-          setSnapshot({
-            schoolYear:
-              createdSchoolYear,
-
-            periods: [],
-
-            events: [],
-
-            operatingHours: [],
-
-            exceptions: [],
-          })
+          commitSnapshot(
+            createdSnapshot,
+          )
 
           return createdSchoolYear
-        } catch (createError) {
+        } catch (
+          createError
+        ) {
           const message =
             createError instanceof
               Error
@@ -924,7 +1113,10 @@ export function useInstitutionalAcademicCalendar() {
           )
         }
       },
-      [],
+      [
+        commitSelectedSchoolYearId,
+        commitSnapshot,
+      ],
     )
 
   const updateSchoolYear =
@@ -1013,36 +1205,31 @@ export function useInstitutionalAcademicCalendar() {
               ),
           )
 
-          setSnapshot(
-            currentSnapshot => {
-              if (
-                !currentSnapshot ||
-                currentSnapshot
-                  .schoolYear.id !==
-                  updatedSchoolYear.id
-              ) {
-                return currentSnapshot
-              }
+          const currentSnapshot =
+            snapshotRef.current
 
-              return {
-                ...currentSnapshot,
-
-                schoolYear:
-                  updatedSchoolYear,
-              }
-            },
-          )
-
-          setSelectedSchoolYearId(
-            currentId =>
-              currentId ===
+          if (
+            currentSnapshot &&
+            currentSnapshot
+              .schoolYear.id ===
               updatedSchoolYear.id
-                ? updatedSchoolYear.id
-                : currentId,
-          )
+          ) {
+            commitSnapshot({
+              ...currentSnapshot,
+
+              schoolYear:
+                updatedSchoolYear,
+            })
+
+            commitSelectedSchoolYearId(
+              updatedSchoolYear.id,
+            )
+          }
 
           return updatedSchoolYear
-        } catch (updateError) {
+        } catch (
+          updateError
+        ) {
           const message =
             updateError instanceof
               Error
@@ -1062,21 +1249,27 @@ export function useInstitutionalAcademicCalendar() {
           )
         }
       },
-      [],
+      [
+        commitSelectedSchoolYearId,
+        commitSnapshot,
+      ],
     )
 
   const clearSnapshot =
     useCallback(
       (): void => {
-        setSnapshot(
+        commitSnapshot(
           null,
         )
 
-        setSelectedSchoolYearId(
+        commitSelectedSchoolYearId(
           null,
         )
       },
-      [],
+      [
+        commitSelectedSchoolYearId,
+        commitSnapshot,
+      ],
     )
 
   const clearError =
@@ -1088,12 +1281,6 @@ export function useInstitutionalAcademicCalendar() {
       },
       [],
     )
-
-  useEffect(() => {
-    void loadSchoolYears()
-  }, [
-    loadSchoolYears,
-  ])
 
   return {
     schoolYears,
