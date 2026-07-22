@@ -44,6 +44,28 @@ export type CreateInstitutionalAcademicPeriodRequest = {
     AcademicCalendarStatus
 }
 
+export type UpdateInstitutionalAcademicPeriodRequest = {
+  name?: string
+
+  code?:
+    | string
+    | null
+
+  periodType?:
+    AcademicPeriodType
+
+  sequence?: number
+
+  startDate?: string
+  endDate?: string
+
+  instructionalDaysTarget?:
+    number | null
+
+  status?:
+    AcademicCalendarStatus
+}
+
 type BaseApiResponse = {
   success: boolean
   error?: string
@@ -243,6 +265,117 @@ function replaceAcademicPeriod(
   ])
 }
 
+function createUpdatePayload(
+  input:
+    UpdateInstitutionalAcademicPeriodRequest,
+): Record<string, unknown> {
+  const payload:
+    Record<string, unknown> = {}
+
+  if (
+    input.name !==
+    undefined
+  ) {
+    payload.name =
+      normalizeRequiredText(
+        input.name,
+        'Nome do período',
+      )
+  }
+
+  if (
+    input.code !==
+    undefined
+  ) {
+    payload.code =
+      normalizeOptionalText(
+        input.code,
+      )
+  }
+
+  if (
+    input.periodType !==
+    undefined
+  ) {
+    payload.periodType =
+      input.periodType
+  }
+
+  if (
+    input.sequence !==
+    undefined
+  ) {
+    payload.sequence =
+      normalizeRequiredInteger(
+        input.sequence,
+        'Sequência do período',
+      )
+  }
+
+  if (
+    input.startDate !==
+    undefined
+  ) {
+    payload.startDate =
+      normalizeRequiredText(
+        input.startDate,
+        'Data inicial',
+      )
+  }
+
+  if (
+    input.endDate !==
+    undefined
+  ) {
+    payload.endDate =
+      normalizeRequiredText(
+        input.endDate,
+        'Data final',
+      )
+  }
+
+  if (
+    input.instructionalDaysTarget !==
+    undefined
+  ) {
+    if (
+      input
+        .instructionalDaysTarget ===
+      null
+    ) {
+      payload.instructionalDaysTarget =
+        null
+    } else {
+      payload.instructionalDaysTarget =
+        normalizeRequiredInteger(
+          input
+            .instructionalDaysTarget,
+          'Meta de dias letivos',
+        )
+    }
+  }
+
+  if (
+    input.status !==
+    undefined
+  ) {
+    payload.status =
+      input.status
+  }
+
+  if (
+    Object.keys(
+      payload,
+    ).length === 0
+  ) {
+    throw new Error(
+      'Informe ao menos um campo para atualização.',
+    )
+  }
+
+  return payload
+}
+
 export function useInstitutionalAcademicPeriods() {
   const [
     academicPeriods,
@@ -271,6 +404,14 @@ export function useInstitutionalAcademicPeriods() {
     setCreatingAcademicPeriod,
   ] =
     useState(false)
+
+  const [
+    updatingAcademicPeriodId,
+    setUpdatingAcademicPeriodId,
+  ] =
+    useState<string | null>(
+      null,
+    )
 
   const [
     error,
@@ -611,6 +752,131 @@ export function useInstitutionalAcademicPeriods() {
       ],
     )
 
+  const updateAcademicPeriod =
+    useCallback(
+      async (
+        academicPeriodId:
+          string,
+
+        input:
+          UpdateInstitutionalAcademicPeriodRequest,
+      ): Promise<
+        AcademicPeriod
+      > => {
+        const normalizedAcademicPeriodId =
+          normalizeRequiredText(
+            academicPeriodId,
+            'Período letivo',
+          )
+
+        const payload =
+          createUpdatePayload(
+            input,
+          )
+
+        setUpdatingAcademicPeriodId(
+          normalizedAcademicPeriodId,
+        )
+
+        setError(
+          null,
+        )
+
+        try {
+          const response =
+            await fetch(
+              `${API_URL}/${encodeURIComponent(
+                normalizedAcademicPeriodId,
+              )}`,
+              {
+                method:
+                  'PATCH',
+
+                headers: {
+                  'Content-Type':
+                    'application/json',
+                },
+
+                credentials:
+                  'include',
+
+                cache:
+                  'no-store',
+
+                body:
+                  JSON.stringify(
+                    payload,
+                  ),
+              },
+            )
+
+          const result =
+            await readApiResponse<AcademicPeriodMutationResponse>(
+              response,
+            )
+
+          if (
+            !response.ok ||
+            !result.success ||
+            !result.data
+          ) {
+            throw new Error(
+              getResponseError(
+                result,
+                'Não foi possível atualizar o período letivo.',
+              ),
+            )
+          }
+
+          const updatedPeriod =
+            result.data
+
+          setAcademicPeriods(
+            currentPeriods => {
+              const periodExists =
+                currentPeriods.some(
+                  period =>
+                    period.id ===
+                    updatedPeriod.id,
+                )
+
+              if (!periodExists) {
+                return currentPeriods
+              }
+
+              return replaceAcademicPeriod(
+                currentPeriods,
+                updatedPeriod,
+              )
+            },
+          )
+
+          return updatedPeriod
+        } catch (
+          updateError
+        ) {
+          const message =
+            updateError instanceof
+              Error
+              ? updateError.message
+              : 'Erro inesperado ao atualizar o período letivo.'
+
+          setError(
+            message,
+          )
+
+          throw new Error(
+            message,
+          )
+        } finally {
+          setUpdatingAcademicPeriodId(
+            null,
+          )
+        }
+      },
+      [],
+    )
+
   const clearAcademicPeriods =
     useCallback(
       (): void => {
@@ -619,6 +885,10 @@ export function useInstitutionalAcademicPeriods() {
         )
 
         setLoadedSchoolYearId(
+          null,
+        )
+
+        setUpdatingAcademicPeriodId(
           null,
         )
 
@@ -644,10 +914,18 @@ export function useInstitutionalAcademicPeriods() {
 
     loading:
       loadingAcademicPeriods ||
-      creatingAcademicPeriod,
+      creatingAcademicPeriod ||
+      updatingAcademicPeriodId !==
+        null,
 
     loadingAcademicPeriods,
     creatingAcademicPeriod,
+
+    updatingAcademicPeriod:
+      updatingAcademicPeriodId !==
+      null,
+
+    updatingAcademicPeriodId,
 
     error,
 
@@ -655,6 +933,7 @@ export function useInstitutionalAcademicPeriods() {
     reloadAcademicPeriods,
 
     createAcademicPeriod,
+    updateAcademicPeriod,
 
     clearAcademicPeriods,
     clearError,
