@@ -59,6 +59,32 @@ type CalendarContextsResponse = {
   error?: string
 }
 
+type SchoolYearCardProps = {
+  schoolYear: SchoolYear
+
+  selected: boolean
+  loadingSnapshot: boolean
+
+  canManage: boolean
+
+  editing: boolean
+  editingName: string
+  updating: boolean
+
+  onOpen: () => void
+  onStartEditing: () => void
+  onCancelEditing: () => void
+
+  onEditingNameChange: (
+    value: string,
+  ) => void
+
+  onSaveName: (
+    event:
+      FormEvent<HTMLFormElement>,
+  ) => void
+}
+
 const CONTEXTS_API_URL =
   '/api/agenda/institutional-calendar/contexts?limit=100'
 
@@ -236,31 +262,40 @@ function sortContexts(
   )
 }
 
-function readContextsResponse(
+async function readContextsResponse(
   response: Response,
-): Promise<CalendarContextsResponse> {
-  return response
-    .json()
-    .catch(
-      () => {
-        throw new Error(
-          'A resposta dos contextos institucionais é inválida.',
-        )
-      },
-    ) as Promise<CalendarContextsResponse>
+): Promise<
+  CalendarContextsResponse
+> {
+  try {
+    return (
+      await response.json()
+    ) as CalendarContextsResponse
+  } catch {
+    throw new Error(
+      'A resposta dos contextos institucionais é inválida.',
+    )
+  }
 }
 
 function SchoolYearCard({
   schoolYear,
+
   selected,
-  loading,
+  loadingSnapshot,
+
+  canManage,
+
+  editing,
+  editingName,
+  updating,
+
   onOpen,
-}: {
-  schoolYear: SchoolYear
-  selected: boolean
-  loading: boolean
-  onOpen: () => void
-}) {
+  onStartEditing,
+  onCancelEditing,
+  onEditingNameChange,
+  onSaveName,
+}: SchoolYearCardProps) {
   return (
     <article
       className={[
@@ -303,19 +338,108 @@ function SchoolYearCard({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={onOpen}
-          disabled={loading}
-          className="inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:border-cyan-500 hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-        >
-          {loading && selected
-            ? 'Carregando...'
-            : selected
-              ? 'Atualizar estrutura'
-              : 'Abrir estrutura'}
-        </button>
+        <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
+          {canManage &&
+          !editing ? (
+            <button
+              type="button"
+              onClick={
+                onStartEditing
+              }
+              disabled={
+                updating
+              }
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-cyan-300 bg-cyan-50 px-5 py-3 text-sm font-bold text-cyan-900 transition hover:border-cyan-600 hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+            >
+              Editar nome
+            </button>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={onOpen}
+            disabled={
+              loadingSnapshot ||
+              updating
+            }
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:border-cyan-500 hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          >
+            {loadingSnapshot &&
+            selected
+              ? 'Carregando...'
+              : selected
+                ? 'Atualizar estrutura'
+                : 'Abrir estrutura'}
+          </button>
+        </div>
       </div>
+
+      {editing ? (
+        <form
+          onSubmit={
+            onSaveName
+          }
+          className="mt-5 rounded-2xl border border-cyan-200 bg-cyan-50/70 p-4"
+        >
+          <label className="block">
+            <span className="text-sm font-bold text-slate-700">
+              Nome institucional
+            </span>
+
+            <input
+              type="text"
+              required
+              maxLength={180}
+              autoFocus
+              value={
+                editingName
+              }
+              onChange={
+                event =>
+                  onEditingNameChange(
+                    event.target.value,
+                  )
+              }
+              placeholder={`Ano Letivo ${schoolYear.year}`}
+              disabled={
+                updating
+              }
+              className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          </label>
+
+          <p className="mt-3 text-sm leading-6 text-slate-600">
+            Esta alteração corrigirá somente o nome. A referência, as datas, o status e o registro existente serão preservados.
+          </p>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <button
+              type="submit"
+              disabled={
+                updating
+              }
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#071827] px-5 py-3 text-sm font-bold text-white transition hover:bg-cyan-900 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+            >
+              {updating
+                ? 'Salvando nome...'
+                : 'Salvar nome'}
+            </button>
+
+            <button
+              type="button"
+              onClick={
+                onCancelEditing
+              }
+              disabled={
+                updating
+              }
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:border-cyan-500 hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      ) : null}
 
       <div className="mt-5 grid gap-3 border-t border-slate-200 pt-5 sm:grid-cols-2 lg:grid-cols-4">
         <div>
@@ -382,12 +506,16 @@ export default function InstitutionalAcademicCalendarPage() {
     loadingSnapshot,
     creatingSchoolYear,
 
+    updatingSchoolYearId,
+
     error:
       calendarError,
 
     loadSchoolYears,
     selectSchoolYear,
+
     createSchoolYear,
+    updateSchoolYear,
 
     clearSnapshot,
     clearError,
@@ -406,9 +534,7 @@ export default function InstitutionalAcademicCalendarPage() {
     selectedContextId,
     setSelectedContextId,
   ] =
-    useState<string>(
-      '',
-    )
+    useState('')
 
   const [
     loadingContexts,
@@ -443,6 +569,20 @@ export default function InstitutionalAcademicCalendarPage() {
     useState<string | null>(
       null,
     )
+
+  const [
+    editingSchoolYearId,
+    setEditingSchoolYearId,
+  ] =
+    useState<string | null>(
+      null,
+    )
+
+  const [
+    editingSchoolYearName,
+    setEditingSchoolYearName,
+  ] =
+    useState('')
 
   const [
     formYear,
@@ -507,7 +647,8 @@ export default function InstitutionalAcademicCalendarPage() {
               .organization_id ===
               selectedContext
                 .organization.id &&
-            schoolYear.school_id ===
+            schoolYear
+              .school_id ===
               selectedContext
                 .school.id,
         )
@@ -645,8 +786,24 @@ export default function InstitutionalAcademicCalendarPage() {
     clearError()
     clearSnapshot()
 
+    setContextError(
+      null,
+    )
+
     setActionMessage(
       null,
+    )
+
+    setShowCreateForm(
+      false,
+    )
+
+    setEditingSchoolYearId(
+      null,
+    )
+
+    setEditingSchoolYearName(
+      '',
     )
 
     void loadSchoolYears({
@@ -701,6 +858,10 @@ export default function InstitutionalAcademicCalendarPage() {
       Number(
         formMinimumDays,
       )
+
+    setContextError(
+      null,
+    )
 
     setActionMessage(
       null,
@@ -771,7 +932,7 @@ export default function InstitutionalAcademicCalendarPage() {
           false,
       })
     } catch {
-      // O Hook já registra a mensagem segura em calendarError.
+      // O Hook registra a mensagem segura em calendarError.
     }
   }
 
@@ -791,7 +952,126 @@ export default function InstitutionalAcademicCalendarPage() {
         'Estrutura do calendário letivo carregada.',
       )
     } catch {
-      // O Hook já registra a mensagem segura em calendarError.
+      // O Hook registra a mensagem segura em calendarError.
+    }
+  }
+
+  function handleStartEditingSchoolYear(
+    schoolYear:
+      SchoolYear,
+  ): void {
+    if (
+      !selectedContext?.canManage
+    ) {
+      setContextError(
+        'O perfil atual não possui autorização para editar anos letivos.',
+      )
+
+      return
+    }
+
+    clearError()
+
+    setContextError(
+      null,
+    )
+
+    setActionMessage(
+      null,
+    )
+
+    setShowCreateForm(
+      false,
+    )
+
+    setEditingSchoolYearId(
+      schoolYear.id,
+    )
+
+    setEditingSchoolYearName(
+      schoolYear.name ??
+        `Ano Letivo ${schoolYear.year}`,
+    )
+  }
+
+  function handleCancelEditingSchoolYear(): void {
+    if (
+      updatingSchoolYearId
+    ) {
+      return
+    }
+
+    setEditingSchoolYearId(
+      null,
+    )
+
+    setEditingSchoolYearName(
+      '',
+    )
+  }
+
+  async function handleSaveSchoolYearName(
+    event:
+      FormEvent<HTMLFormElement>,
+
+    schoolYear:
+      SchoolYear,
+  ): Promise<void> {
+    event.preventDefault()
+
+    if (
+      !selectedContext?.canManage
+    ) {
+      setContextError(
+        'O perfil atual não possui autorização para editar anos letivos.',
+      )
+
+      return
+    }
+
+    const normalizedName =
+      editingSchoolYearName
+        .trim()
+
+    if (!normalizedName) {
+      setContextError(
+        'Informe o nome institucional do ano letivo.',
+      )
+
+      return
+    }
+
+    setContextError(
+      null,
+    )
+
+    setActionMessage(
+      null,
+    )
+
+    try {
+      const updatedSchoolYear =
+        await updateSchoolYear(
+          schoolYear.id,
+          {
+            name:
+              normalizedName,
+          },
+        )
+
+      setEditingSchoolYearId(
+        null,
+      )
+
+      setEditingSchoolYearName(
+        '',
+      )
+
+      setActionMessage(
+        `Nome atualizado para “${updatedSchoolYear.name ?? normalizedName}”.`,
+      )
+    } catch {
+      // O Hook registra a mensagem segura em calendarError.
     }
   }
 
@@ -806,8 +1086,45 @@ export default function InstitutionalAcademicCalendarPage() {
       false,
     )
 
+    setEditingSchoolYearId(
+      null,
+    )
+
+    setEditingSchoolYearName(
+      '',
+    )
+
     setActionMessage(
       null,
+    )
+
+    setContextError(
+      null,
+    )
+  }
+
+  function handleToggleCreateForm(): void {
+    clearError()
+
+    setContextError(
+      null,
+    )
+
+    setActionMessage(
+      null,
+    )
+
+    setEditingSchoolYearId(
+      null,
+    )
+
+    setEditingSchoolYearName(
+      '',
+    )
+
+    setShowCreateForm(
+      currentValue =>
+        !currentValue,
     )
   }
 
@@ -889,7 +1206,8 @@ export default function InstitutionalAcademicCalendarPage() {
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm font-semibold text-slate-600">
                 Carregando contextos autorizados...
               </div>
-            ) : contexts.length === 0 ? (
+            ) : contexts.length ===
+              0 ? (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
                 <p className="font-bold text-amber-900">
                   Nenhum contexto institucional disponível
@@ -967,7 +1285,15 @@ export default function InstitutionalAcademicCalendarPage() {
                       </span>
                     </div>
 
-                    <p className="mt-3 font-bold text-[#071827]">
+                    <p className="mt-3 text-sm font-semibold text-cyan-900">
+                      {
+                        selectedContext
+                          .organization
+                          .name
+                      }
+                    </p>
+
+                    <p className="mt-1 font-bold text-[#071827]">
                       {
                         selectedContext
                           .school
@@ -1070,14 +1396,9 @@ export default function InstitutionalAcademicCalendarPage() {
                 {selectedContext.canManage ? (
                   <button
                     type="button"
-                    onClick={() => {
-                      clearError()
-
-                      setShowCreateForm(
-                        currentValue =>
-                          !currentValue,
-                      )
-                    }}
+                    onClick={
+                      handleToggleCreateForm
+                    }
                     className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#071827] px-5 py-3 text-sm font-bold text-white transition hover:bg-cyan-900 sm:w-auto"
                   >
                     {showCreateForm
@@ -1113,9 +1434,7 @@ export default function InstitutionalAcademicCalendarPage() {
                         onChange={
                           event =>
                             setFormYear(
-                              event
-                                .target
-                                .value,
+                              event.target.value,
                             )
                         }
                         className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100"
@@ -1136,9 +1455,7 @@ export default function InstitutionalAcademicCalendarPage() {
                         onChange={
                           event =>
                             setFormName(
-                              event
-                                .target
-                                .value,
+                              event.target.value,
                             )
                         }
                         placeholder="Ex.: Ano Letivo 2026"
@@ -1162,9 +1479,7 @@ export default function InstitutionalAcademicCalendarPage() {
                         onChange={
                           event =>
                             setFormMinimumDays(
-                              event
-                                .target
-                                .value,
+                              event.target.value,
                             )
                         }
                         className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100"
@@ -1184,9 +1499,7 @@ export default function InstitutionalAcademicCalendarPage() {
                         onChange={
                           event =>
                             setFormStartDate(
-                              event
-                                .target
-                                .value,
+                              event.target.value,
                             )
                         }
                         className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100"
@@ -1206,9 +1519,7 @@ export default function InstitutionalAcademicCalendarPage() {
                         onChange={
                           event =>
                             setFormEndDate(
-                              event
-                                .target
-                                .value,
+                              event.target.value,
                             )
                         }
                         className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100"
@@ -1282,13 +1593,49 @@ export default function InstitutionalAcademicCalendarPage() {
                             selectedSchoolYearId ===
                             schoolYear.id
                           }
-                          loading={
+                          loadingSnapshot={
                             loadingSnapshot
+                          }
+                          canManage={
+                            selectedContext
+                              .canManage
+                          }
+                          editing={
+                            editingSchoolYearId ===
+                            schoolYear.id
+                          }
+                          editingName={
+                            editingSchoolYearId ===
+                            schoolYear.id
+                              ? editingSchoolYearName
+                              : ''
+                          }
+                          updating={
+                            updatingSchoolYearId ===
+                            schoolYear.id
                           }
                           onOpen={() =>
                             void handleOpenSchoolYear(
                               schoolYear.id,
                             )
+                          }
+                          onStartEditing={() =>
+                            handleStartEditingSchoolYear(
+                              schoolYear,
+                            )
+                          }
+                          onCancelEditing={
+                            handleCancelEditingSchoolYear
+                          }
+                          onEditingNameChange={
+                            setEditingSchoolYearName
+                          }
+                          onSaveName={
+                            event =>
+                              void handleSaveSchoolYearName(
+                                event,
+                                schoolYear,
+                              )
                           }
                         />
                       ),
