@@ -107,6 +107,53 @@ export type CreateInstitutionalAcademicEventRequest = {
     InstitutionalCalendarPriority
 }
 
+export type UpdateInstitutionalAcademicEventRequest = {
+  id: string
+
+  title: string
+
+  description?:
+    | string
+    | null
+
+  eventType:
+    InstitutionalCalendarEventType
+
+  academicPeriodId?:
+    | string
+    | null
+
+  sourceReference?:
+    | string
+    | null
+
+  startDate: string
+  endDate: string
+
+  allDay: boolean
+
+  startTime?:
+    | string
+    | null
+
+  endTime?:
+    | string
+    | null
+
+  isInstructionalDay: boolean
+  countsAsSchoolDay: boolean
+  suspendsClasses: boolean
+  isMandatory: boolean
+
+  priority:
+    InstitutionalCalendarPriority
+}
+
+export type CancelInstitutionalAcademicEventRequest = {
+  id: string
+  reason: string
+}
+
 type BaseApiResponse = {
   success: boolean
 
@@ -340,6 +387,28 @@ function validateDateRange(
   }
 }
 
+function validateTimeRange(
+  startTime:
+    | string
+    | null
+    | undefined,
+
+  endTime:
+    | string
+    | null
+    | undefined,
+): void {
+  if (
+    startTime &&
+    endTime &&
+    endTime <= startTime
+  ) {
+    throw new Error(
+      'O horário final deve ser posterior ao horário inicial.',
+    )
+  }
+}
+
 function validateOptionalRangeInteger(
   value:
     | number
@@ -374,6 +443,27 @@ function validateOptionalRangeInteger(
   ) {
     throw new Error(
       `${fieldName} deve estar entre ${minimumValue} e ${maximumValue}.`,
+    )
+  }
+
+  return normalizedValue
+}
+
+function normalizeCancellationReason(
+  value: string,
+): string {
+  const normalizedValue =
+    normalizeRequiredText(
+      value,
+      'Motivo do cancelamento',
+    )
+
+  if (
+    normalizedValue.length >
+    1000
+  ) {
+    throw new Error(
+      'O motivo do cancelamento não pode ultrapassar 1000 caracteres.',
     )
   }
 
@@ -677,6 +767,11 @@ function createEventPayload(
     )
   }
 
+  validateTimeRange(
+    startTime,
+    endTime,
+  )
+
   const fixedMonth =
     validateOptionalRangeInteger(
       input.fixedMonth,
@@ -799,6 +894,113 @@ function createEventPayload(
   }
 }
 
+function createUpdateEventPayload(
+  input:
+    UpdateInstitutionalAcademicEventRequest,
+): Record<string, unknown> {
+  const title =
+    normalizeRequiredText(
+      input.title,
+      'Título do evento',
+    )
+
+  const startDate =
+    normalizeDate(
+      input.startDate,
+      'Data inicial',
+    )
+
+  const endDate =
+    normalizeDate(
+      input.endDate,
+      'Data final',
+    )
+
+  validateDateRange(
+    startDate,
+    endDate,
+  )
+
+  const startTime =
+    normalizeOptionalTime(
+      input.startTime,
+      'Horário inicial',
+    )
+
+  const endTime =
+    normalizeOptionalTime(
+      input.endTime,
+      'Horário final',
+    )
+
+  if (
+    !input.allDay &&
+    !startTime
+  ) {
+    throw new Error(
+      'Informe o horário inicial para eventos que não ocupam o dia inteiro.',
+    )
+  }
+
+  validateTimeRange(
+    startTime,
+    endTime,
+  )
+
+  return {
+    title,
+
+    description:
+      normalizeOptionalText(
+        input.description,
+      ),
+
+    eventType:
+      input.eventType,
+
+    academicPeriodId:
+      normalizeOptionalText(
+        input.academicPeriodId,
+      ),
+
+    sourceReference:
+      normalizeOptionalText(
+        input.sourceReference,
+      ),
+
+    startDate,
+    endDate,
+
+    allDay:
+      input.allDay,
+
+    startTime:
+      input.allDay
+        ? null
+        : startTime,
+
+    endTime:
+      input.allDay
+        ? null
+        : endTime,
+
+    isInstructionalDay:
+      input.isInstructionalDay,
+
+    countsAsSchoolDay:
+      input.countsAsSchoolDay,
+
+    suspendsClasses:
+      input.suspendsClasses,
+
+    isMandatory:
+      input.isMandatory,
+
+    priority:
+      input.priority,
+  }
+}
+
 export function useInstitutionalAcademicEvents() {
   const [
     institutionalEvents,
@@ -827,6 +1029,22 @@ export function useInstitutionalAcademicEvents() {
     setCreatingInstitutionalEvent,
   ] =
     useState(false)
+
+  const [
+    updatingInstitutionalEventId,
+    setUpdatingInstitutionalEventId,
+  ] =
+    useState<string | null>(
+      null,
+    )
+
+  const [
+    cancellingInstitutionalEventId,
+    setCancellingInstitutionalEventId,
+  ] =
+    useState<string | null>(
+      null,
+    )
 
   const [
     error,
@@ -1090,6 +1308,238 @@ export function useInstitutionalAcademicEvents() {
       ],
     )
 
+  const updateInstitutionalEvent =
+    useCallback(
+      async (
+        input:
+          UpdateInstitutionalAcademicEventRequest,
+      ): Promise<
+        InstitutionalCalendarEvent
+      > => {
+        const eventId =
+          normalizeRequiredText(
+            input.id,
+            'Evento institucional',
+          )
+
+        const payload =
+          createUpdateEventPayload(
+            input,
+          )
+
+        setUpdatingInstitutionalEventId(
+          eventId,
+        )
+
+        setError(
+          null,
+        )
+
+        try {
+          const response =
+            await fetch(
+              `${API_URL}/${encodeURIComponent(eventId)}`,
+              {
+                method:
+                  'PATCH',
+
+                headers: {
+                  'Content-Type':
+                    'application/json',
+                },
+
+                credentials:
+                  'include',
+
+                cache:
+                  'no-store',
+
+                body:
+                  JSON.stringify(
+                    payload,
+                  ),
+              },
+            )
+
+          const result =
+            await readApiResponse<InstitutionalEventMutationResponse>(
+              response,
+            )
+
+          if (
+            !response.ok ||
+            !result.success ||
+            !result.data
+          ) {
+            throw new Error(
+              getResponseError(
+                result,
+                'Não foi possível atualizar o evento institucional.',
+              ),
+            )
+          }
+
+          const updatedEvent =
+            result.data
+
+          if (
+            loadedSchoolYearId ===
+            updatedEvent
+              .school_year_id
+          ) {
+            setInstitutionalEvents(
+              currentEvents =>
+                replaceInstitutionalEvent(
+                  currentEvents,
+                  updatedEvent,
+                ),
+            )
+          }
+
+          return updatedEvent
+        } catch (
+          updateError
+        ) {
+          const message =
+            updateError instanceof
+              Error
+              ? updateError.message
+              : 'Erro inesperado ao atualizar o evento institucional.'
+
+          setError(
+            message,
+          )
+
+          throw new Error(
+            message,
+          )
+        } finally {
+          setUpdatingInstitutionalEventId(
+            null,
+          )
+        }
+      },
+      [
+        loadedSchoolYearId,
+      ],
+    )
+
+  const cancelInstitutionalEvent =
+    useCallback(
+      async (
+        input:
+          CancelInstitutionalAcademicEventRequest,
+      ): Promise<
+        InstitutionalCalendarEvent
+      > => {
+        const eventId =
+          normalizeRequiredText(
+            input.id,
+            'Evento institucional',
+          )
+
+        const reason =
+          normalizeCancellationReason(
+            input.reason,
+          )
+
+        setCancellingInstitutionalEventId(
+          eventId,
+        )
+
+        setError(
+          null,
+        )
+
+        try {
+          const response =
+            await fetch(
+              `${API_URL}/${encodeURIComponent(eventId)}/cancel`,
+              {
+                method:
+                  'POST',
+
+                headers: {
+                  'Content-Type':
+                    'application/json',
+                },
+
+                credentials:
+                  'include',
+
+                cache:
+                  'no-store',
+
+                body:
+                  JSON.stringify({
+                    reason,
+                  }),
+              },
+            )
+
+          const result =
+            await readApiResponse<InstitutionalEventMutationResponse>(
+              response,
+            )
+
+          if (
+            !response.ok ||
+            !result.success ||
+            !result.data
+          ) {
+            throw new Error(
+              getResponseError(
+                result,
+                'Não foi possível cancelar o evento institucional.',
+              ),
+            )
+          }
+
+          const cancelledEvent =
+            result.data
+
+          if (
+            loadedSchoolYearId ===
+            cancelledEvent
+              .school_year_id
+          ) {
+            setInstitutionalEvents(
+              currentEvents =>
+                replaceInstitutionalEvent(
+                  currentEvents,
+                  cancelledEvent,
+                ),
+            )
+          }
+
+          return cancelledEvent
+        } catch (
+          cancelError
+        ) {
+          const message =
+            cancelError instanceof
+              Error
+              ? cancelError.message
+              : 'Erro inesperado ao cancelar o evento institucional.'
+
+          setError(
+            message,
+          )
+
+          throw new Error(
+            message,
+          )
+        } finally {
+          setCancellingInstitutionalEventId(
+            null,
+          )
+        }
+      },
+      [
+        loadedSchoolYearId,
+      ],
+    )
+
   const clearInstitutionalEvents =
     useCallback(
       (): void => {
@@ -1098,6 +1548,14 @@ export function useInstitutionalAcademicEvents() {
         )
 
         setLoadedSchoolYearId(
+          null,
+        )
+
+        setUpdatingInstitutionalEventId(
+          null,
+        )
+
+        setCancellingInstitutionalEventId(
           null,
         )
 
@@ -1123,10 +1581,26 @@ export function useInstitutionalAcademicEvents() {
 
     loading:
       loadingInstitutionalEvents ||
-      creatingInstitutionalEvent,
+      creatingInstitutionalEvent ||
+      updatingInstitutionalEventId !==
+        null ||
+      cancellingInstitutionalEventId !==
+        null,
 
     loadingInstitutionalEvents,
     creatingInstitutionalEvent,
+
+    updatingInstitutionalEvent:
+      updatingInstitutionalEventId !==
+      null,
+
+    updatingInstitutionalEventId,
+
+    cancellingInstitutionalEvent:
+      cancellingInstitutionalEventId !==
+      null,
+
+    cancellingInstitutionalEventId,
 
     error,
 
@@ -1134,6 +1608,8 @@ export function useInstitutionalAcademicEvents() {
     reloadInstitutionalEvents,
 
     createInstitutionalEvent,
+    updateInstitutionalEvent,
+    cancelInstitutionalEvent,
 
     clearInstitutionalEvents,
     clearError,
