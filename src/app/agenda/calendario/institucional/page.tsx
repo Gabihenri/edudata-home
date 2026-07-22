@@ -18,8 +18,14 @@ import {
   useInstitutionalAcademicCalendar,
 } from '@/lib/agenda/hooks/useInstitutionalAcademicCalendar'
 
+import {
+  useInstitutionalAcademicPeriods,
+} from '@/lib/agenda/hooks/useInstitutionalAcademicPeriods'
+
 import type {
   AcademicCalendarStatus,
+  AcademicPeriod,
+  AcademicPeriodType,
   SchoolYear,
 } from '@/lib/agenda/repository/institutional-academic-calendar.repository'
 
@@ -98,6 +104,40 @@ const DATE_FORMATTER =
       year: 'numeric',
     },
   )
+
+const PERIOD_TYPE_OPTIONS: Array<{
+  value: AcademicPeriodType
+  label: string
+}> = [
+  {
+    value: 'bimester',
+    label: 'Bimestre',
+  },
+  {
+    value: 'trimester',
+    label: 'Trimestre',
+  },
+  {
+    value: 'semester',
+    label: 'Semestre',
+  },
+  {
+    value: 'quarter',
+    label: 'Quadrimestre',
+  },
+  {
+    value: 'term',
+    label: 'Período',
+  },
+  {
+    value: 'stage',
+    label: 'Etapa',
+  },
+  {
+    value: 'custom',
+    label: 'Personalizado',
+  },
+]
 
 function formatDate(
   value:
@@ -197,6 +237,19 @@ function getStatusClasses(
     'bg-amber-50',
     'text-amber-800',
   ].join(' ')
+}
+
+function getPeriodTypeLabel(
+  type:
+    AcademicPeriodType,
+): string {
+  return (
+    PERIOD_TYPE_OPTIONS.find(
+      option =>
+        option.value === type,
+    )?.label ??
+    'Personalizado'
+  )
 }
 
 function getSchoolLocation(
@@ -409,7 +462,7 @@ function SchoolYearCard({
           </label>
 
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            Esta alteração corrigirá somente o nome. A referência, as datas, o status e o registro existente serão preservados.
+            A alteração modifica somente o nome. A referência, as datas, o status e o registro são preservados.
           </p>
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
@@ -496,6 +549,93 @@ function SchoolYearCard({
   )
 }
 
+function AcademicPeriodCard({
+  period,
+}: {
+  period: AcademicPeriod
+}) {
+  return (
+    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={[
+                'inline-flex rounded-full border px-3 py-1 text-xs font-bold',
+                getStatusClasses(
+                  period.status,
+                ),
+              ].join(' ')}
+            >
+              {getStatusLabel(
+                period.status,
+              )}
+            </span>
+
+            <span className="inline-flex rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-bold text-cyan-800">
+              Sequência {period.sequence}
+            </span>
+
+            <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
+              {getPeriodTypeLabel(
+                period.period_type,
+              )}
+            </span>
+          </div>
+
+          <h3 className="mt-4 break-words text-lg font-bold text-[#071827]">
+            {period.name}
+          </h3>
+
+          {period.code ? (
+            <p className="mt-1 text-sm font-semibold text-slate-500">
+              Código {period.code}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 border-t border-slate-200 pt-5 sm:grid-cols-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+            Início
+          </p>
+
+          <p className="mt-1 text-sm font-semibold text-slate-700">
+            {formatDate(
+              period.start_date,
+            )}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+            Encerramento
+          </p>
+
+          <p className="mt-1 text-sm font-semibold text-slate-700">
+            {formatDate(
+              period.end_date,
+            )}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+            Meta de dias
+          </p>
+
+          <p className="mt-1 text-sm font-semibold text-slate-700">
+            {period
+              .instructional_days_target ??
+              'Não definida'}
+          </p>
+        </div>
+      </div>
+    </article>
+  )
+}
+
 export default function InstitutionalAcademicCalendarPage() {
   const {
     schoolYears,
@@ -518,9 +658,32 @@ export default function InstitutionalAcademicCalendarPage() {
     updateSchoolYear,
 
     clearSnapshot,
-    clearError,
+
+    clearError:
+      clearCalendarError,
   } =
     useInstitutionalAcademicCalendar()
+
+  const {
+    academicPeriods,
+    loadedSchoolYearId,
+
+    loadingAcademicPeriods,
+    creatingAcademicPeriod,
+
+    error:
+      periodsError,
+
+    loadAcademicPeriods,
+    reloadAcademicPeriods,
+    createAcademicPeriod,
+
+    clearAcademicPeriods,
+
+    clearError:
+      clearPeriodsError,
+  } =
+    useInstitutionalAcademicPeriods()
 
   const [
     contexts,
@@ -557,8 +720,8 @@ export default function InstitutionalAcademicCalendarPage() {
     useState(false)
 
   const [
-    showCreateForm,
-    setShowCreateForm,
+    showCreateYearForm,
+    setShowCreateYearForm,
   ] =
     useState(false)
 
@@ -619,6 +782,56 @@ export default function InstitutionalAcademicCalendarPage() {
   ] =
     useState('200')
 
+  const [
+    showCreatePeriodForm,
+    setShowCreatePeriodForm,
+  ] =
+    useState(false)
+
+  const [
+    periodName,
+    setPeriodName,
+  ] =
+    useState('')
+
+  const [
+    periodCode,
+    setPeriodCode,
+  ] =
+    useState('')
+
+  const [
+    periodType,
+    setPeriodType,
+  ] =
+    useState<
+      AcademicPeriodType
+    >('bimester')
+
+  const [
+    periodSequence,
+    setPeriodSequence,
+  ] =
+    useState('1')
+
+  const [
+    periodStartDate,
+    setPeriodStartDate,
+  ] =
+    useState('')
+
+  const [
+    periodEndDate,
+    setPeriodEndDate,
+  ] =
+    useState('')
+
+  const [
+    periodDaysTarget,
+    setPeriodDaysTarget,
+  ] =
+    useState('')
+
   const selectedContext =
     useMemo(
       () =>
@@ -673,6 +886,27 @@ export default function InstitutionalAcademicCalendarPage() {
         .school_id ===
         selectedContext
           .school.id,
+    )
+
+  const visibleAcademicPeriods =
+    useMemo(
+      () => {
+        if (
+          !snapshot ||
+          loadedSchoolYearId !==
+            snapshot.schoolYear.id
+        ) {
+          return snapshot?.periods ??
+            []
+        }
+
+        return academicPeriods
+      },
+      [
+        academicPeriods,
+        loadedSchoolYearId,
+        snapshot,
+      ],
     )
 
   const loadContexts =
@@ -772,6 +1006,43 @@ export default function InstitutionalAcademicCalendarPage() {
       [],
     )
 
+  function resetPeriodForm(
+    nextSequence = 1,
+  ): void {
+    setPeriodName('')
+    setPeriodCode('')
+
+    setPeriodType(
+      'bimester',
+    )
+
+    setPeriodSequence(
+      String(
+        nextSequence,
+      ),
+    )
+
+    setPeriodStartDate('')
+    setPeriodEndDate('')
+    setPeriodDaysTarget('')
+  }
+
+  function getNextPeriodSequence(): number {
+    return (
+      visibleAcademicPeriods.reduce(
+        (
+          currentMaximum,
+          period,
+        ) =>
+          Math.max(
+            currentMaximum,
+            period.sequence,
+          ),
+        0,
+      ) + 1
+    )
+  }
+
   useEffect(() => {
     void loadContexts()
   }, [
@@ -783,8 +1054,11 @@ export default function InstitutionalAcademicCalendarPage() {
       return
     }
 
-    clearError()
+    clearCalendarError()
+    clearPeriodsError()
+
     clearSnapshot()
+    clearAcademicPeriods()
 
     setContextError(
       null,
@@ -794,7 +1068,11 @@ export default function InstitutionalAcademicCalendarPage() {
       null,
     )
 
-    setShowCreateForm(
+    setShowCreateYearForm(
+      false,
+    )
+
+    setShowCreatePeriodForm(
       false,
     )
 
@@ -805,6 +1083,8 @@ export default function InstitutionalAcademicCalendarPage() {
     setEditingSchoolYearName(
       '',
     )
+
+    resetPeriodForm()
 
     void loadSchoolYears({
       organizationId:
@@ -819,7 +1099,9 @@ export default function InstitutionalAcademicCalendarPage() {
         false,
     })
   }, [
-    clearError,
+    clearAcademicPeriods,
+    clearCalendarError,
+    clearPeriodsError,
     clearSnapshot,
     loadSchoolYears,
     selectedContext,
@@ -867,6 +1149,9 @@ export default function InstitutionalAcademicCalendarPage() {
       null,
     )
 
+    clearCalendarError()
+    clearPeriodsError()
+
     try {
       const createdSchoolYear =
         await createSchoolYear({
@@ -911,7 +1196,7 @@ export default function InstitutionalAcademicCalendarPage() {
         `Ano letivo ${createdSchoolYear.year} criado como rascunho.`,
       )
 
-      setShowCreateForm(
+      setShowCreateYearForm(
         false,
       )
 
@@ -931,8 +1216,20 @@ export default function InstitutionalAcademicCalendarPage() {
         includeDeleted:
           false,
       })
+
+      try {
+        await loadAcademicPeriods({
+          schoolYearId:
+            createdSchoolYear.id,
+
+          includeDeleted:
+            false,
+        })
+      } catch {
+        // A mensagem segura é registrada pelo Hook.
+      }
     } catch {
-      // O Hook registra a mensagem segura em calendarError.
+      // A mensagem segura é registrada pelo Hook.
     }
   }
 
@@ -943,16 +1240,57 @@ export default function InstitutionalAcademicCalendarPage() {
       null,
     )
 
+    setShowCreatePeriodForm(
+      false,
+    )
+
+    resetPeriodForm()
+
+    clearCalendarError()
+    clearPeriodsError()
+    clearAcademicPeriods()
+
     try {
       await selectSchoolYear(
         schoolYearId,
       )
 
+      try {
+        const loadedPeriods =
+          await loadAcademicPeriods({
+            schoolYearId,
+
+            includeDeleted:
+              false,
+          })
+
+        const nextSequence =
+          loadedPeriods.reduce(
+            (
+              currentMaximum,
+              period,
+            ) =>
+              Math.max(
+                currentMaximum,
+                period.sequence,
+              ),
+            0,
+          ) + 1
+
+        setPeriodSequence(
+          String(
+            nextSequence,
+          ),
+        )
+      } catch {
+        // A mensagem segura é registrada pelo Hook.
+      }
+
       setActionMessage(
         'Estrutura do calendário letivo carregada.',
       )
     } catch {
-      // O Hook registra a mensagem segura em calendarError.
+      // A mensagem segura é registrada pelo Hook.
     }
   }
 
@@ -970,7 +1308,7 @@ export default function InstitutionalAcademicCalendarPage() {
       return
     }
 
-    clearError()
+    clearCalendarError()
 
     setContextError(
       null,
@@ -980,7 +1318,11 @@ export default function InstitutionalAcademicCalendarPage() {
       null,
     )
 
-    setShowCreateForm(
+    setShowCreateYearForm(
+      false,
+    )
+
+    setShowCreatePeriodForm(
       false,
     )
 
@@ -1071,7 +1413,7 @@ export default function InstitutionalAcademicCalendarPage() {
         `Nome atualizado para “${updatedSchoolYear.name ?? normalizedName}”.`,
       )
     } catch {
-      // O Hook registra a mensagem segura em calendarError.
+      // A mensagem segura é registrada pelo Hook.
     }
   }
 
@@ -1082,7 +1424,11 @@ export default function InstitutionalAcademicCalendarPage() {
       nextContextId,
     )
 
-    setShowCreateForm(
+    setShowCreateYearForm(
+      false,
+    )
+
+    setShowCreatePeriodForm(
       false,
     )
 
@@ -1101,10 +1447,14 @@ export default function InstitutionalAcademicCalendarPage() {
     setContextError(
       null,
     )
+
+    clearAcademicPeriods()
+    resetPeriodForm()
   }
 
-  function handleToggleCreateForm(): void {
-    clearError()
+  function handleToggleCreateYearForm(): void {
+    clearCalendarError()
+    clearPeriodsError()
 
     setContextError(
       null,
@@ -1122,10 +1472,214 @@ export default function InstitutionalAcademicCalendarPage() {
       '',
     )
 
-    setShowCreateForm(
+    setShowCreatePeriodForm(
+      false,
+    )
+
+    setShowCreateYearForm(
       currentValue =>
         !currentValue,
     )
+  }
+
+  function handleToggleCreatePeriodForm(): void {
+    clearCalendarError()
+    clearPeriodsError()
+
+    setContextError(
+      null,
+    )
+
+    setActionMessage(
+      null,
+    )
+
+    setShowCreateYearForm(
+      false,
+    )
+
+    setEditingSchoolYearId(
+      null,
+    )
+
+    setEditingSchoolYearName(
+      '',
+    )
+
+    if (
+      !showCreatePeriodForm
+    ) {
+      resetPeriodForm(
+        getNextPeriodSequence(),
+      )
+    }
+
+    setShowCreatePeriodForm(
+      currentValue =>
+        !currentValue,
+    )
+  }
+
+  async function handleRefreshPeriods(): Promise<void> {
+    if (!snapshot) {
+      return
+    }
+
+    setActionMessage(
+      null,
+    )
+
+    clearPeriodsError()
+
+    try {
+      if (
+        loadedSchoolYearId ===
+        snapshot.schoolYear.id
+      ) {
+        await reloadAcademicPeriods()
+      } else {
+        await loadAcademicPeriods({
+          schoolYearId:
+            snapshot.schoolYear.id,
+
+          includeDeleted:
+            false,
+        })
+      }
+
+      setActionMessage(
+        'Períodos letivos atualizados.',
+      )
+    } catch {
+      // A mensagem segura é registrada pelo Hook.
+    }
+  }
+
+  async function handleCreateAcademicPeriod(
+    event:
+      FormEvent<HTMLFormElement>,
+  ): Promise<void> {
+    event.preventDefault()
+
+    if (
+      !selectedContext ||
+      !snapshot
+    ) {
+      setContextError(
+        'Abra um ano letivo antes de cadastrar períodos.',
+      )
+
+      return
+    }
+
+    if (
+      !selectedContext.canManage
+    ) {
+      setContextError(
+        'O perfil atual não possui autorização para criar períodos letivos.',
+      )
+
+      return
+    }
+
+    const sequence =
+      Number(
+        periodSequence,
+      )
+
+    const instructionalDaysTarget =
+      periodDaysTarget.trim()
+        ? Number(
+            periodDaysTarget,
+          )
+        : null
+
+    setContextError(
+      null,
+    )
+
+    setActionMessage(
+      null,
+    )
+
+    clearCalendarError()
+    clearPeriodsError()
+
+    try {
+      const createdPeriod =
+        await createAcademicPeriod({
+          organizationId:
+            selectedContext
+              .organization.id,
+
+          schoolId:
+            selectedContext
+              .school.id,
+
+          schoolYearId:
+            snapshot
+              .schoolYear.id,
+
+          name:
+            periodName,
+
+          code:
+            periodCode.trim() ||
+            null,
+
+          periodType,
+
+          sequence,
+
+          startDate:
+            periodStartDate,
+
+          endDate:
+            periodEndDate,
+
+          instructionalDaysTarget,
+
+          status:
+            'draft',
+        })
+
+      setActionMessage(
+        `Período “${createdPeriod.name}” criado como rascunho.`,
+      )
+
+      setShowCreatePeriodForm(
+        false,
+      )
+
+      resetPeriodForm(
+        createdPeriod.sequence +
+          1,
+      )
+
+      try {
+        await loadAcademicPeriods({
+          schoolYearId:
+            snapshot
+              .schoolYear.id,
+
+          includeDeleted:
+            false,
+        })
+      } catch {
+        // A mensagem segura é registrada pelo Hook.
+      }
+
+      try {
+        await selectSchoolYear(
+          snapshot
+            .schoolYear.id,
+        )
+      } catch {
+        // O período foi criado; apenas a atualização do resumo falhou.
+      }
+    } catch {
+      // A mensagem segura é registrada pelo Hook.
+    }
   }
 
   return (
@@ -1174,6 +1728,15 @@ export default function InstitutionalAcademicCalendarPage() {
             className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold leading-6 text-red-700"
           >
             {calendarError}
+          </div>
+        ) : null}
+
+        {periodsError ? (
+          <div
+            role="alert"
+            className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold leading-6 text-red-700"
+          >
+            {periodsError}
           </div>
         ) : null}
 
@@ -1342,10 +1905,8 @@ export default function InstitutionalAcademicCalendarPage() {
 
                 <p className="mt-3 text-3xl font-bold text-[#071827]">
                   {snapshotBelongsToContext
-                    ? snapshot
-                        ?.periods
-                        .length ??
-                      0
+                    ? visibleAcademicPeriods
+                        .length
                     : 0}
                 </p>
               </div>
@@ -1397,18 +1958,18 @@ export default function InstitutionalAcademicCalendarPage() {
                   <button
                     type="button"
                     onClick={
-                      handleToggleCreateForm
+                      handleToggleCreateYearForm
                     }
                     className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#071827] px-5 py-3 text-sm font-bold text-white transition hover:bg-cyan-900 sm:w-auto"
                   >
-                    {showCreateForm
+                    {showCreateYearForm
                       ? 'Fechar cadastro'
                       : 'Novo ano letivo'}
                   </button>
                 ) : null}
               </header>
 
-              {showCreateForm &&
+              {showCreateYearForm &&
               selectedContext
                 .canManage ? (
                 <form
@@ -1528,7 +2089,7 @@ export default function InstitutionalAcademicCalendarPage() {
                   </div>
 
                   <div className="mt-5 rounded-xl border border-cyan-200 bg-white p-4 text-sm leading-6 text-slate-600">
-                    O ano letivo será criado como <strong>rascunho</strong>. A publicação ocorrerá somente após a configuração e a validação institucional.
+                    O ano letivo será criado como <strong>rascunho</strong>. A publicação ocorrerá somente após configuração e validação institucional.
                   </div>
 
                   <div className="mt-5 flex flex-col gap-3 sm:flex-row">
@@ -1547,7 +2108,7 @@ export default function InstitutionalAcademicCalendarPage() {
                     <button
                       type="button"
                       onClick={() =>
-                        setShowCreateForm(
+                        setShowCreateYearForm(
                           false,
                         )
                       }
@@ -1575,7 +2136,7 @@ export default function InstitutionalAcademicCalendarPage() {
                     </p>
 
                     <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                      A unidade selecionada ainda não possui uma estrutura de calendário institucional. Usuários autorizados podem iniciar o primeiro ano letivo como rascunho.
+                      A unidade selecionada ainda não possui uma estrutura de calendário institucional.
                     </p>
                   </div>
                 ) : (
@@ -1647,80 +2208,421 @@ export default function InstitutionalAcademicCalendarPage() {
 
             {snapshotBelongsToContext &&
             snapshot ? (
-              <section className="overflow-hidden rounded-2xl border border-cyan-200 bg-white shadow-sm">
-                <header className="border-b border-cyan-200 bg-cyan-50 px-5 py-5 sm:px-6">
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-800">
-                    Estrutura carregada
-                  </p>
-
-                  <h2 className="mt-2 text-xl font-bold text-[#071827] sm:text-2xl">
-                    {
-                      snapshot
-                        .schoolYear
-                        .name ??
-                      `${snapshot.schoolYear.year} — Ano letivo`
-                    }
-                  </h2>
-                </header>
-
-                <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-4">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
-                      Períodos
+              <>
+                <section className="overflow-hidden rounded-2xl border border-cyan-200 bg-white shadow-sm">
+                  <header className="border-b border-cyan-200 bg-cyan-50 px-5 py-5 sm:px-6">
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-800">
+                      Estrutura carregada
                     </p>
 
-                    <p className="mt-2 text-2xl font-bold text-[#071827]">
+                    <h2 className="mt-2 text-xl font-bold text-[#071827] sm:text-2xl">
                       {
                         snapshot
-                          .periods
-                          .length
+                          .schoolYear
+                          .name ??
+                        `${snapshot.schoolYear.year} — Ano letivo`
                       }
-                    </p>
+                    </h2>
+                  </header>
+
+                  <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-4">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
+                        Períodos
+                      </p>
+
+                      <p className="mt-2 text-2xl font-bold text-[#071827]">
+                        {
+                          visibleAcademicPeriods
+                            .length
+                        }
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
+                        Eventos
+                      </p>
+
+                      <p className="mt-2 text-2xl font-bold text-[#071827]">
+                        {
+                          snapshot
+                            .events
+                            .length
+                        }
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
+                        Horários
+                      </p>
+
+                      <p className="mt-2 text-2xl font-bold text-[#071827]">
+                        {
+                          snapshot
+                            .operatingHours
+                            .length
+                        }
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
+                        Exceções
+                      </p>
+
+                      <p className="mt-2 text-2xl font-bold text-[#071827]">
+                        {
+                          snapshot
+                            .exceptions
+                            .length
+                        }
+                      </p>
+                    </div>
                   </div>
+                </section>
 
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
-                      Eventos
-                    </p>
+                <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  <header className="flex flex-col gap-4 border-b border-slate-200 bg-slate-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-800">
+                        Organização acadêmica
+                      </p>
 
-                    <p className="mt-2 text-2xl font-bold text-[#071827]">
-                      {
-                        snapshot
-                          .events
-                          .length
+                      <h2 className="mt-2 text-xl font-bold text-[#071827] sm:text-2xl">
+                        Períodos letivos
+                      </h2>
+
+                      <p className="mt-2 text-sm leading-6 text-slate-600">
+                        Cadastre bimestres, trimestres, semestres ou outras etapas dentro dos limites do ano letivo.
+                      </p>
+                    </div>
+
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void handleRefreshPeriods()
+                        }
+                        disabled={
+                          loadingAcademicPeriods ||
+                          creatingAcademicPeriod
+                        }
+                        className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-cyan-300 bg-cyan-50 px-5 py-3 text-sm font-bold text-cyan-900 transition hover:border-cyan-600 hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                      >
+                        {loadingAcademicPeriods
+                          ? 'Atualizando...'
+                          : 'Atualizar períodos'}
+                      </button>
+
+                      {selectedContext.canManage ? (
+                        <button
+                          type="button"
+                          onClick={
+                            handleToggleCreatePeriodForm
+                          }
+                          disabled={
+                            creatingAcademicPeriod
+                          }
+                          className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#071827] px-5 py-3 text-sm font-bold text-white transition hover:bg-cyan-900 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                        >
+                          {showCreatePeriodForm
+                            ? 'Fechar cadastro'
+                            : 'Novo período'}
+                        </button>
+                      ) : null}
+                    </div>
+                  </header>
+
+                  {showCreatePeriodForm &&
+                  selectedContext
+                    .canManage ? (
+                    <form
+                      onSubmit={
+                        handleCreateAcademicPeriod
                       }
-                    </p>
+                      className="border-b border-slate-200 bg-cyan-50/60 p-5 sm:p-6"
+                    >
+                      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                        <label className="block sm:col-span-2">
+                          <span className="text-sm font-bold text-slate-700">
+                            Nome do período
+                          </span>
+
+                          <input
+                            type="text"
+                            required
+                            maxLength={180}
+                            autoFocus
+                            value={
+                              periodName
+                            }
+                            onChange={
+                              event =>
+                                setPeriodName(
+                                  event.target.value,
+                                )
+                            }
+                            placeholder="Ex.: 1º Bimestre"
+                            className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100"
+                          />
+                        </label>
+
+                        <label className="block">
+                          <span className="text-sm font-bold text-slate-700">
+                            Código
+                          </span>
+
+                          <input
+                            type="text"
+                            maxLength={80}
+                            value={
+                              periodCode
+                            }
+                            onChange={
+                              event =>
+                                setPeriodCode(
+                                  event.target.value,
+                                )
+                            }
+                            placeholder="Ex.: b1"
+                            className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100"
+                          />
+                        </label>
+
+                        <label className="block">
+                          <span className="text-sm font-bold text-slate-700">
+                            Sequência
+                          </span>
+
+                          <input
+                            type="number"
+                            min="1"
+                            max="20"
+                            required
+                            value={
+                              periodSequence
+                            }
+                            onChange={
+                              event =>
+                                setPeriodSequence(
+                                  event.target.value,
+                                )
+                            }
+                            className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100"
+                          />
+                        </label>
+
+                        <label className="block">
+                          <span className="text-sm font-bold text-slate-700">
+                            Tipo
+                          </span>
+
+                          <select
+                            value={
+                              periodType
+                            }
+                            onChange={
+                              event =>
+                                setPeriodType(
+                                  event.target
+                                    .value as
+                                    AcademicPeriodType,
+                                )
+                            }
+                            className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100"
+                          >
+                            {PERIOD_TYPE_OPTIONS.map(
+                              option => (
+                                <option
+                                  key={
+                                    option.value
+                                  }
+                                  value={
+                                    option.value
+                                  }
+                                >
+                                  {option.label}
+                                </option>
+                              ),
+                            )}
+                          </select>
+                        </label>
+
+                        <label className="block">
+                          <span className="text-sm font-bold text-slate-700">
+                            Data inicial
+                          </span>
+
+                          <input
+                            type="date"
+                            required
+                            min={
+                              snapshot
+                                .schoolYear
+                                .start_date ??
+                              undefined
+                            }
+                            max={
+                              snapshot
+                                .schoolYear
+                                .end_date ??
+                              undefined
+                            }
+                            value={
+                              periodStartDate
+                            }
+                            onChange={
+                              event =>
+                                setPeriodStartDate(
+                                  event.target.value,
+                                )
+                            }
+                            className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100"
+                          />
+                        </label>
+
+                        <label className="block">
+                          <span className="text-sm font-bold text-slate-700">
+                            Data final
+                          </span>
+
+                          <input
+                            type="date"
+                            required
+                            min={
+                              periodStartDate ||
+                              snapshot
+                                .schoolYear
+                                .start_date ||
+                              undefined
+                            }
+                            max={
+                              snapshot
+                                .schoolYear
+                                .end_date ??
+                              undefined
+                            }
+                            value={
+                              periodEndDate
+                            }
+                            onChange={
+                              event =>
+                                setPeriodEndDate(
+                                  event.target.value,
+                                )
+                            }
+                            className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100"
+                          />
+                        </label>
+
+                        <label className="block">
+                          <span className="text-sm font-bold text-slate-700">
+                            Meta de dias letivos
+                          </span>
+
+                          <input
+                            type="number"
+                            min="0"
+                            max="366"
+                            value={
+                              periodDaysTarget
+                            }
+                            onChange={
+                              event =>
+                                setPeriodDaysTarget(
+                                  event.target.value,
+                                )
+                            }
+                            placeholder="Opcional"
+                            className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100"
+                          />
+                        </label>
+                      </div>
+
+                      <div className="mt-5 rounded-xl border border-cyan-200 bg-white p-4 text-sm leading-6 text-slate-600">
+                        O período será criado como <strong>rascunho</strong>. As datas devem permanecer entre {formatDate(
+                          snapshot
+                            .schoolYear
+                            .start_date,
+                        )} e {formatDate(
+                          snapshot
+                            .schoolYear
+                            .end_date,
+                        )}.
+                      </div>
+
+                      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                        <button
+                          type="submit"
+                          disabled={
+                            creatingAcademicPeriod
+                          }
+                          className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#071827] px-6 py-3 text-sm font-bold text-white transition hover:bg-cyan-900 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                        >
+                          {creatingAcademicPeriod
+                            ? 'Criando período...'
+                            : 'Criar período'}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowCreatePeriodForm(
+                              false,
+                            )
+
+                            resetPeriodForm(
+                              getNextPeriodSequence(),
+                            )
+                          }}
+                          disabled={
+                            creatingAcademicPeriod
+                          }
+                          className="inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-bold text-slate-700 transition hover:border-cyan-500 hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </form>
+                  ) : null}
+
+                  <div className="p-5 sm:p-6">
+                    {loadingAcademicPeriods ? (
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm font-semibold text-slate-600">
+                        Carregando períodos letivos...
+                      </div>
+                    ) : visibleAcademicPeriods
+                        .length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+                        <p className="font-bold text-[#071827]">
+                          Nenhum período letivo cadastrado
+                        </p>
+
+                        <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                          Cadastre o primeiro período do Ano Letivo {snapshot.schoolYear.year}.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {visibleAcademicPeriods.map(
+                          period => (
+                            <AcademicPeriodCard
+                              key={
+                                period.id
+                              }
+                              period={
+                                period
+                              }
+                            />
+                          ),
+                        )}
+                      </div>
+                    )}
                   </div>
-
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
-                      Horários
-                    </p>
-
-                    <p className="mt-2 text-2xl font-bold text-[#071827]">
-                      {
-                        snapshot
-                          .operatingHours
-                          .length
-                      }
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
-                      Exceções
-                    </p>
-
-                    <p className="mt-2 text-2xl font-bold text-[#071827]">
-                      {
-                        snapshot
-                          .exceptions
-                          .length
-                      }
-                    </p>
-                  </div>
-                </div>
-              </section>
+                </section>
+              </>
             ) : null}
           </>
         ) : null}
