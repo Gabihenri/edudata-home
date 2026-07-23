@@ -1,27 +1,80 @@
 import {
   planningRepository,
   type AgendaPlanning,
+  type AgendaPlanningStatus,
   type CreateAgendaPlanningInput,
   type UpdateAgendaPlanningInput,
 } from '@/lib/agenda/repository/planning.repository'
+
+const PLANNING_STATUSES:
+  readonly AgendaPlanningStatus[] = [
+    'rascunho',
+    'em_revisao',
+    'em revisão',
+    'aprovado',
+    'programado',
+    'executado',
+    'arquivado',
+
+    // Compatibilidade com registros legados.
+    'planejado',
+    'concluido',
+    'concluído',
+  ]
 
 function normalizeRequiredId(
   value: string | undefined,
   fieldName: string,
 ): string {
-  const normalizedValue = value?.trim()
+  const normalizedValue =
+    value?.trim()
 
   if (!normalizedValue) {
-    throw new Error(`${fieldName} é obrigatório.`)
+    throw new Error(
+      `${fieldName} é obrigatório.`,
+    )
   }
 
   return normalizedValue
 }
 
+function normalizePlanningStatus(
+  value:
+    | AgendaPlanningStatus
+    | undefined,
+): AgendaPlanningStatus {
+  if (!value) {
+    return 'rascunho'
+  }
+
+  const normalizedValue =
+    value.trim()
+
+  if (!normalizedValue) {
+    return 'rascunho'
+  }
+
+  if (
+    !PLANNING_STATUSES.includes(
+      normalizedValue as
+        AgendaPlanningStatus,
+    )
+  ) {
+    throw new Error(
+      'Status do planejamento é inválido.',
+    )
+  }
+
+  return normalizedValue as
+    AgendaPlanningStatus
+}
+
 function normalizeCreateInput(
-  input: CreateAgendaPlanningInput,
+  input:
+    CreateAgendaPlanningInput,
 ): CreateAgendaPlanningInput {
-  const title = input.title?.trim()
+  const title =
+    input.title?.trim()
 
   if (!title) {
     throw new Error(
@@ -30,11 +83,16 @@ function normalizeCreateInput(
   }
 
   if (input.planned_date) {
-    const plannedDate = new Date(
-      input.planned_date,
-    )
+    const plannedDate =
+      new Date(
+        input.planned_date,
+      )
 
-    if (Number.isNaN(plannedDate.getTime())) {
+    if (
+      Number.isNaN(
+        plannedDate.getTime(),
+      )
+    ) {
       throw new Error(
         'Data do planejamento é inválida.',
       )
@@ -47,47 +105,63 @@ function normalizeCreateInput(
     title,
 
     description:
-      input.description?.trim() || null,
+      input.description?.trim() ||
+      null,
 
     status:
-      input.status?.trim() || 'rascunho',
+      normalizePlanningStatus(
+        input.status,
+      ),
 
     subject:
-      input.subject?.trim() || null,
+      input.subject?.trim() ||
+      null,
 
     class_name:
-      input.class_name?.trim() || null,
+      input.class_name?.trim() ||
+      null,
 
     objective:
-      input.objective?.trim() || null,
+      input.objective?.trim() ||
+      null,
 
     methodology:
-      input.methodology?.trim() || null,
+      input.methodology?.trim() ||
+      null,
 
     resources:
-      input.resources?.trim() || null,
+      input.resources?.trim() ||
+      null,
 
     evaluation:
-      input.evaluation?.trim() || null,
+      input.evaluation?.trim() ||
+      null,
 
     school_id:
-      input.school_id?.trim() || null,
+      input.school_id?.trim() ||
+      null,
 
     user_id:
-      input.user_id?.trim() || null,
+      input.user_id?.trim() ||
+      null,
   }
 }
 
 function normalizeUpdateInput(
-  input: UpdateAgendaPlanningInput,
+  input:
+    UpdateAgendaPlanningInput,
 ): UpdateAgendaPlanningInput {
   const normalizedInput:
     UpdateAgendaPlanningInput = {
       ...input,
     }
 
-  if (input.title !== undefined) {
-    const title = input.title.trim()
+  if (
+    input.title !==
+    undefined
+  ) {
+    const title =
+      input.title.trim()
 
     if (!title) {
       throw new Error(
@@ -95,60 +169,103 @@ function normalizeUpdateInput(
       )
     }
 
-    normalizedInput.title = title
+    normalizedInput.title =
+      title
   }
 
-  if (input.description !== undefined) {
+  if (
+    input.description !==
+    undefined
+  ) {
     normalizedInput.description =
-      input.description?.trim() || null
+      input.description?.trim() ||
+      null
   }
 
-  if (input.status !== undefined) {
+  if (
+    input.status !==
+    undefined
+  ) {
     normalizedInput.status =
-      input.status.trim() || 'rascunho'
+      normalizePlanningStatus(
+        input.status,
+      )
   }
 
-  if (input.subject !== undefined) {
+  if (
+    input.subject !==
+    undefined
+  ) {
     normalizedInput.subject =
-      input.subject?.trim() || null
+      input.subject?.trim() ||
+      null
   }
 
-  if (input.class_name !== undefined) {
+  if (
+    input.class_name !==
+    undefined
+  ) {
     normalizedInput.class_name =
-      input.class_name?.trim() || null
+      input.class_name?.trim() ||
+      null
   }
 
-  if (input.objective !== undefined) {
+  if (
+    input.objective !==
+    undefined
+  ) {
     normalizedInput.objective =
-      input.objective?.trim() || null
+      input.objective?.trim() ||
+      null
   }
 
-  if (input.methodology !== undefined) {
+  if (
+    input.methodology !==
+    undefined
+  ) {
     normalizedInput.methodology =
-      input.methodology?.trim() || null
+      input.methodology?.trim() ||
+      null
   }
 
-  if (input.resources !== undefined) {
+  if (
+    input.resources !==
+    undefined
+  ) {
     normalizedInput.resources =
-      input.resources?.trim() || null
+      input.resources?.trim() ||
+      null
   }
 
-  if (input.evaluation !== undefined) {
+  if (
+    input.evaluation !==
+    undefined
+  ) {
     normalizedInput.evaluation =
-      input.evaluation?.trim() || null
+      input.evaluation?.trim() ||
+      null
   }
 
-  if (input.school_id !== undefined) {
+  if (
+    input.school_id !==
+    undefined
+  ) {
     normalizedInput.school_id =
-      input.school_id?.trim() || null
+      input.school_id?.trim() ||
+      null
   }
 
   if (input.planned_date) {
-    const plannedDate = new Date(
-      input.planned_date,
-    )
+    const plannedDate =
+      new Date(
+        input.planned_date,
+      )
 
-    if (Number.isNaN(plannedDate.getTime())) {
+    if (
+      Number.isNaN(
+        plannedDate.getTime(),
+      )
+    ) {
       throw new Error(
         'Data do planejamento é inválida.',
       )
@@ -166,21 +283,25 @@ class PlanningService {
   async listAll(): Promise<
     AgendaPlanning[]
   > {
-    return planningRepository.findAll()
+    return planningRepository
+      .findAll()
   }
 
   async listByUserId(
     userId: string,
-  ): Promise<AgendaPlanning[]> {
+  ): Promise<
+    AgendaPlanning[]
+  > {
     const normalizedUserId =
       normalizeRequiredId(
         userId,
         'ID do usuário',
       )
 
-    return planningRepository.findByUserId(
-      normalizedUserId,
-    )
+    return planningRepository
+      .findByUserId(
+        normalizedUserId,
+      )
   }
 
   /**
@@ -189,7 +310,9 @@ class PlanningService {
    */
   async getById(
     id: string,
-  ): Promise<AgendaPlanning> {
+  ): Promise<
+    AgendaPlanning
+  > {
     const normalizedId =
       normalizeRequiredId(
         id,
@@ -197,9 +320,10 @@ class PlanningService {
       )
 
     const planning =
-      await planningRepository.findById(
-        normalizedId,
-      )
+      await planningRepository
+        .findById(
+          normalizedId,
+        )
 
     if (!planning) {
       throw new Error(
@@ -213,7 +337,9 @@ class PlanningService {
   async getOwnedById(
     id: string,
     userId: string,
-  ): Promise<AgendaPlanning> {
+  ): Promise<
+    AgendaPlanning
+  > {
     const normalizedId =
       normalizeRequiredId(
         id,
@@ -227,10 +353,11 @@ class PlanningService {
       )
 
     const planning =
-      await planningRepository.findOwnedById(
-        normalizedId,
-        normalizedUserId,
-      )
+      await planningRepository
+        .findOwnedById(
+          normalizedId,
+          normalizedUserId,
+        )
 
     if (!planning) {
       throw new Error(
@@ -242,20 +369,30 @@ class PlanningService {
   }
 
   async create(
-    input: CreateAgendaPlanningInput,
-  ): Promise<AgendaPlanning> {
+    input:
+      CreateAgendaPlanningInput,
+  ): Promise<
+    AgendaPlanning
+  > {
     const normalizedInput =
-      normalizeCreateInput(input)
+      normalizeCreateInput(
+        input,
+      )
 
-    return planningRepository.create(
-      normalizedInput,
-    )
+    return planningRepository
+      .create(
+        normalizedInput,
+      )
   }
 
   async createOwned(
     userId: string,
-    input: CreateAgendaPlanningInput,
-  ): Promise<AgendaPlanning> {
+
+    input:
+      CreateAgendaPlanningInput,
+  ): Promise<
+    AgendaPlanning
+  > {
     const normalizedUserId =
       normalizeRequiredId(
         userId,
@@ -265,12 +402,15 @@ class PlanningService {
     const normalizedInput =
       normalizeCreateInput({
         ...input,
-        user_id: normalizedUserId,
+
+        user_id:
+          normalizedUserId,
       })
 
-    return planningRepository.create(
-      normalizedInput,
-    )
+    return planningRepository
+      .create(
+        normalizedInput,
+      )
   }
 
   /**
@@ -279,8 +419,12 @@ class PlanningService {
    */
   async update(
     id: string,
-    input: UpdateAgendaPlanningInput,
-  ): Promise<AgendaPlanning> {
+
+    input:
+      UpdateAgendaPlanningInput,
+  ): Promise<
+    AgendaPlanning
+  > {
     const normalizedId =
       normalizeRequiredId(
         id,
@@ -288,9 +432,10 @@ class PlanningService {
       )
 
     const existingPlanning =
-      await planningRepository.findById(
-        normalizedId,
-      )
+      await planningRepository
+        .findById(
+          normalizedId,
+        )
 
     if (!existingPlanning) {
       throw new Error(
@@ -299,19 +444,26 @@ class PlanningService {
     }
 
     const normalizedInput =
-      normalizeUpdateInput(input)
+      normalizeUpdateInput(
+        input,
+      )
 
-    return planningRepository.update(
-      normalizedId,
-      normalizedInput,
-    )
+    return planningRepository
+      .update(
+        normalizedId,
+        normalizedInput,
+      )
   }
 
   async updateOwned(
     id: string,
     userId: string,
-    input: UpdateAgendaPlanningInput,
-  ): Promise<AgendaPlanning> {
+
+    input:
+      UpdateAgendaPlanningInput,
+  ): Promise<
+    AgendaPlanning
+  > {
     const normalizedId =
       normalizeRequiredId(
         id,
@@ -325,10 +477,11 @@ class PlanningService {
       )
 
     const existingPlanning =
-      await planningRepository.findOwnedById(
-        normalizedId,
-        normalizedUserId,
-      )
+      await planningRepository
+        .findOwnedById(
+          normalizedId,
+          normalizedUserId,
+        )
 
     if (!existingPlanning) {
       throw new Error(
@@ -337,7 +490,9 @@ class PlanningService {
     }
 
     const normalizedInput =
-      normalizeUpdateInput(input)
+      normalizeUpdateInput(
+        input,
+      )
 
     /*
      * O proprietário do planejamento não pode
@@ -346,11 +501,12 @@ class PlanningService {
     delete normalizedInput.user_id
 
     const updatedPlanning =
-      await planningRepository.updateOwned(
-        normalizedId,
-        normalizedUserId,
-        normalizedInput,
-      )
+      await planningRepository
+        .updateOwned(
+          normalizedId,
+          normalizedUserId,
+          normalizedInput,
+        )
 
     if (!updatedPlanning) {
       throw new Error(
@@ -363,7 +519,9 @@ class PlanningService {
 
   /**
    * Uso administrativo interno.
-   * Em rotas autenticadas, utilizar deleteOwned.
+   *
+   * A exclusão física está bloqueada no Repository
+   * e será substituída pelo fluxo de exclusão lógica.
    */
   async delete(
     id: string,
@@ -375,9 +533,10 @@ class PlanningService {
       )
 
     const existingPlanning =
-      await planningRepository.findById(
-        normalizedId,
-      )
+      await planningRepository
+        .findById(
+          normalizedId,
+        )
 
     if (!existingPlanning) {
       throw new Error(
@@ -385,11 +544,18 @@ class PlanningService {
       )
     }
 
-    await planningRepository.delete(
-      normalizedId,
-    )
+    await planningRepository
+      .delete(
+        normalizedId,
+      )
   }
 
+  /**
+   * Compatibilidade temporária.
+   *
+   * A exclusão física está bloqueada no Repository
+   * e será substituída pelo fluxo de exclusão lógica.
+   */
   async deleteOwned(
     id: string,
     userId: string,
@@ -407,10 +573,11 @@ class PlanningService {
       )
 
     const deleted =
-      await planningRepository.deleteOwned(
-        normalizedId,
-        normalizedUserId,
-      )
+      await planningRepository
+        .deleteOwned(
+          normalizedId,
+          normalizedUserId,
+        )
 
     if (!deleted) {
       throw new Error(
