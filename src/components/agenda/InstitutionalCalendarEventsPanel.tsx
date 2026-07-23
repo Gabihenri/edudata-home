@@ -9,6 +9,12 @@ import {
 } from 'react'
 
 import {
+  InstitutionalEventManagementActions,
+} from '@/components/agenda/InstitutionalEventManagementActions'
+
+import {
+  type CancelInstitutionalAcademicEventRequest,
+  type UpdateInstitutionalAcademicEventRequest,
   useInstitutionalAcademicEvents,
 } from '@/lib/agenda/hooks/useInstitutionalAcademicEvents'
 
@@ -24,67 +30,38 @@ type InstitutionalCalendarEventsPanelProps = {
   organizationId: string
   schoolId: string
   schoolYearId: string
-
   calendarYear: number
-
-  schoolYearStartDate:
-    | string
-    | null
-
-  schoolYearEndDate:
-    | string
-    | null
-
-  schoolState?:
-    | string
-    | null
-
-  schoolCity?:
-    | string
-    | null
-
+  schoolYearStartDate: string | null
+  schoolYearEndDate: string | null
+  schoolState?: string | null
+  schoolCity?: string | null
   periods: AcademicPeriod[]
-
   canManage: boolean
-
   onEventsChanged?: (
-    events:
-      InstitutionalCalendarEvent[],
+    events: InstitutionalCalendarEvent[],
   ) => void
 }
 
 type EventFormState = {
   title: string
   description: string
-
-  eventType:
-    InstitutionalCalendarEventType
-
+  eventType: InstitutionalCalendarEventType
   academicPeriodId: string
-
   startDate: string
   endDate: string
-
   allDay: boolean
-
   startTime: string
   endTime: string
-
   sourceReference: string
-
   isInstructionalDay: boolean
   countsAsSchoolDay: boolean
   suspendsClasses: boolean
   isMandatory: boolean
-
-  priority:
-    InstitutionalCalendarPriority
+  priority: InstitutionalCalendarPriority
 }
 
 const EVENT_TYPE_OPTIONS: Array<{
-  value:
-    InstitutionalCalendarEventType
-
+  value: InstitutionalCalendarEventType
   label: string
 }> = [
   {
@@ -160,42 +137,30 @@ const DATE_FORMATTER =
     },
   )
 
-function createEmptyForm(): EventFormState {
+const INPUT_CLASS =
+  'mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:opacity-60'
+
+const CHECKBOX_CLASS =
+  'flex min-h-14 items-center gap-3 rounded-xl border border-slate-200 bg-white p-4'
+
+function createEmptyForm():
+  EventFormState {
   return {
     title: '',
     description: '',
-
-    eventType:
-      'recess',
-
-    academicPeriodId:
-      '',
-
+    eventType: 'recess',
+    academicPeriodId: '',
     startDate: '',
     endDate: '',
-
     allDay: true,
-
     startTime: '',
     endTime: '',
-
-    sourceReference:
-      '',
-
-    isInstructionalDay:
-      false,
-
-    countsAsSchoolDay:
-      false,
-
-    suspendsClasses:
-      true,
-
-    isMandatory:
-      false,
-
-    priority:
-      'normal',
+    sourceReference: '',
+    isInstructionalDay: false,
+    countsAsSchoolDay: false,
+    suspendsClasses: true,
+    isMandatory: false,
+    priority: 'normal',
   }
 }
 
@@ -240,15 +205,7 @@ function formatDateRange(
     )
   }
 
-  return [
-    formatDate(
-      startDate,
-    ),
-
-    formatDate(
-      endDate,
-    ),
-  ].join(' até ')
+  return `${formatDate(startDate)} até ${formatDate(endDate)}`
 }
 
 function formatTime(
@@ -256,14 +213,12 @@ function formatTime(
     | string
     | null,
 ): string {
-  if (!value) {
-    return ''
-  }
-
-  return value.slice(
-    0,
-    5,
-  )
+  return value
+    ? value.slice(
+        0,
+        5,
+      )
+    : ''
 }
 
 function getEventTypeLabel(
@@ -406,12 +361,96 @@ function getPriorityClasses(
   ].join(' ')
 }
 
-function InstitutionalEventCard({
-  event,
-}: {
+function sortInstitutionalEvents(
+  events:
+    InstitutionalCalendarEvent[],
+): InstitutionalCalendarEvent[] {
+  return [
+    ...events,
+  ].sort(
+    (
+      firstEvent,
+      secondEvent,
+    ) => {
+      const startDateComparison =
+        firstEvent
+          .start_date
+          .localeCompare(
+            secondEvent
+              .start_date,
+          )
+
+      if (
+        startDateComparison !==
+        0
+      ) {
+        return startDateComparison
+      }
+
+      const endDateComparison =
+        firstEvent
+          .end_date
+          .localeCompare(
+            secondEvent
+              .end_date,
+          )
+
+      if (
+        endDateComparison !==
+        0
+      ) {
+        return endDateComparison
+      }
+
+      return firstEvent
+        .title
+        .localeCompare(
+          secondEvent.title,
+          'pt-BR',
+        )
+    },
+  )
+}
+
+type InstitutionalEventCardProps = {
   event:
     InstitutionalCalendarEvent
-}) {
+
+  periods:
+    AcademicPeriod[]
+
+  schoolYearStartDate:
+    | string
+    | null
+
+  schoolYearEndDate:
+    | string
+    | null
+
+  canManage: boolean
+  disabled: boolean
+
+  onUpdate: (
+    input:
+      UpdateInstitutionalAcademicEventRequest,
+  ) => Promise<void>
+
+  onCancel: (
+    input:
+      CancelInstitutionalAcademicEventRequest,
+  ) => Promise<void>
+}
+
+function InstitutionalEventCard({
+  event,
+  periods,
+  schoolYearStartDate,
+  schoolYearEndDate,
+  canManage,
+  disabled,
+  onUpdate,
+  onCancel,
+}: InstitutionalEventCardProps) {
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -540,6 +579,47 @@ function InstitutionalEventCard({
           </p>
         </div>
       ) : null}
+
+      {canManage ? (
+        <InstitutionalEventManagementActions
+          event={
+            event
+          }
+          periods={
+            periods
+          }
+          schoolYearStartDate={
+            schoolYearStartDate
+          }
+          schoolYearEndDate={
+            schoolYearEndDate
+          }
+          disabled={
+            disabled
+          }
+          onUpdate={
+            onUpdate
+          }
+          onCancel={
+            onCancel
+          }
+        />
+      ) : event.status ===
+          'cancelled' &&
+        event.cancellation_reason ? (
+        <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-red-500">
+            Motivo do cancelamento
+          </p>
+
+          <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-red-700">
+            {
+              event
+                .cancellation_reason
+            }
+          </p>
+        </div>
+      ) : null}
     </article>
   )
 }
@@ -548,19 +628,13 @@ export function InstitutionalCalendarEventsPanel({
   organizationId,
   schoolId,
   schoolYearId,
-
   calendarYear,
-
   schoolYearStartDate,
   schoolYearEndDate,
-
   schoolState,
   schoolCity,
-
   periods,
-
   canManage,
-
   onEventsChanged,
 }: InstitutionalCalendarEventsPanelProps) {
   const {
@@ -570,12 +644,17 @@ export function InstitutionalCalendarEventsPanel({
     loadingInstitutionalEvents,
     creatingInstitutionalEvent,
 
+    updatingInstitutionalEventId,
+    cancellingInstitutionalEventId,
+
     error,
 
     loadInstitutionalEvents,
     reloadInstitutionalEvents,
 
     createInstitutionalEvent,
+    updateInstitutionalEvent,
+    cancelInstitutionalEvent,
 
     clearInstitutionalEvents,
     clearError,
@@ -634,6 +713,13 @@ export function InstitutionalCalendarEventsPanel({
         schoolYearId,
       ],
     )
+
+  const managementBusy =
+    creatingInstitutionalEvent ||
+    updatingInstitutionalEventId !==
+      null ||
+    cancellingInstitutionalEventId !==
+      null
 
   useEffect(() => {
     if (!schoolYearId) {
@@ -702,7 +788,28 @@ export function InstitutionalCalendarEventsPanel({
     )
   }
 
-  async function handleRefresh(): Promise<void> {
+  async function refreshEvents():
+    Promise<
+      InstitutionalCalendarEvent[]
+    > {
+    const events =
+      await loadInstitutionalEvents({
+        schoolYearId,
+        calendarYear,
+        includeDeleted:
+          false,
+      })
+
+    onEventsChangedRef
+      .current?.(
+        events,
+      )
+
+    return events
+  }
+
+  async function handleRefresh():
+    Promise<void> {
     setActionMessage(
       null,
     )
@@ -827,18 +934,7 @@ export function InstitutionalCalendarEventsPanel({
             form.priority,
         })
 
-      const events =
-        await loadInstitutionalEvents({
-          schoolYearId,
-          calendarYear,
-          includeDeleted:
-            false,
-        })
-
-      onEventsChangedRef
-        .current?.(
-          events,
-        )
+      await refreshEvents()
 
       setActionMessage(
         `Evento “${createdEvent.title}” criado como rascunho.`,
@@ -852,6 +948,83 @@ export function InstitutionalCalendarEventsPanel({
     } catch {
       // A mensagem segura é registrada pelo Hook.
     }
+  }
+
+  function notifyEventMutation(
+    nextEvent:
+      InstitutionalCalendarEvent,
+  ): void {
+    const nextEvents =
+      sortInstitutionalEvents([
+        ...institutionalEvents.filter(
+          currentEvent =>
+            currentEvent.id !==
+            nextEvent.id,
+        ),
+
+        nextEvent,
+      ])
+
+    onEventsChangedRef
+      .current?.(
+        nextEvents,
+      )
+  }
+
+  async function handleUpdateEvent(
+    input:
+      UpdateInstitutionalAcademicEventRequest,
+  ): Promise<void> {
+    if (!canManage) {
+      return
+    }
+
+    setActionMessage(
+      null,
+    )
+
+    clearError()
+
+    const updatedEvent =
+      await updateInstitutionalEvent(
+        input,
+      )
+
+    notifyEventMutation(
+      updatedEvent,
+    )
+
+    setActionMessage(
+      `Evento “${updatedEvent.title}” atualizado com sucesso.`,
+    )
+  }
+
+  async function handleCancelEvent(
+    input:
+      CancelInstitutionalAcademicEventRequest,
+  ): Promise<void> {
+    if (!canManage) {
+      return
+    }
+
+    setActionMessage(
+      null,
+    )
+
+    clearError()
+
+    const cancelledEvent =
+      await cancelInstitutionalEvent(
+        input,
+      )
+
+    notifyEventMutation(
+      cancelledEvent,
+    )
+
+    setActionMessage(
+      `Evento “${cancelledEvent.title}” cancelado com sucesso.`,
+    )
   }
 
   return (
@@ -879,7 +1052,7 @@ export function InstitutionalCalendarEventsPanel({
             }
             disabled={
               loadingInstitutionalEvents ||
-              creatingInstitutionalEvent
+              managementBusy
             }
             className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-cyan-300 bg-cyan-50 px-5 py-3 text-sm font-bold text-cyan-900 transition hover:border-cyan-600 hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
@@ -895,7 +1068,7 @@ export function InstitutionalCalendarEventsPanel({
                 handleToggleCreateForm
               }
               disabled={
-                creatingInstitutionalEvent
+                managementBusy
               }
               className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#071827] px-5 py-3 text-sm font-bold text-white transition hover:bg-cyan-900 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
@@ -960,7 +1133,9 @@ export function InstitutionalCalendarEventsPanel({
                 disabled={
                   creatingInstitutionalEvent
                 }
-                className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
+                className={
+                  INPUT_CLASS
+                }
               />
             </label>
 
@@ -986,7 +1161,9 @@ export function InstitutionalCalendarEventsPanel({
                 disabled={
                   creatingInstitutionalEvent
                 }
-                className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
+                className={
+                  INPUT_CLASS
+                }
               >
                 {EVENT_TYPE_OPTIONS.map(
                   option => (
@@ -1027,7 +1204,9 @@ export function InstitutionalCalendarEventsPanel({
                 disabled={
                   creatingInstitutionalEvent
                 }
-                className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
+                className={
+                  INPUT_CLASS
+                }
               >
                 <option value="normal">
                   Normal
@@ -1063,24 +1242,32 @@ export function InstitutionalCalendarEventsPanel({
                   form.startDate
                 }
                 onChange={
-                  currentEvent =>
+                  currentEvent => {
+                    const nextStartDate =
+                      currentEvent
+                        .target
+                        .value
+
                     updateForm({
                       startDate:
-                        currentEvent
-                          .target
-                          .value,
+                        nextStartDate,
 
                       endDate:
-                        form.endDate ||
-                        currentEvent
-                          .target
-                          .value,
+                        form.endDate &&
+                        form.endDate <
+                          nextStartDate
+                          ? nextStartDate
+                          : form.endDate ||
+                            nextStartDate,
                     })
+                  }
                 }
                 disabled={
                   creatingInstitutionalEvent
                 }
-                className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
+                className={
+                  INPUT_CLASS
+                }
               />
             </label>
 
@@ -1116,7 +1303,9 @@ export function InstitutionalCalendarEventsPanel({
                 disabled={
                   creatingInstitutionalEvent
                 }
-                className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
+                className={
+                  INPUT_CLASS
+                }
               />
             </label>
 
@@ -1141,7 +1330,9 @@ export function InstitutionalCalendarEventsPanel({
                 disabled={
                   creatingInstitutionalEvent
                 }
-                className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
+                className={
+                  INPUT_CLASS
+                }
               >
                 <option value="">
                   Sem vínculo específico
@@ -1188,7 +1379,7 @@ export function InstitutionalCalendarEventsPanel({
                 disabled={
                   creatingInstitutionalEvent
                 }
-                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
+                className={`${INPUT_CLASS} min-h-0`}
               />
             </label>
 
@@ -1216,13 +1407,15 @@ export function InstitutionalCalendarEventsPanel({
                 disabled={
                   creatingInstitutionalEvent
                 }
-                className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
+                className={
+                  INPUT_CLASS
+                }
               />
             </label>
           </div>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <label className="flex min-h-14 items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
+            <label className={CHECKBOX_CLASS}>
               <input
                 type="checkbox"
                 checked={
@@ -1248,7 +1441,7 @@ export function InstitutionalCalendarEventsPanel({
               </span>
             </label>
 
-            <label className="flex min-h-14 items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
+            <label className={CHECKBOX_CLASS}>
               <input
                 type="checkbox"
                 checked={
@@ -1274,7 +1467,7 @@ export function InstitutionalCalendarEventsPanel({
               </span>
             </label>
 
-            <label className="flex min-h-14 items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
+            <label className={CHECKBOX_CLASS}>
               <input
                 type="checkbox"
                 checked={
@@ -1300,7 +1493,7 @@ export function InstitutionalCalendarEventsPanel({
               </span>
             </label>
 
-            <label className="flex min-h-14 items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
+            <label className={CHECKBOX_CLASS}>
               <input
                 type="checkbox"
                 checked={
@@ -1326,7 +1519,7 @@ export function InstitutionalCalendarEventsPanel({
               </span>
             </label>
 
-            <label className="flex min-h-14 items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
+            <label className={CHECKBOX_CLASS}>
               <input
                 type="checkbox"
                 checked={
@@ -1378,7 +1571,9 @@ export function InstitutionalCalendarEventsPanel({
                   disabled={
                     creatingInstitutionalEvent
                   }
-                  className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  className={
+                    INPUT_CLASS
+                  }
                 />
               </label>
 
@@ -1404,7 +1599,9 @@ export function InstitutionalCalendarEventsPanel({
                   disabled={
                     creatingInstitutionalEvent
                   }
-                  className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  className={
+                    INPUT_CLASS
+                  }
                 />
               </label>
             </div>
@@ -1493,6 +1690,27 @@ export function InstitutionalCalendarEventsPanel({
                   }
                   event={
                     event
+                  }
+                  periods={
+                    periods
+                  }
+                  schoolYearStartDate={
+                    schoolYearStartDate
+                  }
+                  schoolYearEndDate={
+                    schoolYearEndDate
+                  }
+                  canManage={
+                    canManage
+                  }
+                  disabled={
+                    managementBusy
+                  }
+                  onUpdate={
+                    handleUpdateEvent
+                  }
+                  onCancel={
+                    handleCancelEvent
                   }
                 />
               ),
