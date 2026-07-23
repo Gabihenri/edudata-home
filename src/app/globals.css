@@ -19,6 +19,8 @@ html {
   overflow-x: hidden;
   overscroll-behavior-x: none;
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -36,6 +38,22 @@ body {
   html,
   body {
     overflow-x: clip;
+  }
+}
+
+input,
+select,
+textarea,
+button {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
   }
 }
 
@@ -65,7 +83,6 @@ a {
     100% 25%,
     100% 75%,
     50% 100%,
-    0% 75%,
-    0% 25%
+    0% 75%
   );
 }
