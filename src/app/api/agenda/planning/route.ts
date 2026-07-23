@@ -3,81 +3,203 @@ import {
   NextResponse,
 } from 'next/server'
 
-import { requireSessionUser } from '@/lib/auth/session'
+import {
+  requireSessionUser,
+} from '@/lib/auth/session'
 
-import type { CreateAgendaPlanningInput } from '@/lib/agenda/repository/planning.repository'
-import { planningService } from '@/lib/agenda/services/planning.service'
+import type {
+  AgendaPlanningStatus,
+  CreateAgendaPlanningInput,
+} from '@/lib/agenda/repository/planning.repository'
 
-export const dynamic = 'force-dynamic'
+import {
+  planningService,
+} from '@/lib/agenda/services/planning.service'
+
+export const dynamic =
+  'force-dynamic'
 
 type CreatePlanningRequestBody = {
   title?: string
-  description?: string | null
-  subject?: string | null
-  className?: string | null
-  objective?: string | null
-  methodology?: string | null
-  resources?: string | null
-  evaluation?: string | null
-  plannedDate?: string | null
-  status?: string | null
-  schoolId?: string | null
+
+  description?:
+    | string
+    | null
+
+  subject?:
+    | string
+    | null
+
+  className?:
+    | string
+    | null
+
+  objective?:
+    | string
+    | null
+
+  methodology?:
+    | string
+    | null
+
+  resources?:
+    | string
+    | null
+
+  evaluation?:
+    | string
+    | null
+
+  plannedDate?:
+    | string
+    | null
+
+  status?:
+    | string
+    | null
+
+  schoolId?:
+    | string
+    | null
 }
+
+const PLANNING_STATUSES:
+  AgendaPlanningStatus[] = [
+    'rascunho',
+    'em_revisao',
+    'em revisão',
+    'aprovado',
+    'programado',
+    'executado',
+    'arquivado',
+
+    // Compatibilidade com registros legados.
+    'planejado',
+    'concluido',
+    'concluído',
+  ]
 
 function normalizeOptionalText(
   value: unknown,
 ): string | null {
-  if (typeof value !== 'string') {
+  if (
+    typeof value !==
+    'string'
+  ) {
     return null
   }
 
-  const normalizedValue = value.trim()
+  const normalizedValue =
+    value.trim()
 
-  return normalizedValue || null
+  return normalizedValue ||
+    null
+}
+
+function normalizePlanningStatus(
+  value: unknown,
+): AgendaPlanningStatus {
+  if (
+    typeof value !==
+    'string'
+  ) {
+    return 'rascunho'
+  }
+
+  const normalizedValue =
+    value.trim()
+
+  if (!normalizedValue) {
+    return 'rascunho'
+  }
+
+  if (
+    !PLANNING_STATUSES.includes(
+      normalizedValue as
+        AgendaPlanningStatus,
+    )
+  ) {
+    throw new Error(
+      'Status do planejamento é inválido.',
+    )
+  }
+
+  return normalizedValue as
+    AgendaPlanningStatus
 }
 
 function getErrorStatus(
   error: unknown,
 ): number {
-  if (error instanceof SyntaxError) {
+  if (
+    error instanceof
+    SyntaxError
+  ) {
     return 400
   }
 
-  if (!(error instanceof Error)) {
+  if (
+    !(error instanceof Error)
+  ) {
     return 500
   }
 
   const message =
-    error.message.toLowerCase()
+    error.message
+      .toLowerCase()
 
   if (
-    message.includes('não autenticado') ||
-    message.includes('não autorizado') ||
-    message.includes('unauthorized')
+    message.includes(
+      'não autenticado',
+    ) ||
+    message.includes(
+      'não autorizado',
+    ) ||
+    message.includes(
+      'unauthorized',
+    )
   ) {
     return 401
   }
 
   if (
-    message.includes('sem permissão') ||
-    message.includes('proibido') ||
-    message.includes('forbidden')
+    message.includes(
+      'sem permissão',
+    ) ||
+    message.includes(
+      'proibido',
+    ) ||
+    message.includes(
+      'forbidden',
+    )
   ) {
     return 403
   }
 
   if (
-    message.includes('obrigatório') ||
-    message.includes('obrigatória') ||
-    message.includes('inválido') ||
-    message.includes('inválida') ||
-    message.includes('não pode ficar vazio')
+    message.includes(
+      'obrigatório',
+    ) ||
+    message.includes(
+      'obrigatória',
+    ) ||
+    message.includes(
+      'inválido',
+    ) ||
+    message.includes(
+      'inválida',
+    ) ||
+    message.includes(
+      'não pode ficar vazio',
+    )
   ) {
     return 400
   }
 
   if (
-    message.includes('não encontrado')
+    message.includes(
+      'não encontrado',
+    )
   ) {
     return 404
   }
@@ -100,7 +222,11 @@ function createErrorResponse(
       error: message,
     },
     {
-      status: getErrorStatus(error),
+      status:
+        getErrorStatus(
+          error,
+        ),
+
       headers: {
         'Cache-Control':
           'no-store, no-cache, must-revalidate',
@@ -119,9 +245,10 @@ export async function GET() {
      * limitada ao proprietário autenticado.
      */
     const data =
-      await planningService.listByUserId(
-        user.id,
-      )
+      await planningService
+        .listByUserId(
+          user.id,
+        )
 
     return NextResponse.json(
       {
@@ -131,6 +258,7 @@ export async function GET() {
       },
       {
         status: 200,
+
         headers: {
           'Cache-Control':
             'no-store, no-cache, must-revalidate',
@@ -158,84 +286,93 @@ export async function POST(
       await requireSessionUser()
 
     const body =
-      (await request.json()) as CreatePlanningRequestBody
+      (
+        await request.json()
+      ) as
+        CreatePlanningRequestBody
 
-    const input: CreateAgendaPlanningInput = {
-      title:
-        typeof body.title === 'string'
-          ? body.title
-          : '',
+    const input:
+      CreateAgendaPlanningInput = {
+        title:
+          typeof body.title ===
+          'string'
+            ? body.title
+            : '',
 
-      description:
-        normalizeOptionalText(
-          body.description,
-        ),
+        description:
+          normalizeOptionalText(
+            body.description,
+          ),
 
-      subject:
-        normalizeOptionalText(
-          body.subject,
-        ),
+        subject:
+          normalizeOptionalText(
+            body.subject,
+          ),
 
-      class_name:
-        normalizeOptionalText(
-          body.className,
-        ),
+        class_name:
+          normalizeOptionalText(
+            body.className,
+          ),
 
-      objective:
-        normalizeOptionalText(
-          body.objective,
-        ),
+        objective:
+          normalizeOptionalText(
+            body.objective,
+          ),
 
-      methodology:
-        normalizeOptionalText(
-          body.methodology,
-        ),
+        methodology:
+          normalizeOptionalText(
+            body.methodology,
+          ),
 
-      resources:
-        normalizeOptionalText(
-          body.resources,
-        ),
+        resources:
+          normalizeOptionalText(
+            body.resources,
+          ),
 
-      evaluation:
-        normalizeOptionalText(
-          body.evaluation,
-        ),
+        evaluation:
+          normalizeOptionalText(
+            body.evaluation,
+          ),
 
-      planned_date:
-        normalizeOptionalText(
-          body.plannedDate,
-        ),
+        planned_date:
+          normalizeOptionalText(
+            body.plannedDate,
+          ),
 
-      status:
-        normalizeOptionalText(
-          body.status,
-        ) ?? 'rascunho',
+        status:
+          normalizePlanningStatus(
+            body.status,
+          ),
 
-      school_id:
-        normalizeOptionalText(
-          body.schoolId,
-        ),
-    }
+        school_id:
+          normalizeOptionalText(
+            body.schoolId,
+          ),
+      }
 
     /*
      * O proprietário é definido pelo servidor.
      * O navegador não pode escolher outro user_id.
      */
     const data =
-      await planningService.createOwned(
-        user.id,
-        input,
-      )
+      await planningService
+        .createOwned(
+          user.id,
+          input,
+        )
 
     return NextResponse.json(
       {
         success: true,
+
         message:
           'Planejamento criado com sucesso.',
+
         data,
       },
       {
         status: 201,
+
         headers: {
           'Cache-Control':
             'no-store, no-cache, must-revalidate',
