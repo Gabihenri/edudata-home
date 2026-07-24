@@ -214,6 +214,73 @@ function requirePlanningRecord(
   return result.data
 }
 
+function requirePlanningList(
+  response: Response,
+  result: PlanningResponse,
+  fallbackMessage: string,
+): AgendaPlanning[] {
+  if (
+    !response.ok ||
+    !result.success ||
+    !Array.isArray(
+      result.data,
+    )
+  ) {
+    throw new Error(
+      result.error ??
+        fallbackMessage,
+    )
+  }
+
+  return result.data
+}
+
+function addOrReplacePlanning(
+  currentPlanning:
+    AgendaPlanning[],
+
+  record:
+    AgendaPlanning,
+): AgendaPlanning[] {
+  const exists =
+    currentPlanning
+      .some(
+        currentRecord =>
+          currentRecord.id ===
+          record.id,
+      )
+
+  if (!exists) {
+    return [
+      record,
+      ...currentPlanning,
+    ]
+  }
+
+  return currentPlanning
+    .map(
+      currentRecord =>
+        currentRecord.id ===
+        record.id
+          ? record
+          : currentRecord,
+    )
+}
+
+function removePlanningById(
+  currentPlanning:
+    AgendaPlanning[],
+
+  planningId: string,
+): AgendaPlanning[] {
+  return currentPlanning
+    .filter(
+      currentRecord =>
+        currentRecord.id !==
+        planningId,
+    )
+}
+
 export function usePlanning() {
   const [
     planning,
@@ -223,9 +290,21 @@ export function usePlanning() {
   >([])
 
   const [
+    deletedPlanning,
+    setDeletedPlanning,
+  ] = useState<
+    AgendaPlanning[]
+  >([])
+
+  const [
     loading,
     setLoading,
   ] = useState(true)
+
+  const [
+    deletedLoading,
+    setDeletedLoading,
+  ] = useState(false)
 
   const [
     mutating,
@@ -239,9 +318,21 @@ export function usePlanning() {
     string | null
   >(null)
 
+  const [
+    deletedError,
+    setDeletedError,
+  ] = useState<
+    string | null
+  >(null)
+
   const clearError =
     useCallback(() => {
       setError(null)
+    }, [])
+
+  const clearDeletedError =
+    useCallback(() => {
+      setDeletedError(null)
     }, [])
 
   const loadPlanning =
@@ -255,7 +346,8 @@ export function usePlanning() {
             await fetch(
               '/api/agenda/planning',
               {
-                method: 'GET',
+                method:
+                  'GET',
 
                 credentials:
                   'include',
@@ -270,21 +362,15 @@ export function usePlanning() {
               response,
             )
 
-          if (
-            !response.ok ||
-            !result.success ||
-            !Array.isArray(
-              result.data,
+          const records =
+            requirePlanningList(
+              response,
+              result,
+              'Não foi possível carregar os planejamentos.',
             )
-          ) {
-            throw new Error(
-              result.error ??
-                'Não foi possível carregar os planejamentos.',
-            )
-          }
 
           setPlanning(
-            result.data,
+            records,
           )
         } catch (
           loadError
@@ -305,6 +391,62 @@ export function usePlanning() {
       [],
     )
 
+  const loadDeletedPlanning =
+    useCallback(
+      async (): Promise<void> => {
+        setDeletedLoading(true)
+        setDeletedError(null)
+
+        try {
+          const response =
+            await fetch(
+              '/api/agenda/planning/deleted',
+              {
+                method:
+                  'GET',
+
+                credentials:
+                  'include',
+
+                cache:
+                  'no-store',
+              },
+            )
+
+          const result =
+            await readPlanningResponse(
+              response,
+            )
+
+          const records =
+            requirePlanningList(
+              response,
+              result,
+              'Não foi possível carregar a lixeira de planejamentos.',
+            )
+
+          setDeletedPlanning(
+            records,
+          )
+        } catch (
+          loadError
+        ) {
+          const message =
+            loadError instanceof
+            Error
+              ? loadError.message
+              : 'Erro inesperado ao carregar a lixeira de planejamentos.'
+
+          setDeletedError(
+            message,
+          )
+        } finally {
+          setDeletedLoading(false)
+        }
+      },
+      [],
+    )
+
   const getPlanning =
     useCallback(
       async (
@@ -318,7 +460,8 @@ export function usePlanning() {
           await fetch(
             `/api/agenda/planning/${encodeURIComponent(id)}`,
             {
-              method: 'GET',
+              method:
+                'GET',
 
               credentials:
                 'include',
@@ -341,37 +484,11 @@ export function usePlanning() {
           )
 
         setPlanning(
-          (
-            currentPlanning,
-          ) => {
-            const exists =
-              currentPlanning
-                .some(
-                  (
-                    currentRecord,
-                  ) =>
-                    currentRecord.id ===
-                    record.id,
-                )
-
-            if (!exists) {
-              return [
-                record,
-                ...currentPlanning,
-              ]
-            }
-
-            return currentPlanning
-              .map(
-                (
-                  currentRecord,
-                ) =>
-                  currentRecord.id ===
-                  record.id
-                    ? record
-                    : currentRecord,
-              )
-          },
+          currentPlanning =>
+            addOrReplacePlanning(
+              currentPlanning,
+              record,
+            ),
         )
 
         return record
@@ -434,12 +551,11 @@ export function usePlanning() {
             )
 
           setPlanning(
-            (
-              currentPlanning,
-            ) => [
-              createdPlanning,
-              ...currentPlanning,
-            ],
+            currentPlanning =>
+              addOrReplacePlanning(
+                currentPlanning,
+                createdPlanning,
+              ),
           )
 
           return createdPlanning
@@ -515,19 +631,11 @@ export function usePlanning() {
             )
 
           setPlanning(
-            (
-              currentPlanning,
-            ) =>
-              currentPlanning
-                .map(
-                  (
-                    currentRecord,
-                  ) =>
-                    currentRecord.id ===
-                    updatedPlanning.id
-                      ? updatedPlanning
-                      : currentRecord,
-                ),
+            currentPlanning =>
+              addOrReplacePlanning(
+                currentPlanning,
+                updatedPlanning,
+              ),
           )
 
           return updatedPlanning
@@ -611,6 +719,7 @@ export function usePlanning() {
 
         setMutating(true)
         setError(null)
+        setDeletedError(null)
 
         try {
           const response =
@@ -641,7 +750,7 @@ export function usePlanning() {
               response,
             )
 
-          const deletedPlanning =
+          const deletedRecord =
             requirePlanningRecord(
               response,
               result,
@@ -649,20 +758,22 @@ export function usePlanning() {
             )
 
           setPlanning(
-            (
-              currentPlanning,
-            ) =>
-              currentPlanning
-                .filter(
-                  (
-                    currentRecord,
-                  ) =>
-                    currentRecord.id !==
-                    deletedPlanning.id,
-                ),
+            currentPlanning =>
+              removePlanningById(
+                currentPlanning,
+                deletedRecord.id,
+              ),
           )
 
-          return deletedPlanning
+          setDeletedPlanning(
+            currentPlanning =>
+              addOrReplacePlanning(
+                currentPlanning,
+                deletedRecord,
+              ),
+          )
+
+          return deletedRecord
         } catch (
           deleteError
         ) {
@@ -684,6 +795,103 @@ export function usePlanning() {
       [],
     )
 
+  const restorePlanning =
+    useCallback(
+      async (
+        id: string,
+        reason: string,
+      ): Promise<
+        AgendaPlanning
+      > => {
+        const normalizedReason =
+          reason.trim()
+
+        if (
+          !normalizedReason
+        ) {
+          throw new Error(
+            'Motivo da restauração é obrigatório.',
+          )
+        }
+
+        setMutating(true)
+        setError(null)
+        setDeletedError(null)
+
+        try {
+          const response =
+            await fetch(
+              `/api/agenda/planning/${encodeURIComponent(id)}/restore`,
+              {
+                method:
+                  'POST',
+
+                headers: {
+                  'Content-Type':
+                    'application/json',
+                },
+
+                credentials:
+                  'include',
+
+                body:
+                  JSON.stringify({
+                    reason:
+                      normalizedReason,
+                  }),
+              },
+            )
+
+          const result =
+            await readPlanningResponse(
+              response,
+            )
+
+          const restoredRecord =
+            requirePlanningRecord(
+              response,
+              result,
+              'Não foi possível restaurar o planejamento.',
+            )
+
+          setDeletedPlanning(
+            currentPlanning =>
+              removePlanningById(
+                currentPlanning,
+                restoredRecord.id,
+              ),
+          )
+
+          setPlanning(
+            currentPlanning =>
+              addOrReplacePlanning(
+                currentPlanning,
+                restoredRecord,
+              ),
+          )
+
+          return restoredRecord
+        } catch (
+          restoreError
+        ) {
+          const message =
+            restoreError instanceof
+            Error
+              ? restoreError.message
+              : 'Erro inesperado ao restaurar planejamento.'
+
+          setDeletedError(
+            message,
+          )
+
+          throw restoreError
+        } finally {
+          setMutating(false)
+        }
+      },
+      [],
+    )
+
   useEffect(() => {
     void loadPlanning()
   }, [
@@ -692,20 +900,29 @@ export function usePlanning() {
 
   return {
     planning,
+    deletedPlanning,
 
     loading,
+    deletedLoading,
     mutating,
+
     error,
+    deletedError,
 
     reload:
       loadPlanning,
 
+    reloadDeleted:
+      loadDeletedPlanning,
+
     clearError,
+    clearDeletedError,
 
     getPlanning,
     createPlanning,
     updatePlanning,
     archivePlanning,
     deletePlanning,
+    restorePlanning,
   }
 }
