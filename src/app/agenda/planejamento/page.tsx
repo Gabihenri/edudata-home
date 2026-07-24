@@ -9,6 +9,11 @@ import {
 import {
   AgendaPageShell,
 } from '@/components/agenda/AgendaPageShell'
+
+import {
+  PlanningRecordActions,
+} from '@/components/agenda/PlanningRecordActions'
+
 import {
   usePlanning,
 } from '@/lib/agenda/hooks/usePlanning'
@@ -27,16 +32,16 @@ type PlanningFormData = {
 
 const initialFormData:
   PlanningFormData = {
-  title: '',
-  description: '',
-  subject: '',
-  className: '',
-  objective: '',
-  methodology: '',
-  resources: '',
-  evaluation: '',
-  plannedDate: '',
-}
+    title: '',
+    description: '',
+    subject: '',
+    className: '',
+    objective: '',
+    methodology: '',
+    resources: '',
+    evaluation: '',
+    plannedDate: '',
+  }
 
 const inputClassName = [
   'min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3',
@@ -60,8 +65,10 @@ function formatPlanningDate(
   if (
     parts.length !== 3 ||
     parts.some(
-      (part) =>
-        !Number.isFinite(part),
+      part =>
+        !Number.isFinite(
+          part,
+        ),
     )
   ) {
     return value
@@ -92,35 +99,57 @@ function formatPlanningDate(
     return value
   }
 
-  return new Intl.DateTimeFormat(
-    'pt-BR',
-    {
-      dateStyle:
-        'medium',
-    },
-  ).format(date)
+  return new Intl
+    .DateTimeFormat(
+      'pt-BR',
+      {
+        dateStyle:
+          'medium',
+      },
+    )
+    .format(
+      date,
+    )
 }
 
 function formatStatus(
   value: string,
 ): string {
   const labels:
-    Record<string, string> = {
-    rascunho:
-      'Rascunho',
+    Record<
+      string,
+      string
+    > = {
+      rascunho:
+        'Rascunho',
 
-    ativo:
-      'Ativo',
+      em_revisao:
+        'Em revisão',
 
-    concluido:
-      'Concluído',
+      'em revisão':
+        'Em revisão',
 
-    concluído:
-      'Concluído',
+      aprovado:
+        'Aprovado',
 
-    arquivado:
-      'Arquivado',
-  }
+      programado:
+        'Programado',
+
+      planejado:
+        'Planejado',
+
+      executado:
+        'Executado',
+
+      concluido:
+        'Concluído',
+
+      concluído:
+        'Concluído',
+
+      arquivado:
+        'Arquivado',
+    }
 
   return (
     labels[value] ??
@@ -131,19 +160,78 @@ function formatStatus(
       )
       .replace(
         /\b\w/g,
-        (character) =>
-          character.toUpperCase(),
+        character =>
+          character
+            .toUpperCase(),
       )
   )
+}
+
+function getStatusClassName(
+  status: string,
+): string {
+  if (
+    status ===
+    'arquivado'
+  ) {
+    return [
+      'border-amber-200',
+      'bg-amber-50',
+      'text-amber-800',
+    ].join(' ')
+  }
+
+  if (
+    status ===
+      'executado' ||
+    status ===
+      'concluido' ||
+    status ===
+      'concluído'
+  ) {
+    return [
+      'border-emerald-200',
+      'bg-emerald-50',
+      'text-emerald-800',
+    ].join(' ')
+  }
+
+  if (
+    status ===
+      'aprovado' ||
+    status ===
+      'programado' ||
+    status ===
+      'planejado'
+  ) {
+    return [
+      'border-blue-200',
+      'bg-blue-50',
+      'text-blue-800',
+    ].join(' ')
+  }
+
+  return [
+    'border-cyan-200',
+    'bg-cyan-50',
+    'text-[#075F78]',
+  ].join(' ')
 }
 
 export default function AgendaPlanningPage() {
   const {
     planning,
+
     loading,
+    mutating,
     error,
+
     reload,
+
     createPlanning,
+    updatePlanning,
+    archivePlanning,
+    deletePlanning,
   } = usePlanning()
 
   const [
@@ -172,31 +260,41 @@ export default function AgendaPlanningPage() {
   ] =
     useState('')
 
+  const formDisabled =
+    isSaving ||
+    mutating
+
   const summary =
     useMemo(() => {
       const dated =
-        planning.filter(
-          (item) =>
-            Boolean(
-              item.planned_date,
-            ),
-        ).length
+        planning
+          .filter(
+            item =>
+              Boolean(
+                item.planned_date,
+              ),
+          )
+          .length
 
       const contextualized =
-        planning.filter(
-          (item) =>
-            Boolean(
-              item.subject ||
+        planning
+          .filter(
+            item =>
+              Boolean(
+                item.subject ||
                 item.class_name,
-            ),
-        ).length
+              ),
+          )
+          .length
 
       const drafts =
-        planning.filter(
-          (item) =>
-            item.status ===
-            'rascunho',
-        ).length
+        planning
+          .filter(
+            item =>
+              item.status ===
+              'rascunho',
+          )
+          .length
 
       return {
         total:
@@ -206,20 +304,24 @@ export default function AgendaPlanningPage() {
         contextualized,
         drafts,
       }
-    }, [planning])
+    }, [
+      planning,
+    ])
 
   function updateField<
     Key extends
       keyof PlanningFormData,
   >(
     field: Key,
+
     value:
       PlanningFormData[Key],
   ): void {
     setFormData(
-      (current) => ({
+      current => ({
         ...current,
-        [field]: value,
+        [field]:
+          value,
       }),
     )
 
@@ -228,7 +330,9 @@ export default function AgendaPlanningPage() {
   }
 
   function clearForm(): void {
-    if (isSaving) {
+    if (
+      formDisabled
+    ) {
       return
     }
 
@@ -250,10 +354,12 @@ export default function AgendaPlanningPage() {
     setSuccessMessage('')
 
     const title =
-      formData.title.trim()
+      formData.title
+        .trim()
 
     const objective =
-      formData.objective.trim()
+      formData.objective
+        .trim()
 
     if (!title) {
       setFormError(
@@ -318,9 +424,6 @@ export default function AgendaPlanningPage() {
 
         school_id:
           null,
-
-        user_id:
-          null,
       })
 
       setFormData(
@@ -330,9 +433,12 @@ export default function AgendaPlanningPage() {
       setSuccessMessage(
         'Planejamento salvo com sucesso.',
       )
-    } catch (saveError) {
+    } catch (
+      saveError
+    ) {
       setFormError(
-        saveError instanceof Error
+        saveError instanceof
+        Error
           ? saveError.message
           : 'Não foi possível salvar o planejamento.',
       )
@@ -354,7 +460,7 @@ export default function AgendaPlanningPage() {
         >
           <article className="border-b border-slate-200 p-5 sm:border-r xl:border-b-0">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-              Registros ativos
+              Registros disponíveis
             </p>
 
             <p className="mt-3 text-3xl font-bold text-[#071827]">
@@ -362,7 +468,7 @@ export default function AgendaPlanningPage() {
             </p>
 
             <p className="mt-1 text-sm text-slate-500">
-              Planejamentos disponíveis
+              Planejamentos preservados
             </p>
           </article>
 
@@ -387,7 +493,8 @@ export default function AgendaPlanningPage() {
 
             <p className="mt-3 text-3xl font-bold text-[#071827]">
               {
-                summary.contextualized
+                summary
+                  .contextualized
               }
             </p>
 
@@ -441,7 +548,11 @@ export default function AgendaPlanningPage() {
             </header>
 
             <div className="space-y-8 p-5 sm:p-7">
-              <fieldset>
+              <fieldset
+                disabled={
+                  formDisabled
+                }
+              >
                 <legend className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
                   01 — Identificação
                 </legend>
@@ -462,14 +573,13 @@ export default function AgendaPlanningPage() {
                       value={
                         formData.title
                       }
-                      onChange={(
-                        event,
-                      ) =>
-                        updateField(
-                          'title',
-                          event.target
-                            .value,
-                        )
+                      onChange={
+                        event =>
+                          updateField(
+                            'title',
+                            event.target
+                              .value,
+                          )
                       }
                       placeholder="Ex.: Sequência didática sobre energia"
                       autoComplete="off"
@@ -491,16 +601,16 @@ export default function AgendaPlanningPage() {
                       id="planning-description"
                       rows={4}
                       value={
-                        formData.description
+                        formData
+                          .description
                       }
-                      onChange={(
-                        event,
-                      ) =>
-                        updateField(
-                          'description',
-                          event.target
-                            .value,
-                        )
+                      onChange={
+                        event =>
+                          updateField(
+                            'description',
+                            event.target
+                              .value,
+                          )
                       }
                       placeholder="Apresente o contexto e a finalidade deste planejamento."
                       className={`${inputClassName} resize-y`}
@@ -520,16 +630,16 @@ export default function AgendaPlanningPage() {
                         id="planning-subject"
                         type="text"
                         value={
-                          formData.subject
+                          formData
+                            .subject
                         }
-                        onChange={(
-                          event,
-                        ) =>
-                          updateField(
-                            'subject',
-                            event.target
-                              .value,
-                          )
+                        onChange={
+                          event =>
+                            updateField(
+                              'subject',
+                              event.target
+                                .value,
+                            )
                         }
                         placeholder="Ex.: Física"
                         className={
@@ -550,16 +660,16 @@ export default function AgendaPlanningPage() {
                         id="planning-class"
                         type="text"
                         value={
-                          formData.className
+                          formData
+                            .className
                         }
-                        onChange={(
-                          event,
-                        ) =>
-                          updateField(
-                            'className',
-                            event.target
-                              .value,
-                          )
+                        onChange={
+                          event =>
+                            updateField(
+                              'className',
+                              event.target
+                                .value,
+                            )
                         }
                         placeholder="Ex.: 2º A"
                         className={
@@ -581,16 +691,16 @@ export default function AgendaPlanningPage() {
                       id="planning-date"
                       type="date"
                       value={
-                        formData.plannedDate
+                        formData
+                          .plannedDate
                       }
-                      onChange={(
-                        event,
-                      ) =>
-                        updateField(
-                          'plannedDate',
-                          event.target
-                            .value,
-                        )
+                      onChange={
+                        event =>
+                          updateField(
+                            'plannedDate',
+                            event.target
+                              .value,
+                          )
                       }
                       className={
                         inputClassName
@@ -602,7 +712,11 @@ export default function AgendaPlanningPage() {
 
               <div className="h-px bg-slate-200" />
 
-              <fieldset>
+              <fieldset
+                disabled={
+                  formDisabled
+                }
+              >
                 <legend className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
                   02 — Intencionalidade
                 </legend>
@@ -622,14 +736,13 @@ export default function AgendaPlanningPage() {
                     value={
                       formData.objective
                     }
-                    onChange={(
-                      event,
-                    ) =>
-                      updateField(
-                        'objective',
-                        event.target
-                          .value,
-                      )
+                    onChange={
+                      event =>
+                        updateField(
+                          'objective',
+                          event.target
+                            .value,
+                        )
                     }
                     placeholder="Descreva o que se espera que os estudantes desenvolvam ou demonstrem."
                     className={`${inputClassName} resize-y`}
@@ -639,7 +752,11 @@ export default function AgendaPlanningPage() {
 
               <div className="h-px bg-slate-200" />
 
-              <fieldset>
+              <fieldset
+                disabled={
+                  formDisabled
+                }
+              >
                 <legend className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
                   03 — Estratégia
                 </legend>
@@ -657,16 +774,16 @@ export default function AgendaPlanningPage() {
                       id="planning-methodology"
                       rows={4}
                       value={
-                        formData.methodology
+                        formData
+                          .methodology
                       }
-                      onChange={(
-                        event,
-                      ) =>
-                        updateField(
-                          'methodology',
-                          event.target
-                            .value,
-                        )
+                      onChange={
+                        event =>
+                          updateField(
+                            'methodology',
+                            event.target
+                              .value,
+                          )
                       }
                       placeholder="Descreva ações, organização da aula e formas de participação."
                       className={`${inputClassName} resize-y`}
@@ -685,16 +802,16 @@ export default function AgendaPlanningPage() {
                       id="planning-resources"
                       rows={3}
                       value={
-                        formData.resources
+                        formData
+                          .resources
                       }
-                      onChange={(
-                        event,
-                      ) =>
-                        updateField(
-                          'resources',
-                          event.target
-                            .value,
-                        )
+                      onChange={
+                        event =>
+                          updateField(
+                            'resources',
+                            event.target
+                              .value,
+                          )
                       }
                       placeholder="Materiais, ambientes, tecnologias e apoios necessários."
                       className={`${inputClassName} resize-y`}
@@ -705,7 +822,11 @@ export default function AgendaPlanningPage() {
 
               <div className="h-px bg-slate-200" />
 
-              <fieldset>
+              <fieldset
+                disabled={
+                  formDisabled
+                }
+              >
                 <legend className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
                   04 — Acompanhamento
                 </legend>
@@ -722,16 +843,16 @@ export default function AgendaPlanningPage() {
                     id="planning-evaluation"
                     rows={4}
                     value={
-                      formData.evaluation
+                      formData
+                        .evaluation
                     }
-                    onChange={(
-                      event,
-                    ) =>
-                      updateField(
-                        'evaluation',
-                        event.target
-                          .value,
-                      )
+                    onChange={
+                      event =>
+                        updateField(
+                          'evaluation',
+                          event.target
+                            .value,
+                        )
                     }
                     placeholder="Indique como o desenvolvimento será acompanhado e quais evidências poderão ser registradas."
                     className={`${inputClassName} resize-y`}
@@ -767,7 +888,7 @@ export default function AgendaPlanningPage() {
                   clearForm
                 }
                 disabled={
-                  isSaving
+                  formDisabled
                 }
                 className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:opacity-60"
               >
@@ -777,7 +898,7 @@ export default function AgendaPlanningPage() {
               <button
                 type="submit"
                 disabled={
-                  isSaving
+                  formDisabled
                 }
                 className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-[#0B7491] px-6 py-3 font-semibold text-white transition hover:bg-[#09657E] disabled:cursor-not-allowed disabled:bg-slate-300"
               >
@@ -879,7 +1000,7 @@ export default function AgendaPlanningPage() {
 
             <div className="border-t border-cyan-300/20 bg-cyan-300/10 px-5 py-5 sm:px-7">
               <p className="text-sm font-semibold leading-6 text-cyan-100">
-                O Framework EDI orienta o planejamento por evidências, inclusão e inteligência, sem impor uma metodologia pedagógica específica.
+                O Framework EDI orienta o planejamento por evidências, desenvolvimento e inteligência, sem impor uma metodologia pedagógica específica.
               </p>
             </div>
           </aside>
@@ -903,10 +1024,10 @@ export default function AgendaPlanningPage() {
                   {planning.length === 1
                     ? ''
                     : 's'}{' '}
-                  ativo
+                  disponível
                   {planning.length === 1
                     ? ''
-                    : 's'}
+                    : 'is'}
                 </p>
               </div>
 
@@ -916,7 +1037,9 @@ export default function AgendaPlanningPage() {
                   void reload()
                 }
                 disabled={
-                  loading
+                  loading ||
+                  mutating ||
+                  isSaving
                 }
                 className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:opacity-60"
               >
@@ -931,7 +1054,7 @@ export default function AgendaPlanningPage() {
             {error ? (
               <div
                 role="alert"
-                className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700"
+                className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold leading-6 text-red-700"
               >
                 {error}
               </div>
@@ -964,7 +1087,7 @@ export default function AgendaPlanningPage() {
             {!loading &&
             planning.length >
               0 ? (
-              <div className="grid gap-4 lg:grid-cols-2">
+              <div className="grid gap-5 lg:grid-cols-2">
                 {planning.map(
                   (
                     item,
@@ -974,10 +1097,10 @@ export default function AgendaPlanningPage() {
                       key={
                         item.id
                       }
-                      className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                      className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white"
                     >
                       <header className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-                        <div className="flex items-start justify-between gap-4">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                           <div className="flex min-w-0 items-start gap-3">
                             <span className="font-mono text-xs font-bold text-[#0B7491]">
                               {String(
@@ -989,38 +1112,50 @@ export default function AgendaPlanningPage() {
                             </span>
 
                             <div className="min-w-0">
-                              <span className="inline-flex rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#075F78]">
+                              <span
+                                className={[
+                                  'inline-flex rounded-lg border px-3 py-1',
+                                  'text-xs font-bold uppercase tracking-[0.12em]',
+                                  getStatusClassName(
+                                    item.status,
+                                  ),
+                                ].join(' ')}
+                              >
                                 {formatStatus(
                                   item.status,
                                 )}
                               </span>
 
                               <h3 className="mt-3 break-words text-xl font-bold text-[#071827]">
-                                {item.title}
+                                {
+                                  item.title
+                                }
                               </h3>
                             </div>
                           </div>
 
-                          <span className="shrink-0 rounded-lg bg-[#071827] px-3 py-2 text-xs font-bold text-white">
+                          <span className="w-fit shrink-0 rounded-lg bg-[#071827] px-3 py-2 text-xs font-bold text-white">
                             {formatPlanningDate(
-                              item.planned_date,
+                              item
+                                .planned_date,
                             )}
                           </span>
                         </div>
                       </header>
 
-                      <div className="space-y-4 p-5">
+                      <div className="flex-1 space-y-4 p-5">
                         {item.description ? (
-                          <p className="text-sm leading-6 text-slate-600">
+                          <p className="break-words text-sm leading-6 text-slate-600">
                             {
-                              item.description
+                              item
+                                .description
                             }
                           </p>
                         ) : null}
 
                         <div className="flex flex-wrap gap-2">
                           {item.subject ? (
-                            <span className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">
+                            <span className="break-words rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">
                               {
                                 item.subject
                               }
@@ -1028,10 +1163,11 @@ export default function AgendaPlanningPage() {
                           ) : null}
 
                           {item.class_name ? (
-                            <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
+                            <span className="break-words rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
                               Turma{' '}
                               {
-                                item.class_name
+                                item
+                                  .class_name
                               }
                             </span>
                           ) : null}
@@ -1043,9 +1179,10 @@ export default function AgendaPlanningPage() {
                               Objetivo
                             </p>
 
-                            <p className="mt-2 text-sm leading-6 text-slate-700">
+                            <p className="mt-2 break-words text-sm leading-6 text-slate-700">
                               {
-                                item.objective
+                                item
+                                  .objective
                               }
                             </p>
                           </section>
@@ -1073,9 +1210,10 @@ export default function AgendaPlanningPage() {
                                     Estratégia
                                   </p>
 
-                                  <p className="mt-1 text-sm leading-6 text-slate-700">
+                                  <p className="mt-1 break-words text-sm leading-6 text-slate-700">
                                     {
-                                      item.methodology
+                                      item
+                                        .methodology
                                     }
                                   </p>
                                 </div>
@@ -1087,9 +1225,10 @@ export default function AgendaPlanningPage() {
                                     Recursos
                                   </p>
 
-                                  <p className="mt-1 text-sm leading-6 text-slate-700">
+                                  <p className="mt-1 break-words text-sm leading-6 text-slate-700">
                                     {
-                                      item.resources
+                                      item
+                                        .resources
                                     }
                                   </p>
                                 </div>
@@ -1101,9 +1240,10 @@ export default function AgendaPlanningPage() {
                                     Avaliação
                                   </p>
 
-                                  <p className="mt-1 text-sm leading-6 text-slate-700">
+                                  <p className="mt-1 break-words text-sm leading-6 text-slate-700">
                                     {
-                                      item.evaluation
+                                      item
+                                        .evaluation
                                     }
                                   </p>
                                 </div>
@@ -1112,6 +1252,25 @@ export default function AgendaPlanningPage() {
                           </details>
                         ) : null}
                       </div>
+
+                      <PlanningRecordActions
+                        planning={
+                          item
+                        }
+                        disabled={
+                          mutating ||
+                          isSaving
+                        }
+                        onUpdate={
+                          updatePlanning
+                        }
+                        onArchive={
+                          archivePlanning
+                        }
+                        onDelete={
+                          deletePlanning
+                        }
+                      />
                     </article>
                   ),
                 )}
