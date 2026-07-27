@@ -1,6 +1,9 @@
 import {
+  EvidencesRepository,
   evidencesRepository,
   type AgendaEvidence,
+  type AgendaEvidenceMetadata,
+  type AgendaEvidenceQueryOptions,
   type AgendaEvidenceType,
   type CreateAgendaEvidenceInput,
   type DeleteAgendaEvidenceContext,
@@ -8,24 +11,74 @@ import {
   type UpdateAgendaEvidenceInput,
 } from '@/lib/agenda/repository/evidences.repository'
 
-const ALLOWED_EVIDENCE_TYPES: AgendaEvidenceType[] = [
-  'texto',
-  'imagem',
-  'pdf',
-  'link',
-]
+const ALLOWED_EVIDENCE_TYPES:
+  AgendaEvidenceType[] = [
+    'texto',
+    'imagem',
+    'pdf',
+    'link',
+  ]
 
 const DEFAULT_PRIVACY_NOTICE_VERSION =
   'edi-protecao-menores-v1.0'
 
-const MAX_DELETION_REASON_LENGTH = 500
-const MAX_RESTORATION_REASON_LENGTH = 500
+const MAX_DELETION_REASON_LENGTH =
+  500
+
+const MAX_RESTORATION_REASON_LENGTH =
+  500
+
+export type EvidencePedagogicalContext = {
+  planningId?: string | null
+  eventId?: string | null
+
+  lessonId?: string | null
+  objectiveId?: string | null
+  classId?: string | null
+
+  reflectionId?: string | null
+  academicPeriodId?: string | null
+
+  organizationId?: string | null
+  schoolId?: string | null
+}
+
+export type EvidenceQueryInput = {
+  includeDeleted?: boolean
+
+  userId?: string | null
+  organizationId?: string | null
+  schoolId?: string | null
+
+  planningId?: string | null
+  eventId?: string | null
+
+  lessonId?: string | null
+  objectiveId?: string | null
+  classId?: string | null
+
+  reflectionId?: string | null
+  academicPeriodId?: string | null
+
+  evidenceType?:
+    AgendaEvidenceType | null
+
+  containsIdentifiableMinor?:
+    boolean | null
+
+  search?: string | null
+}
 
 function normalizeRequiredText(
-  value: string | null | undefined,
+  value:
+    | string
+    | null
+    | undefined,
+
   fieldName: string,
 ): string {
-  const normalizedValue = value?.trim()
+  const normalizedValue =
+    value?.trim()
 
   if (!normalizedValue) {
     throw new Error(
@@ -37,37 +90,65 @@ function normalizeRequiredText(
 }
 
 function normalizeOptionalText(
-  value: string | null | undefined,
+  value:
+    | string
+    | null
+    | undefined,
 ): string | null {
-  if (typeof value !== 'string') {
+  if (
+    typeof value !==
+    'string'
+  ) {
     return null
   }
 
-  return value.trim() || null
+  return value.trim() ||
+    null
+}
+
+function normalizeOptionalId(
+  value:
+    | string
+    | null
+    | undefined,
+): string | null {
+  return normalizeOptionalText(
+    value,
+  )
 }
 
 function normalizeEvidenceType(
-  value: string | undefined,
+  value:
+    | string
+    | undefined,
 ): AgendaEvidenceType {
   const normalizedValue =
-    value?.trim().toLowerCase() ||
+    value
+      ?.trim()
+      .toLowerCase() ||
     'texto'
 
   if (
-    !ALLOWED_EVIDENCE_TYPES.includes(
-      normalizedValue as AgendaEvidenceType,
-    )
+    !ALLOWED_EVIDENCE_TYPES
+      .includes(
+        normalizedValue as
+          AgendaEvidenceType,
+      )
   ) {
     throw new Error(
       'Tipo de evidência inválido. Use texto, imagem, pdf ou link.',
     )
   }
 
-  return normalizedValue as AgendaEvidenceType
+  return normalizedValue as
+    AgendaEvidenceType
 }
 
 function normalizeFileSize(
-  value: number | null | undefined,
+  value:
+    | number
+    | null
+    | undefined,
 ): number | null {
   if (
     value === undefined ||
@@ -89,18 +170,26 @@ function normalizeFileSize(
 }
 
 function normalizeDateTime(
-  value: string | null | undefined,
+  value:
+    | string
+    | null
+    | undefined,
+
   fieldName: string,
 ): string | null {
   const normalizedValue =
-    normalizeOptionalText(value)
+    normalizeOptionalText(
+      value,
+    )
 
   if (!normalizedValue) {
     return null
   }
 
   const date =
-    new Date(normalizedValue)
+    new Date(
+      normalizedValue,
+    )
 
   if (
     Number.isNaN(
@@ -115,6 +204,32 @@ function normalizeDateTime(
   return date.toISOString()
 }
 
+function normalizeMetadata(
+  value:
+    | AgendaEvidenceMetadata
+    | null
+    | undefined,
+): AgendaEvidenceMetadata {
+  if (
+    value === undefined ||
+    value === null
+  ) {
+    return {}
+  }
+
+  if (
+    typeof value !==
+      'object' ||
+    Array.isArray(value)
+  ) {
+    throw new Error(
+      'Os metadados da evidência possuem formato inválido.',
+    )
+  }
+
+  return value
+}
+
 function validateExternalUrl(
   value: string | null,
 ): void {
@@ -127,8 +242,10 @@ function validateExternalUrl(
       new URL(value)
 
     if (
-      url.protocol !== 'https:' &&
-      url.protocol !== 'http:'
+      url.protocol !==
+        'https:' &&
+      url.protocol !==
+        'http:'
     ) {
       throw new Error()
     }
@@ -140,17 +257,25 @@ function validateExternalUrl(
 }
 
 function validateStorageReference(
-  storageBucket: string | null,
-  storagePath: string | null,
+  storageBucket:
+    string | null,
+
+  storagePath:
+    string | null,
 ): void {
   const hasBucket =
-    Boolean(storageBucket)
+    Boolean(
+      storageBucket,
+    )
 
   const hasPath =
-    Boolean(storagePath)
+    Boolean(
+      storagePath,
+    )
 
   if (
-    hasBucket !== hasPath
+    hasBucket !==
+    hasPath
   ) {
     throw new Error(
       'O bucket e o caminho do arquivo devem ser informados juntos.',
@@ -159,11 +284,20 @@ function validateStorageReference(
 }
 
 function validateEvidenceReferences(
-  evidenceType: AgendaEvidenceType,
-  fileUrl: string | null,
-  externalUrl: string | null,
-  storageBucket: string | null,
-  storagePath: string | null,
+  evidenceType:
+    AgendaEvidenceType,
+
+  fileUrl:
+    string | null,
+
+  externalUrl:
+    string | null,
+
+  storageBucket:
+    string | null,
+
+  storagePath:
+    string | null,
 ): void {
   validateStorageReference(
     storageBucket,
@@ -175,13 +309,19 @@ function validateEvidenceReferences(
   )
 
   const hasStoredFile =
-    Boolean(storageBucket) &&
-    Boolean(storagePath)
+    Boolean(
+      storageBucket,
+    ) &&
+    Boolean(
+      storagePath,
+    )
 
   if (
     (
-      evidenceType === 'imagem' ||
-      evidenceType === 'pdf'
+      evidenceType ===
+        'imagem' ||
+      evidenceType ===
+        'pdf'
     ) &&
     !fileUrl &&
     !hasStoredFile
@@ -192,7 +332,8 @@ function validateEvidenceReferences(
   }
 
   if (
-    evidenceType === 'link' &&
+    evidenceType ===
+      'link' &&
     !externalUrl
   ) {
     throw new Error(
@@ -202,7 +343,10 @@ function validateEvidenceReferences(
 }
 
 function normalizeDeletionReason(
-  value: string | null | undefined,
+  value:
+    | string
+    | null
+    | undefined,
 ): string {
   const normalizedValue =
     normalizeRequiredText(
@@ -223,7 +367,10 @@ function normalizeDeletionReason(
 }
 
 function normalizeRestorationReason(
-  value: string | null | undefined,
+  value:
+    | string
+    | null
+    | undefined,
 ): string {
   const normalizedValue =
     normalizeRequiredText(
@@ -244,7 +391,8 @@ function normalizeRestorationReason(
 }
 
 function normalizeDeleteContext(
-  context: DeleteAgendaEvidenceContext,
+  context:
+    DeleteAgendaEvidenceContext,
 ): DeleteAgendaEvidenceContext {
   if (!context) {
     throw new Error(
@@ -267,7 +415,8 @@ function normalizeDeleteContext(
 }
 
 function normalizeRestoreContext(
-  context: RestoreAgendaEvidenceContext,
+  context:
+    RestoreAgendaEvidenceContext,
 ): RestoreAgendaEvidenceContext {
   if (!context) {
     throw new Error(
@@ -290,42 +439,76 @@ function normalizeRestoreContext(
 }
 
 type MinorProtectionInput = {
-  containsIdentifiableMinor: boolean
+  containsIdentifiableMinor:
+    boolean
 
-  guardianAuthorizationConfirmed: boolean
-  authorizationReference: string | null
+  guardianAuthorizationConfirmed:
+    boolean
 
-  authorizationConfirmedAt: string | null
-  authorizationConfirmedBy: string | null
+  authorizationReference:
+    string | null
 
-  privacyNoticeVersion: string | null
+  authorizationConfirmedAt:
+    string | null
 
-  evidenceOwnerId: string | null
+  authorizationConfirmedBy:
+    string | null
+
+  privacyNoticeVersion:
+    string | null
+
+  evidenceOwnerId:
+    string | null
 }
 
 type NormalizedMinorProtection = {
-  contains_identifiable_minor: boolean
+  contains_identifiable_minor:
+    boolean
 
-  guardian_authorization_confirmed: boolean
-  authorization_reference: string | null
+  guardian_authorization_confirmed:
+    boolean
 
-  authorization_confirmed_at: string | null
-  authorization_confirmed_by: string | null
+  authorization_reference:
+    string | null
 
-  privacy_notice_version: string
+  authorization_confirmed_at:
+    string | null
+
+  authorization_confirmed_by:
+    string | null
+
+  privacy_notice_version:
+    string
 }
 
+/*
+ * Política de proteção de crianças e adolescentes.
+ *
+ * Esta função preserva integralmente o comportamento
+ * já validado:
+ *
+ * - exige confirmação da autorização;
+ * - exige referência da autorização;
+ * - exige identificação do responsável pela confirmação;
+ * - confirma que o usuário que envia é o mesmo que declara;
+ * - registra data e versão da política;
+ * - remove dados de autorização quando não há menor
+ *   identificável.
+ */
 function normalizeMinorProtection(
-  input: MinorProtectionInput,
+  input:
+    MinorProtectionInput,
 ): NormalizedMinorProtection {
   const privacyNoticeVersion =
     normalizeOptionalText(
-      input.privacyNoticeVersion,
+      input
+        .privacyNoticeVersion,
     ) ??
     DEFAULT_PRIVACY_NOTICE_VERSION
 
   if (
-    !input.containsIdentifiableMinor
+    !input
+      .containsIdentifiableMinor
   ) {
     return {
       contains_identifiable_minor:
@@ -359,13 +542,15 @@ function normalizeMinorProtection(
 
   const authorizationReference =
     normalizeRequiredText(
-      input.authorizationReference,
+      input
+        .authorizationReference,
       'Referência da autorização',
     )
 
   const authorizationConfirmedBy =
     normalizeRequiredText(
-      input.authorizationConfirmedBy,
+      input
+        .authorizationConfirmedBy,
       'Usuário responsável pela confirmação',
     )
 
@@ -386,10 +571,12 @@ function normalizeMinorProtection(
 
   const authorizationConfirmedAt =
     normalizeDateTime(
-      input.authorizationConfirmedAt,
+      input
+        .authorizationConfirmedAt,
       'Data da confirmação da autorização',
     ) ??
-    new Date().toISOString()
+    new Date()
+      .toISOString()
 
   return {
     contains_identifiable_minor:
@@ -412,17 +599,177 @@ function normalizeMinorProtection(
   }
 }
 
-class EvidencesService {
-  async listAll(): Promise<
+function normalizeQueryInput(
+  input:
+    EvidenceQueryInput = {},
+): AgendaEvidenceQueryOptions {
+  return {
+    includeDeleted:
+      input.includeDeleted ??
+      false,
+
+    userId:
+      normalizeOptionalId(
+        input.userId,
+      ),
+
+    organizationId:
+      normalizeOptionalId(
+        input.organizationId,
+      ),
+
+    schoolId:
+      normalizeOptionalId(
+        input.schoolId,
+      ),
+
+    planningId:
+      normalizeOptionalId(
+        input.planningId,
+      ),
+
+    eventId:
+      normalizeOptionalId(
+        input.eventId,
+      ),
+
+    lessonId:
+      normalizeOptionalId(
+        input.lessonId,
+      ),
+
+    objectiveId:
+      normalizeOptionalId(
+        input.objectiveId,
+      ),
+
+    classId:
+      normalizeOptionalId(
+        input.classId,
+      ),
+
+    reflectionId:
+      normalizeOptionalId(
+        input.reflectionId,
+      ),
+
+    academicPeriodId:
+      normalizeOptionalId(
+        input.academicPeriodId,
+      ),
+
+    evidenceType:
+      input.evidenceType
+        ? normalizeEvidenceType(
+            input.evidenceType,
+          )
+        : null,
+
+    containsIdentifiableMinor:
+      typeof
+        input
+          .containsIdentifiableMinor ===
+      'boolean'
+        ? input
+            .containsIdentifiableMinor
+        : null,
+
+    search:
+      normalizeOptionalText(
+        input.search,
+      ),
+  }
+}
+
+function normalizePedagogicalFields(
+  input:
+    CreateAgendaEvidenceInput,
+) {
+  return {
+    planning_id:
+      normalizeOptionalId(
+        input.planning_id,
+      ),
+
+    event_id:
+      normalizeOptionalId(
+        input.event_id,
+      ),
+
+    lesson_id:
+      normalizeOptionalId(
+        input.lesson_id,
+      ),
+
+    objective_id:
+      normalizeOptionalId(
+        input.objective_id,
+      ),
+
+    class_id:
+      normalizeOptionalId(
+        input.class_id,
+      ),
+
+    reflection_id:
+      normalizeOptionalId(
+        input.reflection_id,
+      ),
+
+    academic_period_id:
+      normalizeOptionalId(
+        input.academic_period_id,
+      ),
+
+    organization_id:
+      normalizeOptionalId(
+        input.organization_id,
+      ),
+
+    school_id:
+      normalizeOptionalId(
+        input.school_id,
+      ),
+  }
+}
+
+export class EvidencesService {
+  constructor(
+    private readonly repository:
+      EvidencesRepository =
+        evidencesRepository,
+  ) {}
+
+  async listAll(
+    options:
+      EvidenceQueryInput = {},
+  ): Promise<
     AgendaEvidence[]
   > {
-    return evidencesRepository
-      .findAll()
+    return this.repository
+      .findAll(
+        normalizeQueryInput(
+          options,
+        ),
+      )
+  }
+
+  async list(
+    options:
+      EvidenceQueryInput = {},
+  ): Promise<
+    AgendaEvidence[]
+  > {
+    return this.listAll(
+      options,
+    )
   }
 
   async getById(
     id: string,
-  ): Promise<AgendaEvidence> {
+  ): Promise<
+    AgendaEvidence
+  > {
     const normalizedId =
       normalizeRequiredText(
         id,
@@ -430,7 +777,7 @@ class EvidencesService {
       )
 
     const evidence =
-      await evidencesRepository
+      await this.repository
         .findById(
           normalizedId,
         )
@@ -446,67 +793,122 @@ class EvidencesService {
 
   async listByUserId(
     userId: string,
-  ): Promise<AgendaEvidence[]> {
-    const normalizedUserId =
-      normalizeRequiredText(
-        userId,
-        'ID do usuário',
-      )
-
-    return evidencesRepository
+  ): Promise<
+    AgendaEvidence[]
+  > {
+    return this.repository
       .findByUserId(
-        normalizedUserId,
+        normalizeRequiredText(
+          userId,
+          'ID do usuário',
+        ),
       )
   }
 
   async listBySchoolId(
     schoolId: string,
-  ): Promise<AgendaEvidence[]> {
-    const normalizedSchoolId =
-      normalizeRequiredText(
-        schoolId,
-        'ID da escola',
-      )
-
-    return evidencesRepository
+  ): Promise<
+    AgendaEvidence[]
+  > {
+    return this.repository
       .findBySchoolId(
-        normalizedSchoolId,
+        normalizeRequiredText(
+          schoolId,
+          'ID da escola',
+        ),
       )
   }
 
   async listByPlanningId(
     planningId: string,
-  ): Promise<AgendaEvidence[]> {
-    const normalizedPlanningId =
-      normalizeRequiredText(
-        planningId,
-        'ID do planejamento',
-      )
-
-    return evidencesRepository
+  ): Promise<
+    AgendaEvidence[]
+  > {
+    return this.repository
       .findByPlanningId(
-        normalizedPlanningId,
+        normalizeRequiredText(
+          planningId,
+          'ID do planejamento',
+        ),
       )
   }
 
   async listByEventId(
     eventId: string,
-  ): Promise<AgendaEvidence[]> {
-    const normalizedEventId =
-      normalizeRequiredText(
-        eventId,
-        'ID do evento',
-      )
-
-    return evidencesRepository
+  ): Promise<
+    AgendaEvidence[]
+  > {
+    return this.repository
       .findByEventId(
-        normalizedEventId,
+        normalizeRequiredText(
+          eventId,
+          'ID do evento',
+        ),
+      )
+  }
+
+  async listByLessonId(
+    lessonId: string,
+  ): Promise<
+    AgendaEvidence[]
+  > {
+    return this.repository
+      .findByLessonId(
+        normalizeRequiredText(
+          lessonId,
+          'ID da aula',
+        ),
+      )
+  }
+
+  async listByObjectiveId(
+    objectiveId: string,
+  ): Promise<
+    AgendaEvidence[]
+  > {
+    return this.repository
+      .findByObjectiveId(
+        normalizeRequiredText(
+          objectiveId,
+          'ID do objetivo',
+        ),
+      )
+  }
+
+  async listByClassId(
+    classId: string,
+  ): Promise<
+    AgendaEvidence[]
+  > {
+    return this.repository
+      .findByClassId(
+        normalizeRequiredText(
+          classId,
+          'ID da turma',
+        ),
+      )
+  }
+
+  async listByAcademicPeriodId(
+    academicPeriodId: string,
+  ): Promise<
+    AgendaEvidence[]
+  > {
+    return this.repository
+      .findByAcademicPeriodId(
+        normalizeRequiredText(
+          academicPeriodId,
+          'ID do período acadêmico',
+        ),
       )
   }
 
   async create(
-    input: CreateAgendaEvidenceInput,
-  ): Promise<AgendaEvidence> {
+    input:
+      CreateAgendaEvidenceInput,
+  ): Promise<
+    AgendaEvidence
+  > {
     const title =
       normalizeRequiredText(
         input.title,
@@ -559,7 +961,7 @@ class EvidencesService {
       )
 
     const userId =
-      normalizeOptionalText(
+      normalizeOptionalId(
         input.user_id,
       )
 
@@ -585,99 +987,100 @@ class EvidencesService {
 
         authorizationReference:
           normalizeOptionalText(
-            input.authorization_reference,
+            input
+              .authorization_reference,
           ),
 
         authorizationConfirmedAt:
           normalizeOptionalText(
-            input.authorization_confirmed_at,
+            input
+              .authorization_confirmed_at,
           ),
 
         authorizationConfirmedBy:
-          normalizeOptionalText(
-            input.authorization_confirmed_by,
+          normalizeOptionalId(
+            input
+              .authorization_confirmed_by,
           ),
 
         privacyNoticeVersion:
           normalizeOptionalText(
-            input.privacy_notice_version,
+            input
+              .privacy_notice_version,
           ),
 
         evidenceOwnerId:
           userId,
       })
 
-    return evidencesRepository.create({
-      title,
-      description,
+    const pedagogicalFields =
+      normalizePedagogicalFields(
+        input,
+      )
 
-      evidence_type:
-        evidenceType,
+    return this.repository
+      .create({
+        title,
+        description,
 
-      file_url:
-        fileUrl,
+        evidence_type:
+          evidenceType,
 
-      external_url:
-        externalUrl,
+        file_url:
+          fileUrl,
 
-      planning_id:
-        normalizeOptionalText(
-          input.planning_id,
-        ),
+        external_url:
+          externalUrl,
 
-      event_id:
-        normalizeOptionalText(
-          input.event_id,
-        ),
+        ...pedagogicalFields,
 
-      organization_id:
-        normalizeOptionalText(
-          input.organization_id,
-        ),
+        user_id:
+          userId,
 
-      school_id:
-        normalizeOptionalText(
-          input.school_id,
-        ),
+        ...minorProtection,
 
-      user_id:
-        userId,
+        storage_bucket:
+          storageBucket,
 
-      ...minorProtection,
+        storage_path:
+          storagePath,
 
-      storage_bucket:
-        storageBucket,
+        original_file_name:
+          originalFileName,
 
-      storage_path:
-        storagePath,
+        file_mime_type:
+          fileMimeType,
 
-      original_file_name:
-        originalFileName,
+        file_size_bytes:
+          fileSizeBytes,
 
-      file_mime_type:
-        fileMimeType,
+        metadata:
+          normalizeMetadata(
+            input.metadata,
+          ),
 
-      file_size_bytes:
-        fileSizeBytes,
+        created_by:
+          normalizeOptionalId(
+            input.created_by,
+          ) ??
+          userId,
 
-      created_by:
-        normalizeOptionalText(
-          input.created_by,
-        ) ??
-        userId,
-
-      updated_by:
-        normalizeOptionalText(
-          input.updated_by,
-        ) ??
-        userId,
-    })
+        updated_by:
+          normalizeOptionalId(
+            input.updated_by,
+          ) ??
+          userId,
+      })
   }
 
   async update(
     id: string,
-    input: UpdateAgendaEvidenceInput,
-  ): Promise<AgendaEvidence> {
+
+    input:
+      UpdateAgendaEvidenceInput,
+  ): Promise<
+    AgendaEvidence
+  > {
     const normalizedId =
       normalizeRequiredText(
         id,
@@ -685,7 +1088,7 @@ class EvidencesService {
       )
 
     const existingEvidence =
-      await evidencesRepository
+      await this.repository
         .findById(
           normalizedId,
         )
@@ -700,7 +1103,8 @@ class EvidencesService {
       UpdateAgendaEvidenceInput = {}
 
     if (
-      input.title !== undefined
+      input.title !==
+      undefined
     ) {
       normalizedInput.title =
         normalizeRequiredText(
@@ -730,7 +1134,8 @@ class EvidencesService {
     }
 
     if (
-      input.file_url !== undefined
+      input.file_url !==
+      undefined
     ) {
       normalizedInput.file_url =
         normalizeOptionalText(
@@ -753,17 +1158,68 @@ class EvidencesService {
       undefined
     ) {
       normalizedInput.planning_id =
-        normalizeOptionalText(
+        normalizeOptionalId(
           input.planning_id,
         )
     }
 
     if (
-      input.event_id !== undefined
+      input.event_id !==
+      undefined
     ) {
       normalizedInput.event_id =
-        normalizeOptionalText(
+        normalizeOptionalId(
           input.event_id,
+        )
+    }
+
+    if (
+      input.lesson_id !==
+      undefined
+    ) {
+      normalizedInput.lesson_id =
+        normalizeOptionalId(
+          input.lesson_id,
+        )
+    }
+
+    if (
+      input.objective_id !==
+      undefined
+    ) {
+      normalizedInput.objective_id =
+        normalizeOptionalId(
+          input.objective_id,
+        )
+    }
+
+    if (
+      input.class_id !==
+      undefined
+    ) {
+      normalizedInput.class_id =
+        normalizeOptionalId(
+          input.class_id,
+        )
+    }
+
+    if (
+      input.reflection_id !==
+      undefined
+    ) {
+      normalizedInput.reflection_id =
+        normalizeOptionalId(
+          input.reflection_id,
+        )
+    }
+
+    if (
+      input.academic_period_id !==
+      undefined
+    ) {
+      normalizedInput.academic_period_id =
+        normalizeOptionalId(
+          input.academic_period_id,
         )
     }
 
@@ -772,25 +1228,27 @@ class EvidencesService {
       undefined
     ) {
       normalizedInput.organization_id =
-        normalizeOptionalText(
+        normalizeOptionalId(
           input.organization_id,
         )
     }
 
     if (
-      input.school_id !== undefined
+      input.school_id !==
+      undefined
     ) {
       normalizedInput.school_id =
-        normalizeOptionalText(
+        normalizeOptionalId(
           input.school_id,
         )
     }
 
     if (
-      input.user_id !== undefined
+      input.user_id !==
+      undefined
     ) {
       normalizedInput.user_id =
-        normalizeOptionalText(
+        normalizeOptionalId(
           input.user_id,
         )
     }
@@ -846,17 +1304,40 @@ class EvidencesService {
     }
 
     if (
-      input.updated_by !== undefined
+      input.metadata !==
+      undefined
+    ) {
+      normalizedInput.metadata =
+        normalizeMetadata(
+          input.metadata,
+        )
+    }
+
+    if (
+      input.created_by !==
+      undefined
+    ) {
+      normalizedInput.created_by =
+        normalizeOptionalId(
+          input.created_by,
+        )
+    }
+
+    if (
+      input.updated_by !==
+      undefined
     ) {
       normalizedInput.updated_by =
-        normalizeOptionalText(
+        normalizeOptionalId(
           input.updated_by,
         )
     }
 
     const finalEvidenceType =
-      normalizedInput.evidence_type ??
-      existingEvidence.evidence_type
+      normalizedInput
+        .evidence_type ??
+      existingEvidence
+        .evidence_type
 
     const finalFileUrl =
       normalizedInput.file_url !==
@@ -884,12 +1365,20 @@ class EvidencesService {
 
     validateEvidenceReferences(
       finalEvidenceType,
-      finalFileUrl ?? null,
-      finalExternalUrl ?? null,
-      finalStorageBucket ?? null,
-      finalStoragePath ?? null,
+      finalFileUrl ??
+        null,
+      finalExternalUrl ??
+        null,
+      finalStorageBucket ??
+        null,
+      finalStoragePath ??
+        null,
     )
 
+    /*
+     * A política de proteção somente é recalculada quando
+     * um dos seus campos é alterado.
+     */
     const protectionWasUpdated =
       input
         .contains_identifiable_minor !==
@@ -910,7 +1399,9 @@ class EvidencesService {
         .privacy_notice_version !==
         undefined
 
-    if (protectionWasUpdated) {
+    if (
+      protectionWasUpdated
+    ) {
       const finalUserId =
         normalizedInput.user_id !==
         undefined
@@ -957,7 +1448,7 @@ class EvidencesService {
             input
               .authorization_confirmed_by !==
             undefined
-              ? normalizeOptionalText(
+              ? normalizeOptionalId(
                   input
                     .authorization_confirmed_by,
                 )
@@ -976,7 +1467,8 @@ class EvidencesService {
                   .privacy_notice_version,
 
           evidenceOwnerId:
-            finalUserId ?? null,
+            finalUserId ??
+            null,
         })
 
       Object.assign(
@@ -985,15 +1477,18 @@ class EvidencesService {
       )
     }
 
-    return evidencesRepository.update(
-      normalizedId,
-      normalizedInput,
-    )
+    return this.repository
+      .update(
+        normalizedId,
+        normalizedInput,
+      )
   }
 
   async delete(
     id: string,
-    context: DeleteAgendaEvidenceContext,
+
+    context:
+      DeleteAgendaEvidenceContext,
   ): Promise<void> {
     const normalizedId =
       normalizeRequiredText(
@@ -1007,7 +1502,7 @@ class EvidencesService {
       )
 
     const existingEvidence =
-      await evidencesRepository
+      await this.repository
         .findById(
           normalizedId,
         )
@@ -1018,17 +1513,24 @@ class EvidencesService {
       )
     }
 
-    await evidencesRepository.delete(
-      normalizedId,
-      normalizedContext.actorUserId,
-      normalizedContext.reason,
-    )
+    await this.repository
+      .delete(
+        normalizedId,
+        normalizedContext
+          .actorUserId,
+        normalizedContext
+          .reason,
+      )
   }
 
   async restore(
     id: string,
-    context: RestoreAgendaEvidenceContext,
-  ): Promise<AgendaEvidence> {
+
+    context:
+      RestoreAgendaEvidenceContext,
+  ): Promise<
+    AgendaEvidence
+  > {
     const normalizedId =
       normalizeRequiredText(
         id,
@@ -1041,7 +1543,7 @@ class EvidencesService {
       )
 
     const existingEvidence =
-      await evidencesRepository
+      await this.repository
         .findByIdIncludingDeleted(
           normalizedId,
         )
@@ -1053,18 +1555,22 @@ class EvidencesService {
     }
 
     if (
-      !existingEvidence.deleted_at
+      !existingEvidence
+        .deleted_at
     ) {
       throw new Error(
         'A evidência não está excluída.',
       )
     }
 
-    return evidencesRepository.restore(
-      normalizedId,
-      normalizedContext.actorUserId,
-      normalizedContext.reason,
-    )
+    return this.repository
+      .restore(
+        normalizedId,
+        normalizedContext
+          .actorUserId,
+        normalizedContext
+          .reason,
+      )
   }
 }
 
