@@ -2,102 +2,202 @@
 
 import {
   type FormEvent,
+  useEffect,
   useMemo,
   useState,
 } from 'react'
 
+import Link from 'next/link'
+import {
+  useSearchParams,
+} from 'next/navigation'
+
 import {
   AgendaPageShell,
 } from '@/components/agenda/AgendaPageShell'
-import {
-  EvidenceDeleteDialog,
-} from '@/components/agenda/EvidenceDeleteDialog'
+
 import {
   useEvidences,
 } from '@/lib/agenda/hooks/useEvidences'
 
-type EvidenceType =
-  | 'texto'
-  | 'imagem'
-  | 'pdf'
-  | 'link'
+import {
+  useLessonObjectives,
+} from '@/lib/agenda/hooks/useLessonObjectives'
+
+import {
+  useLessons,
+} from '@/lib/agenda/hooks/useLessons'
+
+import type {
+  AgendaEvidence,
+  AgendaEvidenceType,
+  CreateAgendaEvidenceInput,
+} from '@/lib/agenda/repository/evidences.repository'
+
+import type {
+  AgendaLesson,
+} from '@/lib/agenda/repository/lessons.repository'
 
 type EvidenceFormState = {
   title: string
   description: string
-  evidenceType: EvidenceType
+
+  evidenceType:
+    AgendaEvidenceType
+
   externalUrl: string
 
   containsIdentifiableMinor:
-    | boolean
-    | null
+    boolean | null
 
   guardianAuthorizationConfirmed:
     boolean
 
-  authorizationReference: string
+  authorizationReference:
+    string
 }
 
-type EvidenceSelectedForDeletion = {
-  id: string
-  title: string
-}
+type EvidenceContextSource =
+  | 'lesson'
+  | 'planning'
+  | 'objective'
+  | 'reflection'
+  | null
 
 const PRIVACY_NOTICE_VERSION =
   'edi-protecao-menores-v1.0'
 
-const initialForm:
+const INITIAL_FORM:
   EvidenceFormState = {
-  title: '',
-  description: '',
-  evidenceType: 'texto',
-  externalUrl: '',
-  containsIdentifiableMinor:
-    null,
-  guardianAuthorizationConfirmed:
-    false,
-  authorizationReference: '',
-}
+    title: '',
+    description: '',
 
-const inputClassName = [
-  'min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3',
-  'text-slate-950 outline-none transition placeholder:text-slate-400',
-  'focus:border-[#0B7491] focus:ring-4 focus:ring-cyan-100',
-  'disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500',
+    evidenceType:
+      'texto',
+
+    externalUrl: '',
+
+    containsIdentifiableMinor:
+      null,
+
+    guardianAuthorizationConfirmed:
+      false,
+
+    authorizationReference:
+      '',
+  }
+
+const INPUT_CLASS_NAME = [
+  'min-h-12 w-full rounded-xl',
+  'border border-slate-300 bg-white',
+  'px-4 py-3 text-sm text-slate-950',
+  'outline-none transition',
+  'placeholder:text-slate-400',
+  'focus:border-[#0B7491]',
+  'focus:ring-4 focus:ring-cyan-100',
+  'disabled:cursor-not-allowed',
+  'disabled:bg-slate-100',
+  'disabled:text-slate-500',
 ].join(' ')
 
-const evidenceTypeOptions: Array<{
-  value: EvidenceType
+const EVIDENCE_TYPE_OPTIONS: Array<{
+  value: AgendaEvidenceType
   label: string
   description: string
 }> = [
   {
-    value: 'texto',
-    label: 'Texto',
+    value:
+      'texto',
+
+    label:
+      'Texto',
+
     description:
       'Registro descritivo sem arquivo.',
   },
   {
-    value: 'imagem',
-    label: 'Imagem',
+    value:
+      'imagem',
+
+    label:
+      'Imagem',
+
     description:
-      'JPG, PNG ou WEBP protegido.',
+      'Imagem JPG, PNG ou WEBP armazenada de forma protegida.',
   },
   {
-    value: 'pdf',
-    label: 'PDF',
+    value:
+      'pdf',
+
+    label:
+      'PDF',
+
     description:
-      'Documento pedagógico protegido.',
+      'Documento pedagógico armazenado de forma protegida.',
   },
   {
-    value: 'link',
-    label: 'Link',
+    value:
+      'link',
+
+    label:
+      'Link',
+
     description:
       'Referência externa autorizada.',
   },
 ]
 
+function normalizeContextSource(
+  value: string | null,
+): EvidenceContextSource {
+  if (
+    value === 'lesson' ||
+    value === 'planning' ||
+    value === 'objective' ||
+    value === 'reflection'
+  ) {
+    return value
+  }
+
+  return null
+}
+
 function formatDate(
+  value: string | null,
+): string {
+  if (!value) {
+    return 'Data não informada'
+  }
+
+  const date =
+    new Date(
+      `${value}T12:00:00`,
+    )
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return value
+  }
+
+  return date.toLocaleDateString(
+    'pt-BR',
+    {
+      day:
+        '2-digit',
+
+      month:
+        '2-digit',
+
+      year:
+        'numeric',
+    },
+  )
+}
+
+function formatDateTime(
   value: string,
 ): string {
   const date =
@@ -111,13 +211,65 @@ function formatDate(
     return 'Data indisponível'
   }
 
-  return date.toLocaleDateString(
+  return date.toLocaleString(
     'pt-BR',
     {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
+      day:
+        '2-digit',
+
+      month:
+        '2-digit',
+
+      year:
+        'numeric',
+
+      hour:
+        '2-digit',
+
+      minute:
+        '2-digit',
     },
+  )
+}
+
+function formatTime(
+  value: string | null,
+): string {
+  if (!value) {
+    return ''
+  }
+
+  return value.slice(
+    0,
+    5,
+  )
+}
+
+function buildTimeRange(
+  startTime: string | null,
+  endTime: string | null,
+): string {
+  const start =
+    formatTime(
+      startTime,
+    )
+
+  const end =
+    formatTime(
+      endTime,
+    )
+
+  if (
+    start &&
+    end
+  ) {
+    return `${start}–${end}`
+  }
+
+  return (
+    start ||
+    end ||
+    'Horário não informado'
   )
 }
 
@@ -128,8 +280,11 @@ function formatFileSize(
     | undefined,
 ): string | null {
   if (
-    typeof value !== 'number' ||
-    !Number.isFinite(value) ||
+    typeof value !==
+      'number' ||
+    !Number.isFinite(
+      value,
+    ) ||
     value < 0
   ) {
     return null
@@ -143,120 +298,356 @@ function formatFileSize(
 }
 
 function getEvidenceTypeLabel(
-  type: EvidenceType,
+  type:
+    AgendaEvidenceType,
 ): string {
-  const option =
-    evidenceTypeOptions.find(
-      (item) =>
-        item.value === type,
-    )
-
   return (
-    option?.label ??
+    EVIDENCE_TYPE_OPTIONS
+      .find(
+        option =>
+          option.value ===
+          type,
+      )
+      ?.label ??
     type
   )
 }
 
+function getEvidenceTypeClasses(
+  type:
+    AgendaEvidenceType,
+): string {
+  if (
+    type ===
+    'imagem'
+  ) {
+    return [
+      'border-violet-200',
+      'bg-violet-50',
+      'text-violet-800',
+    ].join(' ')
+  }
+
+  if (
+    type ===
+    'pdf'
+  ) {
+    return [
+      'border-rose-200',
+      'bg-rose-50',
+      'text-rose-800',
+    ].join(' ')
+  }
+
+  if (
+    type ===
+    'link'
+  ) {
+    return [
+      'border-blue-200',
+      'bg-blue-50',
+      'text-blue-800',
+    ].join(' ')
+  }
+
+  return [
+    'border-cyan-200',
+    'bg-cyan-50',
+    'text-[#075F78]',
+  ].join(' ')
+}
+
+function getLessonStatusLabel(
+  status:
+    AgendaLesson['status'],
+): string {
+  if (
+    status ===
+    'planejada'
+  ) {
+    return 'Planejada'
+  }
+
+  if (
+    status ===
+    'em_preparacao'
+  ) {
+    return 'Em preparação'
+  }
+
+  if (
+    status ===
+    'realizada'
+  ) {
+    return 'Realizada'
+  }
+
+  if (
+    status ===
+    'parcialmente_realizada'
+  ) {
+    return 'Parcialmente realizada'
+  }
+
+  if (
+    status ===
+    'reagendada'
+  ) {
+    return 'Reagendada'
+  }
+
+  if (
+    status ===
+    'cancelada'
+  ) {
+    return 'Cancelada'
+  }
+
+  return status
+}
+
+function buildContextMetadata(
+  lesson:
+    AgendaLesson | null,
+
+  inheritedObjectiveIds:
+    string[],
+
+  primaryObjectiveId:
+    string | null,
+): Record<string, unknown> {
+  if (!lesson) {
+    return {
+      source:
+        'agenda-evidence-manual',
+
+      createdThrough:
+        'agenda-evidence-interface',
+    }
+  }
+
+  return {
+    source:
+      'lesson',
+
+    sourceId:
+      lesson.id,
+
+    inheritedFromLesson:
+      true,
+
+    inheritedObjectiveIds,
+
+    primaryObjectiveId,
+
+    lessonTitle:
+      lesson.title,
+
+    lessonStatus:
+      lesson.status,
+
+    subject:
+      lesson.subject,
+
+    scheduledDate:
+      lesson.scheduled_date,
+
+    createdThrough:
+      'agenda-evidence-interface',
+  }
+}
+
 export function AgendaEvidence() {
+  const searchParams =
+    useSearchParams()
+
+  const contextSource =
+    normalizeContextSource(
+      searchParams.get(
+        'source',
+      ),
+    )
+
+  const contextId =
+    searchParams
+      .get('id')
+      ?.trim() ??
+    ''
+
+  const hasLessonContext =
+    contextSource ===
+      'lesson' &&
+    Boolean(
+      contextId,
+    )
+
+  const {
+    getLesson,
+  } = useLessons()
+
+  const {
+    relationships:
+      lessonObjectiveRelationships,
+
+    loading:
+      lessonObjectivesLoading,
+
+    error:
+      lessonObjectivesError,
+  } = useLessonObjectives(
+    hasLessonContext
+      ? contextId
+      : null,
+
+    {
+      autoLoad:
+        hasLessonContext,
+    },
+  )
+
   const {
     evidences,
     loading,
+    mutating,
     error,
+
+    clearError,
     reload,
+
     createEvidence,
     deleteEvidence,
+
     uploadEvidenceFile,
     getEvidenceFileUrl,
-  } = useEvidences()
+  } = useEvidences({
+    initialFilters:
+      hasLessonContext
+        ? {
+            lessonId:
+              contextId,
+          }
+        : {},
+  })
+
+  const [
+    contextLesson,
+    setContextLesson,
+  ] = useState<
+    AgendaLesson | null
+  >(null)
+
+  const [
+    contextLoading,
+    setContextLoading,
+  ] = useState(
+    hasLessonContext,
+  )
+
+  const [
+    contextError,
+    setContextError,
+  ] = useState<
+    string | null
+  >(null)
 
   const [
     form,
     setForm,
-  ] =
-    useState<EvidenceFormState>(
-      initialForm,
-    )
+  ] = useState<
+    EvidenceFormState
+  >(INITIAL_FORM)
 
   const [
     selectedFile,
     setSelectedFile,
-  ] =
-    useState<File | null>(
-      null,
-    )
+  ] = useState<
+    File | null
+  >(null)
 
   const [
     fileInputKey,
     setFileInputKey,
-  ] =
-    useState(0)
+  ] = useState(0)
 
   const [
     submitting,
     setSubmitting,
-  ] =
-    useState(false)
+  ] = useState(false)
 
   const [
     formError,
     setFormError,
-  ] =
-    useState<string | null>(
-      null,
-    )
+  ] = useState<
+    string | null
+  >(null)
 
   const [
     successMessage,
     setSuccessMessage,
-  ] =
-    useState<string | null>(
-      null,
-    )
+  ] = useState<
+    string | null
+  >(null)
 
   const [
     openingEvidenceId,
     setOpeningEvidenceId,
-  ] =
-    useState<string | null>(
-      null,
-    )
+  ] = useState<
+    string | null
+  >(null)
+
+  const [
+    deletingEvidenceId,
+    setDeletingEvidenceId,
+  ] = useState<
+    string | null
+  >(null)
 
   const [
     fileAccessError,
     setFileAccessError,
-  ] =
-    useState<string | null>(
-      null,
+  ] = useState<
+    string | null
+  >(null)
+
+  const primaryObjectiveRelationship =
+    useMemo(
+      () =>
+        lessonObjectiveRelationships
+          .find(
+            relationship =>
+              relationship
+                .relationship_role ===
+              'primary',
+          ) ??
+        lessonObjectiveRelationships[0] ??
+        null,
+      [
+        lessonObjectiveRelationships,
+      ],
     )
 
-  const [
-    evidenceSelectedForDeletion,
-    setEvidenceSelectedForDeletion,
-  ] =
-    useState<EvidenceSelectedForDeletion | null>(
-      null,
-    )
+  const primaryObjectiveId =
+    primaryObjectiveRelationship
+      ?.objective_id ??
+    null
 
-  const [
-    deletingEvidence,
-    setDeletingEvidence,
-  ] =
-    useState(false)
-
-  const [
-    deletionError,
-    setDeletionError,
-  ] =
-    useState<string | null>(
-      null,
-    )
-
-  const [
-    deletionSuccessMessage,
-    setDeletionSuccessMessage,
-  ] =
-    useState<string | null>(
-      null,
+  const inheritedObjectiveIds =
+    useMemo(
+      () =>
+        Array.from(
+          new Set(
+            lessonObjectiveRelationships
+              .map(
+                relationship =>
+                  relationship
+                    .objective_id,
+              )
+              .filter(Boolean),
+          ),
+        ),
+      [
+        lessonObjectiveRelationships,
+      ],
     )
 
   const usesFile =
@@ -295,13 +686,15 @@ export function AgendaEvidence() {
     }, [
       form.authorizationReference,
       form.containsIdentifiableMinor,
-      form
-        .guardianAuthorizationConfirmed,
+      form.guardianAuthorizationConfirmed,
     ])
 
   const isSubmitDisabled =
     useMemo(() => {
-      if (submitting) {
+      if (
+        submitting ||
+        mutating
+      ) {
         return true
       }
 
@@ -321,7 +714,18 @@ export function AgendaEvidence() {
       if (
         form.evidenceType ===
           'link' &&
-        !form.externalUrl.trim()
+        !form.externalUrl
+          .trim()
+      ) {
+        return true
+      }
+
+      if (
+        hasLessonContext &&
+        (
+          contextLoading ||
+          !contextLesson
+        )
       ) {
         return true
       }
@@ -330,10 +734,14 @@ export function AgendaEvidence() {
         !isMinorProtectionComplete
       )
     }, [
+      contextLesson,
+      contextLoading,
       form.evidenceType,
       form.externalUrl,
       form.title,
+      hasLessonContext,
       isMinorProtectionComplete,
+      mutating,
       selectedFile,
       submitting,
       usesFile,
@@ -343,7 +751,7 @@ export function AgendaEvidence() {
     useMemo(() => {
       const protectedFiles =
         evidences.filter(
-          (evidence) =>
+          evidence =>
             Boolean(
               evidence.storage_path,
             ),
@@ -351,7 +759,7 @@ export function AgendaEvidence() {
 
       const externalLinks =
         evidences.filter(
-          (evidence) =>
+          evidence =>
             Boolean(
               evidence.external_url,
             ),
@@ -359,7 +767,7 @@ export function AgendaEvidence() {
 
       const identifiableMinors =
         evidences.filter(
-          (evidence) =>
+          evidence =>
             evidence
               .contains_identifiable_minor,
         ).length
@@ -372,16 +780,108 @@ export function AgendaEvidence() {
         externalLinks,
         identifiableMinors,
       }
-    }, [evidences])
+    }, [
+      evidences,
+    ])
+
+  useEffect(() => {
+    if (
+      !hasLessonContext
+    ) {
+      setContextLesson(
+        null,
+      )
+
+      setContextLoading(
+        false,
+      )
+
+      setContextError(
+        null,
+      )
+
+      return
+    }
+
+    let active =
+      true
+
+    async function loadContextLesson():
+      Promise<void> {
+      setContextLoading(
+        true,
+      )
+
+      setContextError(
+        null,
+      )
+
+      try {
+        const lesson =
+          await getLesson(
+            contextId,
+          )
+
+        if (!active) {
+          return
+        }
+
+        setContextLesson(
+          lesson,
+        )
+      } catch (
+        loadError
+      ) {
+        if (!active) {
+          return
+        }
+
+        setContextLesson(
+          null,
+        )
+
+        setContextError(
+          loadError instanceof
+          Error
+            ? loadError.message
+            : 'Não foi possível carregar o contexto da aula.',
+        )
+      } finally {
+        if (active) {
+          setContextLoading(
+            false,
+          )
+        }
+      }
+    }
+
+    void loadContextLesson()
+
+    return () => {
+      active =
+        false
+    }
+  }, [
+    contextId,
+    getLesson,
+    hasLessonContext,
+  ])
 
   function clearMessages(): void {
-    setFormError(null)
-    setSuccessMessage(null)
+    setFormError(
+      null,
+    )
+
+    setSuccessMessage(
+      null,
+    )
+
+    clearError()
   }
 
   function resetForm(): void {
     setForm(
-      initialForm,
+      INITIAL_FORM,
     )
 
     setSelectedFile(
@@ -389,7 +889,7 @@ export function AgendaEvidence() {
     )
 
     setFileInputKey(
-      (current) =>
+      current =>
         current + 1,
     )
   }
@@ -399,13 +899,16 @@ export function AgendaEvidence() {
       keyof EvidenceFormState,
   >(
     key: Key,
+
     value:
       EvidenceFormState[Key],
   ): void {
     setForm(
-      (current) => ({
+      current => ({
         ...current,
-        [key]: value,
+
+        [key]:
+          value,
       }),
     )
 
@@ -413,17 +916,19 @@ export function AgendaEvidence() {
   }
 
   function handleEvidenceTypeChange(
-    value: EvidenceType,
+    value:
+      AgendaEvidenceType,
   ): void {
     setForm(
-      (current) => ({
+      current => ({
         ...current,
 
         evidenceType:
           value,
 
         externalUrl:
-          value === 'link'
+          value ===
+          'link'
             ? current.externalUrl
             : '',
       }),
@@ -434,7 +939,7 @@ export function AgendaEvidence() {
     )
 
     setFileInputKey(
-      (current) =>
+      current =>
         current + 1,
     )
 
@@ -445,7 +950,7 @@ export function AgendaEvidence() {
     value: boolean,
   ): void {
     setForm(
-      (current) => ({
+      current => ({
         ...current,
 
         containsIdentifiableMinor:
@@ -468,85 +973,215 @@ export function AgendaEvidence() {
     clearMessages()
   }
 
-  function handleRequestDelete(
-    evidenceId: string,
-    evidenceTitle: string,
-  ): void {
-    setEvidenceSelectedForDeletion({
-      id: evidenceId,
-      title: evidenceTitle,
-    })
-
-    setDeletionError(
-      null,
-    )
-
-    setDeletionSuccessMessage(
-      null,
-    )
-  }
-
-  function handleCloseDeleteDialog():
-    void {
-    if (deletingEvidence) {
-      return
-    }
-
-    setEvidenceSelectedForDeletion(
-      null,
-    )
-
-    setDeletionError(
-      null,
-    )
-  }
-
-  async function handleConfirmDelete(
-    reason: string,
+  async function handleSubmit(
+    event:
+      FormEvent<HTMLFormElement>,
   ): Promise<void> {
-    if (
-      !evidenceSelectedForDeletion
-    ) {
-      throw new Error(
-        'Nenhuma evidência foi selecionada para exclusão.',
-      )
-    }
+    event.preventDefault()
 
-    setDeletingEvidence(
+    setSubmitting(
       true,
     )
 
-    setDeletionError(
+    setFormError(
       null,
     )
 
+    setSuccessMessage(
+      null,
+    )
+
+    clearError()
+
     try {
-      const message =
-        await deleteEvidence(
-          evidenceSelectedForDeletion.id,
-          reason,
+      let uploadedFile:
+        Awaited<
+          ReturnType<
+            typeof uploadEvidenceFile
+          >
+        > |
+        null = null
+
+      if (
+        usesFile
+      ) {
+        if (!selectedFile) {
+          throw new Error(
+            'Selecione o arquivo da evidência.',
+          )
+        }
+
+        if (
+          form.evidenceType ===
+            'imagem' &&
+          !selectedFile.type
+            .startsWith(
+              'image/',
+            )
+        ) {
+          throw new Error(
+            'Para uma evidência de imagem, selecione um arquivo JPG, PNG ou WEBP.',
+          )
+        }
+
+        if (
+          form.evidenceType ===
+            'pdf' &&
+          selectedFile.type !==
+            'application/pdf'
+        ) {
+          throw new Error(
+            'Para uma evidência em PDF, selecione um documento PDF.',
+          )
+        }
+
+        uploadedFile =
+          await uploadEvidenceFile(
+            selectedFile,
+          )
+      }
+
+      const metadata =
+        buildContextMetadata(
+          contextLesson,
+          inheritedObjectiveIds,
+          primaryObjectiveId,
         )
 
-      setDeletionSuccessMessage(
-        message,
+      const input:
+        CreateAgendaEvidenceInput = {
+          title:
+            form.title
+              .trim(),
+
+          description:
+            form.description
+              .trim() ||
+            null,
+
+          evidence_type:
+            form.evidenceType,
+
+          external_url:
+            form.evidenceType ===
+              'link'
+              ? form.externalUrl
+                  .trim()
+              : null,
+
+          file_url:
+            uploadedFile
+              ?.publicUrl ??
+            null,
+
+          storage_bucket:
+            uploadedFile
+              ?.bucket ??
+            null,
+
+          storage_path:
+            uploadedFile
+              ?.path ??
+            null,
+
+          original_file_name:
+            uploadedFile
+              ?.originalFileName ??
+            null,
+
+          file_mime_type:
+            uploadedFile
+              ?.mimeType ??
+            null,
+
+          file_size_bytes:
+            uploadedFile
+              ?.sizeBytes ??
+            null,
+
+          lesson_id:
+            contextLesson
+              ?.id ??
+            null,
+
+          planning_id:
+            contextLesson
+              ?.planning_id ??
+            null,
+
+          objective_id:
+            primaryObjectiveId,
+
+          class_id:
+            contextLesson
+              ?.class_id ??
+            null,
+
+          academic_period_id:
+            contextLesson
+              ?.academic_period_id ??
+            null,
+
+          organization_id:
+            contextLesson
+              ?.organization_id ??
+            null,
+
+          school_id:
+            contextLesson
+              ?.school_id ??
+            null,
+
+          contains_identifiable_minor:
+            form
+              .containsIdentifiableMinor ===
+            true,
+
+          guardian_authorization_confirmed:
+            form
+              .containsIdentifiableMinor ===
+              true &&
+            form
+              .guardianAuthorizationConfirmed,
+
+          authorization_reference:
+            form
+              .containsIdentifiableMinor ===
+              true
+              ? form
+                  .authorizationReference
+                  .trim() ||
+                null
+              : null,
+
+          privacy_notice_version:
+            PRIVACY_NOTICE_VERSION,
+
+          metadata,
+        }
+
+      await createEvidence(
+        input,
       )
 
-      setEvidenceSelectedForDeletion(
-        null,
-      )
-    } catch (deleteError) {
-      const message =
-        deleteError instanceof Error
-          ? deleteError.message
-          : 'Não foi possível excluir a evidência.'
+      resetForm()
 
-      setDeletionError(
-        message,
+      setSuccessMessage(
+        contextLesson
+          ? 'Evidência registrada e vinculada à aula com sucesso.'
+          : 'Evidência registrada com sucesso.',
       )
-
-      throw deleteError
+    } catch (
+      submitError
+    ) {
+      setFormError(
+        submitError instanceof
+        Error
+          ? submitError.message
+          : 'Não foi possível registrar a evidência.',
+      )
     } finally {
-      setDeletingEvidence(
+      setSubmitting(
         false,
       )
     }
@@ -575,14 +1210,11 @@ export function AgendaEvidence() {
       )
 
       setFileAccessError(
-        'O navegador bloqueou a abertura do arquivo. Permita novas janelas e tente novamente.',
+        'O navegador bloqueou a abertura do arquivo. Permita novas janelas para este site.',
       )
 
       return
     }
-
-    fileWindow.opener =
-      null
 
     try {
       const signedUrl =
@@ -590,14 +1222,16 @@ export function AgendaEvidence() {
           evidenceId,
         )
 
-      fileWindow.location.replace(
-        signedUrl,
-      )
-    } catch (openError) {
+      fileWindow.location.href =
+        signedUrl
+    } catch (
+      openError
+    ) {
       fileWindow.close()
 
       setFileAccessError(
-        openError instanceof Error
+        openError instanceof
+        Error
           ? openError.message
           : 'Não foi possível abrir o arquivo protegido.',
       )
@@ -608,847 +1242,807 @@ export function AgendaEvidence() {
     }
   }
 
-  async function handleSubmit(
-    event:
-      FormEvent<HTMLFormElement>,
+  async function handleDeleteEvidence(
+    evidence:
+      AgendaEvidence,
   ): Promise<void> {
-    event.preventDefault()
+    const confirmed =
+      window.confirm(
+        `Deseja excluir a evidência “${evidence.title}”?`,
+      )
 
-    setSubmitting(
-      true,
+    if (!confirmed) {
+      return
+    }
+
+    const reason =
+      window.prompt(
+        'Informe o motivo da exclusão:',
+      )
+        ?.trim()
+
+    if (!reason) {
+      return
+    }
+
+    setDeletingEvidenceId(
+      evidence.id,
     )
 
-    clearMessages()
+    setFormError(
+      null,
+    )
+
+    setSuccessMessage(
+      null,
+    )
 
     try {
-      const title =
-        form.title.trim()
-
-      if (!title) {
-        throw new Error(
-          'Informe o título da evidência.',
+      const message =
+        await deleteEvidence(
+          evidence.id,
+          reason,
         )
-      }
-
-      const containsIdentifiableMinor =
-        form
-          .containsIdentifiableMinor
-
-      if (
-        containsIdentifiableMinor ===
-        null
-      ) {
-        throw new Error(
-          'Informe se a evidência contém criança ou adolescente identificável.',
-        )
-      }
-
-      if (
-        containsIdentifiableMinor &&
-        !form
-          .guardianAuthorizationConfirmed
-      ) {
-        throw new Error(
-          'Confirme que a instituição possui autorização vigente do responsável legal.',
-        )
-      }
-
-      const authorizationReference =
-        form
-          .authorizationReference
-          .trim()
-
-      if (
-        containsIdentifiableMinor &&
-        !authorizationReference
-      ) {
-        throw new Error(
-          'Informe a referência do termo de autorização.',
-        )
-      }
-
-      let uploadedFile:
-        | Awaited<
-            ReturnType<
-              typeof uploadEvidenceFile
-            >
-          >
-        | null = null
-
-      if (usesFile) {
-        if (!selectedFile) {
-          throw new Error(
-            'Selecione um arquivo para enviar.',
-          )
-        }
-
-        uploadedFile =
-          await uploadEvidenceFile(
-            selectedFile,
-          )
-      }
-
-      if (
-        form.evidenceType ===
-          'link' &&
-        !form.externalUrl.trim()
-      ) {
-        throw new Error(
-          'Informe o link externo da evidência.',
-        )
-      }
-
-      await createEvidence({
-        title,
-
-        description:
-          form.description.trim() ||
-          null,
-
-        evidence_type:
-          form.evidenceType,
-
-        file_url:
-          null,
-
-        external_url:
-          form.evidenceType ===
-          'link'
-            ? form.externalUrl.trim()
-            : null,
-
-        contains_identifiable_minor:
-          containsIdentifiableMinor,
-
-        guardian_authorization_confirmed:
-          containsIdentifiableMinor
-            ? form
-                .guardianAuthorizationConfirmed
-            : false,
-
-        authorization_reference:
-          containsIdentifiableMinor
-            ? authorizationReference
-            : null,
-
-        privacy_notice_version:
-          PRIVACY_NOTICE_VERSION,
-
-        storage_bucket:
-          uploadedFile?.bucket ??
-          null,
-
-        storage_path:
-          uploadedFile?.path ??
-          null,
-
-        original_file_name:
-          uploadedFile
-            ?.originalFileName ??
-          null,
-
-        file_mime_type:
-          uploadedFile?.mimeType ??
-          null,
-
-        file_size_bytes:
-          uploadedFile?.sizeBytes ??
-          null,
-      })
-
-      resetForm()
 
       setSuccessMessage(
-        containsIdentifiableMinor
-          ? 'Evidência criada com registro da declaração de autorização.'
-          : 'Evidência criada com sucesso.',
+        message,
       )
-    } catch (createError) {
+    } catch (
+      deleteError
+    ) {
       setFormError(
-        createError instanceof Error
-          ? createError.message
-          : 'Não foi possível criar a evidência.',
+        deleteError instanceof
+        Error
+          ? deleteError.message
+          : 'Não foi possível excluir a evidência.',
       )
     } finally {
-      setSubmitting(
-        false,
+      setDeletingEvidenceId(
+        null,
       )
     }
   }
 
   return (
-    <>
-      <AgendaPageShell
-        eyebrow="Registro e memória pedagógica"
-        title="Evidências pedagógicas"
-        description="Registre práticas, documentos, produções e resultados pedagógicos com rastreabilidade, governança e proteção de dados integrada ao EIOS."
-      >
-        <div className="space-y-6 sm:space-y-8">
-          <section
-            aria-label="Resumo das evidências"
-            className="grid overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm sm:grid-cols-2 xl:grid-cols-4"
-          >
-            <article className="border-b border-slate-200 p-5 sm:border-r xl:border-b-0">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-                Total ativo
-              </p>
-
-              <p className="mt-3 text-3xl font-bold text-[#071827]">
-                {
-                  evidenceSummary.total
-                }
-              </p>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Evidências disponíveis
-              </p>
-            </article>
-
-            <article className="border-b border-slate-200 p-5 xl:border-b-0 xl:border-r">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-                Arquivos protegidos
-              </p>
-
-              <p className="mt-3 text-3xl font-bold text-[#071827]">
-                {
-                  evidenceSummary.protectedFiles
-                }
-              </p>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Objetos privados
-              </p>
-            </article>
-
-            <article className="border-b border-slate-200 p-5 sm:border-r sm:border-b-0">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-                Links externos
-              </p>
-
-              <p className="mt-3 text-3xl font-bold text-[#071827]">
-                {
-                  evidenceSummary.externalLinks
-                }
-              </p>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Referências registradas
-              </p>
-            </article>
-
-            <article className="p-5">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-                Proteção de menores
-              </p>
-
-              <p className="mt-3 text-3xl font-bold text-[#071827]">
-                {
-                  evidenceSummary.identifiableMinors
-                }
-              </p>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Declarações registradas
-              </p>
-            </article>
-          </section>
-
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
-            <form
-              onSubmit={
-                handleSubmit
-              }
-              className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm"
-            >
-              <div className="border-b border-slate-200 px-5 py-5 sm:px-7">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#071827] font-mono text-xs font-bold text-cyan-300">
-                    04
-                  </div>
-
+    <AgendaPageShell
+      eyebrow="Documentação pedagógica"
+      title="Evidências"
+      description="Registre evidências do trabalho pedagógico com rastreabilidade, proteção de dados e integração ao ciclo operacional do Framework EDI."
+    >
+      <div className="space-y-6 sm:space-y-8">
+        {
+          hasLessonContext && (
+            <section className="overflow-hidden rounded-[1.75rem] border border-cyan-200 bg-cyan-50 shadow-sm">
+              <header className="border-b border-cyan-200 px-5 py-5 sm:px-7">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
-                      Novo registro
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#075F78]">
+                      Contexto herdado
                     </p>
 
                     <h2 className="mt-2 text-2xl font-bold text-[#071827]">
-                      Criar evidência
+                      Evidência vinculada à aula
                     </h2>
 
-                    <p className="mt-2 text-sm leading-6 text-slate-600">
-                      Preencha os dados e valide a proteção de menores antes de concluir.
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                      A plataforma preencherá automaticamente os vínculos com aula, planejamento, objetivos, turma, escola, organização e período.
                     </p>
                   </div>
+
+                  <Link
+                    href="/agenda/aulas"
+                    className="inline-flex min-h-11 items-center justify-center rounded-xl border border-cyan-300 bg-white px-5 py-3 text-sm font-bold text-[#075F78] transition hover:bg-cyan-100"
+                  >
+                    Voltar para aulas
+                  </Link>
                 </div>
-              </div>
+              </header>
 
-              <div className="space-y-7 p-5 sm:p-7">
-                <section className="overflow-hidden rounded-2xl border border-amber-200 bg-amber-50">
-                  <div className="border-b border-amber-200 px-5 py-4">
-                    <div className="flex items-start gap-3">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500 font-bold text-white">
-                        !
-                      </span>
-
-                      <div>
-                        <h3 className="font-bold text-amber-950">
-                          Proteção de crianças e adolescentes
-                        </h3>
-
-                        <p className="mt-1 text-sm leading-6 text-amber-900">
-                          Verificação obrigatória antes do registro da evidência.
-                        </p>
-                      </div>
-                    </div>
+              {
+                contextLoading ? (
+                  <div className="p-6 text-sm font-semibold text-slate-600 sm:px-7">
+                    Carregando o contexto da aula...
                   </div>
-
-                  <div className="space-y-3 px-5 py-4 text-sm leading-6 text-amber-950">
-                    <p>
-                      Não envie rosto, nome, matrícula, voz, uniforme, localização ou qualquer combinação de dados que permita identificar uma criança ou adolescente sem observar as regras institucionais de proteção.
-                    </p>
-
-                    <p>
-                      Quando houver menor identificável, o envio exige confirmação de autorização expressa, específica, informada e vigente do responsável legal.
-                    </p>
-
-                    <p className="font-semibold">
-                      A confirmação registrada na plataforma não substitui o termo original nem transfere as obrigações legais da instituição ou do usuário.
-                    </p>
-
-                    <p>
-                      Sempre que possível, utilize enquadramentos sem rosto, desfoque facial e remoção de nomes ou outros dados pessoais.
-                    </p>
+                ) : contextError ? (
+                  <div className="border-t border-rose-200 bg-rose-50 p-6 text-sm font-semibold text-rose-800 sm:px-7">
+                    {
+                      contextError
+                    }
                   </div>
-                </section>
+                ) : contextLesson ? (
+                  <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-7 xl:grid-cols-4">
+                    <article className="rounded-xl border border-cyan-200 bg-white p-4 sm:col-span-2">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                        Aula
+                      </p>
 
-                <fieldset className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                  <legend className="px-2 font-bold text-[#071827]">
-                    A evidência contém criança ou adolescente identificável?
-                  </legend>
-
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
-                    Considere rosto, nome, matrícula, voz, uniforme, escola, localização ou combinação de informações.
-                  </p>
-
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                    <label
-                      className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 transition ${
-                        form
-                          .containsIdentifiableMinor ===
-                        false
-                          ? 'border-emerald-500 bg-emerald-50'
-                          : 'border-slate-300 bg-white hover:border-cyan-300'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="contains-identifiable-minor"
-                        value="no"
-                        checked={
-                          form
-                            .containsIdentifiableMinor ===
-                          false
+                      <h3 className="mt-2 text-lg font-bold text-[#071827]">
+                        {
+                          contextLesson.title
                         }
-                        onChange={() =>
-                          handleMinorAnswer(
-                            false,
+                      </h3>
+
+                      <p className="mt-1 text-sm font-semibold text-slate-500">
+                        {
+                          contextLesson.subject ||
+                          'Componente não informado'
+                        }
+                      </p>
+                    </article>
+
+                    <article className="rounded-xl border border-cyan-200 bg-white p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                        Data e horário
+                      </p>
+
+                      <p className="mt-2 text-sm font-bold text-[#071827]">
+                        {
+                          formatDate(
+                            contextLesson
+                              .scheduled_date,
                           )
                         }
-                        className="h-5 w-5 accent-emerald-600"
-                      />
+                      </p>
 
-                      <span className="font-semibold text-slate-800">
-                        Não contém
-                      </span>
-                    </label>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {
+                          buildTimeRange(
+                            contextLesson
+                              .start_time,
 
-                    <label
-                      className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 transition ${
-                        form
-                          .containsIdentifiableMinor ===
-                        true
-                          ? 'border-amber-500 bg-amber-50'
-                          : 'border-slate-300 bg-white hover:border-cyan-300'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="contains-identifiable-minor"
-                        value="yes"
-                        checked={
-                          form
-                            .containsIdentifiableMinor ===
-                          true
-                        }
-                        onChange={() =>
-                          handleMinorAnswer(
-                            true,
+                            contextLesson
+                              .end_time,
                           )
                         }
-                        className="h-5 w-5 accent-amber-600"
-                      />
+                      </p>
+                    </article>
 
-                      <span className="font-semibold text-slate-800">
-                        Contém
-                      </span>
-                    </label>
+                    <article className="rounded-xl border border-cyan-200 bg-white p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                        Status
+                      </p>
+
+                      <p className="mt-2 text-sm font-bold text-[#071827]">
+                        {
+                          getLessonStatusLabel(
+                            contextLesson.status,
+                          )
+                        }
+                      </p>
+
+                      <p className="mt-1 text-sm text-slate-500">
+                        {
+                          inheritedObjectiveIds.length
+                        } objetivo(s) herdado(s)
+                      </p>
+                    </article>
+
+                    {
+                      lessonObjectivesLoading && (
+                        <div className="rounded-xl border border-cyan-200 bg-white p-4 text-sm font-semibold text-slate-500 sm:col-span-2 xl:col-span-4">
+                          Carregando objetivos da aula...
+                        </div>
+                      )
+                    }
+
+                    {
+                      lessonObjectivesError && (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900 sm:col-span-2 xl:col-span-4">
+                          Não foi possível carregar os objetivos relacionados à aula.
+                        </div>
+                      )
+                    }
+
+                    {
+                      !lessonObjectivesLoading &&
+                      !lessonObjectivesError &&
+                      lessonObjectiveRelationships.length >
+                        0 && (
+                        <section className="rounded-xl border border-cyan-200 bg-white p-4 sm:col-span-2 xl:col-span-4">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                            Objetivos relacionados
+                          </p>
+
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {
+                              lessonObjectiveRelationships.map(
+                                relationship => (
+                                  <span
+                                    key={
+                                      relationship.id
+                                    }
+                                    className={[
+                                      'rounded-full border px-3 py-2',
+                                      'text-xs font-bold',
+                                      relationship
+                                        .relationship_role ===
+                                      'primary'
+                                        ? 'border-cyan-300 bg-cyan-100 text-[#075F78]'
+                                        : 'border-slate-200 bg-slate-100 text-slate-700',
+                                    ].join(' ')}
+                                  >
+                                    {
+                                      relationship
+                                        .objective
+                                        ?.title ??
+                                      'Objetivo relacionado'
+                                    }
+
+                                    {
+                                      relationship
+                                        .relationship_role ===
+                                        'primary' &&
+                                      ' — principal'
+                                    }
+                                  </span>
+                                ),
+                              )
+                            }
+                          </div>
+                        </section>
+                      )
+                    }
                   </div>
+                ) : null
+              }
+            </section>
+          )
+        }
 
-                  {form
-                    .containsIdentifiableMinor ===
-                  true ? (
-                    <div className="mt-5 space-y-5 rounded-xl border border-amber-300 bg-white p-5">
-                      <div>
+        <section
+          aria-label="Resumo das evidências"
+          className="grid overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm sm:grid-cols-2 xl:grid-cols-4"
+        >
+          <article className="border-b border-slate-200 p-5 sm:border-r xl:border-b-0">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Evidências
+            </p>
+
+            <p className="mt-3 text-3xl font-bold text-[#071827]">
+              {
+                evidenceSummary.total
+              }
+            </p>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Registros ativos
+            </p>
+          </article>
+
+          <article className="border-b border-slate-200 p-5 xl:border-b-0 xl:border-r">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Arquivos protegidos
+            </p>
+
+            <p className="mt-3 text-3xl font-bold text-[#071827]">
+              {
+                evidenceSummary
+                  .protectedFiles
+              }
+            </p>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Storage privado
+            </p>
+          </article>
+
+          <article className="border-b border-slate-200 p-5 sm:border-r sm:border-b-0">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Links
+            </p>
+
+            <p className="mt-3 text-3xl font-bold text-[#071827]">
+              {
+                evidenceSummary
+                  .externalLinks
+              }
+            </p>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Referências externas
+            </p>
+          </article>
+
+          <article className="p-5">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Proteção de menores
+            </p>
+
+            <p className="mt-3 text-3xl font-bold text-[#071827]">
+              {
+                evidenceSummary
+                  .identifiableMinors
+              }
+            </p>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Com autorização registrada
+            </p>
+          </article>
+        </section>
+
+        <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
+          <header className="border-b border-slate-200 px-5 py-5 sm:px-7">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+              Novo registro
+            </p>
+
+            <h2 className="mt-2 text-2xl font-bold text-[#071827]">
+              Registrar evidência
+            </h2>
+
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+              Registre apenas informações necessárias e evite dados pessoais desnecessários, nomes completos de estudantes, localização ou outros elementos de identificação.
+            </p>
+          </header>
+
+          <form
+            onSubmit={
+              handleSubmit
+            }
+            className="space-y-6 p-5 sm:p-7"
+          >
+            <fieldset>
+              <legend className="text-sm font-bold text-slate-700">
+                Tipo de evidência
+              </legend>
+
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {
+                  EVIDENCE_TYPE_OPTIONS.map(
+                    option => {
+                      const selected =
+                        form.evidenceType ===
+                        option.value
+
+                      return (
                         <label
-                          htmlFor="authorization-reference"
-                          className="mb-2 block text-sm font-bold text-slate-800"
+                          key={
+                            option.value
+                          }
+                          className={[
+                            'cursor-pointer rounded-xl border p-4 transition',
+                            selected
+                              ? 'border-cyan-400 bg-cyan-50 ring-2 ring-cyan-100'
+                              : 'border-slate-200 bg-white hover:bg-slate-50',
+                          ].join(' ')}
                         >
-                          Referência da autorização
-                        </label>
-
-                        <input
-                          id="authorization-reference"
-                          type="text"
-                          required
-                          value={
-                            form
-                              .authorizationReference
-                          }
-                          onChange={(
-                            event,
-                          ) =>
-                            updateForm(
-                              'authorizationReference',
-                              event.target
-                                .value,
-                            )
-                          }
-                          placeholder="Ex.: Termo de uso de imagem 2026 — turma 2º A"
-                          className={
-                            inputClassName
-                          }
-                        />
-
-                        <p className="mt-2 text-sm leading-6 text-slate-500">
-                          Informe somente uma referência interna. Não anexe o termo completo neste campo.
-                        </p>
-                      </div>
-
-                      <label className="flex cursor-pointer items-start gap-4 rounded-xl border border-amber-300 bg-amber-50 p-4">
-                        <input
-                          type="checkbox"
-                          required
-                          checked={
-                            form
-                              .guardianAuthorizationConfirmed
-                          }
-                          onChange={(
-                            event,
-                          ) =>
-                            updateForm(
-                              'guardianAuthorizationConfirmed',
-                              event.target
-                                .checked,
-                            )
-                          }
-                          className="mt-1 h-5 w-5 shrink-0 accent-[#0B7491]"
-                        />
-
-                        <span className="text-sm font-semibold leading-6 text-amber-950">
-                          Declaro que a instituição possui autorização expressa, específica, informada e vigente do responsável legal para o registro, armazenamento e uso desta evidência na finalidade pedagógica informada.
-                        </span>
-                      </label>
-                    </div>
-                  ) : null}
-                </fieldset>
-
-                <section>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
-                    Dados do registro
-                  </p>
-
-                  <div className="mt-4 space-y-5">
-                    <div>
-                      <label
-                        htmlFor="evidence-title"
-                        className="mb-2 block text-sm font-semibold text-slate-700"
-                      >
-                        Título
-                      </label>
-
-                      <input
-                        id="evidence-title"
-                        type="text"
-                        required
-                        value={
-                          form.title
-                        }
-                        onChange={(
-                          event,
-                        ) =>
-                          updateForm(
-                            'title',
-                            event.target
-                              .value,
-                          )
-                        }
-                        className={
-                          inputClassName
-                        }
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        htmlFor="evidence-description"
-                        className="mb-2 block text-sm font-semibold text-slate-700"
-                      >
-                        Descrição
-                      </label>
-
-                      <textarea
-                        id="evidence-description"
-                        rows={5}
-                        value={
-                          form.description
-                        }
-                        onChange={(
-                          event,
-                        ) =>
-                          updateForm(
-                            'description',
-                            event.target
-                              .value,
-                          )
-                        }
-                        className={`${inputClassName} resize-y`}
-                      />
-                    </div>
-                  </div>
-                </section>
-
-                <fieldset>
-                  <legend className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
-                    Formato da evidência
-                  </legend>
-
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {evidenceTypeOptions.map(
-                      (option) => {
-                        const active =
-                          form.evidenceType ===
-                          option.value
-
-                        return (
-                          <label
-                            key={
+                          <input
+                            type="radio"
+                            name="evidence-type"
+                            value={
                               option.value
                             }
-                            className={`cursor-pointer rounded-xl border p-4 transition ${
-                              active
-                                ? 'border-[#0B7491] bg-cyan-50'
-                                : 'border-slate-200 bg-white hover:border-cyan-300'
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name="evidence-type"
-                              value={
-                                option.value
-                              }
-                              checked={
-                                active
-                              }
-                              onChange={() =>
-                                handleEvidenceTypeChange(
-                                  option.value,
-                                )
-                              }
-                              className="sr-only"
-                            />
+                            checked={
+                              selected
+                            }
+                            onChange={() =>
+                              handleEvidenceTypeChange(
+                                option.value,
+                              )
+                            }
+                            className="sr-only"
+                          />
 
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="font-bold text-[#071827]">
-                                  {
-                                    option.label
-                                  }
-                                </p>
+                          <span className="block font-bold text-[#071827]">
+                            {
+                              option.label
+                            }
+                          </span>
 
-                                <p className="mt-1 text-sm leading-5 text-slate-500">
-                                  {
-                                    option.description
-                                  }
-                                </p>
-                              </div>
+                          <span className="mt-1 block text-sm leading-5 text-slate-500">
+                            {
+                              option.description
+                            }
+                          </span>
+                        </label>
+                      )
+                    },
+                  )
+                }
+              </div>
+            </fieldset>
 
-                              <span
-                                aria-hidden="true"
-                                className={`mt-1 h-3 w-3 shrink-0 rounded-full ${
-                                  active
-                                    ? 'bg-[#0B7491]'
-                                    : 'border border-slate-300 bg-white'
-                                }`}
-                              />
-                            </div>
-                          </label>
-                        )
-                      },
-                    )}
-                  </div>
-                </fieldset>
+            <div className="grid gap-5 lg:grid-cols-2">
+              <label className="block lg:col-span-2">
+                <span className="text-sm font-bold text-slate-700">
+                  Título
+                </span>
 
-                {usesFile ? (
-                  <section>
-                    <label
-                      htmlFor="evidence-file"
-                      className="mb-2 block text-sm font-semibold text-slate-700"
-                    >
-                      Arquivo protegido
-                    </label>
+                <input
+                  type="text"
+                  required
+                  maxLength={
+                    240
+                  }
+                  value={
+                    form.title
+                  }
+                  onChange={
+                    event =>
+                      updateForm(
+                        'title',
+                        event
+                          .target
+                          .value,
+                      )
+                  }
+                  className={`mt-2 ${INPUT_CLASS_NAME}`}
+                />
+              </label>
 
-                    <input
-                      key={
-                        fileInputKey
-                      }
-                      id="evidence-file"
-                      type="file"
-                      required
-                      accept={
-                        form.evidenceType ===
-                        'imagem'
-                          ? 'image/jpeg,image/png,image/webp'
-                          : 'application/pdf'
-                      }
-                      onChange={(
-                        event,
-                      ) => {
-                        setSelectedFile(
-                          event.target
-                            .files?.[0] ??
-                            null,
-                        )
+              <label className="block lg:col-span-2">
+                <span className="text-sm font-bold text-slate-700">
+                  Descrição
+                </span>
 
-                        clearMessages()
-                      }}
-                      className="block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-0 file:bg-[#071827] file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-[#0B2940]"
-                    />
+                <textarea
+                  rows={
+                    5
+                  }
+                  maxLength={
+                    5000
+                  }
+                  value={
+                    form.description
+                  }
+                  onChange={
+                    event =>
+                      updateForm(
+                        'description',
+                        event
+                          .target
+                          .value,
+                      )
+                  }
+                  placeholder="Descreva objetivamente o que esta evidência demonstra."
+                  className={`mt-2 ${INPUT_CLASS_NAME}`}
+                />
+              </label>
 
-                    <p className="mt-2 text-sm text-slate-500">
-                      {form.evidenceType ===
-                      'imagem'
-                        ? 'Formatos aceitos: JPG, PNG ou WEBP. Máximo de 10 MB.'
-                        : 'Formato aceito: PDF. Máximo de 10 MB.'}
-                    </p>
-
-                    {selectedFile ? (
-                      <div className="mt-3 rounded-xl border border-cyan-200 bg-cyan-50 p-4">
-                        <p className="break-words text-sm font-semibold text-[#071827]">
-                          {
-                            selectedFile.name
-                          }
-                        </p>
-
-                        <p className="mt-1 text-xs text-slate-500">
-                          {formatFileSize(
-                            selectedFile.size,
-                          )}
-                        </p>
-                      </div>
-                    ) : null}
-                  </section>
-                ) : null}
-
-                {form.evidenceType ===
-                'link' ? (
-                  <div>
-                    <label
-                      htmlFor="evidence-external-url"
-                      className="mb-2 block text-sm font-semibold text-slate-700"
-                    >
-                      Link externo
-                    </label>
+              {
+                form.evidenceType ===
+                  'link' && (
+                  <label className="block lg:col-span-2">
+                    <span className="text-sm font-bold text-slate-700">
+                      Endereço externo
+                    </span>
 
                     <input
-                      id="evidence-external-url"
                       type="url"
                       required
                       value={
                         form.externalUrl
                       }
-                      onChange={(
-                        event,
-                      ) =>
-                        updateForm(
-                          'externalUrl',
-                          event.target
-                            .value,
-                        )
+                      onChange={
+                        event =>
+                          updateForm(
+                            'externalUrl',
+                            event
+                              .target
+                              .value,
+                          )
                       }
-                      className={
-                        inputClassName
-                      }
-                      placeholder="https://..."
+                      placeholder="https://"
+                      className={`mt-2 ${INPUT_CLASS_NAME}`}
                     />
-                  </div>
-                ) : null}
+                  </label>
+                )
+              }
 
-                {formError ? (
-                  <div
-                    role="alert"
-                    className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold leading-6 text-red-700"
-                  >
-                    {formError}
-                  </div>
-                ) : null}
+              {
+                usesFile && (
+                  <label className="block lg:col-span-2">
+                    <span className="text-sm font-bold text-slate-700">
+                      Arquivo protegido
+                    </span>
 
-                {successMessage ? (
-                  <div
-                    role="status"
-                    className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold leading-6 text-emerald-700"
-                  >
-                    {
-                      successMessage
+                    <input
+                      key={
+                        fileInputKey
+                      }
+                      type="file"
+                      required
+                      accept={
+                        form.evidenceType ===
+                          'imagem'
+                          ? 'image/jpeg,image/png,image/webp'
+                          : 'application/pdf'
+                      }
+                      onChange={
+                        event =>
+                          setSelectedFile(
+                            event
+                              .target
+                              .files?.[0] ??
+                            null,
+                          )
+                      }
+                      className="mt-2 block w-full rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-0 file:bg-cyan-50 file:px-4 file:py-2 file:font-bold file:text-[#075F78]"
+                    />
+
+                    <span className="mt-2 block text-xs leading-5 text-slate-500">
+                      Formatos autorizados: JPG, PNG, WEBP ou PDF, conforme o tipo selecionado. Limite máximo de 10 MB.
+                    </span>
+                  </label>
+                )
+              }
+            </div>
+
+            <section className="overflow-hidden rounded-2xl border border-amber-200 bg-amber-50">
+              <header className="border-b border-amber-200 px-5 py-4">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-amber-800">
+                  Proteção de crianças e adolescentes
+                </p>
+
+                <h3 className="mt-2 text-lg font-bold text-amber-950">
+                  A evidência contém criança ou adolescente identificável?
+                </h3>
+
+                <p className="mt-2 text-sm leading-6 text-amber-900">
+                  Considere rosto, voz, nome, uniforme, localização, documento, produção identificada ou qualquer combinação que permita reconhecer o estudante.
+                </p>
+              </header>
+
+              <div className="space-y-5 p-5">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleMinorAnswer(
+                        false,
+                      )
                     }
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="border-t border-slate-200 bg-slate-50 px-5 py-5 sm:px-7">
-                <button
-                  type="submit"
-                  disabled={
-                    isSubmitDisabled
-                  }
-                  className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#0B7491] px-6 py-3 font-semibold text-white transition hover:bg-[#09657E] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
-                >
-                  {submitting
-                    ? 'Enviando e salvando...'
-                    : 'Criar evidência'}
-                </button>
-
-                {!isMinorProtectionComplete ? (
-                  <p className="mt-3 text-center text-sm font-medium text-slate-500">
-                    Responda à verificação sobre identificação de menores para liberar o registro.
-                  </p>
-                ) : null}
-              </div>
-            </form>
-
-            <section className="self-start overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm xl:sticky xl:top-[176px]">
-              <div className="border-b border-slate-200 px-5 py-5 sm:px-7">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
-                      Memória ativa
-                    </p>
-
-                    <h2 className="mt-2 text-2xl font-bold text-[#071827]">
-                      Evidências cadastradas
-                    </h2>
-
-                    <p className="mt-2 text-sm text-slate-500">
-                      {
-                        evidences.length
-                      }{' '}
-                      registro
-                      {evidences.length === 1
-                        ? ''
-                        : 's'}{' '}
-                      ativo
-                      {evidences.length === 1
-                        ? ''
-                        : 's'}
-                    </p>
-                  </div>
+                    className={[
+                      'min-h-12 rounded-xl border px-4 py-3 text-sm font-bold transition',
+                      form
+                        .containsIdentifiableMinor ===
+                      false
+                        ? 'border-emerald-400 bg-emerald-100 text-emerald-900 ring-2 ring-emerald-100'
+                        : 'border-amber-300 bg-white text-amber-900 hover:bg-amber-100',
+                    ].join(' ')}
+                  >
+                    Não contém menor identificável
+                  </button>
 
                   <button
                     type="button"
-                    disabled={
-                      loading
-                    }
-                    onClick={() => {
-                      setDeletionSuccessMessage(
-                        null,
+                    onClick={() =>
+                      handleMinorAnswer(
+                        true,
                       )
-
-                      void reload()
-                    }}
-                    className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:opacity-60"
+                    }
+                    className={[
+                      'min-h-12 rounded-xl border px-4 py-3 text-sm font-bold transition',
+                      form
+                        .containsIdentifiableMinor ===
+                      true
+                        ? 'border-amber-500 bg-amber-200 text-amber-950 ring-2 ring-amber-100'
+                        : 'border-amber-300 bg-white text-amber-900 hover:bg-amber-100',
+                    ].join(' ')}
                   >
-                    {loading
-                      ? 'Atualizando...'
-                      : 'Atualizar'}
+                    Sim, contém menor identificável
                   </button>
                 </div>
+
+                {
+                  form
+                    .containsIdentifiableMinor ===
+                    true && (
+                    <div className="space-y-4 rounded-xl border border-amber-300 bg-white p-4">
+                      <label className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={
+                            form
+                              .guardianAuthorizationConfirmed
+                          }
+                          onChange={
+                            event =>
+                              updateForm(
+                                'guardianAuthorizationConfirmed',
+                                event
+                                  .target
+                                  .checked,
+                              )
+                          }
+                          className="mt-1 h-4 w-4 accent-amber-700"
+                        />
+
+                        <span className="text-sm font-semibold leading-6 text-amber-950">
+                          Confirmo que a instituição possui autorização vigente do responsável legal para este registro e para a finalidade informada.
+                        </span>
+                      </label>
+
+                      <label className="block">
+                        <span className="text-sm font-bold text-amber-950">
+                          Referência da autorização
+                        </span>
+
+                        <input
+                          type="text"
+                          required
+                          maxLength={
+                            1000
+                          }
+                          value={
+                            form
+                              .authorizationReference
+                          }
+                          onChange={
+                            event =>
+                              updateForm(
+                                'authorizationReference',
+                                event
+                                  .target
+                                  .value,
+                              )
+                          }
+                          placeholder="Ex.: termo institucional, código interno ou data do documento"
+                          className={`mt-2 ${INPUT_CLASS_NAME}`}
+                        />
+                      </label>
+
+                      <p className="text-xs leading-5 text-amber-800">
+                        A plataforma registrará automaticamente o usuário responsável pela confirmação, a data e a versão da política de privacidade.
+                      </p>
+                    </div>
+                  )
+                }
+
+                <div className="rounded-xl border border-amber-200 bg-amber-100/70 p-4">
+                  <p className="text-sm font-bold text-amber-950">
+                    Recomendações de segurança
+                  </p>
+
+                  <p className="mt-2 text-sm leading-6 text-amber-900">
+                    Prefira enquadramentos sem rostos, remova nomes, evite localização e documentos pessoais e aplique desfoque quando a identificação não for necessária.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {
+              formError && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-800">
+                  {
+                    formError
+                  }
+                </div>
+              )
+            }
+
+            {
+              successMessage && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">
+                  {
+                    successMessage
+                  }
+                </div>
+              )
+            }
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={
+                  resetForm
+                }
+                disabled={
+                  submitting ||
+                  mutating
+                }
+                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
+              >
+                Limpar
+              </button>
+
+              <button
+                type="submit"
+                disabled={
+                  isSubmitDisabled
+                }
+                className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#071827] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#0B7491] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {
+                  submitting
+                    ? 'Registrando...'
+                    : 'Registrar evidência'
+                }
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
+          <header className="border-b border-slate-200 px-5 py-5 sm:px-7">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                  Histórico
+                </p>
+
+                <h2 className="mt-2 text-2xl font-bold text-[#071827]">
+                  Evidências registradas
+                </h2>
+
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  {
+                    hasLessonContext
+                      ? 'Exibindo apenas evidências relacionadas à aula selecionada.'
+                      : 'Exibindo as evidências registradas pelo usuário.'
+                  }
+                </p>
               </div>
 
-              <div className="p-5 sm:p-7">
-                {deletionSuccessMessage ? (
-                  <div
-                    role="status"
-                    className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold leading-6 text-emerald-700"
-                  >
-                    {
-                      deletionSuccessMessage
-                    }
-                  </div>
-                ) : null}
+              <button
+                type="button"
+                onClick={() =>
+                  void reload()
+                }
+                disabled={
+                  loading
+                }
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-cyan-200 bg-cyan-50 px-5 py-3 text-sm font-bold text-[#075F78] transition hover:bg-cyan-100 disabled:opacity-60"
+              >
+                Atualizar
+              </button>
+            </div>
+          </header>
 
-                {loading ? (
-                  <div
-                    role="status"
-                    className="rounded-xl border border-cyan-200 bg-cyan-50 p-4 text-sm font-semibold text-cyan-900"
-                  >
-                    Carregando evidências...
-                  </div>
-                ) : null}
+          {
+            error && (
+              <div className="border-b border-rose-200 bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-800 sm:px-7">
+                {
+                  error
+                }
+              </div>
+            )
+          }
 
-                {error ? (
-                  <div
-                    role="alert"
-                    className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
-                  >
-                    {error}
-                  </div>
-                ) : null}
+          {
+            fileAccessError && (
+              <div className="border-b border-amber-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-900 sm:px-7">
+                {
+                  fileAccessError
+                }
+              </div>
+            )
+          }
 
-                {fileAccessError ? (
-                  <div
-                    role="alert"
-                    className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
-                  >
-                    {
-                      fileAccessError
-                    }
-                  </div>
-                ) : null}
+          {
+            loading ? (
+              <div className="p-8 text-center text-sm font-semibold text-slate-500">
+                Carregando evidências...
+              </div>
+            ) : evidences.length ===
+              0 ? (
+              <div className="p-8 text-center">
+                <p className="text-lg font-bold text-[#071827]">
+                  Nenhuma evidência registrada
+                </p>
 
-                {!loading &&
-                !error &&
-                evidences.length ===
-                  0 ? (
-                  <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-                    <p className="font-bold text-slate-700">
-                      Nenhuma evidência cadastrada
-                    </p>
-
-                    <p className="mt-2 text-sm leading-6 text-slate-500">
-                      Utilize o formulário para criar o primeiro registro pedagógico.
-                    </p>
-                  </div>
-                ) : null}
-
-                <div className="space-y-4">
-                  {evidences.map(
-                    (
-                      evidence,
-                      index,
-                    ) => {
+                <p className="mt-2 text-sm text-slate-500">
+                  Registre uma evidência para iniciar a documentação pedagógica.
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-4 p-5 sm:p-7 xl:grid-cols-2">
+                {
+                  evidences.map(
+                    evidence => {
                       const fileSize =
                         formatFileSize(
                           evidence
                             .file_size_bytes,
+                        )
+
+                      const hasProtectedFile =
+                        Boolean(
+                          evidence
+                            .storage_bucket &&
+                          evidence
+                            .storage_path,
                         )
 
                       return (
@@ -1458,208 +2052,290 @@ export function AgendaEvidence() {
                           }
                           className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
                         >
-                          <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+                          <header className="border-b border-slate-200 bg-slate-50 px-5 py-4">
                             <div className="flex items-start justify-between gap-4">
-                              <div className="flex min-w-0 items-start gap-3">
-                                <span className="font-mono text-xs font-bold text-[#0B7491]">
-                                  {String(
-                                    index +
-                                      1,
-                                  ).padStart(
-                                    2,
-                                    '0',
-                                  )}
-                                </span>
-
-                                <div className="min-w-0">
-                                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#0B7491]">
-                                    {getEvidenceTypeLabel(
-                                      evidence
-                                        .evidence_type,
-                                    )}
-                                  </p>
-
-                                  <h3 className="mt-2 break-words text-lg font-bold text-[#071827]">
-                                    {
-                                      evidence.title
-                                    }
-                                  </h3>
-                                </div>
-                              </div>
-
-                              <span className="shrink-0 rounded-lg bg-[#071827] px-3 py-2 text-xs font-bold text-white">
-                                {formatDate(
-                                  evidence
-                                    .created_at,
-                                )}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="space-y-4 p-5">
-                            {evidence.description ? (
-                              <p className="break-words text-sm leading-6 text-slate-600">
-                                {
-                                  evidence.description
-                                }
-                              </p>
-                            ) : null}
-
-                            {evidence
-                              .contains_identifiable_minor ? (
-                              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                                <p className="text-sm font-bold text-amber-950">
-                                  Menor identificável declarado
-                                </p>
-
-                                <p className="mt-1 text-sm leading-6 text-amber-900">
-                                  A declaração de autorização foi registrada pelo usuário responsável.
-                                </p>
-
-                                {evidence
-                                  .authorization_reference ? (
-                                  <p className="mt-2 break-words text-sm font-semibold text-amber-950">
-                                    Referência:{' '}
-                                    {
-                                      evidence
-                                        .authorization_reference
-                                    }
-                                  </p>
-                                ) : null}
-                              </div>
-                            ) : (
-                              <span className="inline-flex rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">
-                                Sem menor identificável declarado
-                              </span>
-                            )}
-
-                            {evidence
-                              .original_file_name ? (
-                              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                                <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
-                                  Arquivo
-                                </p>
-
-                                <p className="mt-2 break-words text-sm font-semibold text-slate-700">
+                              <div className="min-w-0">
+                                <h3 className="break-words text-lg font-bold text-[#071827]">
                                   {
-                                    evidence
-                                      .original_file_name
+                                    evidence.title
+                                  }
+                                </h3>
+
+                                <p className="mt-1 text-xs font-semibold text-slate-500">
+                                  {
+                                    formatDateTime(
+                                      evidence
+                                        .created_at,
+                                    )
                                   }
                                 </p>
-
-                                {fileSize ? (
-                                  <p className="mt-1 text-xs text-slate-500">
-                                    {
-                                      fileSize
-                                    }
-                                  </p>
-                                ) : null}
                               </div>
-                            ) : null}
 
-                            <div className="flex flex-col gap-2 border-t border-slate-200 pt-4 sm:flex-row sm:flex-wrap">
-                              {evidence.file_url ? (
+                              <span
+                                className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-bold ${getEvidenceTypeClasses(
+                                  evidence
+                                    .evidence_type,
+                                )}`}
+                              >
+                                {
+                                  getEvidenceTypeLabel(
+                                    evidence
+                                      .evidence_type,
+                                  )
+                                }
+                              </span>
+                            </div>
+                          </header>
+
+                          <div className="space-y-4 p-5">
+                            {
+                              evidence.description && (
+                                <p className="whitespace-pre-wrap text-sm leading-6 text-slate-600">
+                                  {
+                                    evidence.description
+                                  }
+                                </p>
+                              )
+                            }
+
+                            <div className="flex flex-wrap gap-2">
+                              {
+                                evidence.lesson_id && (
+                                  <span className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-bold text-[#075F78]">
+                                    Vinculada à aula
+                                  </span>
+                                )
+                              }
+
+                              {
+                                evidence.objective_id && (
+                                  <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800">
+                                    Objetivo principal vinculado
+                                  </span>
+                                )
+                              }
+
+                              {
+                                evidence
+                                  .contains_identifiable_minor && (
+                                  <span className="rounded-full border border-amber-300 bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900">
+                                    Autorização registrada
+                                  </span>
+                                )
+                              }
+
+                              {
+                                hasProtectedFile && (
+                                  <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-bold text-violet-800">
+                                    Arquivo protegido
+                                  </span>
+                                )
+                              }
+                            </div>
+
+                            {
+                              evidence
+                                .contains_identifiable_minor && (
+                                <section className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-amber-800">
+                                    Proteção de menores
+                                  </p>
+
+                                  <p className="mt-2 text-sm leading-6 text-amber-950">
+                                    Autorização confirmada e registrada conforme a política {
+                                      evidence
+                                        .privacy_notice_version
+                                    }.
+                                  </p>
+
+                                  {
+                                    evidence
+                                      .authorization_reference && (
+                                      <p className="mt-2 break-words text-xs font-semibold text-amber-800">
+                                        Referência: {
+                                          evidence
+                                            .authorization_reference
+                                        }
+                                      </p>
+                                    )
+                                  }
+                                </section>
+                              )
+                            }
+
+                            {
+                              evidence.external_url && (
                                 <a
                                   href={
-                                    evidence
-                                      .file_url
+                                    evidence.external_url
                                   }
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#071827] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B2940]"
+                                  className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-800 transition hover:bg-blue-100"
                                 >
-                                  Abrir arquivo
+                                  Abrir link externo
                                 </a>
-                              ) : null}
+                              )
+                            }
 
-                              {!evidence.file_url &&
-                              evidence.storage_path ? (
+                            {
+                              hasProtectedFile && (
                                 <button
                                   type="button"
+                                  disabled={
+                                    openingEvidenceId ===
+                                    evidence.id
+                                  }
                                   onClick={() =>
                                     void handleOpenProtectedFile(
                                       evidence.id,
                                     )
                                   }
-                                  disabled={
-                                    openingEvidenceId !==
-                                    null
-                                  }
-                                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0B7491] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#09657E] disabled:cursor-wait disabled:bg-slate-400"
+                                  className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-bold text-violet-800 transition hover:bg-violet-100 disabled:opacity-60"
                                 >
-                                  {openingEvidenceId ===
-                                  evidence.id
-                                    ? 'Abrindo arquivo...'
-                                    : 'Abrir arquivo protegido'}
+                                  {
+                                    openingEvidenceId ===
+                                    evidence.id
+                                      ? 'Gerando acesso seguro...'
+                                      : 'Abrir arquivo protegido'
+                                  }
                                 </button>
-                              ) : null}
+                              )
+                            }
 
-                              {evidence
-                                .external_url ? (
-                                <a
-                                  href={
+                            {
+                              evidence.original_file_name && (
+                                <p className="break-words text-xs text-slate-500">
+                                  Arquivo: {
                                     evidence
-                                      .external_url
+                                      .original_file_name
                                   }
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#0B7491] bg-white px-5 py-3 text-sm font-semibold text-[#075F78] transition hover:bg-cyan-50"
-                                >
-                                  Abrir link
-                                </a>
-                              ) : null}
 
-                              <button
-                                type="button"
-                                disabled={
-                                  deletingEvidence
-                                }
-                                onClick={() =>
-                                  handleRequestDelete(
-                                    evidence.id,
-                                    evidence.title,
-                                  )
-                                }
-                                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-red-300 bg-white px-5 py-3 text-sm font-semibold text-red-700 transition hover:border-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 sm:ml-auto"
-                              >
-                                Excluir evidência
-                              </button>
-                            </div>
+                                  {
+                                    fileSize &&
+                                    ` • ${fileSize}`
+                                  }
+                                </p>
+                              )
+                            }
+
+                            <button
+                              type="button"
+                              disabled={
+                                deletingEvidenceId ===
+                                evidence.id
+                              }
+                              onClick={() =>
+                                void handleDeleteEvidence(
+                                  evidence,
+                                )
+                              }
+                              className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800 transition hover:bg-rose-100 disabled:opacity-60"
+                            >
+                              {
+                                deletingEvidenceId ===
+                                evidence.id
+                                  ? 'Excluindo...'
+                                  : 'Excluir evidência'
+                              }
+                            </button>
                           </div>
                         </article>
                       )
                     },
-                  )}
-                </div>
+                  )
+                }
               </div>
-            </section>
-          </div>
-        </div>
-      </AgendaPageShell>
+            )
+          }
+        </section>
 
-      <EvidenceDeleteDialog
-        open={
-          evidenceSelectedForDeletion !==
-          null
-        }
-        evidenceTitle={
-          evidenceSelectedForDeletion
-            ?.title ??
-          null
-        }
-        submitting={
-          deletingEvidence
-        }
-        error={
-          deletionError
-        }
-        onClose={
-          handleCloseDeleteDialog
-        }
-        onConfirm={
-          handleConfirmDelete
-        }
-      />
-    </>
+        <aside className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[#071827] text-white shadow-sm">
+          <header className="border-b border-white/10 px-5 py-5 sm:px-7">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">
+              Framework EDI
+            </p>
+
+            <h2 className="mt-2 text-2xl font-bold">
+              Da execução à inteligência
+            </h2>
+          </header>
+
+          <div className="grid divide-y divide-white/10 sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
+            {
+              [
+                {
+                  code:
+                    '01',
+
+                  title:
+                    'Aula',
+
+                  description:
+                    'Define o contexto real da execução pedagógica.',
+                },
+                {
+                  code:
+                    '02',
+
+                  title:
+                    'Evidência',
+
+                  description:
+                    'Documenta o que aconteceu sem duplicar cadastros.',
+                },
+                {
+                  code:
+                    '03',
+
+                  title:
+                    'Objetivos',
+
+                  description:
+                    'Relaciona o registro aos objetivos trabalhados.',
+                },
+                {
+                  code:
+                    '04',
+
+                  title:
+                    'Indicadores',
+
+                  description:
+                    'Prepara os dados para análise e apoio à decisão.',
+                },
+              ].map(
+                item => (
+                  <article
+                    key={
+                      item.code
+                    }
+                    className="px-5 py-5 sm:px-7"
+                  >
+                    <span className="font-mono text-xs font-bold text-cyan-300">
+                      {
+                        item.code
+                      }
+                    </span>
+
+                    <h3 className="mt-3 font-bold">
+                      {
+                        item.title
+                      }
+                    </h3>
+
+                    <p className="mt-1 text-sm leading-6 text-slate-300">
+                      {
+                        item.description
+                      }
+                    </p>
+                  </article>
+                ),
+              )
+            }
+          </div>
+        </aside>
+      </div>
+    </AgendaPageShell>
   )
 }
