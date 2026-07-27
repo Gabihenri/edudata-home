@@ -2207,7 +2207,9 @@ export function AgendaLessons() {
                             }
 
                             <Link
-                              href="/agenda/evidencias"
+                              href={`/agenda/evidencias?source=lesson&id=${encodeURIComponent(
+                                lesson.id,
+                              )}`}
                               className="inline-flex min-h-11 items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-800 transition hover:bg-blue-100"
                             >
                               Registrar evidência
