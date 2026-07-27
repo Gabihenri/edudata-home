@@ -213,17 +213,20 @@ export function ProfessorDigital() {
                 </h3>
 
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  As trilhas são áreas de aprendizagem e não botões de
-                  navegação.
+                  Estas trilhas apresentam as áreas formativas previstas para o
+                  desenvolvimento profissional docente.
                 </p>
               </div>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <ul
+                aria-label="Áreas formativas do Professor Digital"
+                className="mt-5 grid gap-3 sm:grid-cols-2"
+              >
                 {learningTracks.map(
                   (track) => (
-                    <article
+                    <li
                       key={track.code}
-                      className="grid min-h-20 grid-cols-[42px_minmax(0,1fr)] items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3"
+                      className="grid min-h-20 cursor-default select-text grid-cols-[42px_minmax(0,1fr)] items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3"
                     >
                       <span className="font-mono text-xs font-bold text-[#0B7491]">
                         {track.code}
@@ -232,10 +235,10 @@ export function ProfessorDigital() {
                       <p className="text-sm font-bold leading-5 text-[#071827]">
                         {track.title}
                       </p>
-                    </article>
+                    </li>
                   ),
                 )}
-              </div>
+              </ul>
             </section>
 
             <section
