@@ -14,85 +14,79 @@ import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import AccessibilityBar from '@/components/layout/AccessibilityBar'
 
-import EngineSection from '@/components/home/EngineSection'
-import PlatformArchitecture from '@/components/home/PlatformArchitecture'
 import EcosystemProducts from '@/components/home/EcosystemProducts'
-import ClientsSection from '@/components/home/ClientsSection'
-import EcossistemaFlow from '@/components/home/EcossistemaFlow'
-import EduDataAnalytics from '@/components/home/EduDataAnalytics'
-import SGPA from '@/components/home/SGPA'
 import EduDataAcademy from '@/components/home/EduDataAcademy'
 import SobreEduData from '@/components/home/SobreEduData'
 import ManifestoEDI from '@/components/home/ManifestoEDI'
 import Participacao from '@/components/home/Participacao'
-import ComeceHoje from '@/components/home/ComeceHoje'
 import SolucoesEscolas from '@/components/home/SolucoesEscolas'
-import AreasAtuacao from '@/components/home/AreasAtuacao'
 import Consultorias from '@/components/home/Consultorias'
-import EduDataInsights from '@/components/home/EduDataInsights'
 
-type HeroAction = {
+type ArchitectureLayer = {
   code: string
   title: string
   description: string
-  href: string
-  primary?: boolean
+}
+
+type EdiPillar = {
+  title: string
+  description: string
 }
 
 const PROFESSOR_PRO_UPGRADE_HREF =
   '/upgrade?requestedPlan=edi_professor_pro&product=agenda_edi&source=%2F&returnTo=%2F'
 
-const heroActions:
-  HeroAction[] = [
+const architectureLayers:
+  ArchitectureLayer[] = [
     {
       code: '01',
-      title: 'Conhecer o Framework EDI',
+      title: 'Framework EDI',
       description:
-        'Consulte a base científica, metodológica e pedagógica da plataforma.',
-      href: '#framework',
-      primary: true,
+        'Define os princípios científicos, metodológicos e pedagógicos da plataforma.',
     },
     {
       code: '02',
-      title: 'Explorar o ecossistema',
+      title: 'EIOS',
       description:
-        'Conheça os produtos especializados conectados pelo EIOS.',
-      href: '#ecossistema',
+        'Conecta identidade, dados, segurança, conhecimento e inteligência.',
     },
     {
       code: '03',
-      title: 'EduData Academy',
+      title: 'Core compartilhado',
       description:
-        'Acesse cursos e trilhas de desenvolvimento profissional.',
-      href: '/academy',
+        'Mantém serviços essenciais integrados em toda a plataforma.',
+    },
+    {
+      code: '04',
+      title: 'Produtos especializados',
+      description:
+        'Entrega experiências específicas para professores, gestores e instituições.',
     },
   ]
 
-const architectureLayers = [
-  {
-    code: '01',
-    title: 'Framework EDI',
-    description:
-      'Base científica, metodológica e pedagógica.',
-  },
-  {
-    code: '02',
-    title: 'EIOS',
-    description:
-      'Sistema operacional de inteligência educacional.',
-  },
-  {
-    code: '03',
-    title: 'Core compartilhado',
-    description:
-      'Identidade, dados, segurança e inteligência.',
-  },
-  {
-    code: '04',
-    title: 'Produtos especializados',
-    description:
-      'Soluções conectadas para pessoas e instituições.',
-  },
+const ediPillars:
+  EdiPillar[] = [
+    {
+      title: 'Evidências',
+      description:
+        'Registros contextualizados e confiáveis sustentam o acompanhamento.',
+    },
+    {
+      title: 'Inclusão',
+      description:
+        'Clareza, acessibilidade e respeito às pessoas orientam a experiência.',
+    },
+    {
+      title: 'Inteligência',
+      description:
+        'Dados organizados apoiam decisões sem substituir o contexto educacional.',
+    },
+  ]
+
+const pilotBenefits = [
+  'Organização de horários e compromissos',
+  'Planejamento e registros pedagógicos',
+  'Acesso antecipado às melhorias do produto',
 ]
 
 export default function Page() {
@@ -106,12 +100,12 @@ export default function Page() {
         <section className="relative overflow-hidden bg-[#071827] text-white">
           <div
             aria-hidden="true"
-            className="absolute -right-28 -top-28 h-80 w-80 rounded-full border border-cyan-300/10"
+            className="absolute -right-24 top-12 h-72 w-72 rounded-full border border-cyan-300/10"
           />
 
           <div
             aria-hidden="true"
-            className="absolute right-8 top-36 h-48 w-48 rounded-full border border-cyan-300/10"
+            className="absolute -right-4 top-36 h-40 w-40 rounded-full border border-cyan-300/10"
           />
 
           <div
@@ -119,7 +113,7 @@ export default function Page() {
             className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-cyan-300/30 to-transparent"
           />
 
-          <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)] lg:items-center lg:gap-14 lg:px-8 lg:py-24">
+          <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)] lg:items-center lg:gap-14 lg:px-8 lg:py-20">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-3">
                 <span className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-bold uppercase tracking-[0.16em] text-cyan-200">
@@ -136,59 +130,123 @@ export default function Page() {
               </p>
 
               <h1 className="mt-4 max-w-4xl text-4xl font-bold leading-[1.06] tracking-tight text-white sm:text-5xl lg:text-6xl">
-                Um único ecossistema, um único motor de inteligência, múltiplos produtos especializados.
+                Menos tarefas dispersas. Mais clareza para planejar, registrar e decidir.
               </h1>
 
               <p className="mt-6 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
-                A EduData IA integra formação, desenvolvimento
-                profissional, gestão pedagógica, evidências, dados,
-                analytics e governança educacional em uma única
-                plataforma.
+                A EduData IA conecta formação profissional, organização da
+                rotina, evidências pedagógicas e apoio à gestão em um único
+                ecossistema educacional.
               </p>
 
               <p className="mt-4 max-w-3xl text-base leading-7 text-slate-400">
-                O Framework EDI orienta a plataforma. O EIOS conecta
-                identidade, dados, segurança, inteligência e produtos
-                especializados.
+                Desenvolvida para professores, equipes pedagógicas, gestores,
+                escolas e redes de ensino que precisam transformar trabalho
+                educacional em ações acompanháveis e decisões mais claras.
               </p>
 
-              <section
-                aria-labelledby="professor-pro-offer-title"
-                className="mt-9 overflow-hidden rounded-2xl border border-cyan-300/30 bg-white/[0.06] shadow-xl shadow-black/10"
-              >
-                <div className="grid gap-6 p-5 sm:p-6 md:grid-cols-[minmax(0,1fr)_190px] md:items-center">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-lg border border-cyan-300/30 bg-cyan-300/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-200">
-                        Oferta de lançamento
-                      </span>
+              <div className="mt-8 grid gap-3 sm:flex sm:flex-wrap">
+                <Link
+                  href="/agenda"
+                  className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0B7491] px-7 py-4 text-center font-semibold text-white transition hover:bg-[#09657E] focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                >
+                  Conhecer a Agenda EDI
+                </Link>
 
-                      <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-                        Usuário individual
-                      </span>
-                    </div>
+                <Link
+                  href="/professor-digital"
+                  className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-7 py-4 text-center font-semibold text-white transition hover:border-cyan-300/40 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                >
+                  Professor Digital
+                </Link>
 
-                    <p className="mt-5 text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">
-                      Professor Pro
-                    </p>
+                <Link
+                  href="#escolas"
+                  className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/20 bg-transparent px-7 py-4 text-center font-semibold text-slate-200 transition hover:bg-white/5 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                >
+                  Soluções para escolas
+                </Link>
+              </div>
 
-                    <h2
-                      id="professor-pro-offer-title"
-                      className="mt-2 text-2xl font-bold leading-tight text-white sm:text-3xl"
+              <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 border-t border-white/10 pt-6 text-sm font-semibold text-slate-300">
+                <span>
+                  Framework EDI
+                </span>
+
+                <span>
+                  Evidências
+                </span>
+
+                <span>
+                  Inclusão
+                </span>
+
+                <span>
+                  Inteligência
+                </span>
+              </div>
+            </div>
+
+            <aside
+              aria-labelledby="agenda-pilot-title"
+              className="overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/10"
+            >
+              <header className="border-b border-white/10 px-5 py-5 sm:px-7">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">
+                    Comece pela Agenda
+                  </p>
+
+                  <span className="rounded-lg border border-amber-300/30 bg-amber-300/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-200">
+                    Piloto
+                  </span>
+                </div>
+
+                <h2
+                  id="agenda-pilot-title"
+                  className="mt-3 text-2xl font-bold leading-tight text-white"
+                >
+                  Agenda Inteligente EDI
+                </h2>
+
+                <p className="mt-3 text-sm leading-6 text-slate-300">
+                  Acesso antecipado ao ambiente operacional desenvolvido para
+                  organizar a rotina docente e os registros pedagógicos.
+                </p>
+              </header>
+
+              <div className="divide-y divide-white/10">
+                {pilotBenefits.map(
+                  (
+                    benefit,
+                    index,
+                  ) => (
+                    <div
+                      key={benefit}
+                      className="grid grid-cols-[38px_minmax(0,1fr)] gap-4 px-5 py-4 sm:px-7"
                     >
-                      Agenda Inteligente EDI para organizar sua rotina docente.
-                    </h2>
+                      <span className="font-mono text-xs font-bold text-cyan-300">
+                        {String(
+                          index + 1,
+                        ).padStart(
+                          2,
+                          '0',
+                        )}
+                      </span>
 
-                    <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base sm:leading-7">
-                      Planeje compromissos, organize horários, registre ações
-                      pedagógicas e utilize os recursos avançados disponíveis
-                      no ecossistema Professor Digital.
-                    </p>
-                  </div>
+                      <p className="text-sm font-semibold leading-6 text-slate-200">
+                        {benefit}
+                      </p>
+                    </div>
+                  ),
+                )}
+              </div>
 
-                  <div className="rounded-xl border border-cyan-300/20 bg-[#061521] p-5 md:text-right">
+              <div className="border-t border-white/10 bg-[#061521] px-5 py-5 sm:px-7">
+                <div className="flex flex-wrap items-end justify-between gap-4">
+                  <div>
                     <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">
-                      Acesso por 30 dias
+                      Piloto por 30 dias
                     </p>
 
                     <p className="mt-2 text-4xl font-bold tracking-tight text-white">
@@ -198,21 +256,17 @@ export default function Page() {
                     <p className="mt-1 text-xs font-semibold text-slate-400">
                       pagamento único
                     </p>
-
-                    <Link
-                      href={PROFESSOR_PRO_UPGRADE_HREF}
-                      className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#0B7491] px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-[#09657E] focus:outline-none focus:ring-2 focus:ring-cyan-300"
-                    >
-                      Conhecer e ativar
-                    </Link>
                   </div>
+
+                  <Link
+                    href={PROFESSOR_PRO_UPGRADE_HREF}
+                    className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0B7491] px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-[#09657E] focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                  >
+                    Ativar acesso ao piloto
+                  </Link>
                 </div>
 
-                <footer className="flex flex-wrap gap-x-5 gap-y-2 border-t border-white/10 bg-black/10 px-5 py-4 text-xs font-semibold text-slate-300 sm:px-6">
-                  <span>
-                    Pagamento pelo Mercado Pago
-                  </span>
-
+                <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 border-t border-white/10 pt-4 text-xs font-semibold text-slate-400">
                   <span>
                     Ativação manual
                   </span>
@@ -220,111 +274,40 @@ export default function Page() {
                   <span>
                     Sem renovação automática
                   </span>
-                </footer>
-              </section>
-
-              <section
-                aria-label="Acessos principais da EduData IA"
-                className="mt-5 grid gap-3 md:grid-cols-3"
-              >
-                {heroActions.map(
-                  (action) => (
-                    <Link
-                      key={action.code}
-                      href={action.href}
-                      className={`group flex min-h-40 flex-col justify-between rounded-xl border p-5 transition ${
-                        action.primary
-                          ? 'border-cyan-300/30 bg-[#0B7491] text-white hover:bg-[#09657E]'
-                          : 'border-white/15 bg-white/[0.04] text-white hover:border-cyan-300/30 hover:bg-white/[0.08]'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <span
-                          className={`font-mono text-xs font-bold ${
-                            action.primary
-                              ? 'text-cyan-100'
-                              : 'text-cyan-300'
-                          }`}
-                        >
-                          {action.code}
-                        </span>
-
-                        <span
-                          aria-hidden="true"
-                          className="text-cyan-300 transition group-hover:translate-x-1"
-                        >
-                          →
-                        </span>
-                      </div>
-
-                      <div className="mt-6">
-                        <h2 className="font-bold leading-6">
-                          {action.title}
-                        </h2>
-
-                        <p
-                          className={`mt-2 text-sm leading-6 ${
-                            action.primary
-                              ? 'text-cyan-50'
-                              : 'text-slate-300'
-                          }`}
-                        >
-                          {action.description}
-                        </p>
-                      </div>
-                    </Link>
-                  ),
-                )}
-              </section>
-            </div>
-
-            <aside className="overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/10">
-              <header className="border-b border-white/10 px-5 py-5 sm:px-7">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">
-                  Arquitetura oficial
-                </p>
-
-                <h2 className="mt-2 text-2xl font-bold text-white">
-                  Uma plataforma, uma base compartilhada.
-                </h2>
-
-                <p className="mt-2 text-sm leading-6 text-slate-300">
-                  Todos os produtos compartilham os mesmos princípios,
-                  serviços e estruturas essenciais.
-                </p>
-              </header>
-
-              <div className="divide-y divide-white/10">
-                {architectureLayers.map(
-                  (layer) => (
-                    <article
-                      key={layer.code}
-                      className="grid grid-cols-[40px_minmax(0,1fr)] gap-4 px-5 py-5 sm:px-7"
-                    >
-                      <span className="font-mono text-xs font-bold text-cyan-300">
-                        {layer.code}
-                      </span>
-
-                      <div>
-                        <h3 className="font-bold text-white">
-                          {layer.title}
-                        </h3>
-
-                        <p className="mt-1 text-sm leading-6 text-slate-300">
-                          {layer.description}
-                        </p>
-                      </div>
-                    </article>
-                  ),
-                )}
+                </div>
               </div>
-
-              <footer className="border-t border-cyan-300/20 bg-cyan-300/10 px-5 py-5 sm:px-7">
-                <p className="text-sm font-semibold leading-6 text-cyan-100">
-                  Framework EDI → EIOS → Core compartilhado → Produtos
-                </p>
-              </footer>
             </aside>
+          </div>
+        </section>
+
+        <section
+          aria-label="Pilares do Framework EDI"
+          className="border-b border-slate-200 bg-white"
+        >
+          <div className="mx-auto grid max-w-7xl sm:grid-cols-3">
+            {ediPillars.map(
+              (
+                pillar,
+                index,
+              ) => (
+                <article
+                  key={pillar.title}
+                  className={`px-5 py-6 sm:px-7 ${
+                    index < 2
+                      ? 'border-b border-slate-200 sm:border-b-0 sm:border-r'
+                      : ''
+                  }`}
+                >
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0B7491]">
+                    {pillar.title}
+                  </p>
+
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    {pillar.description}
+                  </p>
+                </article>
+              ),
+            )}
           </div>
         </section>
 
@@ -332,35 +315,111 @@ export default function Page() {
 
         <FrameworkEDI />
 
-        <EngineSection />
+        <section
+          id="como-funciona"
+          className="scroll-mt-24 bg-[#EEF3F7] px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24"
+        >
+          <div className="mx-auto max-w-7xl">
+            <div className="grid gap-10 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:items-start lg:gap-14">
+              <div className="min-w-0">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0B7491]">
+                  Como funciona por trás
+                </p>
 
-        <PlatformArchitecture />
+                <h2 className="mt-4 text-3xl font-bold leading-tight tracking-tight text-[#071827] sm:text-4xl lg:text-5xl">
+                  Uma base compartilhada, sem complicar a experiência.
+                </h2>
 
-        <EcosystemProducts />
+                <p className="mt-6 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
+                  O usuário acessa produtos simples e especializados. Por trás
+                  deles, uma arquitetura comum conecta metodologia, identidade,
+                  dados, segurança e inteligência.
+                </p>
 
-        <ClientsSection />
+                <div className="mt-8 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-[#071827] text-white">
+                  <div className="border-b border-white/10 px-5 py-5 sm:px-7">
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">
+                      Arquitetura oficial
+                    </p>
+                  </div>
 
-        <EcossistemaFlow />
+                  <div className="divide-y divide-white/10">
+                    <div className="px-5 py-4 font-semibold sm:px-7">
+                      Framework EDI
+                    </div>
+
+                    <div className="px-5 py-4 font-semibold sm:px-7">
+                      EIOS
+                    </div>
+
+                    <div className="px-5 py-4 font-semibold sm:px-7">
+                      Core compartilhado
+                    </div>
+
+                    <div className="bg-cyan-300/10 px-5 py-4 font-bold text-cyan-100 sm:px-7">
+                      Produtos especializados
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
+                <header className="border-b border-slate-200 px-5 py-5 sm:px-7">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                    Estrutura da plataforma
+                  </p>
+
+                  <h3 className="mt-2 text-2xl font-bold text-[#071827]">
+                    Cada camada possui uma responsabilidade clara.
+                  </h3>
+                </header>
+
+                <div className="divide-y divide-slate-200">
+                  {architectureLayers.map(
+                    (layer) => (
+                      <article
+                        key={layer.code}
+                        className="grid grid-cols-[42px_minmax(0,1fr)] gap-4 px-5 py-5 sm:px-7"
+                      >
+                        <span className="font-mono text-xs font-bold text-[#0B7491]">
+                          {layer.code}
+                        </span>
+
+                        <div>
+                          <h4 className="text-lg font-bold text-[#071827]">
+                            {layer.title}
+                          </h4>
+
+                          <p className="mt-2 text-sm leading-6 text-slate-600">
+                            {layer.description}
+                          </p>
+                        </div>
+                      </article>
+                    ),
+                  )}
+                </div>
+
+                <footer className="border-t border-cyan-200 bg-cyan-50 px-5 py-5 sm:px-7">
+                  <p className="text-sm font-semibold leading-6 text-cyan-950">
+                    Um único ecossistema, múltiplas experiências especializadas.
+                  </p>
+                </footer>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <ProfessorDigital />
 
         <AgendaInteligente />
 
-        <ComeceHoje />
+        <EcosystemProducts />
 
-        <EduDataAnalytics />
-
-        <SGPA />
+        <SolucoesEscolas />
 
         <EduDataAcademy />
 
         <Consultorias />
-
-        <AreasAtuacao />
-
-        <EduDataInsights />
-
-        <SolucoesEscolas />
 
         <SobreEduData />
 
