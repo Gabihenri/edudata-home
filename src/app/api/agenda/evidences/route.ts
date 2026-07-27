@@ -1,63 +1,306 @@
-import { NextResponse } from 'next/server'
+import {
+  createClient,
+  type SupabaseClient,
+} from '@supabase/supabase-js'
+
+import {
+  NextRequest,
+  NextResponse,
+} from 'next/server'
 
 import {
   isAccessDeniedError,
   requireFeatureAccess,
   serializeAccessDeniedError,
 } from '@/lib/access/guards/require-feature-access'
-import { requireSessionUser } from '@/lib/auth/session'
-import type {
-  AgendaEvidenceType,
-  CreateAgendaEvidenceInput,
-} from '@/lib/agenda/repository/evidences.repository'
-import { evidencesService } from '@/lib/agenda/services/evidences.service'
 
-export const dynamic = 'force-dynamic'
+import {
+  EvidencesRepository,
+  type AgendaEvidenceMetadata,
+  type AgendaEvidenceType,
+  type CreateAgendaEvidenceInput,
+} from '@/lib/agenda/repository/evidences.repository'
+
+import {
+  EvidencesService,
+} from '@/lib/agenda/services/evidences.service'
+
+import {
+  requireSessionUser,
+} from '@/lib/auth/session'
+
+export const dynamic =
+  'force-dynamic'
+
+type UnknownRecord =
+  Record<string, unknown>
 
 type CreateEvidenceRequestBody = {
-  title?: string
-  description?: string | null
+  title?: unknown
+  description?: unknown
 
-  evidenceType?: string
+  evidenceType?: unknown
 
-  fileUrl?: string | null
-  externalUrl?: string | null
+  fileUrl?: unknown
+  externalUrl?: unknown
 
-  planningId?: string | null
-  eventId?: string | null
-  schoolId?: string | null
+  planningId?: unknown
+  eventId?: unknown
 
-  containsIdentifiableMinor?: boolean
+  lessonId?: unknown
+  objectiveId?: unknown
+  classId?: unknown
 
-  guardianAuthorizationConfirmed?: boolean
-  authorizationReference?: string | null
+  reflectionId?: unknown
+  academicPeriodId?: unknown
 
-  privacyNoticeVersion?: string | null
+  organizationId?: unknown
+  schoolId?: unknown
 
-  storageBucket?: string | null
-  storagePath?: string | null
+  containsIdentifiableMinor?: unknown
 
-  originalFileName?: string | null
-  fileMimeType?: string | null
-  fileSizeBytes?: number | null
+  guardianAuthorizationConfirmed?: unknown
+  authorizationReference?: unknown
+
+  privacyNoticeVersion?: unknown
+
+  storageBucket?: unknown
+  storagePath?: unknown
+
+  originalFileName?: unknown
+  fileMimeType?: unknown
+  fileSizeBytes?: unknown
+
+  metadata?: unknown
+}
+
+const NO_CACHE_HEADERS = {
+  'Cache-Control':
+    'no-store, no-cache, must-revalidate',
+}
+
+const DEFAULT_PRIVACY_NOTICE_VERSION =
+  'edi-protecao-menores-v1.0'
+
+function isRecord(
+  value: unknown,
+): value is UnknownRecord {
+  return (
+    typeof value ===
+      'object' &&
+    value !== null &&
+    !Array.isArray(
+      value,
+    )
+  )
+}
+
+function getAccessToken(
+  request: NextRequest,
+): string {
+  const accessToken =
+    request.cookies.get(
+      'sb-access-token',
+    )?.value ??
+    request.cookies.get(
+      'access_token',
+    )?.value
+
+  if (!accessToken) {
+    throw new Error(
+      'Usuário não autenticado.',
+    )
+  }
+
+  return accessToken
+}
+
+function createAuthenticatedClient(
+  accessToken: string,
+): SupabaseClient {
+  const url =
+    process.env
+      .NEXT_PUBLIC_SUPABASE_URL
+
+  const anonKey =
+    process.env
+      .NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (
+    !url ||
+    !anonKey
+  ) {
+    throw new Error(
+      'Variáveis públicas do Supabase não configuradas.',
+    )
+  }
+
+  return createClient(
+    url,
+    anonKey,
+    {
+      global: {
+        headers: {
+          Authorization:
+            `Bearer ${accessToken}`,
+        },
+      },
+
+      auth: {
+        persistSession:
+          false,
+
+        autoRefreshToken:
+          false,
+
+        detectSessionInUrl:
+          false,
+      },
+    },
+  )
+}
+
+function createEvidencesService(
+  request: NextRequest,
+): EvidencesService {
+  const accessToken =
+    getAccessToken(
+      request,
+    )
+
+  const client =
+    createAuthenticatedClient(
+      accessToken,
+    )
+
+  const repository =
+    new EvidencesRepository(
+      client,
+    )
+
+  return new EvidencesService(
+    repository,
+  )
+}
+
+async function readRequestBody(
+  request: NextRequest,
+): Promise<
+  CreateEvidenceRequestBody
+> {
+  let body: unknown
+
+  try {
+    body =
+      await request.json()
+  } catch {
+    throw new Error(
+      'O corpo da requisição é inválido.',
+    )
+  }
+
+  if (!isRecord(body)) {
+    throw new Error(
+      'O corpo da requisição é inválido.',
+    )
+  }
+
+  return body as
+    CreateEvidenceRequestBody
+}
+
+function normalizeRequiredText(
+  value: unknown,
+  fieldName: string,
+  maximumLength: number,
+): string {
+  if (
+    typeof value !==
+    'string'
+  ) {
+    throw new Error(
+      `${fieldName} possui formato inválido.`,
+    )
+  }
+
+  const normalizedValue =
+    value.trim()
+
+  if (!normalizedValue) {
+    throw new Error(
+      `${fieldName} é obrigatório.`,
+    )
+  }
+
+  if (
+    normalizedValue.length >
+    maximumLength
+  ) {
+    throw new Error(
+      `${fieldName} não pode ultrapassar ${maximumLength} caracteres.`,
+    )
+  }
+
+  return normalizedValue
 }
 
 function normalizeOptionalText(
   value: unknown,
+  fieldName: string,
+  maximumLength: number,
 ): string | null {
-  if (typeof value !== 'string') {
+  if (
+    value === undefined ||
+    value === null ||
+    value === ''
+  ) {
     return null
   }
 
-  const normalizedValue = value.trim()
+  if (
+    typeof value !==
+    'string'
+  ) {
+    throw new Error(
+      `${fieldName} possui formato inválido.`,
+    )
+  }
 
-  return normalizedValue || null
+  const normalizedValue =
+    value.trim()
+
+  if (!normalizedValue) {
+    return null
+  }
+
+  if (
+    normalizedValue.length >
+    maximumLength
+  ) {
+    throw new Error(
+      `${fieldName} não pode ultrapassar ${maximumLength} caracteres.`,
+    )
+  }
+
+  return normalizedValue
+}
+
+function normalizeOptionalId(
+  value: unknown,
+  fieldName: string,
+): string | null {
+  return normalizeOptionalText(
+    value,
+    fieldName,
+    36,
+  )
 }
 
 function normalizeBoolean(
   value: unknown,
 ): boolean {
-  return value === true
+  return value ===
+    true
 }
 
 function normalizeFileSize(
@@ -65,81 +308,272 @@ function normalizeFileSize(
 ): number | null {
   if (
     value === undefined ||
-    value === null
+    value === null ||
+    value === ''
   ) {
     return null
   }
 
-  if (typeof value !== 'number') {
-    return Number.NaN
+  const normalizedValue =
+    typeof value ===
+      'number'
+      ? value
+      : typeof value ===
+          'string' &&
+        value.trim()
+        ? Number(
+            value,
+          )
+        : Number.NaN
+
+  if (
+    !Number.isInteger(
+      normalizedValue,
+    ) ||
+    normalizedValue <
+      0
+  ) {
+    throw new Error(
+      'O tamanho do arquivo é inválido.',
+    )
   }
 
-  return value
+  return normalizedValue
 }
 
 function normalizeEvidenceType(
   value: unknown,
 ): AgendaEvidenceType {
-  if (typeof value !== 'string') {
+  if (
+    value === undefined ||
+    value === null ||
+    value === ''
+  ) {
     return 'texto'
   }
 
+  if (
+    typeof value !==
+    'string'
+  ) {
+    throw new Error(
+      'O tipo da evidência possui formato inválido.',
+    )
+  }
+
   const normalizedValue =
-    value.trim().toLowerCase()
+    value
+      .trim()
+      .toLowerCase()
 
   if (
-    normalizedValue === 'texto' ||
-    normalizedValue === 'imagem' ||
-    normalizedValue === 'pdf' ||
-    normalizedValue === 'link'
+    normalizedValue ===
+      'texto' ||
+    normalizedValue ===
+      'imagem' ||
+    normalizedValue ===
+      'pdf' ||
+    normalizedValue ===
+      'link'
   ) {
     return normalizedValue
   }
 
-  return normalizedValue as AgendaEvidenceType
+  throw new Error(
+    'Tipo de evidência inválido. Use texto, imagem, pdf ou link.',
+  )
+}
+
+function normalizeMetadata(
+  value: unknown,
+): AgendaEvidenceMetadata {
+  if (
+    value === undefined ||
+    value === null
+  ) {
+    return {}
+  }
+
+  if (!isRecord(value)) {
+    throw new Error(
+      'Os metadados da evidência possuem formato inválido.',
+    )
+  }
+
+  return value
+}
+
+function normalizeOptionalEvidenceType(
+  value:
+    string | null,
+): AgendaEvidenceType | null {
+  if (!value) {
+    return null
+  }
+
+  return normalizeEvidenceType(
+    value,
+  )
+}
+
+function normalizeOptionalBooleanQuery(
+  value:
+    string | null,
+): boolean | null {
+  if (!value) {
+    return null
+  }
+
+  const normalizedValue =
+    value
+      .trim()
+      .toLowerCase()
+
+  if (
+    normalizedValue ===
+      'true' ||
+    normalizedValue ===
+      '1'
+  ) {
+    return true
+  }
+
+  if (
+    normalizedValue ===
+      'false' ||
+    normalizedValue ===
+      '0'
+  ) {
+    return false
+  }
+
+  throw new Error(
+    'O filtro de identificação de menor é inválido.',
+  )
 }
 
 function getErrorStatus(
   error: unknown,
 ): number {
-  if (error instanceof SyntaxError) {
+  if (
+    error instanceof
+    SyntaxError
+  ) {
     return 400
   }
 
-  if (!(error instanceof Error)) {
+  if (
+    !(error instanceof
+      Error)
+  ) {
     return 500
   }
 
   const message =
-    error.message.toLowerCase()
+    error.message
+      .toLowerCase()
 
   if (
-    message.includes('não autenticado') ||
-    message.includes('não autorizado')
+    message.includes(
+      'não autenticado',
+    ) ||
+    message.includes(
+      'unauthorized',
+    )
   ) {
     return 401
   }
 
   if (
-    message.includes('obrigatório') ||
-    message.includes('obrigatória') ||
-    message.includes('inválido') ||
-    message.includes('inválida') ||
-    message.includes('informe') ||
-    message.includes('envie') ||
-    message.includes('confirme') ||
-    message.includes('autorização') ||
-    message.includes('bucket') ||
-    message.includes('caminho') ||
-    message.includes('tamanho')
+    message.includes(
+      'permission denied',
+    ) ||
+    message.includes(
+      'row-level security',
+    ) ||
+    message.includes(
+      'sem permissão',
+    ) ||
+    message.includes(
+      'não autorizado',
+    ) ||
+    message.includes(
+      'não possui acesso',
+    ) ||
+    message.includes(
+      'forbidden',
+    )
   ) {
-    return 400
+    return 403
   }
 
   if (
-    message.includes('não encontrada')
+    message.includes(
+      'não encontrada',
+    ) ||
+    message.includes(
+      'não encontrado',
+    )
   ) {
     return 404
+  }
+
+  if (
+    message.includes(
+      'duplicate',
+    ) ||
+    message.includes(
+      'unique constraint',
+    ) ||
+    message.includes(
+      'já existe',
+    )
+  ) {
+    return 409
+  }
+
+  if (
+    message.includes(
+      'obrigatório',
+    ) ||
+    message.includes(
+      'obrigatória',
+    ) ||
+    message.includes(
+      'inválido',
+    ) ||
+    message.includes(
+      'inválida',
+    ) ||
+    message.includes(
+      'formato',
+    ) ||
+    message.includes(
+      'informe',
+    ) ||
+    message.includes(
+      'envie',
+    ) ||
+    message.includes(
+      'confirme',
+    ) ||
+    message.includes(
+      'autorização',
+    ) ||
+    message.includes(
+      'bucket',
+    ) ||
+    message.includes(
+      'caminho',
+    ) ||
+    message.includes(
+      'tamanho',
+    ) ||
+    message.includes(
+      'não pode ultrapassar',
+    )
+  ) {
+    return 400
   }
 
   return 500
@@ -149,111 +583,209 @@ function createErrorResponse(
   error: unknown,
   fallbackMessage: string,
 ) {
-  if (isAccessDeniedError(error)) {
+  if (
+    isAccessDeniedError(
+      error,
+    )
+  ) {
     return NextResponse.json(
-      serializeAccessDeniedError(error),
+      serializeAccessDeniedError(
+        error,
+      ),
       {
-        status: 403,
-        headers: {
-          'Cache-Control': 'no-store',
-        },
+        status:
+          403,
+
+        headers:
+          NO_CACHE_HEADERS,
       },
     )
   }
 
+  const status =
+    getErrorStatus(
+      error,
+    )
+
   const message =
-    error instanceof Error
-      ? error.message
-      : fallbackMessage
+    status >= 500
+      ? fallbackMessage
+      : error instanceof
+          Error
+        ? error.message
+        : fallbackMessage
 
   return NextResponse.json(
     {
-      success: false,
-      error: message,
+      success:
+        false,
+
+      error:
+        message,
     },
     {
-      status: getErrorStatus(error),
-      headers: {
-        'Cache-Control': 'no-store',
-      },
+      status,
+
+      headers:
+        NO_CACHE_HEADERS,
     },
   )
 }
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
 ) {
   try {
     const user =
       await requireSessionUser()
 
     await requireFeatureAccess({
-      userId: user.id,
-      featureCode: 'evidences.text',
+      userId:
+        user.id,
+
+      featureCode:
+        'evidences.text',
+
       options: {
-        includeUsage: false,
+        includeUsage:
+          false,
       },
     })
 
-    const { searchParams } =
-      new URL(request.url)
+    const searchParams =
+      request.nextUrl
+        .searchParams
 
-    const planningId =
-      normalizeOptionalText(
-        searchParams.get('planningId'),
+    const service =
+      createEvidencesService(
+        request,
       )
 
-    const eventId =
-      normalizeOptionalText(
-        searchParams.get('eventId'),
-      )
+    const data =
+      await service.list({
+        userId:
+          user.id,
 
-    const evidenceType =
-      normalizeOptionalText(
-        searchParams.get('evidenceType'),
-      )
+        organizationId:
+          normalizeOptionalId(
+            searchParams.get(
+              'organizationId',
+            ),
+            'ID da organização',
+          ),
 
-    let data =
-      await evidencesService.listByUserId(
-        user.id,
-      )
+        schoolId:
+          normalizeOptionalId(
+            searchParams.get(
+              'schoolId',
+            ),
+            'ID da escola',
+          ),
 
-    if (planningId) {
-      data = data.filter(
-        (evidence) =>
-          evidence.planning_id ===
-          planningId,
-      )
-    }
+        planningId:
+          normalizeOptionalId(
+            searchParams.get(
+              'planningId',
+            ),
+            'ID do planejamento',
+          ),
 
-    if (eventId) {
-      data = data.filter(
-        (evidence) =>
-          evidence.event_id === eventId,
-      )
-    }
+        eventId:
+          normalizeOptionalId(
+            searchParams.get(
+              'eventId',
+            ),
+            'ID do evento',
+          ),
 
-    if (evidenceType) {
-      data = data.filter(
-        (evidence) =>
-          evidence.evidence_type ===
-          evidenceType,
-      )
-    }
+        lessonId:
+          normalizeOptionalId(
+            searchParams.get(
+              'lessonId',
+            ),
+            'ID da aula',
+          ),
+
+        objectiveId:
+          normalizeOptionalId(
+            searchParams.get(
+              'objectiveId',
+            ),
+            'ID do objetivo',
+          ),
+
+        classId:
+          normalizeOptionalId(
+            searchParams.get(
+              'classId',
+            ),
+            'ID da turma',
+          ),
+
+        reflectionId:
+          normalizeOptionalId(
+            searchParams.get(
+              'reflectionId',
+            ),
+            'ID da reflexão',
+          ),
+
+        academicPeriodId:
+          normalizeOptionalId(
+            searchParams.get(
+              'academicPeriodId',
+            ),
+            'ID do período acadêmico',
+          ),
+
+        evidenceType:
+          normalizeOptionalEvidenceType(
+            searchParams.get(
+              'evidenceType',
+            ),
+          ),
+
+        containsIdentifiableMinor:
+          normalizeOptionalBooleanQuery(
+            searchParams.get(
+              'containsIdentifiableMinor',
+            ),
+          ),
+
+        search:
+          normalizeOptionalText(
+            searchParams.get(
+              'search',
+            ),
+            'Pesquisa',
+            200,
+          ),
+      })
 
     return NextResponse.json(
       {
-        success: true,
-        total: data.length,
+        success:
+          true,
+
+        total:
+          data.length,
+
         data,
       },
       {
-        headers: {
-          'Cache-Control': 'no-store',
-        },
+        status:
+          200,
+
+        headers:
+          NO_CACHE_HEADERS,
       },
     )
   } catch (error) {
+    console.error(
+      '[AGENDA_EVIDENCES_GET_ERROR]',
+      error,
+    )
+
     return createErrorResponse(
       error,
       'Não foi possível carregar as evidências.',
@@ -262,14 +794,16 @@ export async function GET(
 }
 
 export async function POST(
-  request: Request,
+  request: NextRequest,
 ) {
   try {
     const user =
       await requireSessionUser()
 
     const body =
-      (await request.json()) as CreateEvidenceRequestBody
+      await readRequestBody(
+        request,
+      )
 
     const evidenceType =
       normalizeEvidenceType(
@@ -277,33 +811,49 @@ export async function POST(
       )
 
     const requiredFeature =
-      evidenceType === 'imagem' ||
-      evidenceType === 'pdf'
+      evidenceType ===
+        'imagem' ||
+      evidenceType ===
+        'pdf'
         ? 'evidences.upload'
         : 'evidences.text'
 
     await requireFeatureAccess({
-      userId: user.id,
-      featureCode: requiredFeature,
+      userId:
+        user.id,
+
+      featureCode:
+        requiredFeature,
+
       options: {
-        includeUsage: true,
+        includeUsage:
+          true,
       },
     })
 
+    /*
+     * Política ECA Digital preservada.
+     *
+     * O cliente informa apenas a declaração e a referência.
+     * O servidor determina quem confirmou e quando confirmou.
+     */
     const containsIdentifiableMinor =
       normalizeBoolean(
-        body.containsIdentifiableMinor,
+        body
+          .containsIdentifiableMinor,
       )
 
     const guardianAuthorizationConfirmed =
       normalizeBoolean(
-        body.guardianAuthorizationConfirmed,
+        body
+          .guardianAuthorizationConfirmed,
       )
 
     const authorizationConfirmedAt =
       containsIdentifiableMinor &&
       guardianAuthorizationConfirmed
-        ? new Date().toISOString()
+        ? new Date()
+            .toISOString()
         : null
 
     const authorizationConfirmedBy =
@@ -312,104 +862,198 @@ export async function POST(
         ? user.id
         : null
 
-    const input: CreateAgendaEvidenceInput = {
-      title:
-        typeof body.title === 'string'
-          ? body.title
-          : '',
+    const metadata =
+      normalizeMetadata(
+        body.metadata,
+      )
 
-      description:
-        normalizeOptionalText(
-          body.description,
-        ),
+    const input:
+      CreateAgendaEvidenceInput = {
+        title:
+          normalizeRequiredText(
+            body.title,
+            'Título da evidência',
+            240,
+          ),
 
-      evidence_type:
-        evidenceType,
+        description:
+          normalizeOptionalText(
+            body.description,
+            'Descrição',
+            5000,
+          ),
 
-      file_url:
-        normalizeOptionalText(
-          body.fileUrl,
-        ),
+        evidence_type:
+          evidenceType,
 
-      external_url:
-        normalizeOptionalText(
-          body.externalUrl,
-        ),
+        file_url:
+          normalizeOptionalText(
+            body.fileUrl,
+            'URL pública legada do arquivo',
+            2000,
+          ),
 
-      planning_id:
-        normalizeOptionalText(
-          body.planningId,
-        ),
+        external_url:
+          normalizeOptionalText(
+            body.externalUrl,
+            'Endereço externo',
+            2000,
+          ),
 
-      event_id:
-        normalizeOptionalText(
-          body.eventId,
-        ),
+        planning_id:
+          normalizeOptionalId(
+            body.planningId,
+            'ID do planejamento',
+          ),
 
-      school_id:
-        normalizeOptionalText(
-          body.schoolId,
-        ),
+        event_id:
+          normalizeOptionalId(
+            body.eventId,
+            'ID do evento',
+          ),
 
-      user_id: user.id,
+        lesson_id:
+          normalizeOptionalId(
+            body.lessonId,
+            'ID da aula',
+          ),
 
-      contains_identifiable_minor:
-        containsIdentifiableMinor,
+        objective_id:
+          normalizeOptionalId(
+            body.objectiveId,
+            'ID do objetivo',
+          ),
 
-      guardian_authorization_confirmed:
-        guardianAuthorizationConfirmed,
+        class_id:
+          normalizeOptionalId(
+            body.classId,
+            'ID da turma',
+          ),
 
-      authorization_reference:
-        normalizeOptionalText(
-          body.authorizationReference,
-        ),
+        reflection_id:
+          normalizeOptionalId(
+            body.reflectionId,
+            'ID da reflexão',
+          ),
 
-      authorization_confirmed_at:
-        authorizationConfirmedAt,
+        academic_period_id:
+          normalizeOptionalId(
+            body.academicPeriodId,
+            'ID do período acadêmico',
+          ),
 
-      authorization_confirmed_by:
-        authorizationConfirmedBy,
+        organization_id:
+          normalizeOptionalId(
+            body.organizationId,
+            'ID da organização',
+          ),
 
-      privacy_notice_version:
-        normalizeOptionalText(
-          body.privacyNoticeVersion,
-        ) ??
-        'edi-protecao-menores-v1.0',
+        school_id:
+          normalizeOptionalId(
+            body.schoolId,
+            'ID da escola',
+          ),
 
-      storage_bucket:
-        normalizeOptionalText(
-          body.storageBucket,
-        ),
+        /*
+         * O usuário responsável nunca é aceito do cliente.
+         */
+        user_id:
+          user.id,
 
-      storage_path:
-        normalizeOptionalText(
-          body.storagePath,
-        ),
+        contains_identifiable_minor:
+          containsIdentifiableMinor,
 
-      original_file_name:
-        normalizeOptionalText(
-          body.originalFileName,
-        ),
+        guardian_authorization_confirmed:
+          guardianAuthorizationConfirmed,
 
-      file_mime_type:
-        normalizeOptionalText(
-          body.fileMimeType,
-        ),
+        authorization_reference:
+          normalizeOptionalText(
+            body.authorizationReference,
+            'Referência da autorização',
+            1000,
+          ),
 
-      file_size_bytes:
-        normalizeFileSize(
-          body.fileSizeBytes,
-        ),
-    }
+        authorization_confirmed_at:
+          authorizationConfirmedAt,
+
+        authorization_confirmed_by:
+          authorizationConfirmedBy,
+
+        privacy_notice_version:
+          normalizeOptionalText(
+            body.privacyNoticeVersion,
+            'Versão da política de privacidade',
+            100,
+          ) ??
+          DEFAULT_PRIVACY_NOTICE_VERSION,
+
+        storage_bucket:
+          normalizeOptionalText(
+            body.storageBucket,
+            'Bucket do arquivo',
+            200,
+          ),
+
+        storage_path:
+          normalizeOptionalText(
+            body.storagePath,
+            'Caminho do arquivo',
+            2000,
+          ),
+
+        original_file_name:
+          normalizeOptionalText(
+            body.originalFileName,
+            'Nome original do arquivo',
+            500,
+          ),
+
+        file_mime_type:
+          normalizeOptionalText(
+            body.fileMimeType,
+            'Tipo MIME do arquivo',
+            200,
+          ),
+
+        file_size_bytes:
+          normalizeFileSize(
+            body.fileSizeBytes,
+          ),
+
+        metadata: {
+          ...metadata,
+
+          source:
+            typeof metadata.source ===
+              'string'
+              ? metadata.source
+              : 'agenda-evidences-api',
+
+          createdThrough:
+            'authenticated-user-flow',
+        },
+
+        created_by:
+          user.id,
+
+        updated_by:
+          user.id,
+      }
+
+    const service =
+      createEvidencesService(
+        request,
+      )
 
     const data =
-      await evidencesService.create(
+      await service.create(
         input,
       )
 
     return NextResponse.json(
       {
-        success: true,
+        success:
+          true,
 
         message:
           containsIdentifiableMinor
@@ -419,13 +1063,19 @@ export async function POST(
         data,
       },
       {
-        status: 201,
-        headers: {
-          'Cache-Control': 'no-store',
-        },
+        status:
+          201,
+
+        headers:
+          NO_CACHE_HEADERS,
       },
     )
   } catch (error) {
+    console.error(
+      '[AGENDA_EVIDENCES_POST_ERROR]',
+      error,
+    )
+
     return createErrorResponse(
       error,
       'Não foi possível criar a evidência.',
