@@ -89,8 +89,7 @@ export default function AccessibilityBar() {
     }
 
     setHighContrast(
-      savedContrast ===
-        'true',
+      savedContrast === 'true',
     )
 
     setInitialized(true)
@@ -144,8 +143,7 @@ export default function AccessibilityBar() {
     }
   }, [])
 
-  function increaseFontSize():
-    void {
+  function increaseFontSize(): void {
     setFontSize(
       (current) =>
         normalizeFontSize(
@@ -158,8 +156,7 @@ export default function AccessibilityBar() {
     )
   }
 
-  function decreaseFontSize():
-    void {
+  function decreaseFontSize(): void {
     setFontSize(
       (current) =>
         normalizeFontSize(
@@ -172,8 +169,7 @@ export default function AccessibilityBar() {
     )
   }
 
-  function toggleContrast():
-    void {
+  function toggleContrast(): void {
     setHighContrast(
       (current) => {
         const nextValue =
@@ -190,8 +186,7 @@ export default function AccessibilityBar() {
     )
   }
 
-  function stopReading():
-    void {
+  function stopReading(): void {
     if (
       typeof window ===
         'undefined' ||
@@ -209,8 +204,7 @@ export default function AccessibilityBar() {
     )
   }
 
-  function readPage():
-    void {
+  function readPage(): void {
     if (
       typeof window ===
         'undefined' ||
@@ -227,7 +221,6 @@ export default function AccessibilityBar() {
 
     if (speaking) {
       stopReading()
-
       return
     }
 
@@ -267,49 +260,40 @@ export default function AccessibilityBar() {
         readableText,
       )
 
-    utterance.lang =
-      'pt-BR'
+    utterance.lang = 'pt-BR'
+    utterance.rate = 1
+    utterance.pitch = 1
 
-    utterance.rate =
-      1
+    utterance.onstart = () => {
+      setSpeaking(true)
 
-    utterance.pitch =
-      1
+      setStatusMessage(
+        'Leitura da página iniciada.',
+      )
+    }
 
-    utterance.onstart =
-      () => {
-        setSpeaking(true)
+    utterance.onend = () => {
+      setSpeaking(false)
 
-        setStatusMessage(
-          'Leitura da página iniciada.',
-        )
-      }
+      setStatusMessage(
+        'Leitura da página concluída.',
+      )
+    }
 
-    utterance.onend =
-      () => {
-        setSpeaking(false)
+    utterance.onerror = () => {
+      setSpeaking(false)
 
-        setStatusMessage(
-          'Leitura da página concluída.',
-        )
-      }
-
-    utterance.onerror =
-      () => {
-        setSpeaking(false)
-
-        setStatusMessage(
-          'Não foi possível concluir a leitura da página.',
-        )
-      }
+      setStatusMessage(
+        'Não foi possível concluir a leitura da página.',
+      )
+    }
 
     window.speechSynthesis.speak(
       utterance,
     )
   }
 
-  function resetAccessibility():
-    void {
+  function resetAccessibility(): void {
     if (
       typeof window !==
         'undefined' &&
@@ -332,14 +316,14 @@ export default function AccessibilityBar() {
   }
 
   return (
-    <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+12px)] right-3 z-[70] md:bottom-auto md:right-5 md:top-24">
+    <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+16px)] right-4 z-[80] sm:right-5 lg:right-6">
       {open ? (
         <section
           id="accessibility-panel"
           aria-label="Configurações de acessibilidade"
-          className="absolute bottom-[56px] right-0 w-[min(320px,calc(100vw-24px))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl md:bottom-auto md:top-[56px]"
+          className="absolute bottom-[60px] right-0 max-h-[min(70vh,560px)] w-[min(320px,calc(100vw-32px))] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl"
         >
-          <header className="flex items-start justify-between gap-4 border-b border-slate-200 bg-[#071827] px-4 py-4 text-white">
+          <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-white/10 bg-[#071827] px-4 py-4 text-white">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-300">
                 EIOS
@@ -356,7 +340,7 @@ export default function AccessibilityBar() {
               onClick={() =>
                 setOpen(false)
               }
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-white/20 bg-white/5 px-3 text-xs font-semibold text-white transition hover:bg-white/10"
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-white/20 bg-white/5 px-3 text-xs font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-300"
             >
               Fechar
             </button>
@@ -376,13 +360,9 @@ export default function AccessibilityBar() {
 
               <button
                 type="button"
-                aria-pressed={
-                  speaking
-                }
-                onClick={
-                  readPage
-                }
-                className={`inline-flex h-10 min-w-20 items-center justify-center rounded-lg border px-3 text-xs font-semibold transition ${
+                aria-pressed={speaking}
+                onClick={readPage}
+                className={`inline-flex h-10 min-w-20 items-center justify-center rounded-lg border px-3 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-[#0B7491] ${
                   speaking
                     ? 'border-[#071827] bg-[#071827] text-white'
                     : 'border-slate-300 bg-white text-slate-700 hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78]'
@@ -422,7 +402,7 @@ export default function AccessibilityBar() {
                   onClick={
                     decreaseFontSize
                   }
-                  className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white text-sm font-bold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                  className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white text-sm font-bold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] focus:outline-none focus:ring-2 focus:ring-[#0B7491] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                 >
                   A−
                 </button>
@@ -437,7 +417,7 @@ export default function AccessibilityBar() {
                   onClick={
                     increaseFontSize
                   }
-                  className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white text-sm font-bold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                  className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white text-sm font-bold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] focus:outline-none focus:ring-2 focus:ring-[#0B7491] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                 >
                   A+
                 </button>
@@ -463,7 +443,7 @@ export default function AccessibilityBar() {
                 onClick={
                   toggleContrast
                 }
-                className={`inline-flex h-10 min-w-20 items-center justify-center rounded-lg border px-3 text-xs font-semibold transition ${
+                className={`inline-flex h-10 min-w-20 items-center justify-center rounded-lg border px-3 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-[#0B7491] ${
                   highContrast
                     ? 'border-[#071827] bg-[#071827] text-white'
                     : 'border-slate-300 bg-white text-slate-700 hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78]'
@@ -481,7 +461,7 @@ export default function AccessibilityBar() {
                 onClick={
                   resetAccessibility
                 }
-                className="inline-flex h-10 w-full items-center justify-center rounded-lg border border-slate-300 bg-slate-50 px-4 text-xs font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78]"
+                className="inline-flex h-10 w-full items-center justify-center rounded-lg border border-slate-300 bg-slate-50 px-4 text-xs font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] focus:outline-none focus:ring-2 focus:ring-[#0B7491]"
               >
                 Restaurar configurações
               </button>
@@ -499,14 +479,13 @@ export default function AccessibilityBar() {
 
       <button
         type="button"
+        title="Acessibilidade"
         aria-label={
           open
             ? 'Fechar recursos de acessibilidade'
             : 'Abrir recursos de acessibilidade'
         }
-        aria-expanded={
-          open
-        }
+        aria-expanded={open}
         aria-controls="accessibility-panel"
         onClick={() =>
           setOpen(
@@ -514,16 +493,13 @@ export default function AccessibilityBar() {
               !current,
           )
         }
-        className="inline-flex h-[48px] w-[48px] items-center justify-center rounded-xl border border-cyan-300/40 bg-[#071827] text-[14px] font-bold text-cyan-200 shadow-lg transition hover:bg-[#0B2940] focus:outline-none focus:ring-4 focus:ring-cyan-300/20 md:w-auto md:px-4"
+        className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-cyan-300/40 bg-[#071827] text-sm font-bold text-cyan-200 shadow-xl transition hover:bg-[#0B2940] focus:outline-none focus:ring-4 focus:ring-cyan-300/20"
       >
-        <span
-          aria-hidden="true"
-          className="md:hidden"
-        >
+        <span aria-hidden="true">
           A
         </span>
 
-        <span className="hidden md:inline">
+        <span className="sr-only">
           Acessibilidade
         </span>
       </button>
