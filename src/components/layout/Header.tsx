@@ -48,11 +48,8 @@ function isCurrentRoute(
 export default function Header() {
   const pathname = usePathname()
 
-  const [mobileMenuOpen, setMobileMenuOpen] =
-    useState(false)
-
-  const [currentHash, setCurrentHash] =
-    useState('')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [currentHash, setCurrentHash] = useState('')
 
   useEffect(() => {
     setMobileMenuOpen(false)
@@ -65,16 +62,10 @@ export default function Header() {
       setMobileMenuOpen(false)
     }
 
-    window.addEventListener(
-      'hashchange',
-      handleHashChange,
-    )
+    window.addEventListener('hashchange', handleHashChange)
 
     return () => {
-      window.removeEventListener(
-        'hashchange',
-        handleHashChange,
-      )
+      window.removeEventListener('hashchange', handleHashChange)
     }
   }, [])
 
@@ -83,7 +74,7 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-[60] border-b border-slate-200 bg-white text-[#071827] shadow-sm">
+    <header className="sticky top-0 z-[60] border-b border-slate-100 bg-[#FCFCFD] text-[#071827] shadow-[0_2px_10px_rgba(7,24,39,0.04)]">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex min-h-[96px] items-center justify-between gap-3 lg:min-h-[100px] lg:gap-4">
           <Link
@@ -139,7 +130,7 @@ export default function Header() {
           <div className="hidden shrink-0 items-center gap-3 lg:flex">
             <Link
               href="/login"
-              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-[#071827] transition hover:border-cyan-300 hover:bg-cyan-50 focus:outline-none focus:ring-2 focus:ring-[#0B7491]"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-[#071827] transition hover:border-cyan-300 hover:bg-cyan-50 focus:outline-none focus:ring-2 focus:ring-[#0B7491]"
             >
               Entrar
             </Link>
@@ -161,11 +152,7 @@ export default function Header() {
                 ? 'Fechar menu principal'
                 : 'Abrir menu principal'
             }
-            onClick={() =>
-              setMobileMenuOpen(
-                (current) => !current,
-              )
-            }
+            onClick={() => setMobileMenuOpen((current) => !current)}
             className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl border border-[#071827] bg-[#071827] px-5 py-3 text-base font-semibold text-white transition hover:bg-[#0B2940] focus:outline-none focus:ring-2 focus:ring-[#0B7491] lg:hidden"
           >
             {mobileMenuOpen ? 'Fechar' : 'Menu'}
@@ -175,7 +162,7 @@ export default function Header() {
         {mobileMenuOpen ? (
           <div
             id="mobile-navigation"
-            className="border-t border-slate-200 pb-5 pt-4 lg:hidden"
+            className="border-t border-slate-100 pb-5 pt-4 lg:hidden"
           >
             <nav
               aria-label="Navegação mobile"
@@ -211,9 +198,7 @@ export default function Header() {
                     <span
                       aria-hidden="true"
                       className={
-                        current
-                          ? 'text-[#0B7491]'
-                          : 'text-slate-400'
+                        current ? 'text-[#0B7491]' : 'text-slate-400'
                       }
                     >
                       →
@@ -223,11 +208,11 @@ export default function Header() {
               })}
             </nav>
 
-            <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-200 pt-4">
+            <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
               <Link
                 href="/login"
                 onClick={closeMobileMenu}
-                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-[#071827] transition hover:border-cyan-300 hover:bg-cyan-50 focus:outline-none focus:ring-2 focus:ring-[#0B7491]"
+                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-[#071827] transition hover:border-cyan-300 hover:bg-cyan-50 focus:outline-none focus:ring-2 focus:ring-[#0B7491]"
               >
                 Entrar
               </Link>
@@ -241,7 +226,7 @@ export default function Header() {
               </Link>
             </div>
 
-            <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-xl border border-slate-200 bg-[#EEF3F7] px-4 py-3">
+            <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-xl border border-slate-200 bg-[#F5F8FB] px-4 py-3">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0B7491]">
                   Arquitetura
