@@ -39,30 +39,20 @@ function isCurrentRoute(
   href: string,
 ): boolean {
   if (href.startsWith('/#')) {
-    return (
-      pathname === '/' &&
-      currentHash === href.slice(1)
-    )
+    return pathname === '/' && currentHash === href.slice(1)
   }
 
-  return (
-    pathname === href ||
-    pathname.startsWith(`${href}/`)
-  )
+  return pathname === href || pathname.startsWith(`${href}/`)
 }
 
 export default function Header() {
   const pathname = usePathname()
 
-  const [
-    mobileMenuOpen,
-    setMobileMenuOpen,
-  ] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] =
+    useState(false)
 
-  const [
-    currentHash,
-    setCurrentHash,
-  ] = useState('')
+  const [currentHash, setCurrentHash] =
+    useState('')
 
   useEffect(() => {
     setMobileMenuOpen(false)
@@ -93,9 +83,9 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-[60] border-b border-slate-200 bg-[#F8FAFC]/95 text-[#071827] shadow-sm backdrop-blur">
+    <header className="sticky top-0 z-[60] border-b border-slate-200 bg-white text-[#071827] shadow-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex min-h-[88px] items-center justify-between gap-4 lg:min-h-[92px]">
+        <div className="flex min-h-[96px] items-center justify-between gap-3 lg:min-h-[100px] lg:gap-4">
           <Link
             href="/"
             aria-label="Ir para a página inicial da EduData IA"
@@ -108,7 +98,7 @@ export default function Header() {
               width={260}
               height={104}
               priority
-              className="h-auto w-[164px] object-contain object-left sm:w-[190px] lg:w-[220px]"
+              className="h-auto w-[205px] origin-left scale-[1.16] object-contain object-left sm:w-[225px] sm:scale-110 lg:w-[240px] lg:scale-100"
             />
           </Link>
 
@@ -116,39 +106,34 @@ export default function Header() {
             aria-label="Navegação principal"
             className="hidden items-center gap-5 text-sm font-semibold text-slate-700 lg:flex"
           >
-            {primaryNavigation.map(
-              (item) => {
-                const current =
-                  isCurrentRoute(
-                    pathname,
-                    currentHash,
-                    item.href,
-                  )
+            {primaryNavigation.map((item) => {
+              const current = isCurrentRoute(
+                pathname,
+                currentHash,
+                item.href,
+              )
 
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={
-                      current
-                        ? item.href.startsWith(
-                            '/#',
-                          )
-                          ? 'location'
-                          : 'page'
-                        : undefined
-                    }
-                    className={`border-b-2 py-2 transition focus:outline-none focus:ring-2 focus:ring-[#0B7491] ${
-                      current
-                        ? 'border-[#0B7491] text-[#071827]'
-                        : 'border-transparent hover:border-cyan-300 hover:text-[#071827]'
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                )
-              },
-            )}
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={
+                    current
+                      ? item.href.startsWith('/#')
+                        ? 'location'
+                        : 'page'
+                      : undefined
+                  }
+                  className={`border-b-2 py-2 transition focus:outline-none focus:ring-2 focus:ring-[#0B7491] ${
+                    current
+                      ? 'border-[#0B7491] text-[#071827]'
+                      : 'border-transparent hover:border-cyan-300 hover:text-[#071827]'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              )
+            })}
           </nav>
 
           <div className="hidden shrink-0 items-center gap-3 lg:flex">
@@ -178,15 +163,12 @@ export default function Header() {
             }
             onClick={() =>
               setMobileMenuOpen(
-                (current) =>
-                  !current,
+                (current) => !current,
               )
             }
             className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl border border-[#071827] bg-[#071827] px-5 py-3 text-base font-semibold text-white transition hover:bg-[#0B2940] focus:outline-none focus:ring-2 focus:ring-[#0B7491] lg:hidden"
           >
-            {mobileMenuOpen
-              ? 'Fechar'
-              : 'Menu'}
+            {mobileMenuOpen ? 'Fechar' : 'Menu'}
           </button>
         </div>
 
@@ -199,53 +181,46 @@ export default function Header() {
               aria-label="Navegação mobile"
               className="grid gap-2"
             >
-              {primaryNavigation.map(
-                (item) => {
-                  const current =
-                    isCurrentRoute(
-                      pathname,
-                      currentHash,
-                      item.href,
-                    )
+              {primaryNavigation.map((item) => {
+                const current = isCurrentRoute(
+                  pathname,
+                  currentHash,
+                  item.href,
+                )
 
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      aria-current={
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={
+                      current
+                        ? item.href.startsWith('/#')
+                          ? 'location'
+                          : 'page'
+                        : undefined
+                    }
+                    onClick={closeMobileMenu}
+                    className={`flex min-h-12 items-center justify-between rounded-xl border px-4 py-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-[#0B7491] ${
+                      current
+                        ? 'border-cyan-300 bg-cyan-50 text-cyan-950'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#071827]'
+                    }`}
+                  >
+                    <span>{item.label}</span>
+
+                    <span
+                      aria-hidden="true"
+                      className={
                         current
-                          ? item.href.startsWith(
-                              '/#',
-                            )
-                            ? 'location'
-                            : 'page'
-                          : undefined
+                          ? 'text-[#0B7491]'
+                          : 'text-slate-400'
                       }
-                      onClick={closeMobileMenu}
-                      className={`flex min-h-12 items-center justify-between rounded-xl border px-4 py-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-[#0B7491] ${
-                        current
-                          ? 'border-cyan-300 bg-cyan-50 text-cyan-950'
-                          : 'border-slate-200 bg-white text-slate-700 hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#071827]'
-                      }`}
                     >
-                      <span>
-                        {item.label}
-                      </span>
-
-                      <span
-                        aria-hidden="true"
-                        className={
-                          current
-                            ? 'text-[#0B7491]'
-                            : 'text-slate-400'
-                        }
-                      >
-                        →
-                      </span>
-                    </Link>
-                  )
-                },
-              )}
+                      →
+                    </span>
+                  </Link>
+                )
+              })}
             </nav>
 
             <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-200 pt-4">
