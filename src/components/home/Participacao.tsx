@@ -333,7 +333,7 @@ export default function Participacao() {
             </p>
 
             <a
-              href="#topo"
+              href="/"
               className="inline-flex min-h-10 items-center justify-center rounded-xl border border-white/15 px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-cyan-300/30 hover:bg-white/5 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-300"
             >
               Voltar ao início
