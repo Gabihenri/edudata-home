@@ -31,29 +31,39 @@ const primaryNavigation:
       href: '/professor-digital',
     },
     {
-      label: 'Agenda Inteligente EDI',
+      label: 'Agenda EDI',
       href: '/agenda',
     },
     {
-      label: 'EduData Academy',
+      label: 'Academy',
       href: '/academy',
     },
   ]
 
 function isCurrentRoute(
   pathname: string,
+  currentHash: string,
   href: string,
 ): boolean {
   if (
     href.startsWith('/#')
   ) {
-    return pathname === '/'
+    const targetHash =
+      href.slice(1)
+
+    return (
+      pathname === '/' &&
+      currentHash === targetHash
+    )
   }
 
   if (
     href === '/'
   ) {
-    return pathname === '/'
+    return (
+      pathname === '/' &&
+      !currentHash
+    )
   }
 
   return (
@@ -74,20 +84,58 @@ export default function Header() {
   ] =
     useState(false)
 
+  const [
+    currentHash,
+    setCurrentHash,
+  ] =
+    useState('')
+
   useEffect(() => {
-    setMobileMenuOpen(
-      false,
+    setMobileMenuOpen(false)
+
+    setCurrentHash(
+      window.location.hash,
     )
   }, [pathname])
 
+  useEffect(() => {
+    function handleHashChange() {
+      setCurrentHash(
+        window.location.hash,
+      )
+
+      setMobileMenuOpen(false)
+    }
+
+    window.addEventListener(
+      'hashchange',
+      handleHashChange,
+    )
+
+    return () => {
+      window.removeEventListener(
+        'hashchange',
+        handleHashChange,
+      )
+    }
+  }, [])
+
+  function closeMobileMenu():
+    void {
+    setMobileMenuOpen(false)
+  }
+
   return (
-    <header className="sticky top-0 z-[60] border-b border-white/10 bg-[#050816] text-white shadow-sm">
+    <header className="sticky top-0 z-[60] border-b border-white/10 bg-[#071827] text-white shadow-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex min-h-[72px] items-center justify-between gap-4 lg:min-h-[88px]">
+        <div className="flex min-h-[72px] items-center justify-between gap-4 lg:min-h-[84px]">
           <Link
             href="/"
             aria-label="Ir para a página inicial da EduData IA"
-            className="flex min-w-0 shrink items-center"
+            onClick={
+              closeMobileMenu
+            }
+            className="flex min-w-0 shrink items-center rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-300"
           >
             <Image
               src="/logo-edudata-ia-header.png"
@@ -95,32 +143,40 @@ export default function Header() {
               width={260}
               height={104}
               priority
-              className="h-auto w-[132px] object-contain object-left sm:w-[170px] lg:w-[220px]"
+              className="h-auto w-[132px] object-contain object-left sm:w-[170px] lg:w-[208px]"
             />
           </Link>
 
           <nav
             aria-label="Navegação principal"
-            className="hidden items-center gap-6 text-sm font-semibold text-slate-200 lg:flex"
+            className="hidden items-center gap-5 text-sm font-semibold text-slate-300 lg:flex"
           >
             {primaryNavigation.map(
               (item) => {
                 const current =
                   isCurrentRoute(
                     pathname,
+                    currentHash,
                     item.href,
                   )
+
+                const ariaCurrent =
+                  current
+                    ? item.href.startsWith(
+                        '/#',
+                      )
+                      ? 'location'
+                      : 'page'
+                    : undefined
 
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     aria-current={
-                      current
-                        ? 'page'
-                        : undefined
+                      ariaCurrent
                     }
-                    className={`border-b-2 py-2 transition ${
+                    className={`border-b-2 py-2 transition focus:outline-none focus:ring-2 focus:ring-cyan-300 ${
                       current
                         ? 'border-cyan-300 text-white'
                         : 'border-transparent hover:border-white/20 hover:text-white'
@@ -136,16 +192,16 @@ export default function Header() {
           <div className="hidden shrink-0 items-center gap-3 lg:flex">
             <Link
               href="/login"
-              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-300"
             >
               Entrar
             </Link>
 
             <Link
-              href="/academy#courses"
-              className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0B7491] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#09657E]"
+              href="/agenda"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0B7491] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#09657E] focus:outline-none focus:ring-2 focus:ring-cyan-300"
             >
-              Inscrever-se
+              Conhecer a Agenda
             </Link>
           </div>
 
@@ -162,11 +218,13 @@ export default function Header() {
             }
             onClick={() =>
               setMobileMenuOpen(
-                (current) =>
+                (
+                  current,
+                ) =>
                   !current,
               )
             }
-            className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 lg:hidden"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-300 lg:hidden"
           >
             {mobileMenuOpen
               ? 'Fechar'
@@ -188,19 +246,30 @@ export default function Header() {
                   const current =
                     isCurrentRoute(
                       pathname,
+                      currentHash,
                       item.href,
                     )
+
+                  const ariaCurrent =
+                    current
+                      ? item.href.startsWith(
+                          '/#',
+                        )
+                        ? 'location'
+                        : 'page'
+                      : undefined
 
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
                       aria-current={
-                        current
-                          ? 'page'
-                          : undefined
+                        ariaCurrent
                       }
-                      className={`flex min-h-12 items-center justify-between rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                      onClick={
+                        closeMobileMenu
+                      }
+                      className={`flex min-h-12 items-center justify-between rounded-xl border px-4 py-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-cyan-300 ${
                         current
                           ? 'border-cyan-300/30 bg-cyan-300/10 text-cyan-100'
                           : 'border-white/10 bg-white/[0.04] text-slate-200 hover:bg-white/10 hover:text-white'
@@ -229,26 +298,32 @@ export default function Header() {
             <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/10 pt-4">
               <Link
                 href="/login"
-                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                onClick={
+                  closeMobileMenu
+                }
+                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-300"
               >
                 Entrar
               </Link>
 
               <Link
-                href="/academy#courses"
-                className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0B7491] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#09657E]"
+                href="/agenda"
+                onClick={
+                  closeMobileMenu
+                }
+                className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0B7491] px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#09657E] focus:outline-none focus:ring-2 focus:ring-cyan-300"
               >
-                Inscrever-se
+                Conhecer a Agenda
               </Link>
             </div>
 
-            <div className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+            <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-300">
-                  EIOS
+                  Arquitetura
                 </p>
 
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs leading-5 text-slate-400">
                   Plataforma Operacional de Inteligência Educacional
                 </p>
               </div>
