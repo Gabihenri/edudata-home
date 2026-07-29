@@ -6,6 +6,10 @@ import {
 
 import {
   useAgendaIntelligence,
+  type AgendaAnalytics,
+  type AgendaInsight,
+  type AgendaIntelligenceData,
+  type AgendaRecommendation,
 } from '@/lib/agenda/hooks/useAgendaIntelligence'
 
 import IntelligenceHeader, {
@@ -16,6 +20,40 @@ import IntelligenceIndicators from './IntelligenceIndicators'
 import IntelligenceInsights from './IntelligenceInsights'
 import IntelligenceRecommendations from './IntelligenceRecommendations'
 import IntelligenceScore from './IntelligenceScore'
+
+export type EDIIntelligencePanelState = {
+  intelligence:
+    AgendaIntelligenceData |
+    null
+
+  analytics:
+    AgendaAnalytics
+
+  insights:
+    AgendaInsight[]
+
+  recommendations:
+    AgendaRecommendation[]
+
+  loading: boolean
+  refreshing: boolean
+
+  error:
+    string |
+    null
+
+  generatedAt:
+    string |
+    null
+
+  operationalScore: number
+
+  reload:
+    () => Promise<
+      AgendaIntelligenceData |
+      null
+    >
+}
 
 type EDIIntelligencePanelProps = {
   source?: IntelligenceSource
@@ -28,6 +66,11 @@ type EDIIntelligencePanelProps = {
   showIndicators?: boolean
   showInsights?: boolean
   showRecommendations?: boolean
+
+  state?:
+    EDIIntelligencePanelState |
+    null
+
   className?: string
 }
 
@@ -423,8 +466,19 @@ export default function EDIIntelligencePanel({
   showIndicators = true,
   showInsights = true,
   showRecommendations = true,
+
+  state =
+    null,
+
   className = '',
 }: EDIIntelligencePanelProps) {
+  const internalState =
+    useAgendaIntelligence({
+      autoLoad:
+        state ===
+        null,
+    })
+
   const {
     intelligence,
     analytics,
@@ -436,7 +490,9 @@ export default function EDIIntelligencePanel({
     generatedAt,
     operationalScore,
     reload,
-  } = useAgendaIntelligence()
+  } =
+    state ??
+    internalState
 
   const analyticsSummary =
     useMemo(
