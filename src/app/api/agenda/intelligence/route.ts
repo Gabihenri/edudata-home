@@ -18,6 +18,11 @@ import {
   requireSessionUser,
 } from '@/lib/auth/session'
 
+import {
+  loadAgendaOperationalSnapshot,
+  type AgendaOperationalSnapshot,
+} from '@/lib/agenda/services/operational-snapshot.service'
+
 export const dynamic =
   'force-dynamic'
 
@@ -26,19 +31,6 @@ export const runtime =
 
 type UnknownRecord =
   Record<string, unknown>
-
-type OperationalRecord =
-  Record<string, unknown>
-
-type SupabaseCollectionResult = {
-  data:
-    | OperationalRecord[]
-    | null
-
-  error: {
-    message: string
-  } | null
-}
 
 type IntelligenceBackendResponse = {
   success?: boolean
@@ -65,91 +57,6 @@ const NO_CACHE_HEADERS = {
 
 const REQUEST_TIMEOUT_MS =
   30_000
-
-const MAX_RECORDS_PER_COLLECTION =
-  5000
-
-const PLANNING_SELECT = [
-  'id',
-  'title',
-  'description',
-  'subject',
-  'class_name',
-  'objective',
-  'methodology',
-  'planned_date',
-  'status',
-  'class_id',
-  'school_year_id',
-  'academic_period_id',
-  'school_id',
-  'organization_id',
-  'user_id',
-  'created_at',
-  'updated_at',
-].join(',')
-
-const OBJECTIVES_SELECT = [
-  'id',
-  'title',
-  'description',
-  'category',
-  'period',
-  'class_id',
-  'subject',
-  'responsible_user_id',
-  'expected_indicator',
-  'expected_evidence',
-  'start_date',
-  'end_date',
-  'school_year_id',
-  'academic_period_id',
-  'status',
-  'progress',
-  'user_id',
-  'organization_id',
-  'school_id',
-  'created_at',
-  'updated_at',
-].join(',')
-
-const LESSONS_SELECT = [
-  'id',
-  'title',
-  'description',
-  'subject',
-  'status',
-  'scheduled_date',
-  'start_time',
-  'end_time',
-  'planning_id',
-  'class_id',
-  'academic_period_id',
-  'organization_id',
-  'school_id',
-  'user_id',
-  'created_at',
-  'updated_at',
-].join(',')
-
-const EVIDENCES_SELECT = [
-  'id',
-  'title',
-  'evidence_type',
-  'lesson_id',
-  'planning_id',
-  'objective_id',
-  'class_id',
-  'academic_period_id',
-  'organization_id',
-  'school_id',
-  'user_id',
-  'contains_identifiable_minor',
-  'storage_bucket',
-  'storage_path',
-  'created_at',
-  'updated_at',
-].join(',')
 
 function getAccessToken(
   request: NextRequest,
@@ -280,44 +187,6 @@ function normalizeOptionalText(
   )
 }
 
-function limitCollection(
-  collection:
-    OperationalRecord[],
-  collectionName: string,
-): OperationalRecord[] {
-  if (
-    collection.length >
-    MAX_RECORDS_PER_COLLECTION
-  ) {
-    throw new Error(
-      `A coleção ${collectionName} ultrapassou o limite operacional permitido.`,
-    )
-  }
-
-  return collection
-}
-
-function unwrapCollection(
-  result:
-    SupabaseCollectionResult,
-
-  collectionName: string,
-): OperationalRecord[] {
-  if (
-    result.error
-  ) {
-    throw new Error(
-      `Não foi possível carregar ${collectionName}: ${result.error.message}`,
-    )
-  }
-
-  return limitCollection(
-    result.data ??
-    [],
-    collectionName,
-  )
-}
-
 async function requireIntelligenceAccess(
   userId: string,
 ): Promise<void> {
@@ -334,208 +203,17 @@ async function requireIntelligenceAccess(
   })
 }
 
-async function loadPlanning(
-  client: SupabaseClient,
-  userId: string,
-): Promise<
-  SupabaseCollectionResult
-> {
-  const {
-    data,
-    error,
-  } = await client
-    .from(
-      'agenda_planning',
-    )
-    .select(
-      PLANNING_SELECT,
-    )
-    .eq(
-      'user_id',
-      userId,
-    )
-    .is(
-      'deleted_at',
-      null,
-    )
-    .order(
-      'updated_at',
-      {
-        ascending:
-          false,
-      },
-    )
-    .limit(
-      MAX_RECORDS_PER_COLLECTION,
-    )
-
-  return {
-    data:
-      data as
-        OperationalRecord[] |
-        null,
-
-    error,
-  }
-}
-
-async function loadObjectives(
-  client: SupabaseClient,
-  userId: string,
-): Promise<
-  SupabaseCollectionResult
-> {
-  const {
-    data,
-    error,
-  } = await client
-    .from(
-      'agenda_objectives',
-    )
-    .select(
-      OBJECTIVES_SELECT,
-    )
-    .eq(
-      'user_id',
-      userId,
-    )
-    .is(
-      'deleted_at',
-      null,
-    )
-    .order(
-      'updated_at',
-      {
-        ascending:
-          false,
-      },
-    )
-    .limit(
-      MAX_RECORDS_PER_COLLECTION,
-    )
-
-  return {
-    data:
-      data as
-        OperationalRecord[] |
-        null,
-
-    error,
-  }
-}
-
-async function loadLessons(
-  client: SupabaseClient,
-  userId: string,
-): Promise<
-  SupabaseCollectionResult
-> {
-  const {
-    data,
-    error,
-  } = await client
-    .from(
-      'agenda_lessons',
-    )
-    .select(
-      LESSONS_SELECT,
-    )
-    .eq(
-      'user_id',
-      userId,
-    )
-    .is(
-      'deleted_at',
-      null,
-    )
-    .order(
-      'updated_at',
-      {
-        ascending:
-          false,
-      },
-    )
-    .limit(
-      MAX_RECORDS_PER_COLLECTION,
-    )
-
-  return {
-    data:
-      data as
-        OperationalRecord[] |
-        null,
-
-    error,
-  }
-}
-
-async function loadEvidences(
-  client: SupabaseClient,
-  userId: string,
-): Promise<
-  SupabaseCollectionResult
-> {
-  const {
-    data,
-    error,
-  } = await client
-    .from(
-      'agenda_evidences',
-    )
-    .select(
-      EVIDENCES_SELECT,
-    )
-    .eq(
-      'user_id',
-      userId,
-    )
-    .is(
-      'deleted_at',
-      null,
-    )
-    .order(
-      'updated_at',
-      {
-        ascending:
-          false,
-      },
-    )
-    .limit(
-      MAX_RECORDS_PER_COLLECTION,
-    )
-
-  return {
-    data:
-      data as
-        OperationalRecord[] |
-        null,
-
-    error,
-  }
-}
-
 function inferContext(
   userId: string,
 
-  collections: {
-    planning:
-      OperationalRecord[]
-
-    objectives:
-      OperationalRecord[]
-
-    lessons:
-      OperationalRecord[]
-
-    evidences:
-      OperationalRecord[]
-  },
+  snapshot:
+    AgendaOperationalSnapshot,
 ): UnknownRecord {
   const allRecords = [
-    ...collections.planning,
-    ...collections.objectives,
-    ...collections.lessons,
-    ...collections.evidences,
+    ...snapshot.planning,
+    ...snapshot.objectives,
+    ...snapshot.lessons,
+    ...snapshot.evidences,
   ]
 
   const organizationId =
@@ -585,9 +263,48 @@ function inferContext(
       rls_applied:
         true,
 
+      snapshot_source:
+        'operational-snapshot-service',
+
       contract_version:
         'agenda-operational-v1',
     },
+  }
+}
+
+function createIntelligencePayload({
+  userId,
+  snapshot,
+}: {
+  userId: string
+
+  snapshot:
+    AgendaOperationalSnapshot
+}): UnknownRecord {
+  return {
+    context:
+      inferContext(
+        userId,
+        snapshot,
+      ),
+
+    planning:
+      snapshot.planning,
+
+    objectives:
+      snapshot.objectives,
+
+    lessons:
+      snapshot.lessons,
+
+    evidences:
+      snapshot.evidences,
+
+    interactions:
+      [],
+
+    accepted_recommendations:
+      0,
   }
 }
 
@@ -922,82 +639,23 @@ export async function GET(
         ),
       )
 
-    const [
-      planningResult,
-      objectivesResult,
-      lessonsResult,
-      evidencesResult,
-    ] = await Promise.all([
-      loadPlanning(
+    const {
+      snapshot,
+    } =
+      await loadAgendaOperationalSnapshot({
         client,
-        user.id,
-      ),
 
-      loadObjectives(
-        client,
-        user.id,
-      ),
-
-      loadLessons(
-        client,
-        user.id,
-      ),
-
-      loadEvidences(
-        client,
-        user.id,
-      ),
-    ])
-
-    const planning =
-      unwrapCollection(
-        planningResult,
-        'os planejamentos',
-      )
-
-    const objectives =
-      unwrapCollection(
-        objectivesResult,
-        'os objetivos',
-      )
-
-    const lessons =
-      unwrapCollection(
-        lessonsResult,
-        'as aulas',
-      )
-
-    const evidences =
-      unwrapCollection(
-        evidencesResult,
-        'as evidências',
-      )
-
-    const collections = {
-      planning,
-      objectives,
-      lessons,
-      evidences,
-    }
-
-    const payload: UnknownRecord = {
-      context:
-        inferContext(
+        userId:
           user.id,
-          collections,
-        ),
+      })
 
-      planning,
-      objectives,
-      lessons,
-      evidences,
+    const payload =
+      createIntelligencePayload({
+        userId:
+          user.id,
 
-      interactions:
-        [],
-
-      accepted_recommendations:
-        0,
-    }
+        snapshot,
+      })
 
     const backendResponse =
       await callIntelligenceBackend(
@@ -1015,7 +673,7 @@ export async function GET(
       {
         error:
           error instanceof
-          Error
+            Error
             ? error.message
             : error,
       },
