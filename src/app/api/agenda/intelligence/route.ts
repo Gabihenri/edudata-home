@@ -56,7 +56,13 @@ const NO_CACHE_HEADERS = {
 }
 
 const REQUEST_TIMEOUT_MS =
-  30_000
+  90_000
+
+const MAX_BACKEND_ATTEMPTS =
+  2
+
+const RETRY_DELAY_MS =
+  1_500
 
 function getAccessToken(
   request: NextRequest,
@@ -187,6 +193,133 @@ function normalizeOptionalText(
   )
 }
 
+function getErrorMessage(
+  error: unknown,
+): string {
+  if (
+    error instanceof Error
+  ) {
+    return error.message
+  }
+
+  return String(
+    error,
+  )
+}
+
+function getErrorCauseCode(
+  error: unknown,
+): string | null {
+  if (
+    !(error instanceof Error)
+  ) {
+    return null
+  }
+
+  const cause =
+    error.cause
+
+  if (
+    !isRecord(
+      cause,
+    )
+  ) {
+    return null
+  }
+
+  const code =
+    cause.code
+
+  return (
+    typeof code ===
+      'string'
+      ? code
+      : null
+  )
+}
+
+function isRetryableNetworkError(
+  error: unknown,
+): boolean {
+  if (
+    !(error instanceof Error)
+  ) {
+    return false
+  }
+
+  if (
+    error.name ===
+    'AbortError'
+  ) {
+    return true
+  }
+
+  const normalizedMessage =
+    error.message
+      .trim()
+      .toLowerCase()
+
+  if (
+    normalizedMessage ===
+      'fetch failed' ||
+    normalizedMessage.includes(
+      'network',
+    ) ||
+    normalizedMessage.includes(
+      'socket',
+    ) ||
+    normalizedMessage.includes(
+      'connection',
+    ) ||
+    normalizedMessage.includes(
+      'timeout',
+    ) ||
+    normalizedMessage.includes(
+      'timed out',
+    )
+  ) {
+    return true
+  }
+
+  const retryableCodes =
+    new Set([
+      'ECONNRESET',
+      'ECONNREFUSED',
+      'EAI_AGAIN',
+      'ENETUNREACH',
+      'ETIMEDOUT',
+      'UND_ERR_CONNECT_TIMEOUT',
+      'UND_ERR_HEADERS_TIMEOUT',
+      'UND_ERR_SOCKET',
+    ])
+
+  const causeCode =
+    getErrorCauseCode(
+      error,
+    )
+
+  return (
+    causeCode !==
+      null &&
+    retryableCodes.has(
+      causeCode,
+    )
+  )
+}
+
+function wait(
+  delayMs: number,
+): Promise<void> {
+  return new Promise(
+    resolve => {
+      setTimeout(
+        resolve,
+        delayMs,
+      )
+    },
+  )
+}
+
 async function requireIntelligenceAccess(
   userId: string,
 ): Promise<void> {
@@ -308,9 +441,17 @@ function createIntelligencePayload({
   }
 }
 
-async function callIntelligenceBackend(
-  payload: UnknownRecord,
-): Promise<
+async function performBackendRequest({
+  backendUrl,
+  payload,
+  attempt,
+}: {
+  backendUrl: string
+
+  payload: UnknownRecord
+
+  attempt: number
+}): Promise<
   IntelligenceBackendResponse
 > {
   const controller =
@@ -327,7 +468,7 @@ async function callIntelligenceBackend(
   try {
     const response =
       await fetch(
-        getIntelligenceBackendUrl(),
+        backendUrl,
         {
           method:
             'POST',
@@ -338,6 +479,14 @@ async function callIntelligenceBackend(
 
             'Content-Type':
               'application/json',
+
+            'X-EDI-Contract-Version':
+              'agenda-operational-v1',
+
+            'X-EDI-Request-Attempt':
+              String(
+                attempt,
+              ),
           },
 
           body:
@@ -382,7 +531,7 @@ async function callIntelligenceBackend(
         normalizeOptionalText(
           parsedBody.message,
         ) ??
-        'O EDI Intelligence Engine não conseguiu processar os dados.'
+        `O EDI Intelligence Engine respondeu com status ${response.status}.`
 
       throw new Error(
         errorMessage,
@@ -390,26 +539,117 @@ async function callIntelligenceBackend(
     }
 
     return parsedBody
-  } catch (
-    error
-  ) {
-    if (
-      error instanceof
-        Error &&
-      error.name ===
-        'AbortError'
-    ) {
-      throw new Error(
-        'O EDI Intelligence Engine excedeu o tempo máximo de resposta.',
-      )
-    }
-
-    throw error
   } finally {
     clearTimeout(
       timeoutId,
     )
   }
+}
+
+async function callIntelligenceBackend(
+  payload: UnknownRecord,
+): Promise<
+  IntelligenceBackendResponse
+> {
+  const backendUrl =
+    getIntelligenceBackendUrl()
+
+  let lastError:
+    unknown =
+    null
+
+  for (
+    let attempt = 1;
+    attempt <=
+      MAX_BACKEND_ATTEMPTS;
+    attempt += 1
+  ) {
+    try {
+      return await performBackendRequest({
+        backendUrl,
+        payload,
+        attempt,
+      })
+    } catch (
+      error
+    ) {
+      lastError =
+        error
+
+      const retryable =
+        isRetryableNetworkError(
+          error,
+        )
+
+      console.error(
+        '[EDI_INTELLIGENCE_BACKEND_ATTEMPT_ERROR]',
+        {
+          attempt,
+
+          maximumAttempts:
+            MAX_BACKEND_ATTEMPTS,
+
+          backendUrl,
+
+          retryable,
+
+          error:
+            getErrorMessage(
+              error,
+            ),
+
+          causeCode:
+            getErrorCauseCode(
+              error,
+            ),
+        },
+      )
+
+      const hasAnotherAttempt =
+        attempt <
+        MAX_BACKEND_ATTEMPTS
+
+      if (
+        !retryable ||
+        !hasAnotherAttempt
+      ) {
+        break
+      }
+
+      await wait(
+        RETRY_DELAY_MS,
+      )
+    }
+  }
+
+  if (
+    lastError instanceof
+      Error &&
+    lastError.name ===
+      'AbortError'
+  ) {
+    throw new Error(
+      'O EDI Intelligence Engine excedeu o tempo máximo de resposta.',
+    )
+  }
+
+  if (
+    isRetryableNetworkError(
+      lastError,
+    )
+  ) {
+    throw new Error(
+      'Não foi possível estabelecer comunicação com o backend EIOS após duas tentativas.',
+    )
+  }
+
+  throw (
+    lastError instanceof Error
+      ? lastError
+      : new Error(
+          'Não foi possível acessar o backend EIOS.',
+        )
+  )
 }
 
 function buildSuccessResponse(
@@ -603,6 +843,38 @@ function buildErrorResponse(
     )
   }
 
+  if (
+    normalizedMessage
+      .includes(
+        'backend eios',
+      ) ||
+    normalizedMessage
+      .includes(
+        'tempo máximo',
+      ) ||
+    normalizedMessage
+      .includes(
+        'comunicação',
+      )
+  ) {
+    return NextResponse.json(
+      {
+        success:
+          false,
+
+        error:
+          message,
+      },
+      {
+        status:
+          503,
+
+        headers:
+          NO_CACHE_HEADERS,
+      },
+    )
+  }
+
   return NextResponse.json(
     {
       success:
@@ -672,10 +944,14 @@ export async function GET(
       '[AGENDA_INTELLIGENCE_GET_ERROR]',
       {
         error:
-          error instanceof
-            Error
-            ? error.message
-            : error,
+          getErrorMessage(
+            error,
+          ),
+
+        causeCode:
+          getErrorCauseCode(
+            error,
+          ),
       },
     )
 
