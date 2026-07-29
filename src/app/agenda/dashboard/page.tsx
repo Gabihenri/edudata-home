@@ -4,7 +4,7 @@ import {
   AgendaPageShell,
 } from '@/components/agenda/AgendaPageShell'
 
-import EDIIntelligencePanel from '@/components/core/intelligence/EDIIntelligencePanel'
+import AgendaCommandCenter from '@/components/agenda/AgendaCommandCenter'
 
 type AgendaModuleLink = {
   code: string
@@ -71,9 +71,9 @@ const agendaModules:
 export default function AgendaDashboardPage() {
   return (
     <AgendaPageShell
-      eyebrow="Centro de Inteligência Pedagógica"
-      title="Inteligência EDI"
-      description="Acompanhe o ciclo pedagógico, identifique prioridades e acesse as ações recomendadas pelo EIOS a partir dos seus registros autorizados."
+      eyebrow="Centro de Comando Pedagógico"
+      title="Agenda Inteligente EDI"
+      description="Organize suas prioridades, acompanhe o ciclo pedagógico e acesse as ações recomendadas pelo EIOS a partir dos seus registros autorizados."
     >
       <div
         className="
@@ -81,13 +81,7 @@ export default function AgendaDashboardPage() {
           sm:space-y-8
         "
       >
-        <EDIIntelligencePanel
-          source="agenda"
-          title="Inteligência EDI"
-          description="Leitura operacional da Agenda Inteligente EDI, produzida pelo EIOS a partir de planejamentos, objetivos, aulas e evidências autorizadas."
-          maximumInsights={6}
-          maximumRecommendations={6}
-        />
+        <AgendaCommandCenter />
 
         <section
           aria-labelledby="agenda-operational-modules"
@@ -224,6 +218,7 @@ export default function AgendaDashboardPage() {
                 >
                   {module.emphasis ? (
                     <span
+                      aria-hidden="true"
                       className="
                         absolute
                         inset-x-0
