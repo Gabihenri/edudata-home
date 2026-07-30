@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, timezone
 from typing import Any
 
@@ -49,8 +51,8 @@ def _as_record_list(
         )
 
     if (
-        len(value) >
-        MAX_RECORDS_PER_COLLECTION
+        len(value)
+        > MAX_RECORDS_PER_COLLECTION
     ):
         raise HTTPException(
             status_code=413,
@@ -85,14 +87,14 @@ def _optional_text(
     return None
 
 
-def _non_negative_integer(
+def _optional_non_negative_integer(
     value: Any,
-) -> int:
+) -> int | None:
     if isinstance(
         value,
         bool,
     ):
-        return 0
+        return None
 
     if isinstance(
         value,
@@ -108,11 +110,209 @@ def _non_negative_integer(
         float,
     ):
         return max(
-            int(value),
+            int(
+                value,
+            ),
             0,
         )
 
-    return 0
+    return None
+
+
+def _non_negative_integer(
+    value: Any,
+) -> int:
+    normalized_value = (
+        _optional_non_negative_integer(
+            value,
+        )
+    )
+
+    return (
+        normalized_value
+        if normalized_value
+        is not None
+        else 0
+    )
+
+
+def _safe_execution_scope(
+    value: Any,
+) -> dict[str, str | None]:
+    scope = _as_record(
+        value,
+    )
+
+    return {
+        "organization_id": (
+            _optional_text(
+                scope.get(
+                    "organization_id",
+                ),
+            )
+        ),
+        "school_id": (
+            _optional_text(
+                scope.get(
+                    "school_id",
+                ),
+            )
+        ),
+        "user_id": (
+            _optional_text(
+                scope.get(
+                    "user_id",
+                ),
+            )
+        ),
+        "role": (
+            _optional_text(
+                scope.get(
+                    "role",
+                ),
+            )
+        ),
+    }
+
+
+def _safe_execution_metadata(
+    value: Any,
+) -> dict[str, Any]:
+    metadata = _as_record(
+        value,
+    )
+
+    safe_metadata: dict[str, Any] = {}
+
+    allowed_text_fields = [
+        "status",
+        "engine",
+        "component",
+        "error_type",
+    ]
+
+    for field_name in (
+        allowed_text_fields
+    ):
+        field_value = (
+            _optional_text(
+                metadata.get(
+                    field_name,
+                ),
+            )
+        )
+
+        if field_value is not None:
+            safe_metadata[
+                field_name
+            ] = field_value
+
+    deterministic = (
+        metadata.get(
+            "deterministic",
+        )
+    )
+
+    if isinstance(
+        deterministic,
+        bool,
+    ):
+        safe_metadata[
+            "deterministic"
+        ] = deterministic
+
+    generative_ai_used = (
+        metadata.get(
+            "generative_ai_used",
+        )
+    )
+
+    if isinstance(
+        generative_ai_used,
+        bool,
+    ):
+        safe_metadata[
+            "generative_ai_used"
+        ] = generative_ai_used
+
+    return safe_metadata
+
+
+def _sanitize_execution(
+    value: Any,
+) -> dict[str, Any]:
+    execution = _as_record(
+        value,
+    )
+
+    if not execution:
+        return {}
+
+    return {
+        "execution_id": (
+            _optional_text(
+                execution.get(
+                    "execution_id",
+                ),
+            )
+        ),
+        "started_at": (
+            _optional_text(
+                execution.get(
+                    "started_at",
+                ),
+            )
+        ),
+        "completed_at": (
+            _optional_text(
+                execution.get(
+                    "completed_at",
+                ),
+            )
+        ),
+        "duration_ms": (
+            _optional_non_negative_integer(
+                execution.get(
+                    "duration_ms",
+                ),
+            )
+        ),
+        "module": (
+            _optional_text(
+                execution.get(
+                    "module",
+                ),
+            )
+        ),
+        "contract_version": (
+            _optional_text(
+                execution.get(
+                    "contract_version",
+                ),
+            )
+        ),
+        "scope": (
+            _safe_execution_scope(
+                execution.get(
+                    "scope",
+                ),
+            )
+        ),
+        "cache_key": (
+            _optional_text(
+                execution.get(
+                    "cache_key",
+                ),
+            )
+        ),
+        "metadata": (
+            _safe_execution_metadata(
+                execution.get(
+                    "metadata",
+                ),
+            )
+        ),
+    }
 
 
 def _build_engine_context(
@@ -131,26 +331,34 @@ def _build_engine_context(
     )
 
     return EngineContext(
-        organization_id=_optional_text(
-            context_payload.get(
-                "organization_id",
-            ),
+        organization_id=(
+            _optional_text(
+                context_payload.get(
+                    "organization_id",
+                ),
+            )
         ),
-        school_id=_optional_text(
-            context_payload.get(
-                "school_id",
-            ),
+        school_id=(
+            _optional_text(
+                context_payload.get(
+                    "school_id",
+                ),
+            )
         ),
-        user_id=_optional_text(
-            context_payload.get(
-                "user_id",
-            ),
+        user_id=(
+            _optional_text(
+                context_payload.get(
+                    "user_id",
+                ),
+            )
         ),
         module="agenda",
-        role=_optional_text(
-            context_payload.get(
-                "role",
-            ),
+        role=(
+            _optional_text(
+                context_payload.get(
+                    "role",
+                ),
+            )
         ),
         metadata={
             **metadata,
@@ -250,45 +458,67 @@ def _sanitize_engine_result(
     - conteúdo de evidências;
     - referências sensíveis de autorização;
     - tokens;
-    - chaves;
+    - chaves privadas;
+    - payload operacional original;
     - dados pessoais desnecessários.
     """
 
     return {
-        "context": _as_record(
-            engine_result.get(
-                "context",
-            ),
+        "context": (
+            _as_record(
+                engine_result.get(
+                    "context",
+                ),
+            )
         ),
-        "contract": _as_record(
-            engine_result.get(
-                "contract",
-            ),
+        "execution": (
+            _sanitize_execution(
+                engine_result.get(
+                    "execution",
+                ),
+            )
         ),
-        "profile": _as_record(
-            engine_result.get(
-                "profile",
-            ),
+        "contract": (
+            _as_record(
+                engine_result.get(
+                    "contract",
+                ),
+            )
         ),
-        "analytics": _as_record(
-            engine_result.get(
-                "analytics",
-            ),
+        "profile": (
+            _as_record(
+                engine_result.get(
+                    "profile",
+                ),
+            )
         ),
-        "insights": _as_record(
-            engine_result.get(
-                "insights",
-            ),
+        "analytics": (
+            _as_record(
+                engine_result.get(
+                    "analytics",
+                ),
+            )
         ),
-        "recommendations": _as_record(
-            engine_result.get(
-                "recommendations",
-            ),
+        "insights": (
+            _as_record(
+                engine_result.get(
+                    "insights",
+                ),
+            )
         ),
-        "learning": _as_record(
-            engine_result.get(
-                "learning",
-            ),
+        "recommendations": (
+            _as_record(
+                engine_result.get(
+                    "recommendations",
+                ),
+            )
+        ),
+        "learning": (
+            _as_record(
+                engine_result.get(
+                    "learning",
+                ),
+            )
         ),
     }
 
@@ -332,7 +562,8 @@ def analyze_agenda(
     - construir o EngineContext;
     - normalizar os registros recebidos;
     - executar o PipelineEngine;
-    - devolver um contrato único.
+    - devolver um contrato único;
+    - expor metadados seguros da execução.
 
     Esta rota não:
 
@@ -359,8 +590,10 @@ def analyze_agenda(
             else {}
         )
 
-        context = _build_engine_context(
-            normalized_payload,
+        context = (
+            _build_engine_context(
+                normalized_payload,
+            )
         )
 
         pipeline_payload = (
@@ -409,7 +642,9 @@ def analyze_agenda(
 
     except EduDataException as exc:
         raise HTTPException(
-            status_code=exc.status_code,
+            status_code=(
+                exc.status_code
+            ),
             detail=exc.message,
         ) from exc
 
@@ -418,9 +653,15 @@ def analyze_agenda(
             "[EDI_INTELLIGENCE_AGENDA_ERROR]",
             {
                 "error_type": (
-                    type(exc).__name__
+                    type(
+                        exc,
+                    ).__name__
                 ),
-                "message": str(exc),
+                "message": (
+                    str(
+                        exc,
+                    )
+                ),
             },
         )
 
