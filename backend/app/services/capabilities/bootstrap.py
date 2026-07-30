@@ -15,6 +15,9 @@ from app.services.capabilities.loader import (
     CapabilityLoader,
     capability_loader,
 )
+from app.services.capabilities.planning_handlers import (
+    register_planning_handlers,
+)
 from app.services.capabilities.registry import (
     CapabilityRegistry,
     capability_registry,
@@ -98,9 +101,10 @@ class CapabilityBootstrap:
 
     1. Descobrir módulos `*_capabilities`;
     2. Registrar contratos no CapabilityRegistry;
-    3. Registrar handlers oficiais;
-    4. Validar consistência entre Registry e Dispatcher;
-    5. Produzir relatório seguro.
+    3. Registrar handlers oficiais da Agenda;
+    4. Registrar handlers oficiais de Planejamento;
+    5. Validar consistência entre Registry e Dispatcher;
+    6. Produzir relatório seguro.
 
     O Bootstrap não:
 
@@ -177,10 +181,21 @@ class CapabilityBootstrap:
             self._loader.load_all()
         )
 
-        registered_handlers = (
+        agenda_handlers = (
             register_agenda_handlers(
                 self._dispatcher,
             )
+        )
+
+        planning_handlers = (
+            register_planning_handlers(
+                self._dispatcher,
+            )
+        )
+
+        registered_handlers = (
+            agenda_handlers
+            + planning_handlers
         )
 
         dispatcher_summary = (
