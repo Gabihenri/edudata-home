@@ -17,6 +17,10 @@ AGENDA_DASHBOARD_INTELLIGENCE_ID = (
     "agenda.dashboard_intelligence"
 )
 
+PLANNING_DAILY_PRIORITIES_ID = (
+    "planning.daily_priorities"
+)
+
 
 def build_agenda_dashboard_intelligence_capability(
 ) -> Capability:
@@ -113,6 +117,108 @@ def build_agenda_dashboard_intelligence_capability(
     )
 
 
+def build_planning_daily_priorities_capability(
+) -> Capability:
+    """
+    Constrói o contrato oficial de prioridades diárias.
+
+    Esta capacidade organiza prioridades operacionais com base
+    nas análises já produzidas pelo EIOS.
+
+    Ela não:
+
+    - cria planejamentos automaticamente;
+    - altera tarefas;
+    - modifica objetivos;
+    - registra evidências;
+    - executa ações sem autorização;
+    - utiliza IA generativa;
+    - substitui a decisão profissional do professor.
+    """
+
+    return Capability(
+        capability_id=(
+            PLANNING_DAILY_PRIORITIES_ID
+        ),
+        title=(
+            "Prioridades Diárias do Planejamento"
+        ),
+        description=(
+            "Organiza as principais prioridades operacionais "
+            "do professor para o período atual, considerando "
+            "planejamentos, objetivos, aulas, evidências, "
+            "indicadores e recomendações produzidas pelo EIOS."
+        ),
+        module="agenda",
+        owner="Agenda Inteligente EDI",
+        version="1.0.0",
+        status=(
+            CapabilityStatus.STABLE
+        ),
+        execution_mode=(
+            CapabilityExecutionMode.ANALYSIS
+        ),
+        risk_level=(
+            CapabilityRiskLevel.MODERATE
+        ),
+        scope=(
+            CapabilityScope.USER
+        ),
+        output_type=(
+            CapabilityOutputType.RECOMMENDATION_SET
+        ),
+        required_roles=(
+            "professor",
+            "coordenador",
+            "diretor",
+            "gestor",
+            "super_admin",
+        ),
+        required_context=(
+            CapabilityDataRequirement.USER_CONTEXT,
+            CapabilityDataRequirement.AGENDA,
+            CapabilityDataRequirement.PLANNING,
+            CapabilityDataRequirement.OBJECTIVES,
+            CapabilityDataRequirement.LESSONS,
+            CapabilityDataRequirement.EVIDENCES,
+            CapabilityDataRequirement.INDICATORS,
+            CapabilityDataRequirement.RECOMMENDATIONS,
+        ),
+        dependencies=(
+            AGENDA_DASHBOARD_INTELLIGENCE_ID,
+        ),
+        tags=(
+            "agenda",
+            "planning",
+            "priorities",
+            "daily",
+            "eios",
+            "recommendations",
+        ),
+        estimated_execution_ms=150,
+        requires_confirmation=False,
+        audit_required=True,
+        enabled=True,
+        metadata={
+            "contract_version": (
+                "planning-daily-priorities-v1"
+            ),
+            "engine": (
+                "edi-intelligence"
+            ),
+            "dependency": (
+                AGENDA_DASHBOARD_INTELLIGENCE_ID
+            ),
+            "deterministic": True,
+            "generative_ai_used": False,
+            "source": (
+                "eios-dashboard-intelligence"
+            ),
+            "maximum_priorities": 5,
+        },
+    )
+
+
 def register_agenda_capabilities(
     registry: CapabilityRegistry | None = None,
 ) -> tuple[Capability, ...]:
@@ -121,6 +227,11 @@ def register_agenda_capabilities(
 
     O processo é idempotente: importar ou inicializar o módulo
     mais de uma vez não cria registros duplicados.
+
+    A ordem de registro preserva as dependências:
+
+    1. agenda.dashboard_intelligence;
+    2. planning.daily_priorities.
     """
 
     target_registry = (
@@ -130,6 +241,7 @@ def register_agenda_capabilities(
 
     capabilities = (
         build_agenda_dashboard_intelligence_capability(),
+        build_planning_daily_priorities_capability(),
     )
 
     registered_capabilities: list[
