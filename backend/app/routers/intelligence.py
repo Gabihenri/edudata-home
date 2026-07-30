@@ -8,7 +8,15 @@ from fastapi import APIRouter, HTTPException
 from app.core.exceptions.exceptions import EduDataException
 from app.core.responses.api_response import ApiResponse
 from app.engine.context import EngineContext
-from app.engine.pipelines.pipeline_engine import PipelineEngine
+from app.services.capabilities.agenda_capabilities import (
+    AGENDA_DASHBOARD_INTELLIGENCE_ID,
+)
+from app.services.capabilities.dispatcher import (
+    capability_dispatcher,
+)
+from app.services.capabilities.exceptions import (
+    CapabilityError,
+)
 
 
 router = APIRouter(
@@ -542,6 +550,12 @@ def intelligence_health() -> dict[str, Any]:
                 "agenda-operational-v1"
             ),
             "generative_ai_used": False,
+            "execution_layer": (
+                "educational-capability-platform"
+            ),
+            "capability_id": (
+                AGENDA_DASHBOARD_INTELLIGENCE_ID
+            ),
         },
         message=(
             "EDI Intelligence Engine disponível."
@@ -554,19 +568,21 @@ def analyze_agenda(
     payload: dict[str, Any],
 ) -> dict[str, Any]:
     """
-    Executa o pipeline oficial de inteligência da Agenda.
+    Executa a capacidade oficial de inteligência da Agenda.
 
     Responsabilidades desta rota:
 
     - validar o contrato de transporte;
     - construir o EngineContext;
     - normalizar os registros recebidos;
-    - executar o PipelineEngine;
-    - devolver um contrato único;
-    - expor metadados seguros da execução.
+    - encaminhar a execução ao CapabilityDispatcher;
+    - utilizar a capacidade agenda.dashboard_intelligence;
+    - devolver o contrato único do EIOS;
+    - expor somente metadados seguros da execução.
 
     Esta rota não:
 
+    - chama diretamente o PipelineEngine;
     - autentica diretamente o usuário;
     - acessa o banco;
     - contorna RLS;
@@ -602,12 +618,62 @@ def analyze_agenda(
             )
         )
 
-        engine_result = (
-            PipelineEngine.execute(
-                context=context,
-                payload=pipeline_payload,
+        dispatch_result = (
+            capability_dispatcher.dispatch(
+                AGENDA_DASHBOARD_INTELLIGENCE_ID,
+                payload={
+                    "engine_context": (
+                        context
+                    ),
+                    "pipeline_payload": (
+                        pipeline_payload
+                    ),
+                },
+                role=(
+                    context.role
+                ),
+                context={
+                    "user_context": True,
+                    "agenda": True,
+                    "planning": True,
+                    "objectives": True,
+                    "lessons": True,
+                    "evidences": True,
+                },
+                confirmation_provided=False,
+                allow_experimental=False,
+                allow_beta=False,
+                allow_deprecated=False,
+                require_stable=True,
+                metadata={
+                    "source": (
+                        "agenda-intelligence-api"
+                    ),
+                    "contract_version": (
+                        "agenda-operational-v1"
+                    ),
+                    "transport": (
+                        "fastapi"
+                    ),
+                },
             )
         )
+
+        engine_result = (
+            dispatch_result.result
+        )
+
+        if not isinstance(
+            engine_result,
+            dict,
+        ):
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    "A capacidade da Agenda retornou "
+                    "um contrato inválido."
+                ),
+            )
 
         safe_result = (
             _sanitize_engine_result(
@@ -630,7 +696,36 @@ def analyze_agenda(
                 "contract_version": (
                     "agenda-operational-v1"
                 ),
-                "engine": safe_result,
+                "capability": {
+                    "capability_id": (
+                        dispatch_result
+                        .capability_id
+                    ),
+                    "identity": (
+                        dispatch_result
+                        .capability
+                        .identity()
+                    ),
+                    "duration_ms": (
+                        dispatch_result
+                        .duration_ms
+                    ),
+                    "execution_mode": (
+                        dispatch_result
+                        .capability
+                        .execution_mode
+                        .value
+                    ),
+                    "risk_level": (
+                        dispatch_result
+                        .capability
+                        .risk_level
+                        .value
+                    ),
+                },
+                "engine": (
+                    safe_result
+                ),
             },
             message=(
                 "Inteligência da Agenda processada com sucesso."
@@ -639,6 +734,31 @@ def analyze_agenda(
 
     except HTTPException:
         raise
+
+    except CapabilityError as exc:
+        print(
+            "[ECP_AGENDA_CAPABILITY_ERROR]",
+            {
+                "capability_id": (
+                    exc.capability_id
+                ),
+                "error_code": (
+                    exc.error_code
+                ),
+                "status_code": (
+                    exc.status_code
+                ),
+            },
+        )
+
+        raise HTTPException(
+            status_code=(
+                exc.status_code
+            ),
+            detail=(
+                exc.message
+            ),
+        ) from exc
 
     except EduDataException as exc:
         raise HTTPException(
