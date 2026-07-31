@@ -29,6 +29,10 @@ EVIDENCE_COMPLETION_ANALYSIS_ID = (
     "evidence.completion_analysis"
 )
 
+TASKS_SMART_PRIORITIZATION_ID = (
+    "tasks.smart_prioritization"
+)
+
 
 def build_agenda_dashboard_intelligence_capability(
 ) -> Capability:
@@ -465,6 +469,134 @@ def build_evidence_completion_analysis_capability(
     )
 
 
+def build_tasks_smart_prioritization_capability(
+) -> Capability:
+    """
+    Constrói o contrato oficial de priorização inteligente
+    das tarefas do professor.
+
+    A capacidade organiza tarefas previamente autorizadas
+    utilizando prazo, prioridade declarada, impacto pedagógico,
+    dependências, pendências do planejamento e evidências.
+
+    Ela não:
+
+    - cria tarefas;
+    - altera prazos;
+    - conclui tarefas automaticamente;
+    - exclui registros;
+    - modifica prioridades salvas;
+    - acessa diretamente o banco;
+    - envia notificações;
+    - executa ações sem autorização;
+    - utiliza IA generativa;
+    - substitui a decisão profissional do professor.
+    """
+
+    return Capability(
+        capability_id=(
+            TASKS_SMART_PRIORITIZATION_ID
+        ),
+        title=(
+            "Priorização Inteligente de Tarefas"
+        ),
+        description=(
+            "Organiza as tarefas do professor por urgência, "
+            "prazo, prioridade declarada, impacto pedagógico, "
+            "dependências e relação com pendências de "
+            "planejamento, aulas, objetivos e evidências."
+        ),
+        module="agenda",
+        owner="Agenda Inteligente EDI",
+        version="1.0.0",
+        status=(
+            CapabilityStatus.STABLE
+        ),
+        execution_mode=(
+            CapabilityExecutionMode.ANALYSIS
+        ),
+        risk_level=(
+            CapabilityRiskLevel.MODERATE
+        ),
+        scope=(
+            CapabilityScope.USER
+        ),
+        output_type=(
+            CapabilityOutputType.RECOMMENDATION_SET
+        ),
+        required_roles=(
+            "professor",
+            "coordenador",
+            "diretor",
+            "gestor",
+            "super_admin",
+        ),
+        required_context=(
+            CapabilityDataRequirement.USER_CONTEXT,
+            CapabilityDataRequirement.AGENDA,
+            CapabilityDataRequirement.TASKS,
+            CapabilityDataRequirement.PLANNING,
+            CapabilityDataRequirement.OBJECTIVES,
+            CapabilityDataRequirement.LESSONS,
+            CapabilityDataRequirement.EVIDENCES,
+            CapabilityDataRequirement.INDICATORS,
+            CapabilityDataRequirement.RECOMMENDATIONS,
+            CapabilityDataRequirement.ANALYTICS,
+        ),
+        dependencies=(
+            PLANNING_DAILY_PRIORITIES_ID,
+            PLANNING_WEEKLY_ANALYSIS_ID,
+            EVIDENCE_COMPLETION_ANALYSIS_ID,
+        ),
+        tags=(
+            "agenda",
+            "tasks",
+            "prioritization",
+            "deadlines",
+            "urgency",
+            "pedagogical-impact",
+            "dependencies",
+            "recommendations",
+            "eios",
+        ),
+        estimated_execution_ms=200,
+        requires_confirmation=False,
+        audit_required=True,
+        enabled=True,
+        metadata={
+            "contract_version": (
+                "tasks-smart-prioritization-v1"
+            ),
+            "engine": (
+                "edi-intelligence"
+            ),
+            "dependencies": (
+                PLANNING_DAILY_PRIORITIES_ID,
+                PLANNING_WEEKLY_ANALYSIS_ID,
+                EVIDENCE_COMPLETION_ANALYSIS_ID,
+            ),
+            "deterministic": True,
+            "generative_ai_used": False,
+            "automatic_changes": False,
+            "automatic_completion": False,
+            "automatic_notification": False,
+            "professional_decision_required": True,
+            "source": (
+                "agenda-operational-tasks"
+            ),
+            "maximum_prioritized_tasks": 20,
+            "prioritization_dimensions": (
+                "deadline",
+                "declared_priority",
+                "pedagogical_impact",
+                "dependencies",
+                "planning_alignment",
+                "evidence_alignment",
+            ),
+        },
+    )
+
+
 def register_agenda_capabilities(
     registry: CapabilityRegistry | None = None,
 ) -> tuple[Capability, ...]:
@@ -479,7 +611,8 @@ def register_agenda_capabilities(
     1. agenda.dashboard_intelligence;
     2. planning.daily_priorities;
     3. planning.weekly_planning_analysis;
-    4. evidence.completion_analysis.
+    4. evidence.completion_analysis;
+    5. tasks.smart_prioritization.
     """
 
     target_registry = (
@@ -492,6 +625,7 @@ def register_agenda_capabilities(
         build_planning_daily_priorities_capability(),
         build_planning_weekly_analysis_capability(),
         build_evidence_completion_analysis_capability(),
+        build_tasks_smart_prioritization_capability(),
     )
 
     registered_capabilities: list[
