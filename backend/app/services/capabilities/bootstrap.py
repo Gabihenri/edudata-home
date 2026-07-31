@@ -10,6 +10,9 @@ from app.services.capabilities.dispatcher import (
     CapabilityDispatcher,
     capability_dispatcher,
 )
+from app.services.capabilities.evidence_handlers import (
+    register_evidence_handlers,
+)
 from app.services.capabilities.loader import (
     CapabilityLoadReport,
     CapabilityLoader,
@@ -103,8 +106,9 @@ class CapabilityBootstrap:
     2. Registrar contratos no CapabilityRegistry;
     3. Registrar handlers oficiais da Agenda;
     4. Registrar handlers oficiais de Planejamento;
-    5. Validar consistência entre Registry e Dispatcher;
-    6. Produzir relatório seguro.
+    5. Registrar handlers oficiais de Evidências;
+    6. Validar consistência entre Registry e Dispatcher;
+    7. Produzir relatório seguro.
 
     O Bootstrap não:
 
@@ -193,9 +197,16 @@ class CapabilityBootstrap:
             )
         )
 
+        evidence_handlers = (
+            register_evidence_handlers(
+                self._dispatcher,
+            )
+        )
+
         registered_handlers = (
             agenda_handlers
             + planning_handlers
+            + evidence_handlers
         )
 
         dispatcher_summary = (
