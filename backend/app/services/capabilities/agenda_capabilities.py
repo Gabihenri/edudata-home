@@ -25,6 +25,10 @@ PLANNING_WEEKLY_ANALYSIS_ID = (
     "planning.weekly_planning_analysis"
 )
 
+EVIDENCE_COMPLETION_ANALYSIS_ID = (
+    "evidence.completion_analysis"
+)
+
 
 def build_agenda_dashboard_intelligence_capability(
 ) -> Capability:
@@ -339,6 +343,128 @@ def build_planning_weekly_analysis_capability(
     )
 
 
+def build_evidence_completion_analysis_capability(
+) -> Capability:
+    """
+    Constrói o contrato oficial de análise de conclusão
+    e integridade das evidências pedagógicas.
+
+    A capacidade identifica pendências e inconsistências
+    entre aulas, objetivos e evidências previamente
+    autorizados e processados pelo EIOS.
+
+    Ela não:
+
+    - cria evidências;
+    - altera arquivos;
+    - modifica aulas ou objetivos;
+    - acessa diretamente o banco;
+    - acessa diretamente o Storage;
+    - executa correções automáticas;
+    - avalia ou classifica estudantes;
+    - utiliza IA generativa;
+    - substitui a decisão profissional do professor.
+    """
+
+    return Capability(
+        capability_id=(
+            EVIDENCE_COMPLETION_ANALYSIS_ID
+        ),
+        title=(
+            "Análise de Conclusão das Evidências"
+        ),
+        description=(
+            "Analisa a cobertura, a conclusão e a integridade "
+            "dos registros de evidências pedagógicas, "
+            "identificando aulas realizadas sem evidência, "
+            "objetivos sem comprovação, vínculos incompletos "
+            "e pendências que exigem acompanhamento docente."
+        ),
+        module="agenda",
+        owner="Agenda Inteligente EDI",
+        version="1.0.0",
+        status=(
+            CapabilityStatus.STABLE
+        ),
+        execution_mode=(
+            CapabilityExecutionMode.ANALYSIS
+        ),
+        risk_level=(
+            CapabilityRiskLevel.MODERATE
+        ),
+        scope=(
+            CapabilityScope.USER
+        ),
+        output_type=(
+            CapabilityOutputType.ANALYSIS
+        ),
+        required_roles=(
+            "professor",
+            "coordenador",
+            "diretor",
+            "gestor",
+            "super_admin",
+        ),
+        required_context=(
+            CapabilityDataRequirement.USER_CONTEXT,
+            CapabilityDataRequirement.AGENDA,
+            CapabilityDataRequirement.PLANNING,
+            CapabilityDataRequirement.OBJECTIVES,
+            CapabilityDataRequirement.LESSONS,
+            CapabilityDataRequirement.EVIDENCES,
+            CapabilityDataRequirement.INDICATORS,
+            CapabilityDataRequirement.RECOMMENDATIONS,
+            CapabilityDataRequirement.ANALYTICS,
+        ),
+        dependencies=(
+            AGENDA_DASHBOARD_INTELLIGENCE_ID,
+            PLANNING_WEEKLY_ANALYSIS_ID,
+        ),
+        tags=(
+            "agenda",
+            "evidence",
+            "completion",
+            "coverage",
+            "integrity",
+            "objectives",
+            "lessons",
+            "analytics",
+            "eios",
+        ),
+        estimated_execution_ms=200,
+        requires_confirmation=False,
+        audit_required=True,
+        enabled=True,
+        metadata={
+            "contract_version": (
+                "evidence-completion-analysis-v1"
+            ),
+            "engine": (
+                "edi-intelligence"
+            ),
+            "dependencies": (
+                AGENDA_DASHBOARD_INTELLIGENCE_ID,
+                PLANNING_WEEKLY_ANALYSIS_ID,
+            ),
+            "deterministic": True,
+            "generative_ai_used": False,
+            "automatic_changes": False,
+            "student_assessment": False,
+            "file_content_required": False,
+            "source": (
+                "agenda-evidence-operational-cycle"
+            ),
+            "analysis_dimensions": (
+                "lesson_coverage",
+                "objective_coverage",
+                "linkage_integrity",
+                "completion_status",
+                "evidence_backlog",
+            ),
+        },
+    )
+
+
 def register_agenda_capabilities(
     registry: CapabilityRegistry | None = None,
 ) -> tuple[Capability, ...]:
@@ -352,7 +478,8 @@ def register_agenda_capabilities(
 
     1. agenda.dashboard_intelligence;
     2. planning.daily_priorities;
-    3. planning.weekly_planning_analysis.
+    3. planning.weekly_planning_analysis;
+    4. evidence.completion_analysis.
     """
 
     target_registry = (
@@ -364,6 +491,7 @@ def register_agenda_capabilities(
         build_agenda_dashboard_intelligence_capability(),
         build_planning_daily_priorities_capability(),
         build_planning_weekly_analysis_capability(),
+        build_evidence_completion_analysis_capability(),
     )
 
     registered_capabilities: list[
