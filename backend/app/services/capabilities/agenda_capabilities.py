@@ -21,6 +21,10 @@ PLANNING_DAILY_PRIORITIES_ID = (
     "planning.daily_priorities"
 )
 
+PLANNING_WEEKLY_ANALYSIS_ID = (
+    "planning.weekly_planning_analysis"
+)
+
 
 def build_agenda_dashboard_intelligence_capability(
 ) -> Capability:
@@ -219,6 +223,122 @@ def build_planning_daily_priorities_capability(
     )
 
 
+def build_planning_weekly_analysis_capability(
+) -> Capability:
+    """
+    Constrói o contrato oficial de análise semanal
+    do planejamento docente.
+
+    Esta capacidade analisa coerência, cobertura e continuidade
+    do planejamento semanal a partir dos dados já processados
+    pelo EIOS.
+
+    Ela não:
+
+    - cria ou altera planejamentos;
+    - muda objetivos;
+    - registra aulas;
+    - modifica evidências;
+    - executa recomendações;
+    - substitui a análise profissional do professor;
+    - utiliza IA generativa.
+    """
+
+    return Capability(
+        capability_id=(
+            PLANNING_WEEKLY_ANALYSIS_ID
+        ),
+        title=(
+            "Análise Semanal do Planejamento"
+        ),
+        description=(
+            "Analisa a consistência do planejamento semanal, "
+            "a relação entre objetivos, aulas e evidências, "
+            "a cobertura prevista e realizada, os pontos de "
+            "atenção e as oportunidades de replanejamento."
+        ),
+        module="agenda",
+        owner="Agenda Inteligente EDI",
+        version="1.0.0",
+        status=(
+            CapabilityStatus.STABLE
+        ),
+        execution_mode=(
+            CapabilityExecutionMode.ANALYSIS
+        ),
+        risk_level=(
+            CapabilityRiskLevel.MODERATE
+        ),
+        scope=(
+            CapabilityScope.USER
+        ),
+        output_type=(
+            CapabilityOutputType.ANALYSIS
+        ),
+        required_roles=(
+            "professor",
+            "coordenador",
+            "diretor",
+            "gestor",
+            "super_admin",
+        ),
+        required_context=(
+            CapabilityDataRequirement.USER_CONTEXT,
+            CapabilityDataRequirement.AGENDA,
+            CapabilityDataRequirement.PLANNING,
+            CapabilityDataRequirement.OBJECTIVES,
+            CapabilityDataRequirement.LESSONS,
+            CapabilityDataRequirement.EVIDENCES,
+            CapabilityDataRequirement.INDICATORS,
+            CapabilityDataRequirement.RECOMMENDATIONS,
+            CapabilityDataRequirement.HISTORY,
+        ),
+        dependencies=(
+            AGENDA_DASHBOARD_INTELLIGENCE_ID,
+            PLANNING_DAILY_PRIORITIES_ID,
+        ),
+        tags=(
+            "agenda",
+            "planning",
+            "weekly",
+            "analysis",
+            "coverage",
+            "coherence",
+            "replanning",
+            "eios",
+        ),
+        estimated_execution_ms=250,
+        requires_confirmation=False,
+        audit_required=True,
+        enabled=True,
+        metadata={
+            "contract_version": (
+                "planning-weekly-analysis-v1"
+            ),
+            "engine": (
+                "edi-intelligence"
+            ),
+            "dependencies": (
+                AGENDA_DASHBOARD_INTELLIGENCE_ID,
+                PLANNING_DAILY_PRIORITIES_ID,
+            ),
+            "deterministic": True,
+            "generative_ai_used": False,
+            "automatic_changes": False,
+            "source": (
+                "agenda-weekly-operational-cycle"
+            ),
+            "analysis_dimensions": (
+                "coverage",
+                "coherence",
+                "continuity",
+                "evidence_alignment",
+                "replanning",
+            ),
+        },
+    )
+
+
 def register_agenda_capabilities(
     registry: CapabilityRegistry | None = None,
 ) -> tuple[Capability, ...]:
@@ -231,7 +351,8 @@ def register_agenda_capabilities(
     A ordem de registro preserva as dependências:
 
     1. agenda.dashboard_intelligence;
-    2. planning.daily_priorities.
+    2. planning.daily_priorities;
+    3. planning.weekly_planning_analysis.
     """
 
     target_registry = (
@@ -242,6 +363,7 @@ def register_agenda_capabilities(
     capabilities = (
         build_agenda_dashboard_intelligence_capability(),
         build_planning_daily_priorities_capability(),
+        build_planning_weekly_analysis_capability(),
     )
 
     registered_capabilities: list[
