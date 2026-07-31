@@ -130,7 +130,8 @@ class CapabilityDataRequirement(
     Fontes de contexto que uma capacidade pode exigir.
 
     Estes valores identificam contratos ou conjuntos de dados.
-    Eles não representam acesso direto às tabelas.
+    Eles não representam acesso direto às tabelas, ao Storage
+    ou a serviços externos.
     """
 
     USER_CONTEXT = "user_context"
@@ -142,6 +143,7 @@ class CapabilityDataRequirement(
     OBJECTIVES = "objectives"
     LESSONS = "lessons"
     EVIDENCES = "evidences"
+    TASKS = "tasks"
     INDICATORS = "indicators"
     RECOMMENDATIONS = "recommendations"
     ANALYTICS = "analytics"
