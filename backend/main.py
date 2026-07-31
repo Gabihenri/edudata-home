@@ -14,6 +14,9 @@ from app.routers.evidences import router as evidences_router
 from app.routers.health import router as health_router
 from app.routers.intelligence import router as intelligence_router
 from app.routers.organization import router as organization_router
+from app.routers.planning_intelligence import (
+    router as planning_intelligence_router,
+)
 from app.routers.school_registry import router as school_registry_router
 from app.routers.users import router as users_router
 from app.services.capabilities.bootstrap import (
@@ -156,6 +159,10 @@ app.include_router(
 
 app.include_router(
     intelligence_router,
+)
+
+app.include_router(
+    planning_intelligence_router,
 )
 
 
