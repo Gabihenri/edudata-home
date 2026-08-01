@@ -6,6 +6,9 @@ from typing import Any
 from app.services.capabilities.agenda_handlers import (
     register_agenda_handlers,
 )
+from app.services.capabilities.calendar_handlers import (
+    register_calendar_handlers,
+)
 from app.services.capabilities.dispatcher import (
     CapabilityDispatcher,
     capability_dispatcher,
@@ -27,6 +30,9 @@ from app.services.capabilities.registry import (
 )
 from app.services.capabilities.task_handlers import (
     register_task_handlers,
+)
+from app.services.capabilities.teacher_handlers import (
+    register_teacher_handlers,
 )
 
 
@@ -111,8 +117,10 @@ class CapabilityBootstrap:
     4. Registrar handlers oficiais de Planejamento;
     5. Registrar handlers oficiais de Evidências;
     6. Registrar handlers oficiais de Tarefas;
-    7. Validar consistência entre Registry e Dispatcher;
-    8. Produzir relatório seguro.
+    7. Registrar handlers oficiais de Calendário;
+    8. Registrar handlers oficiais de Inteligência Docente;
+    9. Validar consistência entre Registry e Dispatcher;
+    10. Produzir relatório seguro.
 
     O Bootstrap não:
 
@@ -213,11 +221,25 @@ class CapabilityBootstrap:
             )
         )
 
+        calendar_handlers = (
+            register_calendar_handlers(
+                self._dispatcher,
+            )
+        )
+
+        teacher_handlers = (
+            register_teacher_handlers(
+                self._dispatcher,
+            )
+        )
+
         registered_handlers = (
             agenda_handlers
             + planning_handlers
             + evidence_handlers
             + task_handlers
+            + calendar_handlers
+            + teacher_handlers
         )
 
         dispatcher_summary = (
