@@ -33,6 +33,10 @@ TASKS_SMART_PRIORITIZATION_ID = (
     "tasks.smart_prioritization"
 )
 
+CALENDAR_WORKLOAD_BALANCE_ID = (
+    "calendar.workload_balance"
+)
+
 
 def build_agenda_dashboard_intelligence_capability(
 ) -> Capability:
@@ -597,6 +601,133 @@ def build_tasks_smart_prioritization_capability(
     )
 
 
+def build_calendar_workload_balance_capability(
+) -> Capability:
+    """
+    Constrói o contrato oficial de análise de equilíbrio
+    da carga de trabalho semanal.
+
+    A capacidade analisa eventos, aulas, tarefas e prazos
+    previamente autorizados para identificar concentração,
+    sobreposição e possíveis períodos de sobrecarga.
+
+    Ela não:
+
+    - cria ou altera eventos;
+    - remarca aulas;
+    - altera prazos;
+    - redistribui tarefas automaticamente;
+    - acessa diretamente calendários externos;
+    - acessa diretamente o banco;
+    - envia notificações;
+    - utiliza IA generativa;
+    - substitui a decisão profissional do professor.
+    """
+
+    return Capability(
+        capability_id=(
+            CALENDAR_WORKLOAD_BALANCE_ID
+        ),
+        title=(
+            "Equilíbrio da Carga de Trabalho"
+        ),
+        description=(
+            "Analisa a distribuição semanal de eventos, "
+            "aulas, tarefas e prazos, identificando dias com "
+            "alta concentração de atividades, sobreposições, "
+            "intervalos reduzidos e oportunidades de "
+            "reorganização do trabalho docente."
+        ),
+        module="agenda",
+        owner="Agenda Inteligente EDI",
+        version="1.0.0",
+        status=(
+            CapabilityStatus.STABLE
+        ),
+        execution_mode=(
+            CapabilityExecutionMode.ANALYSIS
+        ),
+        risk_level=(
+            CapabilityRiskLevel.MODERATE
+        ),
+        scope=(
+            CapabilityScope.USER
+        ),
+        output_type=(
+            CapabilityOutputType.ANALYSIS
+        ),
+        required_roles=(
+            "professor",
+            "coordenador",
+            "diretor",
+            "gestor",
+            "super_admin",
+        ),
+        required_context=(
+            CapabilityDataRequirement.USER_CONTEXT,
+            CapabilityDataRequirement.AGENDA,
+            CapabilityDataRequirement.CALENDAR,
+            CapabilityDataRequirement.LESSONS,
+            CapabilityDataRequirement.TASKS,
+            CapabilityDataRequirement.PLANNING,
+            CapabilityDataRequirement.INDICATORS,
+            CapabilityDataRequirement.RECOMMENDATIONS,
+            CapabilityDataRequirement.ANALYTICS,
+        ),
+        dependencies=(
+            PLANNING_WEEKLY_ANALYSIS_ID,
+            TASKS_SMART_PRIORITIZATION_ID,
+        ),
+        tags=(
+            "agenda",
+            "calendar",
+            "workload",
+            "balance",
+            "weekly",
+            "overload",
+            "deadlines",
+            "lessons",
+            "tasks",
+            "eios",
+        ),
+        estimated_execution_ms=250,
+        requires_confirmation=False,
+        audit_required=True,
+        enabled=True,
+        metadata={
+            "contract_version": (
+                "calendar-workload-balance-v1"
+            ),
+            "engine": (
+                "edi-intelligence"
+            ),
+            "dependencies": (
+                PLANNING_WEEKLY_ANALYSIS_ID,
+                TASKS_SMART_PRIORITIZATION_ID,
+            ),
+            "deterministic": True,
+            "generative_ai_used": False,
+            "automatic_changes": False,
+            "automatic_rescheduling": False,
+            "external_calendar_access": False,
+            "automatic_notification": False,
+            "professional_decision_required": True,
+            "source": (
+                "agenda-weekly-calendar-cycle"
+            ),
+            "analysis_dimensions": (
+                "daily_distribution",
+                "activity_concentration",
+                "time_overlap",
+                "deadline_pressure",
+                "lesson_load",
+                "task_load",
+                "reorganization_opportunities",
+            ),
+        },
+    )
+
+
 def register_agenda_capabilities(
     registry: CapabilityRegistry | None = None,
 ) -> tuple[Capability, ...]:
@@ -612,7 +743,8 @@ def register_agenda_capabilities(
     2. planning.daily_priorities;
     3. planning.weekly_planning_analysis;
     4. evidence.completion_analysis;
-    5. tasks.smart_prioritization.
+    5. tasks.smart_prioritization;
+    6. calendar.workload_balance.
     """
 
     target_registry = (
@@ -626,6 +758,7 @@ def register_agenda_capabilities(
         build_planning_weekly_analysis_capability(),
         build_evidence_completion_analysis_capability(),
         build_tasks_smart_prioritization_capability(),
+        build_calendar_workload_balance_capability(),
     )
 
     registered_capabilities: list[
