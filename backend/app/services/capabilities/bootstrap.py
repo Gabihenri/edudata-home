@@ -25,6 +25,9 @@ from app.services.capabilities.registry import (
     CapabilityRegistry,
     capability_registry,
 )
+from app.services.capabilities.task_handlers import (
+    register_task_handlers,
+)
 
 
 @dataclass(frozen=True)
@@ -107,8 +110,9 @@ class CapabilityBootstrap:
     3. Registrar handlers oficiais da Agenda;
     4. Registrar handlers oficiais de Planejamento;
     5. Registrar handlers oficiais de Evidências;
-    6. Validar consistência entre Registry e Dispatcher;
-    7. Produzir relatório seguro.
+    6. Registrar handlers oficiais de Tarefas;
+    7. Validar consistência entre Registry e Dispatcher;
+    8. Produzir relatório seguro.
 
     O Bootstrap não:
 
@@ -203,10 +207,17 @@ class CapabilityBootstrap:
             )
         )
 
+        task_handlers = (
+            register_task_handlers(
+                self._dispatcher,
+            )
+        )
+
         registered_handlers = (
             agenda_handlers
             + planning_handlers
             + evidence_handlers
+            + task_handlers
         )
 
         dispatcher_summary = (
