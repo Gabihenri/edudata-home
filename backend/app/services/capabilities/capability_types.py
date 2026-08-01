@@ -139,6 +139,7 @@ class CapabilityDataRequirement(
     SCHOOL_CONTEXT = "school_context"
 
     AGENDA = "agenda"
+    CALENDAR = "calendar"
     PLANNING = "planning"
     OBJECTIVES = "objectives"
     LESSONS = "lessons"
