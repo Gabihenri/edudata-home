@@ -18,6 +18,9 @@ from app.routers.planning_intelligence import (
     router as planning_intelligence_router,
 )
 from app.routers.school_registry import router as school_registry_router
+from app.routers.teacher_intelligence import (
+    router as teacher_intelligence_router,
+)
 from app.routers.users import router as users_router
 from app.services.capabilities.bootstrap import (
     capability_bootstrap,
@@ -163,6 +166,10 @@ app.include_router(
 
 app.include_router(
     planning_intelligence_router,
+)
+
+app.include_router(
+    teacher_intelligence_router,
 )
 
 
