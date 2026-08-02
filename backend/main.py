@@ -10,6 +10,9 @@ from app.routers.agenda import router as agenda_router
 from app.routers.auth import router as auth_router
 from app.routers.database import router as database_router
 from app.routers.engine import router as engine_router
+from app.routers.evidence_intelligence import (
+    router as evidence_intelligence_router,
+)
 from app.routers.evidences import router as evidences_router
 from app.routers.health import router as health_router
 from app.routers.intelligence import router as intelligence_router
@@ -166,6 +169,10 @@ app.include_router(
 
 app.include_router(
     planning_intelligence_router,
+)
+
+app.include_router(
+    evidence_intelligence_router,
 )
 
 app.include_router(
