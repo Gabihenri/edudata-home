@@ -1,25 +1,30 @@
 import {
-  generateTeacherPerformanceSnapshot,
   type CapabilityResultRecord,
   type TeacherPerformanceSnapshotApiData,
   type TeacherSnapshotContext,
   type TeacherSnapshotRole,
 } from '@/lib/agenda/services/teacher-intelligence.service'
 
+export const EDI_CAPABILITY_PROXY_ENDPOINT =
+  '/api/agenda/intelligence/capability'
+
 export const PLANNING_DAILY_PRIORITIES_ENDPOINT =
-  '/api/v1/intelligence/planning/daily-priorities'
+  EDI_CAPABILITY_PROXY_ENDPOINT
 
 export const PLANNING_WEEKLY_ANALYSIS_ENDPOINT =
-  '/api/v1/intelligence/planning/weekly-analysis'
+  EDI_CAPABILITY_PROXY_ENDPOINT
 
 export const EVIDENCE_COMPLETION_ANALYSIS_ENDPOINT =
-  '/api/v1/intelligence/evidence/completion-analysis'
+  EDI_CAPABILITY_PROXY_ENDPOINT
 
 export const TASK_SMART_PRIORITIZATION_ENDPOINT =
-  '/api/v1/intelligence/tasks/smart-prioritization'
+  EDI_CAPABILITY_PROXY_ENDPOINT
 
 export const CALENDAR_WORKLOAD_BALANCE_ENDPOINT =
-  '/api/v1/intelligence/calendar/workload-balance'
+  EDI_CAPABILITY_PROXY_ENDPOINT
+
+export const TEACHER_PERFORMANCE_SNAPSHOT_PROXY_ENDPOINT =
+  EDI_CAPABILITY_PROXY_ENDPOINT
 
 export type TeacherIntelligencePeriod = {
   start?: string
@@ -177,7 +182,7 @@ const DEFAULT_ENDPOINTS:
       CALENDAR_WORKLOAD_BALANCE_ENDPOINT,
 
     teacherSnapshot:
-      '/api/v1/intelligence/teacher/performance-snapshot',
+      TEACHER_PERFORMANCE_SNAPSHOT_PROXY_ENDPOINT,
   }
 
 const TOTAL_PROCESSING_STEPS =
@@ -361,6 +366,53 @@ function parseCapabilityEnvelope(
   }
 }
 
+function parseTeacherSnapshot(
+  envelope:
+    TeacherIntelligenceCapabilityEnvelope,
+): TeacherPerformanceSnapshotApiData {
+  if (
+    envelope.module !== 'teacher'
+  ) {
+    throw new Error(
+      `O snapshot docente retornou o módulo '${envelope.module}' em vez de 'teacher'.`,
+    )
+  }
+
+  if (
+    envelope.contract_version !==
+      'teacher-performance-snapshot-v1'
+  ) {
+    throw new Error(
+      'O snapshot docente retornou uma versão de contrato inválida.',
+    )
+  }
+
+  if (
+    envelope.result.capability_id !==
+      'teacher.performance_snapshot'
+  ) {
+    throw new Error(
+      'O snapshot docente retornou uma capacidade incompatível.',
+    )
+  }
+
+  return {
+    module:
+      'teacher',
+
+    contract_version:
+      'teacher-performance-snapshot-v1',
+
+    capability:
+      envelope.capability as unknown as
+        TeacherPerformanceSnapshotApiData['capability'],
+
+    result:
+      envelope.result as unknown as
+        TeacherPerformanceSnapshotApiData['result'],
+  }
+}
+
 async function postCapability(
   endpoint: string,
   payload: CapabilityResultRecord,
@@ -371,7 +423,8 @@ async function postCapability(
     await fetch(
       endpoint,
       {
-        method: 'POST',
+        method:
+          'POST',
 
         headers: {
           Accept:
@@ -382,7 +435,12 @@ async function postCapability(
         },
 
         body:
-          JSON.stringify(payload),
+          JSON.stringify({
+            capability_id:
+              capabilityId,
+
+            payload,
+          }),
 
         signal,
 
@@ -726,8 +784,9 @@ export async function orchestrateTeacherIntelligence(
     'Consolidando snapshot docente',
   )
 
-  const snapshot =
-    await generateTeacherPerformanceSnapshot(
+  const snapshotEnvelope =
+    await postCapability(
+      endpoints.teacherSnapshot,
       {
         dashboard_intelligence:
           input.dashboard_intelligence,
@@ -755,13 +814,13 @@ export async function orchestrateTeacherIntelligence(
 
         role,
       },
-      {
-        endpoint:
-          endpoints.teacherSnapshot,
+      'teacher.performance_snapshot',
+      options.signal,
+    )
 
-        signal:
-          options.signal,
-      },
+  const snapshot =
+    parseTeacherSnapshot(
+      snapshotEnvelope,
     )
 
   notifyStep(
