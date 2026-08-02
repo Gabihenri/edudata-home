@@ -15,6 +15,12 @@ type AccountType =
   | 'individual'
   | 'corporate'
 
+type NavigationGroup =
+  | 'core'
+  | 'product'
+  | 'management'
+  | 'account'
+
 interface PortalUser {
   id: string
   email: string | null
@@ -70,11 +76,7 @@ interface NavigationItem {
   key: string
   label: string
   href: string
-  group:
-    | 'core'
-    | 'product'
-    | 'management'
-    | 'account'
+  group: NavigationGroup
 }
 
 const PLATFORM_ROLES =
@@ -146,10 +148,7 @@ const PRODUCT_LABELS:
   }
 
 const GROUP_LABELS:
-  Record<
-    NavigationItem['group'],
-    string
-  > = {
+  Record<NavigationGroup, string> = {
     core:
       'Central',
 
@@ -176,8 +175,8 @@ function isActivePath(
   }
 
   return (
-    pathname === href ||
-    pathname.startsWith(
+    pathname === href
+    || pathname.startsWith(
       `${href}/`,
     )
   )
@@ -188,8 +187,8 @@ function getContextName(
 ): string {
   if (context.school) {
     return (
-      context.school.shortName ??
-      context.school.name
+      context.school.shortName
+      ?? context.school.name
     )
   }
 
@@ -213,6 +212,51 @@ function getProductHref(
   return product.href
 }
 
+function createFallbackItems():
+  NavigationItem[] {
+  return [
+    {
+      key:
+        'portal',
+
+      label:
+        'Central da Plataforma',
+
+      href:
+        '/portal',
+
+      group:
+        'core',
+    },
+    {
+      key:
+        'support',
+
+      label:
+        'Suporte EDI',
+
+      href:
+        '/suporte',
+
+      group:
+        'core',
+    },
+    {
+      key:
+        'profile',
+
+      label:
+        'Meu perfil',
+
+      href:
+        '/perfil',
+
+      group:
+        'account',
+    },
+  ]
+}
+
 function createNavigationItems(
   portal: PortalResponse,
 ): NavigationItem[] {
@@ -220,49 +264,7 @@ function createNavigationItems(
     portal.activeContext
 
   if (!context) {
-    return [
-      {
-        key:
-          'portal',
-
-        label:
-          'Central da Plataforma',
-
-        href:
-          '/portal',
-
-        group:
-          'core',
-      },
-
-      {
-        key:
-          'support',
-
-        label:
-          'Suporte EDI',
-
-        href:
-          '/suporte',
-
-        group:
-          'core',
-      },
-
-      {
-        key:
-          'profile',
-
-        label:
-          'Meu perfil',
-
-        href:
-          '/perfil',
-
-        group:
-          'account',
-      },
-    ]
+    return createFallbackItems()
   }
 
   const items:
@@ -280,7 +282,6 @@ function createNavigationItems(
         group:
           'core',
       },
-
       {
         key:
           'support',
@@ -322,6 +323,12 @@ function createNavigationItems(
         return
       }
 
+      const managementProduct =
+        product.code ===
+          'backoffice'
+        || product.code ===
+          'experience_manager'
+
       items.push({
         key:
           `product:${product.code}`,
@@ -337,10 +344,7 @@ function createNavigationItems(
           ),
 
         group:
-          product.code ===
-            'backoffice' ||
-          product.code ===
-            'experience_manager'
+          managementProduct
             ? 'management'
             : 'product',
       })
@@ -401,7 +405,6 @@ function createNavigationItems(
       group:
         'account',
     },
-
     {
       key:
         'home',
@@ -423,12 +426,14 @@ function createNavigationItems(
       NavigationItem
     >()
 
-  items.forEach(item => {
-    uniqueItems.set(
-      item.href,
-      item,
-    )
-  })
+  items.forEach(
+    item => {
+      uniqueItems.set(
+        item.href,
+        item,
+      )
+    },
+  )
 
   return [
     ...uniqueItems.values(),
@@ -437,13 +442,18 @@ function createNavigationItems(
 
 function groupNavigationItems(
   items: NavigationItem[],
-) {
+): Record<
+  NavigationGroup,
+  NavigationItem[]
+> {
   return items.reduce(
     (
       groups,
       item,
     ) => {
-      groups[item.group].push(
+      groups[
+        item.group
+      ].push(
         item,
       )
 
@@ -451,17 +461,20 @@ function groupNavigationItems(
     },
     {
       core:
-        [] as NavigationItem[],
+        [],
 
       product:
-        [] as NavigationItem[],
+        [],
 
       management:
-        [] as NavigationItem[],
+        [],
 
       account:
-        [] as NavigationItem[],
-    },
+        [],
+    } as Record<
+      NavigationGroup,
+      NavigationItem[]
+    >,
   )
 }
 
@@ -475,225 +488,246 @@ export function PlatformNavigation() {
   const [
     portal,
     setPortal,
-  ] =
-    useState<PortalResponse | null>(
-      null,
-    )
+  ] = useState<
+    PortalResponse | null
+  >(
+    null,
+  )
 
   const [
     loading,
     setLoading,
-  ] =
-    useState(true)
+  ] = useState(
+    true,
+  )
 
   const [
     menuOpen,
     setMenuOpen,
-  ] =
-    useState(false)
+  ] = useState(
+    false,
+  )
 
   const [
     loggingOut,
     setLoggingOut,
-  ] =
-    useState(false)
+  ] = useState(
+    false,
+  )
 
-  useEffect(() => {
-    let active = true
+  useEffect(
+    () => {
+      let active =
+        true
 
-    const controller =
-      new AbortController()
+      const controller =
+        new AbortController()
 
-    async function loadPortal() {
-      try {
-        const response =
-          await fetch(
-            '/api/portal',
-            {
-              method:
-                'GET',
+      async function loadPortal() {
+        try {
+          const response =
+            await fetch(
+              '/api/portal',
+              {
+                method:
+                  'GET',
 
-              credentials:
-                'include',
+                credentials:
+                  'include',
 
-              cache:
-                'no-store',
+                cache:
+                  'no-store',
 
-              signal:
-                controller.signal,
-            },
-          )
+                signal:
+                  controller.signal,
+              },
+            )
 
-        if (
-          response.status ===
-          401
+          if (
+            response.status ===
+            401
+          ) {
+            router.replace(
+              '/login',
+            )
+
+            return
+          }
+
+          const result =
+            await response.json()
+              as PortalResponse
+
+          if (
+            !response.ok
+            || !result.success
+          ) {
+            throw new Error(
+              result.error
+              ?? 'Não foi possível carregar a navegação.',
+            )
+          }
+
+          if (active) {
+            setPortal(
+              result,
+            )
+          }
+        } catch (
+          error
         ) {
-          router.replace(
-            '/login',
-          )
+          if (
+            error instanceof Error
+            && error.name ===
+              'AbortError'
+          ) {
+            return
+          }
 
-          return
-        }
-
-        const result =
-          (await response.json()) as
-            PortalResponse
-
-        if (
-          !response.ok ||
-          !result.success
-        ) {
-          throw new Error(
-            result.error ??
-              'Não foi possível carregar a navegação.',
-          )
-        }
-
-        if (active) {
-          setPortal(result)
-        }
-      } catch (error) {
-        if (
-          error instanceof
-            Error &&
-          error.name ===
-            'AbortError'
-        ) {
-          return
-        }
-
-        if (active) {
-          setPortal(null)
-        }
-      } finally {
-        if (active) {
-          setLoading(false)
+          if (active) {
+            setPortal(
+              null,
+            )
+          }
+        } finally {
+          if (active) {
+            setLoading(
+              false,
+            )
+          }
         }
       }
-    }
 
-    void loadPortal()
+      void loadPortal()
 
-    return () => {
-      active = false
-      controller.abort()
-    }
-  }, [router])
+      return () => {
+        active =
+          false
 
-  useEffect(() => {
-    setMenuOpen(false)
-  }, [pathname])
+        controller.abort()
+      }
+    },
+    [
+      router,
+    ],
+  )
 
-  useEffect(() => {
-    if (
-      !menuOpen ||
-      typeof window ===
-        'undefined'
-    ) {
-      return
-    }
+  useEffect(
+    () => {
+      setMenuOpen(
+        false,
+      )
+    },
+    [
+      pathname,
+    ],
+  )
 
-    const scrollPosition =
-      window.scrollY
-
-    const previousBodyStyles = {
-      position:
-        document.body.style
-          .position,
-
-      top:
-        document.body.style.top,
-
-      left:
-        document.body.style.left,
-
-      right:
-        document.body.style.right,
-
-      width:
-        document.body.style.width,
-
-      overflow:
-        document.body.style
-          .overflow,
-    }
-
-    const previousHtmlOverflow =
-      document.documentElement
-        .style.overflow
-
-    document.body.style.position =
-      'fixed'
-
-    document.body.style.top =
-      `-${scrollPosition}px`
-
-    document.body.style.left =
-      '0'
-
-    document.body.style.right =
-      '0'
-
-    document.body.style.width =
-      '100%'
-
-    document.body.style.overflow =
-      'hidden'
-
-    document.documentElement
-      .style.overflow =
-      'hidden'
-
-    function handleKeyDown(
-      event: KeyboardEvent,
-    ) {
+  useEffect(
+    () => {
       if (
-        event.key ===
-        'Escape'
+        !menuOpen
+        || typeof document ===
+          'undefined'
       ) {
-        setMenuOpen(false)
+        return
       }
-    }
 
-    window.addEventListener(
-      'keydown',
-      handleKeyDown,
-    )
+      const previousBodyOverflow =
+        document.body
+          .style
+          .overflow
 
-    return () => {
-      window.removeEventListener(
+      const previousHtmlOverflow =
+        document
+          .documentElement
+          .style
+          .overflow
+
+      const previousBodyOverscroll =
+        document.body
+          .style
+          .overscrollBehavior
+
+      const previousHtmlOverscroll =
+        document
+          .documentElement
+          .style
+          .overscrollBehavior
+
+      document.body
+        .style
+        .overflow =
+        'hidden'
+
+      document
+        .documentElement
+        .style
+        .overflow =
+        'hidden'
+
+      document.body
+        .style
+        .overscrollBehavior =
+        'none'
+
+      document
+        .documentElement
+        .style
+        .overscrollBehavior =
+        'none'
+
+      function handleKeyDown(
+        event: KeyboardEvent,
+      ) {
+        if (
+          event.key ===
+          'Escape'
+        ) {
+          setMenuOpen(
+            false,
+          )
+        }
+      }
+
+      window.addEventListener(
         'keydown',
         handleKeyDown,
       )
 
-      document.body.style.position =
-        previousBodyStyles.position
+      return () => {
+        window.removeEventListener(
+          'keydown',
+          handleKeyDown,
+        )
 
-      document.body.style.top =
-        previousBodyStyles.top
+        document.body
+          .style
+          .overflow =
+          previousBodyOverflow
 
-      document.body.style.left =
-        previousBodyStyles.left
+        document
+          .documentElement
+          .style
+          .overflow =
+          previousHtmlOverflow
 
-      document.body.style.right =
-        previousBodyStyles.right
+        document.body
+          .style
+          .overscrollBehavior =
+          previousBodyOverscroll
 
-      document.body.style.width =
-        previousBodyStyles.width
-
-      document.body.style.overflow =
-        previousBodyStyles.overflow
-
-      document.documentElement
-        .style.overflow =
-        previousHtmlOverflow
-
-      window.scrollTo(
-        0,
-        scrollPosition,
-      )
-    }
-  }, [menuOpen])
+        document
+          .documentElement
+          .style
+          .overscrollBehavior =
+          previousHtmlOverscroll
+      }
+    },
+    [
+      menuOpen,
+    ],
+  )
 
   const navigationItems =
     useMemo(
@@ -702,50 +736,10 @@ export function PlatformNavigation() {
           ? createNavigationItems(
               portal,
             )
-          : [
-              {
-                key:
-                  'portal',
-
-                label:
-                  'Central da Plataforma',
-
-                href:
-                  '/portal',
-
-                group:
-                  'core' as const,
-              },
-
-              {
-                key:
-                  'support',
-
-                label:
-                  'Suporte EDI',
-
-                href:
-                  '/suporte',
-
-                group:
-                  'core' as const,
-              },
-
-              {
-                key:
-                  'profile',
-
-                label:
-                  'Meu perfil',
-
-                href:
-                  '/perfil',
-
-                group:
-                  'account' as const,
-              },
-            ],
-      [portal],
+          : createFallbackItems(),
+      [
+        portal,
+      ],
     )
 
   const groupedItems =
@@ -754,36 +748,46 @@ export function PlatformNavigation() {
         groupNavigationItems(
           navigationItems,
         ),
-      [navigationItems],
+      [
+        navigationItems,
+      ],
     )
 
   const primaryItems =
-    useMemo(() => {
-      const preferredKeys =
-        new Set([
-          'portal',
-          'support',
-          'product:professor_digital',
-          'product:agenda_edi',
-          'institution-core',
-          'organization-core',
-          'profile',
-        ])
+    useMemo(
+      () => {
+        const preferredKeys =
+          new Set([
+            'portal',
+            'support',
+            'product:professor_digital',
+            'product:agenda_edi',
+            'institution-core',
+            'organization-core',
+            'profile',
+          ])
 
-      return navigationItems.filter(
-        item =>
-          preferredKeys.has(
-            item.key,
-          ),
-      )
-    }, [navigationItems])
+        return navigationItems
+          .filter(
+            item =>
+              preferredKeys.has(
+                item.key,
+              ),
+          )
+      },
+      [
+        navigationItems,
+      ],
+    )
 
   async function handleLogout() {
     if (loggingOut) {
       return
     }
 
-    setLoggingOut(true)
+    setLoggingOut(
+      true,
+    )
 
     try {
       await fetch(
@@ -822,286 +826,562 @@ export function PlatformNavigation() {
       : false
 
   return (
-    <header className="sticky top-0 z-[70] w-full max-w-full overflow-x-hidden border-b border-white/10 bg-[#071827] text-white shadow-lg shadow-slate-950/10">
-      <div className="mx-auto w-full max-w-7xl overflow-x-hidden px-4 sm:px-6">
-        <div className="flex min-h-20 w-full min-w-0 max-w-full items-center justify-between gap-3 sm:gap-4">
+    <header
+      className="
+        sticky
+        top-0
+        z-[100]
+        w-full
+        border-b
+        border-white/10
+        bg-[#071827]
+        text-white
+        shadow-lg
+        shadow-slate-950/10
+      "
+    >
+      <div
+        className="
+          mx-auto
+          w-full
+          max-w-7xl
+          px-4
+          sm:px-6
+        "
+      >
+        <div
+          className="
+            flex
+            min-h-20
+            w-full
+            min-w-0
+            items-center
+            justify-between
+            gap-3
+            sm:gap-4
+          "
+        >
           <Link
             href="/portal"
-            className="min-w-0 flex-1 overflow-hidden"
             aria-label="Abrir a Central da Plataforma"
+            className="
+              min-w-0
+              flex-1
+              overflow-hidden
+            "
           >
-            <p className="max-w-full truncate text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
+            <p
+              className="
+                max-w-full
+                truncate
+                text-xs
+                font-semibold
+                uppercase
+                tracking-[0.18em]
+                text-cyan-300
+              "
+            >
               EIOS
             </p>
 
-            <p className="max-w-full truncate text-base font-bold text-white">
+            <p
+              className="
+                max-w-full
+                truncate
+                text-base
+                font-bold
+                text-white
+              "
+            >
               Central da Plataforma
             </p>
 
-            {!loading &&
-            activeContext ? (
-              <p className="mt-1 max-w-full truncate text-xs text-slate-300">
-                {getContextName(
-                  activeContext,
-                )}
-                {' — '}
-                {
-                  activeContext.roleLabel
-                }
-              </p>
-            ) : null}
+            {
+              !loading
+              && activeContext
+                ? (
+                  <p
+                    className="
+                      mt-1
+                      max-w-full
+                      truncate
+                      text-xs
+                      text-slate-300
+                    "
+                  >
+                    {
+                      getContextName(
+                        activeContext,
+                      )
+                    }
+                    {' — '}
+                    {
+                      activeContext
+                        .roleLabel
+                    }
+                  </p>
+                )
+                : null
+            }
           </Link>
 
-          <nav className="hidden min-w-0 items-center gap-2 xl:flex">
-            {primaryItems.map(
-              item => {
-                const activePath =
-                  isActivePath(
-                    pathname,
-                    item.href,
-                  )
+          <nav
+            className="
+              hidden
+              min-w-0
+              items-center
+              gap-2
+              xl:flex
+            "
+          >
+            {
+              primaryItems.map(
+                item => {
+                  const activePath =
+                    isActivePath(
+                      pathname,
+                      item.href,
+                    )
 
-                return (
-                  <Link
-                    key={item.key}
-                    href={item.href}
-                    aria-current={
-                      activePath
-                        ? 'page'
-                        : undefined
-                    }
-                    className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
-                      activePath
-                        ? 'bg-white text-[#071827]'
-                        : 'text-slate-200 hover:bg-white/10 hover:text-white'
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                )
-              },
-            )}
+                  return (
+                    <Link
+                      key={
+                        item.key
+                      }
+                      href={
+                        item.href
+                      }
+                      aria-current={
+                        activePath
+                          ? 'page'
+                          : undefined
+                      }
+                      className={`
+                        whitespace-nowrap
+                        rounded-lg
+                        px-3
+                        py-2
+                        text-sm
+                        font-semibold
+                        transition
+                        ${
+                          activePath
+                            ? 'bg-white text-[#071827]'
+                            : 'text-slate-200 hover:bg-white/10 hover:text-white'
+                        }
+                      `}
+                    >
+                      {
+                        item.label
+                      }
+                    </Link>
+                  )
+                },
+              )
+            }
           </nav>
 
-          <div className="hidden min-w-0 shrink-0 items-center gap-4 xl:flex">
-            <div className="min-w-0 max-w-48 text-right">
-              <p className="truncate text-sm font-semibold text-white">
-                {user?.displayName ??
-                  'Usuário EduData IA'}
+          <div
+            className="
+              hidden
+              min-w-0
+              shrink-0
+              items-center
+              gap-4
+              xl:flex
+            "
+          >
+            <div
+              className="
+                min-w-0
+                max-w-48
+                text-right
+              "
+            >
+              <p
+                className="
+                  truncate
+                  text-sm
+                  font-semibold
+                  text-white
+                "
+              >
+                {
+                  user
+                    ?.displayName
+                  ?? 'Usuário EduData IA'
+                }
               </p>
 
-              <p className="truncate text-xs text-slate-300">
-                {isPlatformAdministrator
-                  ? 'Administração da plataforma'
-                  : activeContext?.roleLabel ??
-                    'Perfil ativo'}
+              <p
+                className="
+                  truncate
+                  text-xs
+                  text-slate-300
+                "
+              >
+                {
+                  isPlatformAdministrator
+                    ? 'Administração da plataforma'
+                    : activeContext
+                        ?.roleLabel
+                      ?? 'Perfil ativo'
+                }
               </p>
             </div>
 
             <button
               type="button"
-              onClick={
-                handleLogout
-              }
               disabled={
                 loggingOut
               }
-              className="shrink-0 rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={
+                handleLogout
+              }
+              className="
+                shrink-0
+                rounded-lg
+                border
+                border-white/20
+                px-4
+                py-2
+                text-sm
+                font-semibold
+                text-white
+                transition
+                hover:bg-white/10
+                disabled:cursor-not-allowed
+                disabled:opacity-60
+              "
             >
-              {loggingOut
-                ? 'Saindo...'
-                : 'Sair'}
+              {
+                loggingOut
+                  ? 'Saindo...'
+                  : 'Sair'
+              }
             </button>
           </div>
 
           <button
             type="button"
-            onClick={() =>
-              setMenuOpen(
-                current =>
-                  !current,
-              )
-            }
             aria-expanded={
               menuOpen
             }
             aria-controls="platform-navigation-menu"
-            className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg border border-white/20 px-4 text-sm font-semibold text-white transition hover:bg-white/10 xl:hidden"
+            onClick={
+              () => {
+                setMenuOpen(
+                  current =>
+                    !current,
+                )
+              }
+            }
+            className="
+              inline-flex
+              min-h-11
+              min-w-11
+              shrink-0
+              items-center
+              justify-center
+              rounded-lg
+              border
+              border-white/20
+              px-4
+              text-sm
+              font-semibold
+              text-white
+              transition
+              hover:bg-white/10
+              xl:hidden
+            "
           >
-            {menuOpen
-              ? 'Fechar'
-              : 'Menu'}
+            {
+              menuOpen
+                ? 'Fechar'
+                : 'Menu'
+            }
           </button>
         </div>
+      </div>
 
-        {menuOpen ? (
-          <div
-            id="platform-navigation-menu"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Menu da Central da Plataforma"
-            className="fixed inset-x-0 top-20 z-[80] h-[calc(100dvh-5rem)] w-screen max-w-full overflow-x-hidden bg-[#071827] xl:hidden"
-          >
-            <div className="mx-auto flex h-full w-full max-w-7xl min-w-0 flex-col overflow-x-hidden px-4 sm:px-6">
-              <div className="min-h-0 min-w-0 flex-1 touch-pan-y overflow-x-hidden overflow-y-auto overscroll-contain py-5">
-                {!loading &&
-                user ? (
-                  <div className="mb-5 min-w-0 max-w-full overflow-hidden rounded-xl border border-white/10 bg-white/5 p-4">
-                    <p className="max-w-full truncate font-semibold text-white">
-                      {
-                        user.displayName
-                      }
-                    </p>
+      {
+        menuOpen
+          ? (
+            <div
+              id="platform-navigation-menu"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Menu da Central da Plataforma"
+              className="
+                fixed
+                inset-x-0
+                bottom-0
+                top-20
+                z-[90]
+                overflow-hidden
+                bg-[#071827]
+                xl:hidden
+              "
+            >
+              <div
+                className="
+                  mx-auto
+                  flex
+                  h-full
+                  w-full
+                  max-w-7xl
+                  flex-col
+                  px-4
+                  sm:px-6
+                "
+              >
+                <div
+                  className="
+                    min-h-0
+                    flex-1
+                    touch-pan-y
+                    overflow-y-auto
+                    overscroll-contain
+                    py-5
+                    [scrollbar-gutter:stable]
+                  "
+                >
+                  {
+                    !loading
+                    && user
+                      ? (
+                        <section
+                          className="
+                            mb-5
+                            overflow-hidden
+                            rounded-xl
+                            border
+                            border-white/10
+                            bg-white/5
+                            p-4
+                          "
+                        >
+                          <p
+                            className="
+                              truncate
+                              font-semibold
+                              text-white
+                            "
+                          >
+                            {
+                              user.displayName
+                            }
+                          </p>
 
-                    {user.email ? (
-                      <p className="mt-1 max-w-full break-all text-sm text-slate-300">
-                        {user.email}
-                      </p>
-                    ) : null}
-
-                    {activeContext ? (
-                      <p className="mt-3 max-w-full break-words text-sm text-cyan-200">
-                        {
-                          activeContext.roleLabel
-                        }
-                        {' — '}
-                        {getContextName(
-                          activeContext,
-                        )}
-                      </p>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                <div className="min-w-0 max-w-full space-y-6 pb-6">
-                  {(
-                    Object.keys(
-                      groupedItems,
-                    ) as Array<
-                      keyof typeof groupedItems
-                    >
-                  ).map(group => {
-                    const items =
-                      groupedItems[group]
-
-                    if (
-                      items.length ===
-                      0
-                    ) {
-                      return null
-                    }
-
-                    return (
-                      <section
-                        key={group}
-                        className="min-w-0 max-w-full"
-                      >
-                        <p className="max-w-full truncate text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
                           {
-                            GROUP_LABELS[
-                              group
-                            ]
-                          }
-                        </p>
-
-                        <div className="mt-2 grid min-w-0 max-w-full gap-2 sm:grid-cols-2">
-                          {items.map(
-                            item => {
-                              const activePath =
-                                isActivePath(
-                                  pathname,
-                                  item.href,
-                                )
-
-                              return (
-                                <Link
-                                  key={
-                                    item.key
-                                  }
-                                  href={
-                                    item.href
-                                  }
-                                  aria-current={
-                                    activePath
-                                      ? 'page'
-                                      : undefined
-                                  }
-                                  className={`min-w-0 max-w-full break-words rounded-lg border px-4 py-3 text-sm font-semibold transition ${
-                                    activePath
-                                      ? 'border-white bg-white text-[#071827]'
-                                      : 'border-white/10 bg-white/5 text-white hover:border-white/30 hover:bg-white/10'
-                                  }`}
+                            user.email
+                              ? (
+                                <p
+                                  className="
+                                    mt-1
+                                    break-all
+                                    text-sm
+                                    text-slate-300
+                                  "
                                 >
                                   {
-                                    item.label
+                                    user.email
                                   }
-                                </Link>
+                                </p>
                               )
-                            },
-                          )}
-                        </div>
-                      </section>
-                    )
-                  })}
-                </div>
-              </div>
+                              : null
+                          }
 
-              <footer className="min-w-0 max-w-full shrink-0 overflow-x-hidden border-t border-white/10 bg-[#071827] pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-4">
-                <button
-                  type="button"
-                  onClick={
-                    handleLogout
+                          {
+                            activeContext
+                              ? (
+                                <p
+                                  className="
+                                    mt-3
+                                    break-words
+                                    text-sm
+                                    text-cyan-200
+                                  "
+                                >
+                                  {
+                                    activeContext
+                                      .roleLabel
+                                  }
+                                  {' — '}
+                                  {
+                                    getContextName(
+                                      activeContext,
+                                    )
+                                  }
+                                </p>
+                              )
+                              : null
+                          }
+                        </section>
+                      )
+                      : null
                   }
-                  disabled={
-                    loggingOut
-                  }
-                  aria-label="Sair da plataforma"
-                  className="mx-auto flex min-h-11 max-w-full items-center justify-center gap-2 rounded-xl border border-red-300/30 bg-red-500/[0.06] px-5 py-3 text-sm font-semibold text-red-100 transition hover:border-red-300/50 hover:bg-red-500/10 focus:outline-none focus:ring-4 focus:ring-red-300/10 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    className="h-5 w-5 shrink-0"
+
+                  <div
+                    className="
+                      space-y-6
+                      pb-6
+                    "
                   >
-                    <path
-                      d="M10 5H6.75A1.75 1.75 0 0 0 5 6.75v10.5A1.75 1.75 0 0 0 6.75 19H10"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                    />
+                    {
+                      (
+                        Object.keys(
+                          groupedItems,
+                        ) as NavigationGroup[]
+                      ).map(
+                        group => {
+                          const items =
+                            groupedItems[
+                              group
+                            ]
 
-                    <path
-                      d="M14 8l4 4-4 4"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
+                          if (
+                            items.length ===
+                            0
+                          ) {
+                            return null
+                          }
 
-                    <path
-                      d="M18 12H9"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                    />
-                  </svg>
+                          return (
+                            <section
+                              key={
+                                group
+                              }
+                            >
+                              <p
+                                className="
+                                  text-xs
+                                  font-semibold
+                                  uppercase
+                                  tracking-[0.16em]
+                                  text-slate-400
+                                "
+                              >
+                                {
+                                  GROUP_LABELS[
+                                    group
+                                  ]
+                                }
+                              </p>
 
-                  <span className="truncate">
-                    {loggingOut
-                      ? 'Encerrando sessão...'
-                      : 'Sair da plataforma'}
-                  </span>
-                </button>
+                              <div
+                                className="
+                                  mt-2
+                                  grid
+                                  gap-2
+                                  sm:grid-cols-2
+                                "
+                              >
+                                {
+                                  items.map(
+                                    item => {
+                                      const activePath =
+                                        isActivePath(
+                                          pathname,
+                                          item.href,
+                                        )
 
-                <p className="mt-2 max-w-full break-words text-center text-xs leading-5 text-slate-400">
-                  Encerra com segurança a sessão atual.
-                </p>
-              </footer>
+                                      return (
+                                        <Link
+                                          key={
+                                            item.key
+                                          }
+                                          href={
+                                            item.href
+                                          }
+                                          aria-current={
+                                            activePath
+                                              ? 'page'
+                                              : undefined
+                                          }
+                                          className={`
+                                            min-w-0
+                                            break-words
+                                            rounded-lg
+                                            border
+                                            px-4
+                                            py-3
+                                            text-sm
+                                            font-semibold
+                                            transition
+                                            ${
+                                              activePath
+                                                ? 'border-white bg-white text-[#071827]'
+                                                : 'border-white/10 bg-white/5 text-white hover:border-white/30 hover:bg-white/10'
+                                            }
+                                          `}
+                                        >
+                                          {
+                                            item.label
+                                          }
+                                        </Link>
+                                      )
+                                    },
+                                  )
+                                }
+                              </div>
+                            </section>
+                          )
+                        },
+                      )
+                    }
+                  </div>
+                </div>
+
+                <footer
+                  className="
+                    shrink-0
+                    border-t
+                    border-white/10
+                    bg-[#071827]
+                    py-4
+                  "
+                >
+                  <button
+                    type="button"
+                    disabled={
+                      loggingOut
+                    }
+                    onClick={
+                      handleLogout
+                    }
+                    className="
+                      inline-flex
+                      min-h-11
+                      w-full
+                      items-center
+                      justify-center
+                      rounded-lg
+                      border
+                      border-white/20
+                      px-4
+                      py-2.5
+                      text-sm
+                      font-semibold
+                      text-white
+                      transition
+                      hover:bg-white/10
+                      disabled:cursor-not-allowed
+                      disabled:opacity-60
+                    "
+                  >
+                    {
+                      loggingOut
+                        ? 'Saindo...'
+                        : 'Sair da plataforma'
+                    }
+                  </button>
+                </footer>
+              </div>
             </div>
-          </div>
-        ) : null}
-      </div>
+          )
+          : null
+      }
     </header>
   )
 }
