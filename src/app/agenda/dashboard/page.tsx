@@ -4,7 +4,7 @@ import {
   AgendaPageShell,
 } from '@/components/agenda/AgendaPageShell'
 
-import AgendaCommandCenter from '@/components/agenda/AgendaCommandCenter'
+import TeacherCommandCenter from '@/components/dashboard/TeacherCommandCenter'
 
 type AgendaModuleLink = {
   code: string
@@ -73,7 +73,7 @@ export default function AgendaDashboardPage() {
     <AgendaPageShell
       eyebrow="Centro de Comando Pedagógico"
       title="Agenda Inteligente EDI"
-      description="Organize suas prioridades, acompanhe o ciclo pedagógico e acesse as ações recomendadas pelo EIOS a partir dos seus registros autorizados."
+      description="Acompanhe sua situação operacional, identifique prioridades e acesse as recomendações produzidas pelo EIOS a partir dos seus registros autorizados."
     >
       <div
         className="
@@ -81,7 +81,7 @@ export default function AgendaDashboardPage() {
           sm:space-y-8
         "
       >
-        <AgendaCommandCenter />
+        <TeacherCommandCenter />
 
         <section
           aria-labelledby="agenda-operational-modules"
