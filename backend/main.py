@@ -8,6 +8,9 @@ from fastapi import FastAPI
 from app.routers.actions import router as actions_router
 from app.routers.agenda import router as agenda_router
 from app.routers.auth import router as auth_router
+from app.routers.calendar_intelligence import (
+    router as calendar_intelligence_router,
+)
 from app.routers.database import router as database_router
 from app.routers.engine import router as engine_router
 from app.routers.evidence_intelligence import (
@@ -21,6 +24,9 @@ from app.routers.planning_intelligence import (
     router as planning_intelligence_router,
 )
 from app.routers.school_registry import router as school_registry_router
+from app.routers.task_intelligence import (
+    router as task_intelligence_router,
+)
 from app.routers.teacher_intelligence import (
     router as teacher_intelligence_router,
 )
@@ -173,6 +179,14 @@ app.include_router(
 
 app.include_router(
     evidence_intelligence_router,
+)
+
+app.include_router(
+    task_intelligence_router,
+)
+
+app.include_router(
+    calendar_intelligence_router,
 )
 
 app.include_router(
