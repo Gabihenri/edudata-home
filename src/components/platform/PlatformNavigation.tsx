@@ -555,8 +555,9 @@ export function PlatformNavigation() {
           }
 
           const result =
-            await response.json()
-              as PortalResponse
+            (
+              await response.json()
+            ) as PortalResponse
 
           if (
             !response.ok
