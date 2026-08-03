@@ -307,7 +307,8 @@ function MetricCardContent({
   description,
   supportingText,
   statusLabel,
-  tone,
+  tone =
+    'default',
   trend,
   variation,
   progress,
@@ -546,7 +547,8 @@ function MetricCardContent({
 
 export function MetricCard({
   title,
-  value = null,
+  value =
+    null,
   description,
   supportingText,
   statusLabel,
@@ -554,7 +556,8 @@ export function MetricCard({
     'default',
   trend,
   variation,
-  progress = null,
+  progress =
+    null,
   progressLabel,
   icon,
   footer,
