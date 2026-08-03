@@ -2,6 +2,8 @@ import type {
   Config,
 } from 'tailwindcss'
 
+import defaultTheme from 'tailwindcss/defaultTheme'
+
 const config: Config = {
   content: [
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
@@ -125,92 +127,20 @@ const config: Config = {
         },
       },
 
+      /*
+       * Preserva a tipografia original da Agenda Inteligente EDI.
+       * Não utiliza Inter, Google Fonts ou variável externa.
+       */
       fontFamily: {
-        sans: [
-          'var(--font-sans)',
-          'Inter',
-          'Arial',
-          'sans-serif',
-        ],
+        sans:
+          defaultTheme
+            .fontFamily
+            .sans,
 
-        display: [
-          'var(--font-sans)',
-          'Inter',
-          'Arial',
-          'sans-serif',
-        ],
-      },
-
-      fontSize: {
-        'display-xs': [
-          '1.875rem',
-          {
-            lineHeight:
-              '1.15',
-
-            letterSpacing:
-              '-0.02em',
-
-            fontWeight:
-              '700',
-          },
-        ],
-
-        'display-sm': [
-          '2.25rem',
-          {
-            lineHeight:
-              '1.12',
-
-            letterSpacing:
-              '-0.025em',
-
-            fontWeight:
-              '700',
-          },
-        ],
-
-        'display-md': [
-          '3rem',
-          {
-            lineHeight:
-              '1.08',
-
-            letterSpacing:
-              '-0.03em',
-
-            fontWeight:
-              '700',
-          },
-        ],
-
-        'label-xs': [
-          '0.625rem',
-          {
-            lineHeight:
-              '1rem',
-
-            letterSpacing:
-              '0.14em',
-
-            fontWeight:
-              '700',
-          },
-        ],
-
-        'label-sm': [
-          '0.75rem',
-          {
-            lineHeight:
-              '1rem',
-
-            letterSpacing:
-              '0.18em',
-
-            fontWeight:
-              '700',
-          },
-        ],
+        display:
+          defaultTheme
+            .fontFamily
+            .sans,
       },
 
       borderRadius: {
