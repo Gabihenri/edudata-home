@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from app.services.capabilities.agenda_handlers import (
+from app.services.agenda_handlers import (
     register_agenda_handlers,
 )
 from app.services.capabilities.calendar_handlers import (
@@ -41,15 +41,6 @@ class CapabilityBootstrapReport:
     """
     Relatório seguro da inicialização da
     Educational Capability Platform.
-
-    O relatório informa:
-
-    - módulos descobertos;
-    - capacidades registradas;
-    - handlers registrados;
-    - consistência entre Registry e Dispatcher.
-
-    Não expõe handlers, payloads ou dados operacionais.
     """
 
     load_report: CapabilityLoadReport
@@ -108,28 +99,6 @@ class CapabilityBootstrapReport:
 class CapabilityBootstrap:
     """
     Inicializador oficial da Educational Capability Platform.
-
-    Ordem de inicialização:
-
-    1. Descobrir módulos `*_capabilities`;
-    2. Registrar contratos no CapabilityRegistry;
-    3. Registrar handlers oficiais da Agenda;
-    4. Registrar handlers oficiais de Planejamento;
-    5. Registrar handlers oficiais de Evidências;
-    6. Registrar handlers oficiais de Tarefas;
-    7. Registrar handlers oficiais de Calendário;
-    8. Registrar handlers oficiais de Inteligência Docente;
-    9. Validar consistência entre Registry e Dispatcher;
-    10. Produzir relatório seguro.
-
-    O Bootstrap não:
-
-    - executa capacidades;
-    - acessa banco de dados;
-    - chama o Pipeline;
-    - autentica usuários;
-    - altera registros;
-    - substitui a inicialização do FastAPI.
     """
 
     def __init__(
@@ -186,13 +155,6 @@ class CapabilityBootstrap:
     def initialize(
         self,
     ) -> CapabilityBootstrapReport:
-        """
-        Inicializa o ECP de forma idempotente.
-
-        Os módulos de capacidades e os registradores de handlers
-        são responsáveis por impedir registros duplicados.
-        """
-
         load_report = (
             self._loader.load_all()
         )
@@ -303,10 +265,6 @@ class CapabilityBootstrap:
     def status(
         self,
     ) -> dict[str, Any]:
-        """
-        Retorna o último estado conhecido da inicialização.
-        """
-
         if self._last_report is None:
             return {
                 "initialized": False,
