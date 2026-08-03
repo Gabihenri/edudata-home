@@ -228,7 +228,7 @@ export function PageShell({
         aria-labelledby={
           headerId
         }
-        className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-brand-primary text-content-inverse shadow-card sm:rounded-shell"
+        className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-brand-primary text-white shadow-card sm:rounded-shell"
       >
         <div
           aria-hidden="true"
@@ -274,7 +274,7 @@ export function PageShell({
             )}
           >
             <div className="min-w-0">
-              <p className="text-label-sm uppercase text-brand-accent">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-accent">
                 {
                   eyebrow
                 }
@@ -284,7 +284,7 @@ export function PageShell({
                 id={
                   headerId
                 }
-                className="mt-3 max-w-4xl font-display text-display-xs text-white sm:text-display-sm lg:text-display-md"
+                className="mt-3 max-w-4xl text-3xl font-bold leading-[1.08] tracking-tight text-white sm:text-4xl lg:text-5xl"
               >
                 {
                   title
@@ -313,9 +313,7 @@ export function PageShell({
                 <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:max-w-md lg:justify-end">
                   {
                     statusItems.map(
-                      (
-                        item,
-                      ) => (
+                      item => (
                         <div
                           key={
                             `${item.label}-${item.value}`
@@ -329,7 +327,7 @@ export function PageShell({
                         >
                           <p
                             className={joinClasses(
-                              'text-label-xs uppercase',
+                              'text-[10px] font-bold uppercase tracking-[0.14em]',
                               getStatusLabelClasses(
                                 item.tone,
                               ),
