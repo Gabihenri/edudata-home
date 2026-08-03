@@ -1,4 +1,7 @@
-import type { Metadata } from 'next'
+import type {
+  Metadata,
+} from 'next'
+
 import Link from 'next/link'
 
 import {
@@ -7,81 +10,139 @@ import {
   AgendaTasks,
 } from '@/components/agenda'
 
+import {
+  ProfessorDigitalNextStep,
+} from '@/components/professor-digital/ProfessorDigitalNextStep'
+
 export const metadata: Metadata = {
-  title: 'Ambiente Docente | Professor Digital',
+  title:
+    'Ambiente Docente | Professor Digital',
+
   description:
     'Ambiente operacional do Professor Digital integrado à Agenda Inteligente EDI.',
 }
 
 const modules = [
   {
-    title: 'Planejamento',
+    title:
+      'Planejamento',
+
     description:
       'Organize aulas, objetivos de aprendizagem, sequências didáticas e ações pedagógicas.',
-    href: '/agenda/planejamento',
-    label: 'Abrir planejamento',
+
+    href:
+      '/agenda/planejamento',
+
+    label:
+      'Abrir planejamento',
   },
   {
-    title: 'Calendário',
+    title:
+      'Calendário',
+
     description:
       'Visualize compromissos, reuniões, formações e atividades da rotina escolar.',
-    href: '/agenda/calendario',
-    label: 'Abrir calendário',
+
+    href:
+      '/agenda/calendario',
+
+    label:
+      'Abrir calendário',
   },
   {
-    title: 'Evidências',
+    title:
+      'Evidências',
+
     description:
       'Registre práticas, produções dos estudantes, intervenções e ações pedagógicas.',
-    href: '/agenda/evidencias',
-    label: 'Registrar evidências',
+
+    href:
+      '/agenda/evidencias',
+
+    label:
+      'Registrar evidências',
   },
   {
-    title: 'Tarefas',
+    title:
+      'Tarefas',
+
     description:
       'Acompanhe pendências, prioridades, prazos e responsabilidades docentes.',
-    href: '/agenda/tarefas',
-    label: 'Ver tarefas',
+
+    href:
+      '/agenda/tarefas',
+
+    label:
+      'Ver tarefas',
   },
   {
-    title: 'Turmas',
+    title:
+      'Turmas',
+
     description:
       'Acesse a organização das turmas e os registros relacionados aos estudantes.',
-    href: '/agenda/turmas',
-    label: 'Ver turmas',
+
+    href:
+      '/agenda/turmas',
+
+    label:
+      'Ver turmas',
   },
   {
-    title: 'Indicadores',
+    title:
+      'Indicadores',
+
     description:
       'Acompanhe dados, tendências e informações para apoiar decisões pedagógicas.',
-    href: '/agenda/indicadores',
-    label: 'Ver indicadores',
+
+    href:
+      '/agenda/indicadores',
+
+    label:
+      'Ver indicadores',
   },
 ]
 
 const professorModules = [
   {
-    title: 'Perfil docente',
+    title:
+      'Perfil docente',
+
     description:
       'Organize informações profissionais, áreas de atuação e preferências pedagógicas.',
-    href: '/professor-digital/perfil',
+
+    href:
+      '/professor-digital/perfil',
   },
   {
-    title: 'Contexto da escola',
+    title:
+      'Contexto da escola',
+
     description:
       'Registre informações institucionais importantes para personalizar o ambiente.',
-    href: '/professor-digital/escola',
+
+    href:
+      '/professor-digital/escola',
   },
   {
-    title: 'Plano de desenvolvimento',
+    title:
+      'Plano de desenvolvimento',
+
     description:
       'Acompanhe objetivos profissionais, formações e evolução docente.',
-    href: '/professor-digital/plano',
+
+    href:
+      '/professor-digital/plano',
   },
   {
-    title: 'Recomendações',
+    title:
+      'Recomendações',
+
     description:
       'Receba orientações e sugestões baseadas no contexto pedagógico registrado.',
-    href: '/professor-digital/recomendacoes',
+
+    href:
+      '/professor-digital/recomendacoes',
   },
 ]
 
@@ -159,6 +220,10 @@ export default function AgendaProfessorPage() {
               Registrar evidência
             </Link>
           </div>
+        </section>
+
+        <section aria-label="Próximo passo recomendado">
+          <ProfessorDigitalNextStep />
         </section>
 
         <section aria-labelledby="resumo-docente">
@@ -245,32 +310,46 @@ export default function AgendaProfessorPage() {
           </div>
 
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {modules.map((module) => (
-              <Link
-                key={module.href}
-                href={module.href}
-                className="group flex min-h-64 flex-col rounded-3xl border border-slate-200 bg-white p-7 shadow-sm transition hover:-translate-y-1 hover:border-cyan-600/30 hover:shadow-lg"
-              >
-                <h3 className="text-xl font-bold text-[#081C2E]">
-                  {module.title}
-                </h3>
-
-                <p className="mt-4 leading-7 text-slate-600">
-                  {module.description}
-                </p>
-
-                <span className="mt-auto inline-flex items-center gap-2 pt-7 font-semibold text-cyan-700">
-                  {module.label}
-
-                  <span
-                    aria-hidden="true"
-                    className="transition-transform group-hover:translate-x-1"
+            {
+              modules.map(
+                module => (
+                  <Link
+                    key={
+                      module.href
+                    }
+                    href={
+                      module.href
+                    }
+                    className="group flex min-h-64 flex-col rounded-3xl border border-slate-200 bg-white p-7 shadow-sm transition hover:-translate-y-1 hover:border-cyan-600/30 hover:shadow-lg"
                   >
-                    →
-                  </span>
-                </span>
-              </Link>
-            ))}
+                    <h3 className="text-xl font-bold text-[#081C2E]">
+                      {
+                        module.title
+                      }
+                    </h3>
+
+                    <p className="mt-4 leading-7 text-slate-600">
+                      {
+                        module.description
+                      }
+                    </p>
+
+                    <span className="mt-auto inline-flex items-center gap-2 pt-7 font-semibold text-cyan-700">
+                      {
+                        module.label
+                      }
+
+                      <span
+                        aria-hidden="true"
+                        className="transition-transform group-hover:translate-x-1"
+                      >
+                        →
+                      </span>
+                    </span>
+                  </Link>
+                ),
+              )
+            }
           </div>
         </section>
 
@@ -289,32 +368,44 @@ export default function AgendaProfessorPage() {
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
-            {professorModules.map((module) => (
-              <Link
-                key={module.href}
-                href={module.href}
-                className="group rounded-3xl border border-slate-200 bg-white p-7 shadow-sm transition hover:-translate-y-1 hover:border-cyan-600/30 hover:shadow-lg"
-              >
-                <h3 className="text-xl font-bold text-[#081C2E]">
-                  {module.title}
-                </h3>
-
-                <p className="mt-4 leading-7 text-slate-600">
-                  {module.description}
-                </p>
-
-                <span className="mt-6 inline-flex items-center gap-2 font-semibold text-cyan-700">
-                  Acessar módulo
-
-                  <span
-                    aria-hidden="true"
-                    className="transition-transform group-hover:translate-x-1"
+            {
+              professorModules.map(
+                module => (
+                  <Link
+                    key={
+                      module.href
+                    }
+                    href={
+                      module.href
+                    }
+                    className="group rounded-3xl border border-slate-200 bg-white p-7 shadow-sm transition hover:-translate-y-1 hover:border-cyan-600/30 hover:shadow-lg"
                   >
-                    →
-                  </span>
-                </span>
-              </Link>
-            ))}
+                    <h3 className="text-xl font-bold text-[#081C2E]">
+                      {
+                        module.title
+                      }
+                    </h3>
+
+                    <p className="mt-4 leading-7 text-slate-600">
+                      {
+                        module.description
+                      }
+                    </p>
+
+                    <span className="mt-6 inline-flex items-center gap-2 font-semibold text-cyan-700">
+                      Acessar módulo
+
+                      <span
+                        aria-hidden="true"
+                        className="transition-transform group-hover:translate-x-1"
+                      >
+                        →
+                      </span>
+                    </span>
+                  </Link>
+                ),
+              )
+            }
           </div>
         </section>
 
