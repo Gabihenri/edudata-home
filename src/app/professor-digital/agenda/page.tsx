@@ -14,6 +14,10 @@ import {
   ProfessorDigitalNextStep,
 } from '@/components/professor-digital/ProfessorDigitalNextStep'
 
+import {
+  ProfessorDigitalTodayPanel,
+} from '@/components/professor-digital/ProfessorDigitalTodayPanel'
+
 export const metadata: Metadata = {
   title:
     'Ambiente Docente | Professor Digital',
@@ -222,6 +226,10 @@ export default function AgendaProfessorPage() {
           </div>
         </section>
 
+        <section aria-label="Painel Hoje do Professor Digital">
+          <ProfessorDigitalTodayPanel />
+        </section>
+
         <section aria-label="Próximo passo recomendado">
           <ProfessorDigitalNextStep />
         </section>
@@ -421,9 +429,10 @@ export default function AgendaProfessorPage() {
               </h2>
 
               <p className="mt-4 leading-7 text-slate-600">
-                Cada planejamento, tarefa e evidência alimenta o histórico
-                pedagógico e fortalece análises futuras dentro do ecossistema
-                EduData IA.
+                Cada planejamento, tarefa e evidência alimenta o contexto
+                educacional, fortalece o histórico pedagógico e permite que o
+                Professor Digital apresente análises e recomendações
+                contextualizadas.
               </p>
             </div>
 
