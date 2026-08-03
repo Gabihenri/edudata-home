@@ -3,15 +3,42 @@
 import Link from 'next/link'
 
 import {
-  useEducationalContext,
-} from '@/lib/eios/context/useEducationalContext'
+  AlertCard,
+  type AlertCardTone,
+} from '@/components/ui/cards/AlertCard'
+
+import {
+  InsightCard,
+} from '@/components/ui/cards/InsightCard'
+
+import {
+  MetricCard,
+  type MetricCardTone,
+} from '@/components/ui/cards/MetricCard'
+
+import {
+  RecommendationCard,
+  type RecommendationCardTone,
+} from '@/components/ui/cards/RecommendationCard'
+
+import {
+  PageShell,
+  type PageShellStatusItem,
+} from '@/components/ui/layout/PageShell'
+
+import {
+  SectionHeader,
+} from '@/components/ui/layout/SectionHeader'
 
 import type {
-  EducationalContextAlert,
   EducationalContextDailyPriority,
-  EducationalContextInsight,
-  EducationalContextRecommendation,
+  EducationalContextPriority,
+  EducationalContextRiskLevel,
 } from '@/lib/eios/context/educational-context.contract'
+
+import {
+  useEducationalContext,
+} from '@/lib/eios/context/useEducationalContext'
 
 function formatGeneratedAt(
   value: string | null,
@@ -41,6 +68,105 @@ function formatGeneratedAt(
         'short',
     },
   ).format(date)
+}
+
+function formatSource(
+  source: string,
+): string {
+  const labels:
+    Record<string, string> = {
+      agenda:
+        'Agenda',
+
+      professor_digital:
+        'Professor Digital',
+
+      class_diary:
+        'Diário de Classe',
+
+      professional_development:
+        'Desenvolvimento profissional',
+
+      analytics:
+        'Analytics',
+
+      institution:
+        'Instituição',
+
+      manual:
+        'Registro manual',
+
+      integration:
+        'Integração',
+    }
+
+  return (
+    labels[source] ??
+    source
+  )
+}
+
+function getContextStatusLabel(
+  status: string,
+): string {
+  if (
+    status ===
+    'available'
+  ) {
+    return 'Disponível'
+  }
+
+  if (
+    status ===
+    'partial'
+  ) {
+    return 'Parcial'
+  }
+
+  if (
+    status ===
+    'degraded'
+  ) {
+    return 'Com alertas'
+  }
+
+  if (
+    status ===
+    'unavailable'
+  ) {
+    return 'Indisponível'
+  }
+
+  return 'Inicial'
+}
+
+function getContextStatusTone(
+  status: string,
+): PageShellStatusItem['tone'] {
+  if (
+    status ===
+    'available'
+  ) {
+    return 'success'
+  }
+
+  if (
+    status ===
+      'degraded' ||
+    status ===
+      'partial'
+  ) {
+    return 'warning'
+  }
+
+  if (
+    status ===
+    'unavailable'
+  ) {
+    return 'danger'
+  }
+
+  return 'brand'
 }
 
 function getScoreLabel(
@@ -77,325 +203,260 @@ function getScoreLabel(
   return 'Ciclo inicial'
 }
 
-function getScoreClasses(
+function getScoreTone(
   score: number,
-): string {
+): MetricCardTone {
   if (
     score >=
     75
   ) {
-    return [
-      'border-emerald-200',
-      'bg-emerald-50',
-      'text-emerald-800',
-    ].join(' ')
+    return 'success'
   }
 
   if (
     score >=
     50
   ) {
-    return [
-      'border-amber-200',
-      'bg-amber-50',
-      'text-amber-800',
-    ].join(' ')
+    return 'warning'
   }
 
-  return [
-    'border-rose-200',
-    'bg-rose-50',
-    'text-rose-800',
-  ].join(' ')
+  return 'danger'
 }
 
-function getPriorityClasses(
-  priority: string,
+function getPriorityLabel(
+  priority:
+    EducationalContextPriority,
 ): string {
   if (
     priority ===
     'critical'
   ) {
-    return [
-      'border-rose-300',
-      'bg-rose-100',
-      'text-rose-950',
-    ].join(' ')
+    return 'Crítica'
   }
 
   if (
     priority ===
     'high'
   ) {
-    return [
-      'border-orange-200',
-      'bg-orange-50',
-      'text-orange-950',
-    ].join(' ')
+    return 'Alta'
   }
 
   if (
     priority ===
     'medium'
   ) {
-    return [
-      'border-amber-200',
-      'bg-amber-50',
-      'text-amber-950',
-    ].join(' ')
+    return 'Média'
   }
 
-  return [
-    'border-cyan-200',
-    'bg-cyan-50',
-    'text-[#075F78]',
-  ].join(' ')
+  if (
+    priority ===
+    'low'
+  ) {
+    return 'Baixa'
+  }
+
+  return 'Normal'
 }
 
-function PriorityItem({
+function getPriorityTone(
+  priority:
+    EducationalContextPriority,
+): RecommendationCardTone {
+  if (
+    priority ===
+    'critical'
+  ) {
+    return 'danger'
+  }
+
+  if (
+    priority ===
+      'high' ||
+    priority ===
+      'medium'
+  ) {
+    return 'warning'
+  }
+
+  return 'brand'
+}
+
+function getAlertTone({
+  priority,
+  riskLevel,
+}: {
+  priority:
+    EducationalContextPriority
+
+  riskLevel:
+    EducationalContextRiskLevel
+}): AlertCardTone {
+  if (
+    priority ===
+      'critical' ||
+    riskLevel ===
+      'critical' ||
+    riskLevel ===
+      'high'
+  ) {
+    return 'critical'
+  }
+
+  if (
+    priority ===
+      'high' ||
+    priority ===
+      'medium' ||
+    riskLevel ===
+      'medium'
+  ) {
+    return 'warning'
+  }
+
+  if (
+    riskLevel ===
+    'low'
+  ) {
+    return 'attention'
+  }
+
+  return 'neutral'
+}
+
+function PriorityCard({
   priority,
 }: {
   priority:
     EducationalContextDailyPriority
 }) {
   return (
-    <article
-      className={[
-        'rounded-2xl border p-5',
-        getPriorityClasses(
+    <RecommendationCard
+      title={
+        priority.title
+      }
+      description={
+        priority.description
+      }
+      reason={
+        priority.reason
+      }
+      label="Prioridade"
+      priorityLabel={
+        getPriorityLabel(
           priority.priority,
-        ),
-      ].join(' ')}
+        )
+      }
+      tone={
+        getPriorityTone(
+          priority.priority,
+        )
+      }
+      href={
+        priority.actionHref ??
+        undefined
+      }
+      actionLabel={
+        priority.actionLabel ??
+        undefined
+      }
+    />
+  )
+}
+
+function LoadingPanel() {
+  return (
+    <section
+      aria-label="Painel Hoje"
+      aria-busy="true"
+      className="rounded-shell border border-border bg-surface p-7 shadow-card sm:p-9"
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] opacity-70">
-            {
-              priority.priority ===
-              'critical'
-                ? 'Prioridade crítica'
-                : priority.priority ===
-                    'high'
-                  ? 'Prioridade alta'
-                  : priority.priority ===
-                      'medium'
-                    ? 'Prioridade média'
-                    : 'Orientação'
-            }
-          </p>
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-secondary">
+        Professor Digital
+      </p>
 
-          <h3 className="mt-2 text-lg font-bold">
-            {
-              priority.title
-            }
-          </h3>
+      <h2 className="mt-4 text-3xl font-bold tracking-tight text-content-primary">
+        Preparando seu dia
+      </h2>
 
-          <p className="mt-2 text-sm leading-6 opacity-90">
-            {
-              priority.description
-            }
-          </p>
+      <p className="mt-4 max-w-3xl leading-7 text-content-secondary">
+        O Context Engine está analisando planejamentos, objetivos, aulas,
+        evidências e indicadores.
+      </p>
 
-          <div className="mt-4 rounded-xl border border-current/10 bg-white/50 p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] opacity-70">
-              Motivo
-            </p>
-
-            <p className="mt-2 text-sm leading-6">
-              {
-                priority.reason
-              }
-            </p>
-          </div>
-        </div>
-
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {
-          priority.actionHref &&
-          priority.actionLabel && (
-            <Link
-              href={
-                priority.actionHref
-              }
-              className="inline-flex w-fit shrink-0 rounded-full bg-[#081C2E] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
-            >
-              {
-                priority.actionLabel
-              }
-            </Link>
+          Array.from({
+            length:
+              5,
+          }).map(
+            (
+              _,
+              index,
+            ) => (
+              <MetricCard
+                key={
+                  index
+                }
+                title="Carregando"
+                loading
+              />
+            ),
           )
         }
       </div>
-    </article>
+    </section>
   )
 }
 
-function AlertItem({
-  alert,
+function ErrorPanel({
+  message,
+  onReload,
 }: {
-  alert:
-    EducationalContextAlert
+  message: string
+
+  onReload:
+    () => void
 }) {
   return (
-    <article className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-rose-950">
-      <p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-700">
-        Alerta
+    <section
+      aria-label="Painel Hoje indisponível"
+      className="rounded-shell border border-status-warningBorder bg-status-warningBackground p-7 shadow-card sm:p-9"
+    >
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-status-warning">
+        Painel Hoje indisponível
       </p>
 
-      <h3 className="mt-2 text-lg font-bold">
-        {
-          alert.title
-        }
-      </h3>
+      <h2 className="mt-4 text-2xl font-bold text-content-primary">
+        Não foi possível carregar o contexto educacional
+      </h2>
 
-      <p className="mt-2 text-sm leading-6">
+      <p className="mt-4 max-w-3xl leading-7 text-content-secondary">
         {
-          alert.description
-        }
-      </p>
-
-      <p className="mt-3 text-sm leading-6 text-rose-800">
-        <strong>
-          Por que isso importa:
-        </strong>{' '}
-        {
-          alert.reason
+          message
         }
       </p>
 
-      {
-        alert.actionHref &&
-        alert.recommendedAction && (
-          <Link
-            href={
-              alert.actionHref
-            }
-            className="mt-4 inline-flex rounded-full bg-rose-900 px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
-          >
-            {
-              alert.recommendedAction
-            }
-          </Link>
-        )
-      }
-    </article>
-  )
-}
-
-function RecommendationItem({
-  recommendation,
-}: {
-  recommendation:
-    EducationalContextRecommendation
-}) {
-  return (
-    <article className="rounded-2xl border border-cyan-200 bg-cyan-50 p-5 text-[#075F78]">
-      <p className="text-xs font-bold uppercase tracking-[0.16em]">
-        Recomendação
-      </p>
-
-      <h3 className="mt-2 text-lg font-bold text-[#081C2E]">
-        {
-          recommendation.title
+      <button
+        type="button"
+        onClick={
+          onReload
         }
-      </h3>
-
-      <p className="mt-2 text-sm leading-6 text-slate-700">
-        {
-          recommendation.description
-        }
-      </p>
-
-      <div className="mt-4 rounded-xl border border-cyan-200 bg-white p-4">
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-700">
-          Explicação
-        </p>
-
-        <p className="mt-2 text-sm leading-6 text-slate-700">
-          {
-            recommendation.reason
-          }
-        </p>
-
-        {
-          recommendation.expectedImpact && (
-            <p className="mt-3 text-sm leading-6 text-slate-700">
-              <strong>
-                Impacto esperado:
-              </strong>{' '}
-              {
-                recommendation.expectedImpact
-              }
-            </p>
-          )
-        }
-      </div>
-
-      {
-        recommendation.actionHref &&
-        recommendation.actionLabel && (
-          <Link
-            href={
-              recommendation.actionHref
-            }
-            className="mt-4 inline-flex rounded-full bg-[#0A3A5E] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
-          >
-            {
-              recommendation.actionLabel
-            }
-          </Link>
-        )
-      }
-    </article>
-  )
-}
-
-function InsightItem({
-  insight,
-}: {
-  insight:
-    EducationalContextInsight
-}) {
-  return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-700">
-        Insight
-      </p>
-
-      <h3 className="mt-2 text-lg font-bold text-[#081C2E]">
-        {
-          insight.title
-        }
-      </h3>
-
-      <p className="mt-2 text-sm leading-6 text-slate-700">
-        {
-          insight.description
-        }
-      </p>
-
-      <p className="mt-3 text-sm leading-6 text-slate-500">
-        {
-          insight.explanation
-        }
-      </p>
-    </article>
+        className="mt-6 rounded-full bg-brand-secondary px-6 py-3 font-semibold text-white transition duration-250 hover:bg-brand-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary focus-visible:ring-offset-2"
+      >
+        Tentar novamente
+      </button>
+    </section>
   )
 }
 
 export function ProfessorDigitalTodayPanel() {
   const {
     context,
-
     loading,
-
     refreshing,
-
     error,
-
     warnings,
-
     generatedAt,
-
     reload,
   } = useEducationalContext({
     refreshOnFocus:
@@ -404,27 +465,7 @@ export function ProfessorDigitalTodayPanel() {
 
   if (loading) {
     return (
-      <section
-        aria-label="Painel Hoje"
-        className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm"
-      >
-        <p className="text-sm font-bold uppercase tracking-[0.22em] text-cyan-700">
-          Professor Digital
-        </p>
-
-        <h2 className="mt-4 text-3xl font-bold text-[#081C2E]">
-          Preparando seu dia
-        </h2>
-
-        <p className="mt-4 leading-7 text-slate-600">
-          O Context Engine está analisando planejamentos, objetivos, aulas,
-          evidências e indicadores.
-        </p>
-
-        <div className="mt-8 h-2 overflow-hidden rounded-full bg-slate-100">
-          <div className="h-full w-1/2 animate-pulse rounded-full bg-cyan-600" />
-        </div>
-      </section>
+      <LoadingPanel />
     )
   }
 
@@ -433,37 +474,17 @@ export function ProfessorDigitalTodayPanel() {
     !context
   ) {
     return (
-      <section
-        aria-label="Painel Hoje indisponível"
-        className="rounded-[2rem] border border-amber-200 bg-amber-50 p-8"
-      >
-        <p className="text-sm font-bold uppercase tracking-[0.22em] text-amber-800">
-          Painel Hoje indisponível
-        </p>
-
-        <h2 className="mt-4 text-2xl font-bold text-amber-950">
-          Não foi possível carregar o contexto educacional
-        </h2>
-
-        <p className="mt-4 leading-7 text-amber-950">
-          {
-            error ??
-            'O Context Engine não retornou dados para este usuário.'
+      <ErrorPanel
+        message={
+          error ??
+          'O Context Engine não retornou dados para este usuário.'
+        }
+        onReload={
+          () => {
+            void reload()
           }
-        </p>
-
-        <button
-          type="button"
-          onClick={
-            () => {
-              void reload()
-            }
-          }
-          className="mt-6 rounded-full bg-amber-900 px-6 py-3 font-semibold text-white transition hover:opacity-90"
-        >
-          Tentar novamente
-        </button>
-      </section>
+        }
+      />
     )
   }
 
@@ -482,333 +503,313 @@ export function ProfessorDigitalTodayPanel() {
   const secondaryPriorities =
     dailySummary
       .priorities
-      .slice(1, 4)
+      .slice(
+        1,
+        4,
+      )
 
   const visibleAlerts =
     dailySummary
       .alerts
-      .slice(0, 3)
+      .slice(
+        0,
+        3,
+      )
 
   const visibleRecommendations =
     dailySummary
       .recommendations
-      .slice(0, 3)
+      .slice(
+        0,
+        3,
+      )
 
   const visibleInsights =
     dailySummary
       .insights
-      .slice(0, 3)
+      .slice(
+        0,
+        3,
+      )
+
+  const sourcesLabel =
+    metadata.sources.length >
+    0
+      ? metadata.sources
+          .map(
+            formatSource,
+          )
+          .join(', ')
+      : 'Nenhuma fonte'
+
+  const statusItems:
+    PageShellStatusItem[] = [
+      {
+        label:
+          'Contexto',
+
+        value:
+          getContextStatusLabel(
+            metadata.status,
+          ),
+
+        tone:
+          getContextStatusTone(
+            metadata.status,
+          ),
+      },
+      {
+        label:
+          'Qualidade',
+
+        value:
+          metadata
+            .dataQualityScore ===
+          null
+            ? 'Não calculada'
+            : `${metadata.dataQualityScore}%`,
+
+        tone:
+          metadata
+            .dataQualityScore !==
+            null &&
+          metadata
+            .dataQualityScore >=
+            75
+            ? 'success'
+            : 'warning',
+      },
+      {
+        label:
+          'Atualização',
+
+        value:
+          formatGeneratedAt(
+            generatedAt,
+          ),
+
+        tone:
+          'brand',
+      },
+    ]
 
   return (
-    <section
-      aria-labelledby="professor-digital-today-title"
-      className="space-y-6"
+    <PageShell
+      productName="Professor Digital"
+      eyebrow="Painel Hoje"
+      title={
+        dailySummary.greeting
+      }
+      description={
+        dailySummary.summary
+      }
+      headerId="professor-digital-today-title"
+      statusItems={
+        statusItems
+      }
+      actions={
+        <>
+          <button
+            type="button"
+            onClick={
+              () => {
+                void reload()
+              }
+            }
+            disabled={
+              refreshing
+            }
+            className="rounded-full bg-white px-6 py-3 font-semibold text-brand-primary transition duration-250 hover:bg-slate-100 disabled:cursor-wait disabled:opacity-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-brand-primary"
+          >
+            {
+              refreshing
+                ? 'Atualizando...'
+                : 'Atualizar contexto'
+            }
+          </button>
+
+          <Link
+            href="/agenda/dashboard"
+            className="rounded-full border border-white/20 px-6 py-3 font-semibold text-white transition duration-250 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-brand-primary"
+          >
+            Abrir Agenda EDI
+          </Link>
+        </>
+      }
+      contentClassName="space-y-8"
     >
-      <header className="overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#081C2E] via-[#0A3A5E] to-[#075F78] text-white shadow-lg">
-        <div className="grid lg:grid-cols-[1fr_280px]">
-          <div className="p-7 sm:p-10">
-            <p className="text-sm font-bold uppercase tracking-[0.25em] text-cyan-300">
-              Painel Hoje
-            </p>
-
-            <h2
-              id="professor-digital-today-title"
-              className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl"
-            >
-              {
-                dailySummary.greeting
-              }
-            </h2>
-
-            <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-200">
-              {
-                dailySummary.summary
-              }
-            </p>
-
-            <div className="mt-7 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={
-                  () => {
-                    void reload()
-                  }
-                }
-                disabled={
-                  refreshing
-                }
-                className="rounded-full bg-white px-6 py-3 font-semibold text-[#081C2E] transition hover:bg-slate-100 disabled:cursor-wait disabled:opacity-70"
-              >
-                {
-                  refreshing
-                    ? 'Atualizando...'
-                    : 'Atualizar contexto'
-                }
-              </button>
-
-              <Link
-                href="/agenda/dashboard"
-                className="rounded-full border border-white/20 px-6 py-3 font-semibold text-white transition hover:bg-white/10"
-              >
-                Abrir Agenda EDI
-              </Link>
-            </div>
-          </div>
-
-          <div className="border-t border-white/10 bg-black/10 p-7 lg:border-l lg:border-t-0">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">
-              Contexto
-            </p>
-
-            <p className="mt-3 text-xl font-bold">
-              {
-                metadata.status ===
-                'available'
-                  ? 'Disponível'
-                  : metadata.status ===
-                      'partial'
-                    ? 'Parcial'
-                    : metadata.status ===
-                        'degraded'
-                      ? 'Com alertas'
-                      : 'Inicial'
-              }
-            </p>
-
-            <dl className="mt-6 space-y-4 text-sm">
-              <div>
-                <dt className="text-slate-400">
-                  Atualizado em
-                </dt>
-
-                <dd className="mt-1 font-semibold text-white">
-                  {
-                    formatGeneratedAt(
-                      generatedAt,
-                    )
-                  }
-                </dd>
-              </div>
-
-              <div>
-                <dt className="text-slate-400">
-                  Qualidade dos dados
-                </dt>
-
-                <dd className="mt-1 font-semibold text-white">
-                  {
-                    metadata
-                      .dataQualityScore ===
-                    null
-                      ? 'Não calculada'
-                      : `${metadata.dataQualityScore}%`
-                  }
-                </dd>
-              </div>
-
-              <div>
-                <dt className="text-slate-400">
-                  Fontes
-                </dt>
-
-                <dd className="mt-1 font-semibold text-white">
-                  {
-                    metadata.sources
-                      .join(', ')
-                  }
-                </dd>
-              </div>
-            </dl>
-          </div>
-        </div>
-      </header>
-
       {
         warnings.length >
-          0 && (
-          <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-950">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-amber-800">
-              Avisos do contexto
-            </p>
-
-            <ul className="mt-3 space-y-2 text-sm leading-6">
-              {
-                warnings.map(
-                  warning => (
-                    <li
-                      key={
-                        warning
-                      }
-                    >
-                      {
-                        warning
-                      }
-                    </li>
-                  ),
-                )
-              }
-            </ul>
-          </section>
-        )
+        0 ? (
+          <AlertCard
+            title="O contexto possui avisos"
+            description={
+              warnings.join(
+                ' ',
+              )
+            }
+            explanation="Os avisos indicam fontes incompletas, dados ainda não conectados ou condições que podem reduzir a precisão das análises."
+            label="Aviso de contexto"
+            tone="warning"
+          />
+        ) : null
       }
 
       <section
-        aria-label="Indicadores do dia"
-        className="grid overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm sm:grid-cols-2 xl:grid-cols-5"
+        aria-labelledby="today-metrics-title"
       >
-        <article className="border-b border-slate-200 p-6 sm:border-r xl:border-b-0">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-            Aulas hoje
-          </p>
+        <SectionHeader
+          eyebrow="Indicadores operacionais"
+          title="Resumo do contexto atual"
+          description={`Fontes utilizadas: ${sourcesLabel}.`}
+        />
 
-          <p className="mt-3 text-4xl font-bold text-[#081C2E]">
-            {
-              agenda.lessons
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <MetricCard
+            title="Aulas hoje"
+            value={
+              agenda
+                .lessons
                 .scheduledToday
             }
-          </p>
+            description="Aulas previstas para a data atual."
+            tone="brand"
+            href="/agenda/aulas"
+            actionLabel="Abrir aulas"
+          />
 
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            Aulas previstas para a data atual.
-          </p>
-        </article>
-
-        <article className="border-b border-slate-200 p-6 xl:border-b-0 xl:border-r">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-            Tarefas hoje
-          </p>
-
-          <p className="mt-3 text-4xl font-bold text-[#081C2E]">
-            {
-              agenda.tasks
+          <MetricCard
+            title="Tarefas hoje"
+            value={
+              agenda
+                .tasks
                 .dueToday
             }
-          </p>
+            description="Tarefas com prazo para hoje."
+            tone={
+              agenda
+                .tasks
+                .dueToday >
+              0
+                ? 'info'
+                : 'default'
+            }
+            href="/agenda/tarefas"
+            actionLabel="Abrir tarefas"
+          />
 
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            Tarefas com prazo para hoje.
-          </p>
-        </article>
-
-        <article className="border-b border-slate-200 p-6 sm:border-r xl:border-b-0">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-            Evidências pendentes
-          </p>
-
-          <p className="mt-3 text-4xl font-bold text-amber-700">
-            {
-              agenda.lessons
+          <MetricCard
+            title="Evidências pendentes"
+            value={
+              agenda
+                .lessons
                 .completedWithoutEvidence
             }
-          </p>
+            description="Aulas realizadas ainda sem documentação."
+            tone={
+              agenda
+                .lessons
+                .completedWithoutEvidence >
+              0
+                ? 'warning'
+                : 'success'
+            }
+            href="/agenda/evidencias"
+            actionLabel="Abrir evidências"
+          />
 
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            Aulas realizadas sem documentação.
-          </p>
-        </article>
-
-        <article
-          className={[
-            'border-b border-slate-200 p-6 xl:border-b-0 xl:border-r',
-            getScoreClasses(
-              indicators
-                .overallScore,
-            ),
-          ].join(' ')}
-        >
-          <p className="text-xs font-bold uppercase tracking-[0.16em] opacity-70">
-            Score EDI
-          </p>
-
-          <p className="mt-3 text-4xl font-bold">
-            {
+          <MetricCard
+            title="Score EDI"
+            value={
               indicators
                 .overallScore
             }
-          </p>
-
-          <p className="mt-2 text-sm font-semibold">
-            {
+            statusLabel={
               getScoreLabel(
                 indicators
                   .overallScore,
               )
             }
-          </p>
-        </article>
-
-        <article
-          className={[
-            'p-6',
-            getScoreClasses(
+            description="Síntese dos indicadores disponíveis no contexto."
+            tone={
+              getScoreTone(
+                indicators
+                  .overallScore,
+              )
+            }
+            progress={
               indicators
-                .pedagogicalHealthIndex,
-            ),
-          ].join(' ')}
-        >
-          <p className="text-xs font-bold uppercase tracking-[0.16em] opacity-70">
-            Saúde pedagógica
-          </p>
+                .overallScore
+            }
+            progressLabel="Score atual"
+          />
 
-          <p className="mt-3 text-4xl font-bold">
-            {
+          <MetricCard
+            title="Saúde pedagógica"
+            value={
               indicators
                 .pedagogicalHealthIndex
             }
-          </p>
-
-          <p className="mt-2 text-sm font-semibold">
-            {
+            statusLabel={
               getScoreLabel(
                 indicators
                   .pedagogicalHealthIndex,
               )
             }
-          </p>
-        </article>
+            description="Visão integrada de planejamento, execução, evidências e organização."
+            tone={
+              getScoreTone(
+                indicators
+                  .pedagogicalHealthIndex,
+              )
+            }
+            progress={
+              indicators
+                .pedagogicalHealthIndex
+            }
+            progressLabel="Índice atual"
+          />
+        </div>
       </section>
 
       {
-        primaryPriority && (
-          <section aria-labelledby="main-priority-title">
-            <div className="mb-4">
-              <p className="text-sm font-bold uppercase tracking-[0.22em] text-cyan-700">
-                Prioridade principal
-              </p>
-
-              <h2
-                id="main-priority-title"
-                className="mt-2 text-2xl font-bold text-[#081C2E]"
-              >
-                O que precisa de atenção agora
-              </h2>
-            </div>
-
-            <PriorityItem
-              priority={
-                primaryPriority
-              }
+        primaryPriority ? (
+          <section
+            aria-labelledby="main-priority-title"
+          >
+            <SectionHeader
+              eyebrow="Prioridade principal"
+              title="O que precisa de atenção agora"
+              description="A prioridade é calculada a partir do contexto operacional disponível."
             />
+
+            <div className="mt-6">
+              <PriorityCard
+                priority={
+                  primaryPriority
+                }
+              />
+            </div>
           </section>
-        )
+        ) : null
       }
 
       {
         secondaryPriorities.length >
-          0 && (
-          <section aria-labelledby="other-priorities-title">
-            <h2
-              id="other-priorities-title"
-              className="text-2xl font-bold text-[#081C2E]"
-            >
-              Outras prioridades
-            </h2>
+        0 ? (
+          <section
+            aria-labelledby="other-priorities-title"
+          >
+            <SectionHeader
+              title="Outras prioridades"
+              description="Ações adicionais organizadas por relevância e urgência."
+            />
 
-            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div className="mt-6 grid gap-4 lg:grid-cols-2">
               {
                 secondaryPriorities.map(
                   priority => (
-                    <PriorityItem
+                    <PriorityCard
                       key={
                         priority.id
                       }
@@ -821,36 +822,60 @@ export function ProfessorDigitalTodayPanel() {
               }
             </div>
           </section>
-        )
+        ) : null
       }
 
       {
         visibleAlerts.length >
-          0 && (
-          <section aria-labelledby="today-alerts-title">
-            <div className="mb-4">
-              <p className="text-sm font-bold uppercase tracking-[0.22em] text-rose-700">
-                Alertas
-              </p>
+        0 ? (
+          <section
+            aria-labelledby="today-alerts-title"
+          >
+            <SectionHeader
+              eyebrow="Alertas"
+              title="Pontos que exigem acompanhamento"
+              description="Os alertas destacam riscos e pendências identificados pelo Context Engine."
+            />
 
-              <h2
-                id="today-alerts-title"
-                className="mt-2 text-2xl font-bold text-[#081C2E]"
-              >
-                Pontos que exigem acompanhamento
-              </h2>
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="mt-6 grid gap-4 lg:grid-cols-2">
               {
                 visibleAlerts.map(
                   alert => (
-                    <AlertItem
+                    <AlertCard
                       key={
                         alert.id
                       }
-                      alert={
-                        alert
+                      title={
+                        alert.title
+                      }
+                      description={
+                        alert.description
+                      }
+                      explanation={
+                        alert.reason
+                      }
+                      label={
+                        alert.priority ===
+                        'critical'
+                          ? 'Alerta crítico'
+                          : 'Alerta'
+                      }
+                      tone={
+                        getAlertTone({
+                          priority:
+                            alert.priority,
+
+                          riskLevel:
+                            alert.riskLevel,
+                        })
+                      }
+                      href={
+                        alert.actionHref ??
+                        undefined
+                      }
+                      actionLabel={
+                        alert.recommendedAction ??
+                        undefined
                       }
                     />
                   ),
@@ -858,36 +883,62 @@ export function ProfessorDigitalTodayPanel() {
               }
             </div>
           </section>
-        )
+        ) : null
       }
 
       {
         visibleRecommendations.length >
-          0 && (
-          <section aria-labelledby="today-recommendations-title">
-            <div className="mb-4">
-              <p className="text-sm font-bold uppercase tracking-[0.22em] text-cyan-700">
-                Recomendações explicáveis
-              </p>
+        0 ? (
+          <section
+            aria-labelledby="today-recommendations-title"
+          >
+            <SectionHeader
+              eyebrow="Recomendações explicáveis"
+              title="Próximas ações recomendadas"
+              description="Cada recomendação apresenta o motivo e o impacto esperado."
+            />
 
-              <h2
-                id="today-recommendations-title"
-                className="mt-2 text-2xl font-bold text-[#081C2E]"
-              >
-                Próximas ações recomendadas
-              </h2>
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="mt-6 grid gap-4 lg:grid-cols-2">
               {
                 visibleRecommendations.map(
                   recommendation => (
-                    <RecommendationItem
+                    <RecommendationCard
                       key={
                         recommendation.id
                       }
-                      recommendation={
-                        recommendation
+                      title={
+                        recommendation.title
+                      }
+                      description={
+                        recommendation.description
+                      }
+                      reason={
+                        recommendation.reason
+                      }
+                      expectedImpact={
+                        recommendation.expectedImpact ??
+                        undefined
+                      }
+                      priorityLabel={
+                        getPriorityLabel(
+                          recommendation.priority,
+                        )
+                      }
+                      tone={
+                        getPriorityTone(
+                          recommendation.priority,
+                        )
+                      }
+                      href={
+                        recommendation.actionHref ??
+                        undefined
+                      }
+                      actionLabel={
+                        recommendation.actionLabel ??
+                        undefined
+                      }
+                      requiresConfirmation={
+                        recommendation.requiresConfirmation
                       }
                     />
                   ),
@@ -895,36 +946,48 @@ export function ProfessorDigitalTodayPanel() {
               }
             </div>
           </section>
-        )
+        ) : null
       }
 
       {
         visibleInsights.length >
-          0 && (
-          <section aria-labelledby="today-insights-title">
-            <div className="mb-4">
-              <p className="text-sm font-bold uppercase tracking-[0.22em] text-cyan-700">
-                Professor Digital observou
-              </p>
+        0 ? (
+          <section
+            aria-labelledby="today-insights-title"
+          >
+            <SectionHeader
+              eyebrow="Professor Digital observou"
+              title="Insights do contexto atual"
+              description="Leituras explicáveis produzidas a partir dos indicadores disponíveis."
+            />
 
-              <h2
-                id="today-insights-title"
-                className="mt-2 text-2xl font-bold text-[#081C2E]"
-              >
-                Insights do contexto atual
-              </h2>
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-3">
+            <div className="mt-6 grid gap-4 lg:grid-cols-3">
               {
                 visibleInsights.map(
                   insight => (
-                    <InsightItem
+                    <InsightCard
                       key={
                         insight.id
                       }
-                      insight={
-                        insight
+                      title={
+                        insight.title
+                      }
+                      description={
+                        insight.description
+                      }
+                      explanation={
+                        insight.explanation
+                      }
+                      sourceLabel={
+                        formatSource(
+                          insight.source,
+                        )
+                      }
+                      confidence={
+                        insight.confidence
+                      }
+                      generatedAt={
+                        insight.generatedAt
                       }
                     />
                   ),
@@ -932,54 +995,56 @@ export function ProfessorDigitalTodayPanel() {
               }
             </div>
           </section>
-        )
+        ) : null
       }
 
       <section
-        aria-label="Ações rápidas"
-        className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
+        aria-labelledby="quick-actions-title"
+        className="rounded-panel border border-border bg-surface p-6 shadow-card sm:p-8"
       >
-        <p className="text-sm font-bold uppercase tracking-[0.22em] text-cyan-700">
-          Ações rápidas
-        </p>
+        <SectionHeader
+          eyebrow="Ações rápidas"
+          title="Acesse os principais módulos"
+          description="Continue o ciclo pedagógico nos módulos integrados à Agenda Inteligente EDI."
+        />
 
-        <div className="mt-5 flex flex-wrap gap-3">
+        <div className="mt-6 flex flex-wrap gap-3">
           <Link
             href="/agenda/planejamento"
-            className="rounded-full bg-[#0A3A5E] px-6 py-3 font-semibold text-white transition hover:opacity-90"
+            className="rounded-full bg-brand-secondary px-6 py-3 font-semibold text-white transition duration-250 hover:bg-brand-hover"
           >
             Planejamento
           </Link>
 
           <Link
             href="/agenda/objetivos"
-            className="rounded-full border border-[#0A3A5E]/20 bg-white px-6 py-3 font-semibold text-[#0A3A5E] transition hover:bg-slate-50"
+            className="rounded-full border border-border-strong bg-surface px-6 py-3 font-semibold text-brand-primary transition duration-250 hover:bg-surface-muted"
           >
             Objetivos
           </Link>
 
           <Link
             href="/agenda/aulas"
-            className="rounded-full border border-[#0A3A5E]/20 bg-white px-6 py-3 font-semibold text-[#0A3A5E] transition hover:bg-slate-50"
+            className="rounded-full border border-border-strong bg-surface px-6 py-3 font-semibold text-brand-primary transition duration-250 hover:bg-surface-muted"
           >
             Aulas
           </Link>
 
           <Link
             href="/agenda/evidencias"
-            className="rounded-full border border-[#0A3A5E]/20 bg-white px-6 py-3 font-semibold text-[#0A3A5E] transition hover:bg-slate-50"
+            className="rounded-full border border-border-strong bg-surface px-6 py-3 font-semibold text-brand-primary transition duration-250 hover:bg-surface-muted"
           >
             Evidências
           </Link>
 
           <Link
             href="/professor-digital/recomendacoes"
-            className="rounded-full border border-[#0A3A5E]/20 bg-white px-6 py-3 font-semibold text-[#0A3A5E] transition hover:bg-slate-50"
+            className="rounded-full border border-border-strong bg-surface px-6 py-3 font-semibold text-brand-primary transition duration-250 hover:bg-surface-muted"
           >
             Recomendações
           </Link>
         </div>
       </section>
-    </section>
+    </PageShell>
   )
 }
