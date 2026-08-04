@@ -32,41 +32,29 @@ import {
 } from './decision-action-plan.service'
 
 export type DecisionIntelligenceProcessingOptions = {
-  rules?:
-    DecisionRule[]
+  rules?: DecisionRule[]
 
-  additionalData?:
-    Record<string, unknown>
+  additionalData?: Record<string, unknown>
 
-  prioritizationWeights?:
-    Partial<DecisionPrioritizationWeights>
+  prioritizationWeights?: Partial<DecisionPrioritizationWeights>
 
-  recommendationOptions?:
-    Partial<DecisionRecommendationGenerationOptions>
+  recommendationOptions?: Partial<DecisionRecommendationGenerationOptions>
 
-  alertOptions?:
-    Partial<DecisionAlertGenerationOptions>
+  alertOptions?: Partial<DecisionAlertGenerationOptions>
 
-  actionPlanOptions?:
-    Partial<DecisionActionPlanGenerationOptions>
+  actionPlanOptions?: Partial<DecisionActionPlanGenerationOptions>
 
-  applyRules?:
-    boolean
+  applyRules?: boolean
 
-  applyPrioritization?:
-    boolean
+  applyPrioritization?: boolean
 
-  generateRecommendations?:
-    boolean
+  generateRecommendations?: boolean
 
-  generateAlerts?:
-    boolean
+  generateAlerts?: boolean
 
-  generateActionPlans?:
-    boolean
+  generateActionPlans?: boolean
 
-  stopOnError?:
-    boolean
+  stopOnError?: boolean
 }
 
 export type DecisionIntelligencePipelineStage =
@@ -78,143 +66,99 @@ export type DecisionIntelligencePipelineStage =
   | 'consolidation'
 
 export type DecisionIntelligenceStageResult = {
-  stage:
-    DecisionIntelligencePipelineStage
+  stage: DecisionIntelligencePipelineStage
 
-  success:
-    boolean
+  success: boolean
 
-  startedAt:
-    string
+  startedAt: string
 
-  completedAt:
-    string
+  completedAt: string
 
-  durationMs:
-    number
+  durationMs: number
 
-  warnings:
-    string[]
+  warnings: string[]
 
-  errors:
-    string[]
+  errors: string[]
 
-  metadata:
-    Record<string, unknown>
+  metadata: Record<string, unknown>
 }
 
 export type DecisionIntelligenceExplainability = {
-  summary:
-    string
+  summary: string
 
-  rationale:
-    string[]
+  rationale: string[]
 
-  evidenceIds:
-    string[]
+  evidenceIds: string[]
 
-  matchedRuleIds:
-    string[]
+  matchedRuleIds: string[]
 
-  prioritizationReasons:
-    string[]
+  prioritizationReasons: string[]
 
-  recommendationIds:
-    string[]
+  recommendationIds: string[]
 
-  alertIds:
-    string[]
+  alertIds: string[]
 
-  actionPlanIds:
-    string[]
+  actionPlanIds: string[]
 
-  humanReviewReasons:
-    string[]
+  humanReviewReasons: string[]
 
-  limitations:
-    string[]
+  limitations: string[]
 }
 
 export type DecisionIntelligencePrivacyAssessment = {
-  containsPersonalData:
-    boolean
+  containsPersonalData: boolean
 
-  containsSensitiveData:
-    boolean
+  containsSensitiveData: boolean
 
-  containsMinorData:
-    boolean
+  containsMinorData: boolean
 
-  anonymized:
-    boolean
+  anonymized: boolean
 
-  requiresConsent:
-    boolean
+  requiresConsent: boolean
 
-  legalBasis:
-    string | null
+  legalBasis: string | null
 
-  retentionPolicy:
-    string | null
+  retentionPolicy: string | null
 
-  humanReviewRequired:
-    boolean
+  humanReviewRequired: boolean
 
-  restrictions:
-    string[]
+  restrictions: string[]
 }
 
 export type DecisionIntelligenceResult = {
-  success:
-    boolean
+  success: boolean
 
-  decisionId:
-    string
+  decisionId: string
 
-  decision:
-    EducationalDecision
+  decision: EducationalDecision
 
-  originalDecision:
-    EducationalDecision
+  originalDecision: EducationalDecision
 
-  ruleEvaluation:
-    DecisionRuleBatchEvaluationResult
+  ruleEvaluation: DecisionRuleBatchEvaluationResult
 
-  prioritization:
-    DecisionPrioritizationResult | null
+  prioritization: DecisionPrioritizationResult | null
 
-  ruleExecutions:
-    DecisionRuleExecutionResult[]
+  ruleExecutions: DecisionRuleExecutionResult[]
 
-  stages:
-    DecisionIntelligenceStageResult[]
+  stages: DecisionIntelligenceStageResult[]
 
-  explainability:
-    DecisionIntelligenceExplainability
+  explainability: DecisionIntelligenceExplainability
 
-  privacyAssessment:
-    DecisionIntelligencePrivacyAssessment
+  privacyAssessment: DecisionIntelligencePrivacyAssessment
 
-  warnings:
-    string[]
+  warnings: string[]
 
-  errors:
-    string[]
+  errors: string[]
 
-  requiresHumanReview:
-    boolean
+  requiresHumanReview: boolean
 
-  startedAt:
-    string
+  startedAt: string
 
-  completedAt:
-    string
+  completedAt: string
 
-  durationMs:
-    number
+  durationMs: number
 
-  metadata:
-    Record<string, unknown>
+  metadata: Record<string, unknown>
 }
 
 const DEFAULT_OPTIONS: Required<
@@ -228,62 +172,35 @@ const DEFAULT_OPTIONS: Required<
     | 'stopOnError'
   >
 > = {
-  applyRules:
-    true,
-
-  applyPrioritization:
-    true,
-
-  generateRecommendations:
-    true,
-
-  generateAlerts:
-    true,
-
-  generateActionPlans:
-    true,
-
-  stopOnError:
-    true,
+  applyRules: true,
+  applyPrioritization: true,
+  generateRecommendations: true,
+  generateAlerts: true,
+  generateActionPlans: true,
+  stopOnError: true,
 }
 
-function nowIso():
-  string {
-  return new Date()
-    .toISOString()
+function nowIso(): string {
+  return new Date().toISOString()
 }
 
-function uniqueStrings(
-  values:
-    string[],
-): string[] {
+function uniqueStrings(values: string[]): string[] {
   return Array.from(
     new Set(
       values
-        .map(
-          value =>
-            value.trim(),
-        )
-        .filter(
-          Boolean,
-        ),
+        .map(value => value.trim())
+        .filter(Boolean),
     ),
   )
 }
 
-function getErrorMessage(
-  error:
-    unknown,
-): string {
-  if (
-    error instanceof Error
-  ) {
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
     return error.message
   }
 
   if (
-    typeof error ===
-      'string' &&
+    typeof error === 'string' &&
     error.trim()
   ) {
     return error.trim()
@@ -292,26 +209,14 @@ function getErrorMessage(
   return 'Erro inesperado durante o processamento da inteligência decisória.'
 }
 
-function createEmptyRuleEvaluation():
-  DecisionRuleBatchEvaluationResult {
+function createEmptyRuleEvaluation(): DecisionRuleBatchEvaluationResult {
   return {
-    success:
-      true,
-
-    executions:
-      [],
-
-    matchedRules:
-      [],
-
-    unmatchedRules:
-      [],
-
-    warnings:
-      [],
-
-    errors:
-      [],
+    success: true,
+    executions: [],
+    matchedRules: [],
+    unmatchedRules: [],
+    warnings: [],
+    errors: [],
   }
 }
 
@@ -323,57 +228,29 @@ function createStageResult({
   errors = [],
   metadata = {},
 }: {
-  stage:
-    DecisionIntelligencePipelineStage
-
-  success:
-    boolean
-
-  startedAt:
-    string
-
-  warnings?:
-    string[]
-
-  errors?:
-    string[]
-
-  metadata?:
-    Record<string, unknown>
+  stage: DecisionIntelligencePipelineStage
+  success: boolean
+  startedAt: string
+  warnings?: string[]
+  errors?: string[]
+  metadata?: Record<string, unknown>
 }): DecisionIntelligenceStageResult {
-  const completedAt =
-    nowIso()
+  const completedAt = nowIso()
 
   return {
     stage,
-
     success,
-
     startedAt,
-
     completedAt,
 
-    durationMs:
-      Math.max(
-        0,
-        Date.parse(
-          completedAt,
-        ) -
-        Date.parse(
-          startedAt,
-        ),
-      ),
+    durationMs: Math.max(
+      0,
+      Date.parse(completedAt) -
+        Date.parse(startedAt),
+    ),
 
-    warnings:
-      uniqueStrings(
-        warnings,
-      ),
-
-    errors:
-      uniqueStrings(
-        errors,
-      ),
-
+    warnings: uniqueStrings(warnings),
+    errors: uniqueStrings(errors),
     metadata,
   }
 }
@@ -382,25 +259,19 @@ function shouldStopPipeline({
   stopOnError,
   errors,
 }: {
-  stopOnError:
-    boolean
-
-  errors:
-    string[]
+  stopOnError: boolean
+  errors: string[]
 }): boolean {
   return (
     stopOnError &&
-    errors.length >
-      0
+    errors.length > 0
   )
 }
 
 function buildPrivacyAssessment(
-  decision:
-    EducationalDecision,
+  decision: EducationalDecision,
 ): DecisionIntelligencePrivacyAssessment {
-  const restrictions:
-    string[] = []
+  const restrictions: string[] = []
 
   if (
     decision.privacy
@@ -421,20 +292,31 @@ function buildPrivacyAssessment(
   }
 
   if (
-    !decision.privacy
-      .anonymized
+    decision.privacy
+      .anonymizationRequired
   ) {
     restrictions.push(
-      'Os dados não estão integralmente anonimizados.',
+      'Os dados exigem anonimização antes de compartilhamento ou uso ampliado.',
     )
   }
 
   if (
     decision.privacy
-      .requiresConsent
+      .pseudonymizationRequired
   ) {
     restrictions.push(
-      'O tratamento pode depender de consentimento ou de outra base legal aplicável.',
+      'Os dados exigem pseudonimização conforme o contexto de tratamento.',
+    )
+  }
+
+  if (
+    decision.privacy
+      .consentRequired &&
+    !decision.privacy
+      .consentConfirmed
+  ) {
+    restrictions.push(
+      'O consentimento necessário ainda não foi confirmado.',
     )
   }
 
@@ -447,6 +329,14 @@ function buildPrivacyAssessment(
     )
   }
 
+  const anonymized =
+    !decision.privacy
+      .anonymizationRequired
+
+  const requiresConsent =
+    decision.privacy
+      .consentRequired
+
   const humanReviewRequired =
     decision
       .humanReviewRequired ||
@@ -455,7 +345,15 @@ function buildPrivacyAssessment(
     decision.privacy
       .containsMinorData ||
     decision.privacy
-      .requiresConsent
+      .anonymizationRequired ||
+    decision.privacy
+      .pseudonymizationRequired ||
+    (
+      decision.privacy
+        .consentRequired &&
+      !decision.privacy
+        .consentConfirmed
+    )
 
   return {
     containsPersonalData:
@@ -470,13 +368,9 @@ function buildPrivacyAssessment(
       decision.privacy
         .containsMinorData,
 
-    anonymized:
-      decision.privacy
-        .anonymized,
+    anonymized,
 
-    requiresConsent:
-      decision.privacy
-        .requiresConsent,
+    requiresConsent,
 
     legalBasis:
       decision.privacy
@@ -489,9 +383,7 @@ function buildPrivacyAssessment(
     humanReviewRequired,
 
     restrictions:
-      uniqueStrings(
-        restrictions,
-      ),
+      uniqueStrings(restrictions),
   }
 }
 
@@ -502,29 +394,15 @@ function buildExplainability({
   prioritization,
   warnings,
 }: {
-  decision:
-    EducationalDecision
-
-  originalDecision:
-    EducationalDecision
-
-  ruleEvaluation:
-    DecisionRuleBatchEvaluationResult
-
-  prioritization:
-    DecisionPrioritizationResult | null
-
-  warnings:
-    string[]
+  decision: EducationalDecision
+  originalDecision: EducationalDecision
+  ruleEvaluation: DecisionRuleBatchEvaluationResult
+  prioritization: DecisionPrioritizationResult | null
+  warnings: string[]
 }): DecisionIntelligenceExplainability {
-  const rationale:
-    string[] = []
-
-  const humanReviewReasons:
-    string[] = []
-
-  const limitations:
-    string[] = []
+  const rationale: string[] = []
+  const humanReviewReasons: string[] = []
+  const limitations: string[] = []
 
   rationale.push(
     decision.explanation
@@ -536,20 +414,16 @@ function buildExplainability({
       .factors,
   )
 
-  if (
-    prioritization
-  ) {
+  if (prioritization) {
     rationale.push(
-      ...prioritization
-        .reasons,
+      ...prioritization.reasons,
     )
   }
 
   if (
     ruleEvaluation
       .matchedRules
-      .length >
-    0
+      .length > 0
   ) {
     rationale.push(
       `${ruleEvaluation.matchedRules.length} regra(s) decisória(s) foram atendidas.`,
@@ -557,8 +431,7 @@ function buildExplainability({
   }
 
   if (
-    originalDecision
-      .priority !==
+    originalDecision.priority !==
     decision.priority
   ) {
     rationale.push(
@@ -594,6 +467,35 @@ function buildExplainability({
   }
 
   if (
+    decision.privacy
+      .anonymizationRequired
+  ) {
+    humanReviewReasons.push(
+      'Os dados exigem anonimização antes de uso ampliado.',
+    )
+  }
+
+  if (
+    decision.privacy
+      .pseudonymizationRequired
+  ) {
+    humanReviewReasons.push(
+      'Os dados exigem pseudonimização.',
+    )
+  }
+
+  if (
+    decision.privacy
+      .consentRequired &&
+    !decision.privacy
+      .consentConfirmed
+  ) {
+    humanReviewReasons.push(
+      'O consentimento necessário ainda não foi confirmado.',
+    )
+  }
+
+  if (
     decision.recommendations
       .some(
         recommendation =>
@@ -622,8 +524,7 @@ function buildExplainability({
   if (
     originalDecision
       .evidenceReferences
-      .length ===
-    0
+      .length === 0
   ) {
     limitations.push(
       'A decisão não possui referências explícitas a evidências.',
@@ -632,8 +533,7 @@ function buildExplainability({
 
   if (
     originalDecision
-      .confidence ===
-    null
+      .confidence === null
   ) {
     limitations.push(
       'A decisão não possui nível de confiança calculado.',
@@ -643,8 +543,7 @@ function buildExplainability({
   if (
     ruleEvaluation
       .executions
-      .length ===
-    0
+      .length === 0
   ) {
     limitations.push(
       'Nenhuma regra decisória foi executada.',
@@ -667,65 +566,51 @@ function buildExplainability({
       `Processamento concluído com ${summaryParts.join(', ')}.`,
 
     rationale:
-      uniqueStrings(
-        rationale,
-      ),
+      uniqueStrings(rationale),
 
     evidenceIds:
       uniqueStrings(
-        decision
-          .evidenceReferences
-          .map(
-            reference =>
-              reference
-                .evidenceId,
-          ),
+        decision.evidenceReferences.map(
+          reference =>
+            reference.evidenceId,
+        ),
       ),
 
     matchedRuleIds:
       uniqueStrings(
-        ruleEvaluation
-          .matchedRules
-          .map(
-            rule =>
-              rule.id,
-          ),
+        ruleEvaluation.matchedRules.map(
+          rule =>
+            rule.id,
+        ),
       ),
 
     prioritizationReasons:
       uniqueStrings(
-        prioritization
-          ?.reasons ??
-        [],
+        prioritization?.reasons ?? [],
       ),
 
     recommendationIds:
       uniqueStrings(
-        decision
-          .recommendations
-          .map(
-            recommendation =>
-              recommendation.id,
-          ),
+        decision.recommendations.map(
+          recommendation =>
+            recommendation.id,
+        ),
       ),
 
     alertIds:
       uniqueStrings(
-        decision.alerts
-          .map(
-            alert =>
-              alert.id,
-          ),
+        decision.alerts.map(
+          alert =>
+            alert.id,
+        ),
       ),
 
     actionPlanIds:
       uniqueStrings(
-        decision
-          .actionPlans
-          .map(
-            actionPlan =>
-              actionPlan.id,
-          ),
+        decision.actionPlans.map(
+          actionPlan =>
+            actionPlan.id,
+        ),
       ),
 
     humanReviewReasons:
@@ -734,9 +619,7 @@ function buildExplainability({
       ),
 
     limitations:
-      uniqueStrings(
-        limitations,
-      ),
+      uniqueStrings(limitations),
   }
 }
 
@@ -752,35 +635,16 @@ function consolidateDecision({
   startedAt,
   completedAt,
 }: {
-  decision:
-    EducationalDecision
-
-  ruleEvaluation:
-    DecisionRuleBatchEvaluationResult
-
-  prioritization:
-    DecisionPrioritizationResult | null
-
-  explainability:
-    DecisionIntelligenceExplainability
-
-  privacyAssessment:
-    DecisionIntelligencePrivacyAssessment
-
-  stages:
-    DecisionIntelligenceStageResult[]
-
-  warnings:
-    string[]
-
-  errors:
-    string[]
-
-  startedAt:
-    string
-
-  completedAt:
-    string
+  decision: EducationalDecision
+  ruleEvaluation: DecisionRuleBatchEvaluationResult
+  prioritization: DecisionPrioritizationResult | null
+  explainability: DecisionIntelligenceExplainability
+  privacyAssessment: DecisionIntelligencePrivacyAssessment
+  stages: DecisionIntelligenceStageResult[]
+  warnings: string[]
+  errors: string[]
+  startedAt: string
+  completedAt: string
 }): EducationalDecision {
   const requiresHumanReview =
     decision
@@ -789,10 +653,8 @@ function consolidateDecision({
       .humanReviewRequired ||
     explainability
       .humanReviewReasons
-      .length >
-      0 ||
-    errors.length >
-      0
+      .length > 0 ||
+    errors.length > 0
 
   return {
     ...decision,
@@ -820,20 +682,14 @@ function consolidateDecision({
 
         completedAt,
 
-        durationMs:
-          Math.max(
-            0,
-            Date.parse(
-              completedAt,
-            ) -
-            Date.parse(
-              startedAt,
-            ),
-          ),
+        durationMs: Math.max(
+          0,
+          Date.parse(completedAt) -
+            Date.parse(startedAt),
+        ),
 
         success:
-          errors.length ===
-          0,
+          errors.length === 0,
 
         pipeline: [
           'rules',
@@ -932,6 +788,18 @@ function consolidateDecision({
             privacyAssessment
               .requiresConsent,
 
+          consentConfirmed:
+            decision.privacy
+              .consentConfirmed,
+
+          anonymizationRequired:
+            decision.privacy
+              .anonymizationRequired,
+
+          pseudonymizationRequired:
+            decision.privacy
+              .pseudonymizationRequired,
+
           legalBasis:
             privacyAssessment
               .legalBasis,
@@ -939,6 +807,14 @@ function consolidateDecision({
           retentionPolicy:
             privacyAssessment
               .retentionPolicy,
+
+          retentionUntil:
+            decision.privacy
+              .retentionUntil,
+
+          accessRoles:
+            decision.privacy
+              .accessRoles,
 
           restrictions:
             privacyAssessment
@@ -987,14 +863,10 @@ function consolidateDecision({
         },
 
         warnings:
-          uniqueStrings(
-            warnings,
-          ),
+          uniqueStrings(warnings),
 
         errors:
-          uniqueStrings(
-            errors,
-          ),
+          uniqueStrings(errors),
       },
     },
   }
@@ -1004,11 +876,8 @@ export function processDecisionIntelligence({
   decision,
   options = {},
 }: {
-  decision:
-    EducationalDecision
-
-  options?:
-    DecisionIntelligenceProcessingOptions
+  decision: EducationalDecision
+  options?: DecisionIntelligenceProcessingOptions
 }): DecisionIntelligenceResult {
   const startedAt =
     nowIso()
@@ -1017,8 +886,7 @@ export function processDecisionIntelligence({
     ...decision,
 
     recommendations: [
-      ...decision
-        .recommendations,
+      ...decision.recommendations,
     ],
 
     alerts: [
@@ -1026,16 +894,15 @@ export function processDecisionIntelligence({
     ],
 
     actionPlans:
-      decision.actionPlans
-        .map(
-          actionPlan => ({
-            ...actionPlan,
+      decision.actionPlans.map(
+        actionPlan => ({
+          ...actionPlan,
 
-            actions: [
-              ...actionPlan.actions,
-            ],
-          }),
-        ),
+          actions: [
+            ...actionPlan.actions,
+          ],
+        }),
+      ),
 
     auditTrail: [
       ...decision.auditTrail,
@@ -1054,11 +921,8 @@ export function processDecisionIntelligence({
   const stages:
     DecisionIntelligenceStageResult[] = []
 
-  const warnings:
-    string[] = []
-
-  const errors:
-    string[] = []
+  const warnings: string[] = []
+  const errors: string[] = []
 
   let enrichedDecision: EducationalDecision = {
     ...decision,
@@ -1083,8 +947,7 @@ export function processDecisionIntelligence({
         evaluateDecisionRules({
           rules:
             normalizedOptions
-              .rules ??
-            [],
+              .rules ?? [],
 
           context: {
             decision:
@@ -1097,13 +960,11 @@ export function processDecisionIntelligence({
         })
 
       warnings.push(
-        ...ruleEvaluation
-          .warnings,
+        ...ruleEvaluation.warnings,
       )
 
       errors.push(
-        ...ruleEvaluation
-          .errors,
+        ...ruleEvaluation.errors,
       )
 
       enrichedDecision = {
@@ -1114,23 +975,20 @@ export function processDecisionIntelligence({
             .humanReviewRequired ||
           ruleEvaluation
             .errors
-            .length >
-            0,
+            .length > 0,
 
         updatedAt:
           nowIso(),
 
         metadata: {
-          ...enrichedDecision
-            .metadata,
+          ...enrichedDecision.metadata,
 
           decisionRuleEvaluation: {
             evaluatedAt:
               nowIso(),
 
             success:
-              ruleEvaluation
-                .success,
+              ruleEvaluation.success,
 
             executionCount:
               ruleEvaluation
@@ -1174,19 +1032,16 @@ export function processDecisionIntelligence({
             'rules',
 
           success:
-            ruleEvaluation
-              .success,
+            ruleEvaluation.success,
 
           startedAt:
             stageStartedAt,
 
           warnings:
-            ruleEvaluation
-              .warnings,
+            ruleEvaluation.warnings,
 
           errors:
-            ruleEvaluation
-              .errors,
+            ruleEvaluation.errors,
 
           metadata: {
             executionCount:
@@ -1201,17 +1056,11 @@ export function processDecisionIntelligence({
           },
         }),
       )
-    } catch (
-      error
-    ) {
+    } catch (error) {
       const message =
-        getErrorMessage(
-          error,
-        )
+        getErrorMessage(error)
 
-      errors.push(
-        message,
-      )
+      errors.push(message)
 
       stages.push(
         createStageResult({
@@ -1258,13 +1107,11 @@ export function processDecisionIntelligence({
         })
 
       warnings.push(
-        ...prioritization
-          .warnings,
+        ...prioritization.warnings,
       )
 
       errors.push(
-        ...prioritization
-          .errors,
+        ...prioritization.errors,
       )
 
       enrichedDecision =
@@ -1283,19 +1130,16 @@ export function processDecisionIntelligence({
             'prioritization',
 
           success:
-            prioritization
-              .success,
+            prioritization.success,
 
           startedAt:
             stageStartedAt,
 
           warnings:
-            prioritization
-              .warnings,
+            prioritization.warnings,
 
           errors:
-            prioritization
-              .errors,
+            prioritization.errors,
 
           metadata: {
             originalPriority:
@@ -1307,22 +1151,15 @@ export function processDecisionIntelligence({
                 .calculatedPriority,
 
             score:
-              prioritization
-                .score,
+              prioritization.score,
           },
         }),
       )
-    } catch (
-      error
-    ) {
+    } catch (error) {
       const message =
-        getErrorMessage(
-          error,
-        )
+        getErrorMessage(error)
 
-      errors.push(
-        message,
-      )
+      errors.push(message)
 
       stages.push(
         createStageResult({
@@ -1406,17 +1243,11 @@ export function processDecisionIntelligence({
           },
         }),
       )
-    } catch (
-      error
-    ) {
+    } catch (error) {
       const message =
-        getErrorMessage(
-          error,
-        )
+        getErrorMessage(error)
 
-      errors.push(
-        message,
-      )
+      errors.push(message)
 
       stages.push(
         createStageResult({
@@ -1496,17 +1327,11 @@ export function processDecisionIntelligence({
           },
         }),
       )
-    } catch (
-      error
-    ) {
+    } catch (error) {
       const message =
-        getErrorMessage(
-          error,
-        )
+        getErrorMessage(error)
 
-      errors.push(
-        message,
-      )
+      errors.push(message)
 
       stages.push(
         createStageResult({
@@ -1586,17 +1411,11 @@ export function processDecisionIntelligence({
           },
         }),
       )
-    } catch (
-      error
-    ) {
+    } catch (error) {
       const message =
-        getErrorMessage(
-          error,
-        )
+        getErrorMessage(error)
 
-      errors.push(
-        message,
-      )
+      errors.push(message)
 
       stages.push(
         createStageResult({
@@ -1621,14 +1440,10 @@ export function processDecisionIntelligence({
     nowIso()
 
   const consolidatedWarnings =
-    uniqueStrings(
-      warnings,
-    )
+    uniqueStrings(warnings)
 
   const consolidatedErrors =
-    uniqueStrings(
-      errors,
-    )
+    uniqueStrings(errors)
 
   const privacyAssessment =
     buildPrivacyAssessment(
@@ -1686,8 +1501,7 @@ export function processDecisionIntelligence({
 
       success:
         consolidatedErrors
-          .length ===
-        0,
+          .length === 0,
 
       startedAt:
         consolidationStartedAt,
@@ -1743,8 +1557,7 @@ export function processDecisionIntelligence({
   return {
     success:
       consolidatedErrors
-        .length ===
-      0,
+        .length === 0,
 
     decisionId:
       enrichedDecision.id,
@@ -1782,16 +1595,11 @@ export function processDecisionIntelligence({
 
     completedAt,
 
-    durationMs:
-      Math.max(
-        0,
-        Date.parse(
-          completedAt,
-        ) -
-        Date.parse(
-          startedAt,
-        ),
-      ),
+    durationMs: Math.max(
+      0,
+      Date.parse(completedAt) -
+        Date.parse(startedAt),
+    ),
 
     metadata: {
       engine:
@@ -1805,8 +1613,7 @@ export function processDecisionIntelligence({
 
       pipelineCompleted:
         consolidatedErrors
-          .length ===
-        0,
+          .length === 0,
 
       stageCount:
         stages.length,
@@ -1843,26 +1650,13 @@ export function enrichEducationalDecision({
   alertOptions,
   actionPlanOptions,
 }: {
-  decision:
-    EducationalDecision
-
-  rules?:
-    DecisionRule[]
-
-  additionalData?:
-    Record<string, unknown>
-
-  prioritizationWeights?:
-    Partial<DecisionPrioritizationWeights>
-
-  recommendationOptions?:
-    Partial<DecisionRecommendationGenerationOptions>
-
-  alertOptions?:
-    Partial<DecisionAlertGenerationOptions>
-
-  actionPlanOptions?:
-    Partial<DecisionActionPlanGenerationOptions>
+  decision: EducationalDecision
+  rules?: DecisionRule[]
+  additionalData?: Record<string, unknown>
+  prioritizationWeights?: Partial<DecisionPrioritizationWeights>
+  recommendationOptions?: Partial<DecisionRecommendationGenerationOptions>
+  alertOptions?: Partial<DecisionAlertGenerationOptions>
+  actionPlanOptions?: Partial<DecisionActionPlanGenerationOptions>
 }): EducationalDecision {
   return processDecisionIntelligence({
     decision,
@@ -1879,27 +1673,19 @@ export function enrichEducationalDecision({
 }
 
 export function validateDecisionIntelligenceResult(
-  result:
-    DecisionIntelligenceResult,
+  result: DecisionIntelligenceResult,
 ): {
-  valid:
-    boolean
-
-  warnings:
-    string[]
-
-  errors:
-    string[]
+  valid: boolean
+  warnings: string[]
+  errors: string[]
 } {
-  const warnings:
-    string[] = [
-      ...result.warnings,
-    ]
+  const warnings: string[] = [
+    ...result.warnings,
+  ]
 
-  const errors:
-    string[] = [
-      ...result.errors,
-    ]
+  const errors: string[] = [
+    ...result.errors,
+  ]
 
   if (
     result.decisionId !==
@@ -1911,8 +1697,7 @@ export function validateDecisionIntelligenceResult(
   }
 
   if (
-    result.stages.length ===
-    0
+    result.stages.length === 0
   ) {
     errors.push(
       'Nenhuma etapa do pipeline foi registrada.',
@@ -1922,8 +1707,7 @@ export function validateDecisionIntelligenceResult(
   if (
     result.decision
       .recommendations
-      .length ===
-      0
+      .length === 0
   ) {
     warnings.push(
       'A decisão processada não possui recomendações.',
@@ -1934,8 +1718,7 @@ export function validateDecisionIntelligenceResult(
     result.requiresHumanReview &&
     result.explainability
       .humanReviewReasons
-      .length ===
-      0
+      .length === 0
   ) {
     warnings.push(
       'A revisão humana foi exigida sem justificativa consolidada.',
@@ -1955,18 +1738,13 @@ export function validateDecisionIntelligenceResult(
 
   return {
     valid:
-      errors.length ===
-      0,
+      errors.length === 0,
 
     warnings:
-      uniqueStrings(
-        warnings,
-      ),
+      uniqueStrings(warnings),
 
     errors:
-      uniqueStrings(
-        errors,
-      ),
+      uniqueStrings(errors),
   }
 }
 
