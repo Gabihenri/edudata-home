@@ -29,8 +29,19 @@ import {
   requireSessionUser,
 } from '@/lib/auth/session'
 
+import {
+  adaptAgendaEvidenceToEducationalEvidence,
+} from '@/lib/eios/evidence-intelligence/adapters/agenda-evidence.adapter'
+
+import {
+  evaluateEducationalEvidence,
+} from '@/lib/eios/evidence-intelligence/evidence-intelligence.service'
+
 export const dynamic =
   'force-dynamic'
+
+export const runtime =
+  'nodejs'
 
 type UnknownRecord =
   Record<string, unknown>
@@ -88,7 +99,8 @@ function isRecord(
   return (
     typeof value ===
       'object' &&
-    value !== null &&
+    value !==
+      null &&
     !Array.isArray(
       value,
     )
@@ -108,7 +120,7 @@ function getAccessToken(
 
   if (!accessToken) {
     throw new Error(
-      'Usuário não autenticado.',
+      'UsuÃ¡rio nÃ£o autenticado.',
     )
   }
 
@@ -131,7 +143,7 @@ function createAuthenticatedClient(
     !anonKey
   ) {
     throw new Error(
-      'Variáveis públicas do Supabase não configuradas.',
+      'VariÃ¡veis pÃºblicas do Supabase nÃ£o configuradas.',
     )
   }
 
@@ -195,13 +207,13 @@ async function readRequestBody(
       await request.json()
   } catch {
     throw new Error(
-      'O corpo da requisição é inválido.',
+      'O corpo da requisiÃ§Ã£o Ã© invÃ¡lido.',
     )
   }
 
   if (!isRecord(body)) {
     throw new Error(
-      'O corpo da requisição é inválido.',
+      'O corpo da requisiÃ§Ã£o Ã© invÃ¡lido.',
     )
   }
 
@@ -216,10 +228,10 @@ function normalizeRequiredText(
 ): string {
   if (
     typeof value !==
-    'string'
+      'string'
   ) {
     throw new Error(
-      `${fieldName} possui formato inválido.`,
+      `${fieldName} possui formato invÃ¡lido.`,
     )
   }
 
@@ -228,16 +240,16 @@ function normalizeRequiredText(
 
   if (!normalizedValue) {
     throw new Error(
-      `${fieldName} é obrigatório.`,
+      `${fieldName} Ã© obrigatÃ³rio.`,
     )
   }
 
   if (
     normalizedValue.length >
-    maximumLength
+      maximumLength
   ) {
     throw new Error(
-      `${fieldName} não pode ultrapassar ${maximumLength} caracteres.`,
+      `${fieldName} nÃ£o pode ultrapassar ${maximumLength} caracteres.`,
     )
   }
 
@@ -250,19 +262,22 @@ function normalizeOptionalText(
   maximumLength: number,
 ): string | null {
   if (
-    value === undefined ||
-    value === null ||
-    value === ''
+    value ===
+      undefined ||
+    value ===
+      null ||
+    value ===
+      ''
   ) {
     return null
   }
 
   if (
     typeof value !==
-    'string'
+      'string'
   ) {
     throw new Error(
-      `${fieldName} possui formato inválido.`,
+      `${fieldName} possui formato invÃ¡lido.`,
     )
   }
 
@@ -275,10 +290,10 @@ function normalizeOptionalText(
 
   if (
     normalizedValue.length >
-    maximumLength
+      maximumLength
   ) {
     throw new Error(
-      `${fieldName} não pode ultrapassar ${maximumLength} caracteres.`,
+      `${fieldName} nÃ£o pode ultrapassar ${maximumLength} caracteres.`,
     )
   }
 
@@ -307,9 +322,12 @@ function normalizeFileSize(
   value: unknown,
 ): number | null {
   if (
-    value === undefined ||
-    value === null ||
-    value === ''
+    value ===
+      undefined ||
+    value ===
+      null ||
+    value ===
+      ''
   ) {
     return null
   }
@@ -334,7 +352,7 @@ function normalizeFileSize(
       0
   ) {
     throw new Error(
-      'O tamanho do arquivo é inválido.',
+      'O tamanho do arquivo Ã© invÃ¡lido.',
     )
   }
 
@@ -345,19 +363,22 @@ function normalizeEvidenceType(
   value: unknown,
 ): AgendaEvidenceType {
   if (
-    value === undefined ||
-    value === null ||
-    value === ''
+    value ===
+      undefined ||
+    value ===
+      null ||
+    value ===
+      ''
   ) {
     return 'texto'
   }
 
   if (
     typeof value !==
-    'string'
+      'string'
   ) {
     throw new Error(
-      'O tipo da evidência possui formato inválido.',
+      'O tipo da evidÃªncia possui formato invÃ¡lido.',
     )
   }
 
@@ -380,7 +401,7 @@ function normalizeEvidenceType(
   }
 
   throw new Error(
-    'Tipo de evidência inválido. Use texto, imagem, pdf ou link.',
+    'Tipo de evidÃªncia invÃ¡lido. Use texto, imagem, pdf ou link.',
   )
 }
 
@@ -388,15 +409,17 @@ function normalizeMetadata(
   value: unknown,
 ): AgendaEvidenceMetadata {
   if (
-    value === undefined ||
-    value === null
+    value ===
+      undefined ||
+    value ===
+      null
   ) {
     return {}
   }
 
   if (!isRecord(value)) {
     throw new Error(
-      'Os metadados da evidência possuem formato inválido.',
+      'Os metadados da evidÃªncia possuem formato invÃ¡lido.',
     )
   }
 
@@ -448,7 +471,7 @@ function normalizeOptionalBooleanQuery(
   }
 
   throw new Error(
-    'O filtro de identificação de menor é inválido.',
+    'O filtro de identificaÃ§Ã£o de menor Ã© invÃ¡lido.',
   )
 }
 
@@ -457,7 +480,7 @@ function getErrorStatus(
 ): number {
   if (
     error instanceof
-    SyntaxError
+      SyntaxError
   ) {
     return 400
   }
@@ -475,7 +498,7 @@ function getErrorStatus(
 
   if (
     message.includes(
-      'não autenticado',
+      'nÃ£o autenticado',
     ) ||
     message.includes(
       'unauthorized',
@@ -492,13 +515,13 @@ function getErrorStatus(
       'row-level security',
     ) ||
     message.includes(
-      'sem permissão',
+      'sem permissÃ£o',
     ) ||
     message.includes(
-      'não autorizado',
+      'nÃ£o autorizado',
     ) ||
     message.includes(
-      'não possui acesso',
+      'nÃ£o possui acesso',
     ) ||
     message.includes(
       'forbidden',
@@ -509,10 +532,10 @@ function getErrorStatus(
 
   if (
     message.includes(
-      'não encontrada',
+      'nÃ£o encontrada',
     ) ||
     message.includes(
-      'não encontrado',
+      'nÃ£o encontrado',
     )
   ) {
     return 404
@@ -526,7 +549,7 @@ function getErrorStatus(
       'unique constraint',
     ) ||
     message.includes(
-      'já existe',
+      'jÃ¡ existe',
     )
   ) {
     return 409
@@ -534,16 +557,16 @@ function getErrorStatus(
 
   if (
     message.includes(
-      'obrigatório',
+      'obrigatÃ³rio',
     ) ||
     message.includes(
-      'obrigatória',
+      'obrigatÃ³ria',
     ) ||
     message.includes(
-      'inválido',
+      'invÃ¡lido',
     ) ||
     message.includes(
-      'inválida',
+      'invÃ¡lida',
     ) ||
     message.includes(
       'formato',
@@ -558,7 +581,7 @@ function getErrorStatus(
       'confirme',
     ) ||
     message.includes(
-      'autorização',
+      'autorizaÃ§Ã£o',
     ) ||
     message.includes(
       'bucket',
@@ -570,7 +593,7 @@ function getErrorStatus(
       'tamanho',
     ) ||
     message.includes(
-      'não pode ultrapassar',
+      'nÃ£o pode ultrapassar',
     )
   ) {
     return 400
@@ -608,7 +631,8 @@ function createErrorResponse(
     )
 
   const message =
-    status >= 500
+    status >=
+      500
       ? fallbackMessage
       : error instanceof
           Error
@@ -630,6 +654,216 @@ function createErrorResponse(
         NO_CACHE_HEADERS,
     },
   )
+}
+
+function createEvidenceIntelligenceResponse({
+  data,
+  userId,
+}: {
+  data:
+    Awaited<
+      ReturnType<
+        EvidencesService['create']
+      >
+    >
+
+  userId:
+    string
+}) {
+  const adaptation =
+    adaptAgendaEvidenceToEducationalEvidence({
+      evidence:
+        data,
+
+      options: {
+        teacherId:
+          userId,
+
+        occurredAt:
+          data.created_at,
+
+        additionalMetadata: {
+          integrationSource:
+            'agenda-evidences-api',
+
+          integratedAt:
+            new Date()
+              .toISOString(),
+        },
+      },
+    })
+
+  if (
+    !adaptation.success ||
+    !adaptation.evidence
+  ) {
+    return {
+      success:
+        false,
+
+      processed:
+        false,
+
+      evidence:
+        null,
+
+      warnings:
+        adaptation.warnings,
+
+      errors:
+        adaptation.errors,
+
+      requiresHumanReview:
+        true,
+    }
+  }
+
+  try {
+    const evaluation =
+      evaluateEducationalEvidence({
+        evidence:
+          adaptation.evidence,
+
+        options: {
+          validate:
+            true,
+
+          classifyFramework:
+            true,
+
+          evaluateQuality:
+            true,
+
+          evaluateReliability:
+            true,
+
+          detectContradictions:
+            false,
+
+          consolidate:
+            false,
+
+          linkKnowledgeGraph:
+            true,
+
+          allowAutomaticValidation:
+            true,
+
+          allowAutomaticClassification:
+            true,
+
+          requireHumanReviewForSensitiveData:
+            true,
+
+          minimumConfidenceForAutomaticValidation:
+            0.75,
+
+          metadata: {
+            source:
+              'agenda-evidences-api',
+
+            agendaEvidenceId:
+              data.id,
+
+            requestedBy:
+              userId,
+          },
+        },
+      })
+
+    return {
+      success:
+        evaluation.success,
+
+      processed:
+        true,
+
+      evidence:
+        evaluation.evidence,
+
+      validation:
+        evaluation.validation,
+
+      frameworkClassifications:
+        evaluation.evidence
+          .frameworkClassifications,
+
+      quality:
+        evaluation.evidence
+          .quality,
+
+      reliability:
+        evaluation.evidence
+          .reliability,
+
+      privacy:
+        evaluation.evidence
+          .privacy,
+
+      knowledgeGraphNodeId:
+        evaluation.evidence
+          .knowledgeGraphNodeId,
+
+      knowledgeGraphEdgeIds:
+        evaluation.evidence
+          .knowledgeGraphEdgeIds,
+
+      warnings: [
+        ...adaptation.warnings,
+        ...evaluation.warnings,
+      ],
+
+      errors:
+        evaluation.errors,
+
+      requiresHumanReview:
+        adaptation
+          .requiresHumanReview ||
+        evaluation
+          .requiresHumanReview,
+    }
+  } catch (
+    intelligenceError
+  ) {
+    const message =
+      intelligenceError instanceof
+        Error
+        ? intelligenceError.message
+        : 'Erro inesperado ao processar a evidÃªncia no EIOS.'
+
+    console.error(
+      '[AGENDA_EVIDENCE_INTELLIGENCE_ERROR]',
+      {
+        agendaEvidenceId:
+          data.id,
+
+        userId,
+
+        message,
+      },
+    )
+
+    return {
+      success:
+        false,
+
+      processed:
+        false,
+
+      evidence:
+        adaptation.evidence,
+
+      warnings:
+        adaptation.warnings,
+
+      errors: [
+        message,
+      ],
+
+      requiresHumanReview:
+        true,
+    }
+  }
 }
 
 export async function GET(
@@ -671,7 +905,7 @@ export async function GET(
             searchParams.get(
               'organizationId',
             ),
-            'ID da organização',
+            'ID da organizaÃ§Ã£o',
           ),
 
         schoolId:
@@ -727,7 +961,7 @@ export async function GET(
             searchParams.get(
               'reflectionId',
             ),
-            'ID da reflexão',
+            'ID da reflexÃ£o',
           ),
 
         academicPeriodId:
@@ -735,7 +969,7 @@ export async function GET(
             searchParams.get(
               'academicPeriodId',
             ),
-            'ID do período acadêmico',
+            'ID do perÃ­odo acadÃªmico',
           ),
 
         evidenceType:
@@ -780,7 +1014,9 @@ export async function GET(
           NO_CACHE_HEADERS,
       },
     )
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       '[AGENDA_EVIDENCES_GET_ERROR]',
       error,
@@ -788,7 +1024,7 @@ export async function GET(
 
     return createErrorResponse(
       error,
-      'Não foi possível carregar as evidências.',
+      'NÃ£o foi possÃ­vel carregar as evidÃªncias.',
     )
   }
 }
@@ -831,12 +1067,6 @@ export async function POST(
       },
     })
 
-    /*
-     * Política ECA Digital preservada.
-     *
-     * O cliente informa apenas a declaração e a referência.
-     * O servidor determina quem confirmou e quando confirmou.
-     */
     const containsIdentifiableMinor =
       normalizeBoolean(
         body
@@ -869,176 +1099,173 @@ export async function POST(
 
     const input:
       CreateAgendaEvidenceInput = {
-        title:
-          normalizeRequiredText(
-            body.title,
-            'Título da evidência',
-            240,
-          ),
+      title:
+        normalizeRequiredText(
+          body.title,
+          'TÃ­tulo da evidÃªncia',
+          240,
+        ),
 
-        description:
-          normalizeOptionalText(
-            body.description,
-            'Descrição',
-            5000,
-          ),
+      description:
+        normalizeOptionalText(
+          body.description,
+          'DescriÃ§Ã£o',
+          5000,
+        ),
 
-        evidence_type:
-          evidenceType,
+      evidence_type:
+        evidenceType,
 
-        file_url:
-          normalizeOptionalText(
-            body.fileUrl,
-            'URL pública legada do arquivo',
-            2000,
-          ),
+      file_url:
+        normalizeOptionalText(
+          body.fileUrl,
+          'URL pÃºblica legada do arquivo',
+          2000,
+        ),
 
-        external_url:
-          normalizeOptionalText(
-            body.externalUrl,
-            'Endereço externo',
-            2000,
-          ),
+      external_url:
+        normalizeOptionalText(
+          body.externalUrl,
+          'EndereÃ§o externo',
+          2000,
+        ),
 
-        planning_id:
-          normalizeOptionalId(
-            body.planningId,
-            'ID do planejamento',
-          ),
+      planning_id:
+        normalizeOptionalId(
+          body.planningId,
+          'ID do planejamento',
+        ),
 
-        event_id:
-          normalizeOptionalId(
-            body.eventId,
-            'ID do evento',
-          ),
+      event_id:
+        normalizeOptionalId(
+          body.eventId,
+          'ID do evento',
+        ),
 
-        lesson_id:
-          normalizeOptionalId(
-            body.lessonId,
-            'ID da aula',
-          ),
+      lesson_id:
+        normalizeOptionalId(
+          body.lessonId,
+          'ID da aula',
+        ),
 
-        objective_id:
-          normalizeOptionalId(
-            body.objectiveId,
-            'ID do objetivo',
-          ),
+      objective_id:
+        normalizeOptionalId(
+          body.objectiveId,
+          'ID do objetivo',
+        ),
 
-        class_id:
-          normalizeOptionalId(
-            body.classId,
-            'ID da turma',
-          ),
+      class_id:
+        normalizeOptionalId(
+          body.classId,
+          'ID da turma',
+        ),
 
-        reflection_id:
-          normalizeOptionalId(
-            body.reflectionId,
-            'ID da reflexão',
-          ),
+      reflection_id:
+        normalizeOptionalId(
+          body.reflectionId,
+          'ID da reflexÃ£o',
+        ),
 
-        academic_period_id:
-          normalizeOptionalId(
-            body.academicPeriodId,
-            'ID do período acadêmico',
-          ),
+      academic_period_id:
+        normalizeOptionalId(
+          body.academicPeriodId,
+          'ID do perÃ­odo acadÃªmico',
+        ),
 
-        organization_id:
-          normalizeOptionalId(
-            body.organizationId,
-            'ID da organização',
-          ),
+      organization_id:
+        normalizeOptionalId(
+          body.organizationId,
+          'ID da organizaÃ§Ã£o',
+        ),
 
-        school_id:
-          normalizeOptionalId(
-            body.schoolId,
-            'ID da escola',
-          ),
+      school_id:
+        normalizeOptionalId(
+          body.schoolId,
+          'ID da escola',
+        ),
 
-        /*
-         * O usuário responsável nunca é aceito do cliente.
-         */
-        user_id:
-          user.id,
+      user_id:
+        user.id,
 
-        contains_identifiable_minor:
-          containsIdentifiableMinor,
+      contains_identifiable_minor:
+        containsIdentifiableMinor,
 
-        guardian_authorization_confirmed:
-          guardianAuthorizationConfirmed,
+      guardian_authorization_confirmed:
+        guardianAuthorizationConfirmed,
 
-        authorization_reference:
-          normalizeOptionalText(
-            body.authorizationReference,
-            'Referência da autorização',
-            1000,
-          ),
+      authorization_reference:
+        normalizeOptionalText(
+          body.authorizationReference,
+          'ReferÃªncia da autorizaÃ§Ã£o',
+          1000,
+        ),
 
-        authorization_confirmed_at:
-          authorizationConfirmedAt,
+      authorization_confirmed_at:
+        authorizationConfirmedAt,
 
-        authorization_confirmed_by:
-          authorizationConfirmedBy,
+      authorization_confirmed_by:
+        authorizationConfirmedBy,
 
-        privacy_notice_version:
-          normalizeOptionalText(
-            body.privacyNoticeVersion,
-            'Versão da política de privacidade',
-            100,
-          ) ??
-          DEFAULT_PRIVACY_NOTICE_VERSION,
+      privacy_notice_version:
+        normalizeOptionalText(
+          body.privacyNoticeVersion,
+          'VersÃ£o da polÃ­tica de privacidade',
+          100,
+        ) ??
+        DEFAULT_PRIVACY_NOTICE_VERSION,
 
-        storage_bucket:
-          normalizeOptionalText(
-            body.storageBucket,
-            'Bucket do arquivo',
-            200,
-          ),
+      storage_bucket:
+        normalizeOptionalText(
+          body.storageBucket,
+          'Bucket do arquivo',
+          200,
+        ),
 
-        storage_path:
-          normalizeOptionalText(
-            body.storagePath,
-            'Caminho do arquivo',
-            2000,
-          ),
+      storage_path:
+        normalizeOptionalText(
+          body.storagePath,
+          'Caminho do arquivo',
+          2000,
+        ),
 
-        original_file_name:
-          normalizeOptionalText(
-            body.originalFileName,
-            'Nome original do arquivo',
-            500,
-          ),
+      original_file_name:
+        normalizeOptionalText(
+          body.originalFileName,
+          'Nome original do arquivo',
+          500,
+        ),
 
-        file_mime_type:
-          normalizeOptionalText(
-            body.fileMimeType,
-            'Tipo MIME do arquivo',
-            200,
-          ),
+      file_mime_type:
+        normalizeOptionalText(
+          body.fileMimeType,
+          'Tipo MIME do arquivo',
+          200,
+        ),
 
-        file_size_bytes:
-          normalizeFileSize(
-            body.fileSizeBytes,
-          ),
+      file_size_bytes:
+        normalizeFileSize(
+          body.fileSizeBytes,
+        ),
 
-        metadata: {
-          ...metadata,
+      metadata: {
+        ...metadata,
 
-          source:
-            typeof metadata.source ===
-              'string'
-              ? metadata.source
-              : 'agenda-evidences-api',
+        source:
+          typeof metadata.source ===
+            'string'
+            ? metadata.source
+            : 'agenda-evidences-api',
 
-          createdThrough:
-            'authenticated-user-flow',
-        },
+        createdThrough:
+          'authenticated-user-flow',
+      },
 
-        created_by:
-          user.id,
+      created_by:
+        user.id,
 
-        updated_by:
-          user.id,
-      }
+      updated_by:
+        user.id,
+    }
 
     const service =
       createEvidencesService(
@@ -1050,6 +1277,20 @@ export async function POST(
         input,
       )
 
+    /*
+     * O registro da evidÃªncia jÃ¡ foi persistido com sucesso.
+     *
+     * O processamento inteligente Ã© executado depois da
+     * persistÃªncia para nÃ£o bloquear nem desfazer o cadastro
+     * caso o motor produza aviso ou necessite revisÃ£o humana.
+     */
+    const intelligence =
+      createEvidenceIntelligenceResponse({
+        data,
+        userId:
+          user.id,
+      })
+
     return NextResponse.json(
       {
         success:
@@ -1057,10 +1298,12 @@ export async function POST(
 
         message:
           containsIdentifiableMinor
-            ? 'Evidência criada com registro da autorização do responsável.'
-            : 'Evidência criada com sucesso.',
+            ? 'EvidÃªncia criada com registro da autorizaÃ§Ã£o do responsÃ¡vel.'
+            : 'EvidÃªncia criada com sucesso.',
 
         data,
+
+        intelligence,
       },
       {
         status:
@@ -1070,7 +1313,9 @@ export async function POST(
           NO_CACHE_HEADERS,
       },
     )
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       '[AGENDA_EVIDENCES_POST_ERROR]',
       error,
@@ -1078,7 +1323,7 @@ export async function POST(
 
     return createErrorResponse(
       error,
-      'Não foi possível criar a evidência.',
+      'NÃ£o foi possÃ­vel criar a evidÃªncia.',
     )
   }
 }
