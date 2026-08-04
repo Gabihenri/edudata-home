@@ -32,13 +32,13 @@ export const dynamic =
 export const runtime =
   'nodejs'
 
+const MAXIMUM_BATCH_SIZE =
+  500
+
 const NO_CACHE_HEADERS = {
   'Cache-Control':
     'no-store, no-cache, must-revalidate',
 }
-
-const MAXIMUM_BATCH_SIZE =
-  500
 
 type DecisionIntelligenceRequestMode =
   | 'single'
@@ -46,15 +46,10 @@ type DecisionIntelligenceRequestMode =
 
 type DecisionIntelligenceRequestBody = {
   mode?: unknown
-
   decision?: unknown
-
   decisions?: unknown
-
   rules?: unknown
-
   options?: unknown
-
   metadata?: unknown
 }
 
@@ -63,51 +58,13 @@ type AuthenticatedUser = {
   email: string | null
 }
 
-type DecisionIntelligenceApiSuccessResponse = {
-  success: true
-
-  mode:
-    DecisionIntelligenceRequestMode
-
-  data:
-    | DecisionIntelligenceResult
-    | DecisionBatchProcessingResult
-
-  request: {
-    requestedBy: string
-
-    requestedAt: string
-
-    metadata:
-      Record<string, unknown>
-  }
-}
-
-type DecisionIntelligenceApiErrorResponse = {
-  success: false
-
-  mode:
-    DecisionIntelligenceRequestMode | null
-
-  error: string
-
-  code: string
-
-  details: string[]
-
-  requiresHumanReview: boolean
-
-  requestedAt: string
-}
-
 function nowIso(): string {
   return new Date()
     .toISOString()
 }
 
 function isRecord(
-  value:
-    unknown,
+  value: unknown,
 ): value is Record<string, unknown> {
   return (
     typeof value ===
@@ -121,8 +78,7 @@ function isRecord(
 }
 
 function isString(
-  value:
-    unknown,
+  value: unknown,
 ): value is string {
   return (
     typeof value ===
@@ -131,8 +87,7 @@ function isString(
 }
 
 function isBoolean(
-  value:
-    unknown,
+  value: unknown,
 ): value is boolean {
   return (
     typeof value ===
@@ -141,8 +96,7 @@ function isBoolean(
 }
 
 function isNumber(
-  value:
-    unknown,
+  value: unknown,
 ): value is number {
   return (
     typeof value ===
@@ -154,8 +108,7 @@ function isNumber(
 }
 
 function isNullableString(
-  value:
-    unknown,
+  value: unknown,
 ): value is string | null {
   return (
     value ===
@@ -166,23 +119,8 @@ function isNullableString(
   )
 }
 
-function isStringArray(
-  value:
-    unknown,
-): value is string[] {
-  return (
-    Array.isArray(
-      value,
-    ) &&
-    value.every(
-      isString,
-    )
-  )
-}
-
 function isRequestMode(
-  value:
-    unknown,
+  value: unknown,
 ): value is DecisionIntelligenceRequestMode {
   return (
     value ===
@@ -193,8 +131,7 @@ function isRequestMode(
 }
 
 function isEducationalDecision(
-  value:
-    unknown,
+  value: unknown,
 ): value is EducationalDecision {
   if (
     !isRecord(
@@ -232,41 +169,8 @@ function isEducationalDecision(
     isString(
       value.urgency,
     ) &&
-    isString(
-      value.sourceType,
-    ) &&
-    isString(
-      value.generationMethod,
-    ) &&
-    isNullableString(
-      value.organizationId,
-    ) &&
-    isNullableString(
-      value.schoolId,
-    ) &&
-    Array.isArray(
-      value.subjects,
-    ) &&
     Array.isArray(
       value.evidenceReferences,
-    ) &&
-    Array.isArray(
-      value.consolidationReferences,
-    ) &&
-    Array.isArray(
-      value.contradictionReferences,
-    ) &&
-    Array.isArray(
-      value.knowledgeGraphReferences,
-    ) &&
-    Array.isArray(
-      value.curriculumReferences,
-    ) &&
-    Array.isArray(
-      value.frameworkClassifications,
-    ) &&
-    Array.isArray(
-      value.risks,
     ) &&
     Array.isArray(
       value.recommendations,
@@ -302,8 +206,7 @@ function isEducationalDecision(
 }
 
 function isDecisionRule(
-  value:
-    unknown,
+  value: unknown,
 ): value is DecisionRule {
   if (
     !isRecord(
@@ -323,53 +226,14 @@ function isDecisionRule(
     isString(
       value.name,
     ) &&
-    isNullableString(
-      value.description,
-    ) &&
     isBoolean(
       value.active,
-    ) &&
-    isString(
-      value.version,
-    ) &&
-    isString(
-      value.source,
-    ) &&
-    Array.isArray(
-      value.subjectTypes,
-    ) &&
-    Array.isArray(
-      value.categories,
     ) &&
     Array.isArray(
       value.conditions,
     ) &&
-    isNumber(
-      value.minimumConditionScore,
-    ) &&
     isRecord(
       value.outcome,
-    ) &&
-    isNullableString(
-      value.validFrom,
-    ) &&
-    isNullableString(
-      value.validUntil,
-    ) &&
-    isNullableString(
-      value.institutionId,
-    ) &&
-    isString(
-      value.createdAt,
-    ) &&
-    isString(
-      value.updatedAt,
-    ) &&
-    isNullableString(
-      value.createdBy,
-    ) &&
-    isNullableString(
-      value.updatedBy,
     ) &&
     isRecord(
       value.metadata,
@@ -378,8 +242,7 @@ function isDecisionRule(
 }
 
 function isDecisionRules(
-  value:
-    unknown,
+  value: unknown,
 ): value is DecisionRule[] {
   return (
     Array.isArray(
@@ -392,8 +255,7 @@ function isDecisionRules(
 }
 
 function isSingleProcessingOptions(
-  value:
-    unknown,
+  value: unknown,
 ): value is DecisionIntelligenceProcessingOptions {
   if (
     value ===
@@ -419,17 +281,19 @@ function isSingleProcessingOptions(
     'stopOnError',
   ]
 
-  if (
-    !booleanFields.every(
-      field =>
-        value[field] ===
-          undefined ||
-        isBoolean(
-          value[field],
-        ),
-    )
+  for (
+    const field
+    of booleanFields
   ) {
-    return false
+    if (
+      value[field] !==
+        undefined &&
+      !isBoolean(
+        value[field],
+      )
+    ) {
+      return false
+    }
   }
 
   const objectFields = [
@@ -440,31 +304,36 @@ function isSingleProcessingOptions(
     'actionPlanOptions',
   ]
 
+  for (
+    const field
+    of objectFields
+  ) {
+    if (
+      value[field] !==
+        undefined &&
+      !isRecord(
+        value[field],
+      )
+    ) {
+      return false
+    }
+  }
+
   if (
-    !objectFields.every(
-      field =>
-        value[field] ===
-          undefined ||
-        isRecord(
-          value[field],
-        ),
+    value.rules !==
+      undefined &&
+    !isDecisionRules(
+      value.rules,
     )
   ) {
     return false
   }
 
-  return (
-    value.rules ===
-      undefined ||
-    isDecisionRules(
-      value.rules,
-    )
-  )
+  return true
 }
 
 function isBatchProcessingOptions(
-  value:
-    unknown,
+  value: unknown,
 ): value is DecisionBatchProcessingOptions {
   if (
     value ===
@@ -565,8 +434,7 @@ function isBatchProcessingOptions(
 }
 
 function getBearerToken(
-  request:
-    NextRequest,
+  request: NextRequest,
 ): string | null {
   const authorization =
     request.headers.get(
@@ -582,11 +450,12 @@ function getBearerToken(
   const [
     scheme,
     token,
-  ] = authorization
-    .trim()
-    .split(
-      /\s+/,
-    )
+  ] =
+    authorization
+      .trim()
+      .split(
+        /\s+/,
+      )
 
   if (
     scheme?.toLowerCase() !==
@@ -600,8 +469,7 @@ function getBearerToken(
 }
 
 async function authenticateRequest(
-  request:
-    NextRequest,
+  request: NextRequest,
 ): Promise<AuthenticatedUser | null> {
   const token =
     getBearerToken(
@@ -640,8 +508,7 @@ async function authenticateRequest(
 }
 
 async function readRequestBody(
-  request:
-    NextRequest,
+  request: NextRequest,
 ): Promise<DecisionIntelligenceRequestBody | null> {
   try {
     const body:
@@ -662,6 +529,37 @@ async function readRequestBody(
   }
 }
 
+function getRequestMetadata(
+  value: unknown,
+): Record<string, unknown> {
+  return isRecord(
+    value,
+  )
+    ? value
+    : {}
+}
+
+function getErrorMessage(
+  error: unknown,
+  fallback: string,
+): string {
+  if (
+    error instanceof Error
+  ) {
+    return error.message
+  }
+
+  if (
+    typeof error ===
+      'string' &&
+    error.trim()
+  ) {
+    return error.trim()
+  }
+
+  return fallback
+}
+
 function createErrorResponse({
   message,
   code,
@@ -670,26 +568,17 @@ function createErrorResponse({
   details = [],
   requiresHumanReview = false,
 }: {
-  message:
-    string
-
-  code:
-    string
-
-  status:
-    number
+  message: string
+  code: string
+  status: number
 
   mode?:
     DecisionIntelligenceRequestMode | null
 
-  details?:
-    string[]
+  details?: string[]
 
-  requiresHumanReview?:
-    boolean
-}): NextResponse<
-  DecisionIntelligenceApiErrorResponse
-> {
+  requiresHumanReview?: boolean
+}): NextResponse {
   return NextResponse.json(
     {
       success:
@@ -723,7 +612,7 @@ function createSuccessResponse({
   data,
   user,
   metadata,
-  status = 200,
+  status,
 }: {
   mode:
     DecisionIntelligenceRequestMode
@@ -738,11 +627,9 @@ function createSuccessResponse({
   metadata:
     Record<string, unknown>
 
-  status?:
+  status:
     number
-}): NextResponse<
-  DecisionIntelligenceApiSuccessResponse
-> {
+}): NextResponse {
   return NextResponse.json(
     {
       success:
@@ -783,17 +670,6 @@ function createSuccessResponse({
         NO_CACHE_HEADERS,
     },
   )
-}
-
-function getRequestMetadata(
-  value:
-    unknown,
-): Record<string, unknown> {
-  return isRecord(
-    value,
-  )
-    ? value
-    : {}
 }
 
 function consolidateSingleResult(
@@ -898,15 +774,22 @@ async function processSingleRequest({
     })
   }
 
-  const rules =
-    body.rules ===
-      undefined
-      ? []
-      : body.rules
+  const rules:
+    DecisionRule[] =
+      body.rules ===
+        undefined
+        ? []
+        : isDecisionRules(
+            body.rules,
+          )
+          ? body.rules
+          : []
 
   if (
+    body.rules !==
+      undefined &&
     !isDecisionRules(
-      rules,
+      body.rules,
     )
   ) {
     return createErrorResponse({
@@ -944,14 +827,20 @@ async function processSingleRequest({
     })
   }
 
-  const options: DecisionIntelligenceProcessingOptions = {
-    ...body.options,
+  const receivedOptions:
+    DecisionIntelligenceProcessingOptions =
+      body.options ??
+      {}
+
+  const options:
+    DecisionIntelligenceProcessingOptions = {
+    ...receivedOptions,
 
     rules,
 
     additionalData: {
-      ...body.options
-        ?.additionalData,
+      ...receivedOptions
+        .additionalData,
 
       requestContext: {
         requestedBy:
@@ -1000,9 +889,10 @@ async function processSingleRequest({
     error
   ) {
     const message =
-      error instanceof Error
-        ? error.message
-        : 'Erro interno ao processar a decisão educacional.'
+      getErrorMessage(
+        error,
+        'Erro interno ao processar a decisão educacional.',
+      )
 
     console.error(
       '[EIOS_DECISION_INTELLIGENCE_SINGLE_ERROR]',
@@ -1075,8 +965,12 @@ async function processBatchRequest({
     })
   }
 
+  const decisions:
+    EducationalDecision[] =
+      body.decisions
+
   if (
-    body.decisions.length ===
+    decisions.length ===
       0
   ) {
     return createErrorResponse({
@@ -1095,7 +989,7 @@ async function processBatchRequest({
   }
 
   if (
-    body.decisions.length >
+    decisions.length >
     MAXIMUM_BATCH_SIZE
   ) {
     return createErrorResponse({
@@ -1113,15 +1007,22 @@ async function processBatchRequest({
     })
   }
 
-  const rules =
-    body.rules ===
-      undefined
-      ? []
-      : body.rules
+  const rules:
+    DecisionRule[] =
+      body.rules ===
+        undefined
+        ? []
+        : isDecisionRules(
+            body.rules,
+          )
+          ? body.rules
+          : []
 
   if (
+    body.rules !==
+      undefined &&
     !isDecisionRules(
-      rules,
+      body.rules,
     )
   ) {
     return createErrorResponse({
@@ -1159,38 +1060,56 @@ async function processBatchRequest({
     })
   }
 
-  const options: DecisionBatchProcessingOptions = {
-    ...body.options,
+  /*
+   * A variável explicitamente tipada resolve o erro:
+   *
+   * Property 'additionalDataByDecisionId'
+   * does not exist on type '{}'.
+   */
+  const receivedOptions:
+    DecisionBatchProcessingOptions =
+      body.options ??
+      {}
+
+  const existingAdditionalData =
+    receivedOptions
+      .additionalDataByDecisionId ??
+    {}
+
+  const requestAdditionalData =
+    Object.fromEntries(
+      decisions.map(
+        decision => [
+          decision.id,
+          {
+            ...existingAdditionalData[
+              decision.id
+            ],
+
+            requestContext: {
+              requestedBy:
+                user.id,
+
+              requestedAt:
+                nowIso(),
+
+              source:
+                'decision-intelligence-api',
+            },
+          },
+        ],
+      ),
+    )
+
+  const options:
+    DecisionBatchProcessingOptions = {
+    ...receivedOptions,
 
     rules,
 
     additionalDataByDecisionId: {
-      ...body.options
-        ?.additionalDataByDecisionId,
-
-      ...Object.fromEntries(
-        body.decisions.map(
-          decision => [
-            decision.id,
-            {
-              ...body.options
-                ?.additionalDataByDecisionId
-                ?.[decision.id],
-
-              requestContext: {
-                requestedBy:
-                  user.id,
-
-                requestedAt:
-                  nowIso(),
-
-                source:
-                  'decision-intelligence-api',
-              },
-            },
-          ],
-        ),
-      ),
+      ...existingAdditionalData,
+      ...requestAdditionalData,
     },
   }
 
@@ -1198,9 +1117,7 @@ async function processBatchRequest({
     const result =
       consolidateBatchResult(
         await processDecisionBatch({
-          decisions:
-            body.decisions,
-
+          decisions,
           options,
         }),
       )
@@ -1228,9 +1145,10 @@ async function processBatchRequest({
     error
   ) {
     const message =
-      error instanceof Error
-        ? error.message
-        : 'Erro interno ao processar o lote de decisões.'
+      getErrorMessage(
+        error,
+        'Erro interno ao processar o lote de decisões.',
+      )
 
     console.error(
       '[EIOS_DECISION_INTELLIGENCE_BATCH_ERROR]',
@@ -1241,7 +1159,7 @@ async function processBatchRequest({
           user.id,
 
         decisionCount:
-          body.decisions.length,
+          decisions.length,
 
         occurredAt:
           nowIso(),
