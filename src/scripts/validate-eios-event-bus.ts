@@ -7,6 +7,10 @@ import {
   EiosEventBusService,
 } from '@/lib/eios/events/eios-event-bus.service'
 
+type Counter = {
+  value: number
+}
+
 function assertCondition(
   condition: boolean,
   message: string,
@@ -18,12 +22,23 @@ function assertCondition(
   }
 }
 
+function createCounter(): Counter {
+  return {
+    value: 0,
+  }
+}
+
+function incrementCounter(
+  counter: Counter,
+): void {
+  counter.value += 1
+}
+
 function createEvidenceCreatedEvent({
   id,
   expiresAt = null,
 }: {
   id: string
-
   expiresAt?: string | null
 }): EiosEvent {
   return createEiosEvent({
@@ -175,12 +190,13 @@ function createEvidenceCreatedEvent({
   })
 }
 
-async function validateSuccessfulPublish(): Promise<void> {
+async function validateSuccessfulPublish():
+  Promise<void> {
   const eventBus =
     new EiosEventBusService()
 
-  let handledEventId:
-    string | null = null
+  const handledEvents:
+    string[] = []
 
   const subscription =
     eventBus.subscribe({
@@ -194,8 +210,9 @@ async function validateSuccessfulPublish(): Promise<void> {
 
       handler:
         event => {
-          handledEventId =
-            event.id
+          handledEvents.push(
+            event.id,
+          )
         },
 
       metadata: {
@@ -233,8 +250,9 @@ async function validateSuccessfulPublish(): Promise<void> {
   )
 
   assertCondition(
-    handledEventId ===
+    handledEvents.includes(
       event.id,
+    ),
     'O assinante deveria receber o evento publicado.',
   )
 
@@ -295,18 +313,19 @@ async function validateSuccessfulPublish(): Promise<void> {
   )
 }
 
-async function validateTopicAndDomainFilters(): Promise<void> {
+async function validateTopicAndDomainFilters():
+  Promise<void> {
   const eventBus =
     new EiosEventBusService()
 
-  let topicHandlerExecutions =
-    0
+  const topicExecutions =
+    createCounter()
 
-  let domainHandlerExecutions =
-    0
+  const domainExecutions =
+    createCounter()
 
-  let unrelatedHandlerExecutions =
-    0
+  const unrelatedExecutions =
+    createCounter()
 
   eventBus.subscribe({
     filter: {
@@ -316,8 +335,9 @@ async function validateTopicAndDomainFilters(): Promise<void> {
 
     handler:
       () => {
-        topicHandlerExecutions +=
-          1
+        incrementCounter(
+          topicExecutions,
+        )
       },
   })
 
@@ -329,8 +349,9 @@ async function validateTopicAndDomainFilters(): Promise<void> {
 
     handler:
       () => {
-        domainHandlerExecutions +=
-          1
+        incrementCounter(
+          domainExecutions,
+        )
       },
   })
 
@@ -342,8 +363,9 @@ async function validateTopicAndDomainFilters(): Promise<void> {
 
     handler:
       () => {
-        unrelatedHandlerExecutions +=
-          1
+        incrementCounter(
+          unrelatedExecutions,
+        )
       },
   })
 
@@ -355,25 +377,26 @@ async function validateTopicAndDomainFilters(): Promise<void> {
   )
 
   assertCondition(
-    topicHandlerExecutions ===
+    topicExecutions.value ===
       1,
     'O filtro por tópico deveria executar uma vez.',
   )
 
   assertCondition(
-    domainHandlerExecutions ===
+    domainExecutions.value ===
       1,
     'O filtro por domínio deveria executar uma vez.',
   )
 
   assertCondition(
-    unrelatedHandlerExecutions ===
+    unrelatedExecutions.value ===
       0,
     'O assinante de outro domínio não deveria ser executado.',
   )
 }
 
-async function validateHandlerFailure(): Promise<void> {
+async function validateHandlerFailure():
+  Promise<void> {
   const eventBus =
     new EiosEventBusService()
 
@@ -440,15 +463,18 @@ async function validateHandlerFailure(): Promise<void> {
   )
 }
 
-async function validateRetry(): Promise<void> {
+async function validateRetry():
+  Promise<void> {
   const eventBus =
     new EiosEventBusService()
 
-  let shouldFail =
-    true
+  const executionCounter =
+    createCounter()
 
-  let handlerExecutions =
-    0
+  const executionControl = {
+    shouldFail:
+      true,
+  }
 
   eventBus.subscribe({
     filter: {
@@ -458,10 +484,14 @@ async function validateRetry(): Promise<void> {
 
     handler:
       () => {
-        handlerExecutions +=
-          1
+        incrementCounter(
+          executionCounter,
+        )
 
-        if (shouldFail) {
+        if (
+          executionControl
+            .shouldFail
+        ) {
           throw new Error(
             'Falha temporária.',
           )
@@ -491,7 +521,7 @@ async function validateRetry(): Promise<void> {
     'A primeira tentativa deveria registrar attempt 1.',
   )
 
-  shouldFail =
+  executionControl.shouldFail =
     false
 
   const retryResult =
@@ -517,7 +547,7 @@ async function validateRetry(): Promise<void> {
   )
 
   assertCondition(
-    handlerExecutions ===
+    executionCounter.value ===
       2,
     'O assinante deveria ser executado em duas tentativas.',
   )
@@ -532,12 +562,13 @@ async function validateRetry(): Promise<void> {
   )
 }
 
-async function validateExpiredEvent(): Promise<void> {
+async function validateExpiredEvent():
+  Promise<void> {
   const eventBus =
     new EiosEventBusService()
 
-  let handlerExecuted =
-    false
+  const executionCounter =
+    createCounter()
 
   eventBus.subscribe({
     filter: {
@@ -547,8 +578,9 @@ async function validateExpiredEvent(): Promise<void> {
 
     handler:
       () => {
-        handlerExecuted =
-          true
+        incrementCounter(
+          executionCounter,
+        )
       },
   })
 
@@ -584,7 +616,8 @@ async function validateExpiredEvent(): Promise<void> {
   )
 
   assertCondition(
-    !handlerExecuted,
+    executionCounter.value ===
+      0,
     'O assinante não deveria receber evento expirado.',
   )
 
@@ -595,21 +628,28 @@ async function validateExpiredEvent(): Promise<void> {
   )
 }
 
-async function validateSubscriptionLifecycle(): Promise<void> {
+async function validateSubscriptionLifecycle():
+  Promise<void> {
   const eventBus =
     new EiosEventBusService()
 
-  let executions =
-    0
+  /*
+   * O contador é mantido dentro de um objeto.
+   * Isso impede que o TypeScript estreite seu valor
+   * permanentemente para o literal 0 após a primeira asserção.
+   */
+  const executionCounter =
+    createCounter()
 
   const subscription =
     eventBus.subscribe({
       handler:
         () => {
-          executions +=
-            1
+          incrementCounter(
+            executionCounter,
+          )
         },
-  })
+    })
 
   const deactivated =
     eventBus.deactivateSubscription(
@@ -629,7 +669,7 @@ async function validateSubscriptionLifecycle(): Promise<void> {
   )
 
   assertCondition(
-    executions ===
+    executionCounter.value ===
       0,
     'A assinatura desativada não deveria executar.',
   )
@@ -652,7 +692,7 @@ async function validateSubscriptionLifecycle(): Promise<void> {
   )
 
   assertCondition(
-    executions ===
+    executionCounter.value ===
       1,
     'A assinatura reativada deveria executar.',
   )
@@ -676,7 +716,8 @@ async function validateSubscriptionLifecycle(): Promise<void> {
   )
 }
 
-async function validateStatisticsAndReset(): Promise<void> {
+async function validateStatisticsAndReset():
+  Promise<void> {
   const eventBus =
     new EiosEventBusService()
 
@@ -756,7 +797,8 @@ async function validateStatisticsAndReset(): Promise<void> {
   )
 }
 
-async function runValidation(): Promise<void> {
+async function runValidation():
+  Promise<void> {
   await validateSuccessfulPublish()
   await validateTopicAndDomainFilters()
   await validateHandlerFailure()
