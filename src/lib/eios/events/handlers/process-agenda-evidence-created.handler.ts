@@ -3,6 +3,11 @@ import type {
 } from '@/lib/agenda/repository/evidences.repository'
 
 import type {
+  EvidenceIntelligenceJsonObject,
+  EvidenceIntelligenceRun,
+} from '@/lib/agenda/repository/evidence-intelligence-runs.repository'
+
+import type {
   AgendaEvidenceCreatedEventPayload,
 } from '@/lib/agenda/events/agenda-evidence-created.event'
 
@@ -10,6 +15,10 @@ import {
   executeAgendaEvidenceIntelligence,
   type AgendaEvidenceIntelligenceFacadeResult,
 } from '@/lib/agenda/services/agenda-evidence-intelligence.facade'
+
+import {
+  evidenceIntelligenceRunsService,
+} from '@/lib/agenda/services/evidence-intelligence-runs.service'
 
 import type {
   EiosEventHandler,
@@ -32,6 +41,12 @@ export type ProcessAgendaEvidenceCreatedHandlerResult = {
   intelligence:
     AgendaEvidenceIntelligenceFacadeResult
 
+  persistedRun:
+    EvidenceIntelligenceRun
+
+  idempotent:
+    boolean
+
   processedAt:
     string
 }
@@ -40,6 +55,12 @@ const HANDLER_NAME =
   'process-agenda-evidence-created-handler'
 
 const HANDLER_VERSION =
+  '1.1.0'
+
+const EVIDENCE_INTELLIGENCE_ENGINE_NAME =
+  'evidence-intelligence'
+
+const EVIDENCE_INTELLIGENCE_ENGINE_VERSION =
   '1.0.0'
 
 const DEFAULT_PRIVACY_NOTICE_VERSION =
@@ -98,6 +119,176 @@ function getErrorMessage(
   }
 
   return 'Erro inesperado ao processar o evento evidence.created.'
+}
+
+function toJsonObject(
+  value: unknown,
+): EvidenceIntelligenceJsonObject {
+  if (
+    isRecord(
+      value,
+    )
+  ) {
+    return {
+      ...value,
+    }
+  }
+
+  if (
+    value === undefined ||
+    value === null
+  ) {
+    return {}
+  }
+
+  return {
+    value,
+  }
+}
+
+function extractNormalizedScore(
+  value: unknown,
+): number | null {
+  if (
+    typeof value ===
+      'number' &&
+    Number.isFinite(
+      value,
+    )
+  ) {
+    if (
+      value >= 0 &&
+      value <= 1
+    ) {
+      return value
+    }
+
+    if (
+      value > 1 &&
+      value <= 100
+    ) {
+      return value /
+        100
+    }
+
+    return null
+  }
+
+  if (
+    !isRecord(
+      value,
+    )
+  ) {
+    return null
+  }
+
+  const candidateKeys = [
+    'score',
+    'value',
+    'normalizedScore',
+    'normalizedValue',
+    'confidence',
+    'qualityScore',
+    'reliabilityScore',
+  ]
+
+  for (
+    const key
+    of candidateKeys
+  ) {
+    const candidate =
+      value[key]
+
+    if (
+      typeof candidate !==
+        'number' ||
+      !Number.isFinite(
+        candidate,
+      )
+    ) {
+      continue
+    }
+
+    if (
+      candidate >= 0 &&
+      candidate <= 1
+    ) {
+      return candidate
+    }
+
+    if (
+      candidate > 1 &&
+      candidate <= 100
+    ) {
+      return candidate /
+        100
+    }
+  }
+
+  return null
+}
+
+function extractConfidenceScore({
+  quality,
+  reliability,
+  validation,
+}: {
+  quality:
+    unknown
+
+  reliability:
+    unknown
+
+  validation:
+    unknown
+}): number | null {
+  const validationScore =
+    extractNormalizedScore(
+      validation,
+    )
+
+  if (
+    validationScore !==
+      null
+  ) {
+    return validationScore
+  }
+
+  const qualityScore =
+    extractNormalizedScore(
+      quality,
+    )
+
+  const reliabilityScore =
+    extractNormalizedScore(
+      reliability,
+    )
+
+  if (
+    qualityScore !==
+      null &&
+    reliabilityScore !==
+      null
+  ) {
+    return (
+      qualityScore +
+      reliabilityScore
+    ) /
+      2
+  }
+
+  return qualityScore ??
+    reliabilityScore
+}
+
+function createIdempotencyKey(
+  event: EiosEvent,
+): string {
+  return [
+    EVIDENCE_INTELLIGENCE_ENGINE_NAME,
+    EVIDENCE_INTELLIGENCE_ENGINE_VERSION,
+    event.id,
+  ].join(':')
 }
 
 function assertAgendaEvidenceCreatedEvent(
@@ -356,169 +547,534 @@ function createAgendaEvidenceFromEvent(
   }
 }
 
-export function processAgendaEvidenceCreatedEvent(
-  event: EiosEvent,
-): ProcessAgendaEvidenceCreatedHandlerResult {
+function executeIntelligence({
+  event,
+  evidence,
+}: {
+  event:
+    EiosEvent<
+      AgendaEvidenceCreatedEventPayload
+    >
+
+  evidence:
+    AgendaEvidence
+}): AgendaEvidenceIntelligenceFacadeResult {
+  return executeAgendaEvidenceIntelligence({
+    evidence,
+
+    requestedBy:
+      event.actor.id,
+
+    source:
+      HANDLER_NAME,
+
+    options: {
+      adapterOptions: {
+        occurredAt:
+          event.occurredAt,
+
+        teacherId:
+          event.actor.id,
+
+        additionalMetadata: {
+          sourceEventId:
+            event.id,
+
+          sourceEventName:
+            event.name,
+
+          correlationId:
+            event.correlation
+              .correlationId,
+
+          causationId:
+            event.correlation
+              .causationId,
+
+          parentEventId:
+            event.correlation
+              .parentEventId,
+
+          traceId:
+            event.correlation
+              .traceId,
+
+          handler:
+            HANDLER_NAME,
+
+          handlerVersion:
+            HANDLER_VERSION,
+        },
+      },
+
+      processingOptions: {
+        validate:
+          true,
+
+        classifyFramework:
+          true,
+
+        evaluateQuality:
+          true,
+
+        evaluateReliability:
+          true,
+
+        detectContradictions:
+          false,
+
+        consolidate:
+          false,
+
+        linkKnowledgeGraph:
+          false,
+
+        allowAutomaticValidation:
+          false,
+
+        allowAutomaticClassification:
+          true,
+
+        requireHumanReviewForSensitiveData:
+          true,
+
+        minimumConfidenceForAutomaticValidation:
+          0.9,
+
+        metadata: {
+          sourceEventId:
+            event.id,
+
+          sourceEventName:
+            event.name,
+
+          correlationId:
+            event.correlation
+              .correlationId,
+
+          causationId:
+            event.correlation
+              .causationId,
+
+          parentEventId:
+            event.correlation
+              .parentEventId,
+
+          traceId:
+            event.correlation
+              .traceId,
+
+          handler:
+            HANDLER_NAME,
+
+          handlerVersion:
+            HANDLER_VERSION,
+        },
+      },
+    },
+  })
+}
+
+export async function processAgendaEvidenceCreatedEvent(
+  receivedEvent:
+    EiosEvent,
+): Promise<
+  ProcessAgendaEvidenceCreatedHandlerResult
+> {
   assertAgendaEvidenceCreatedEvent(
-    event,
+    receivedEvent,
   )
+
+  const event =
+    receivedEvent
 
   const evidence =
     createAgendaEvidenceFromEvent(
       event,
     )
 
-  const intelligence =
-    executeAgendaEvidenceIntelligence({
-      evidence,
+  const idempotencyKey =
+    createIdempotencyKey(
+      event,
+    )
+
+  const startResult =
+    await evidenceIntelligenceRunsService.start({
+      evidenceId:
+        evidence.id,
+
+      eventId:
+        event.id,
+
+      idempotencyKey,
+
+      engineName:
+        EVIDENCE_INTELLIGENCE_ENGINE_NAME,
+
+      engineVersion:
+        EVIDENCE_INTELLIGENCE_ENGINE_VERSION,
+
+      contractVersion:
+        event.contractVersion,
+
+      processingSource:
+        HANDLER_NAME,
 
       requestedBy:
         event.actor.id,
 
-      source:
-        HANDLER_NAME,
+      correlationId:
+        event.correlation
+          .correlationId,
 
-      options: {
-        adapterOptions: {
-          occurredAt:
-            event.occurredAt,
+      causationId:
+        event.correlation
+          .causationId,
 
-          teacherId:
-            event.actor.id,
+      parentEventId:
+        event.correlation
+          .parentEventId,
 
-          additionalMetadata: {
-            sourceEventId:
-              event.id,
+      traceId:
+        event.correlation
+          .traceId,
 
-            sourceEventName:
-              event.name,
+      metadata: {
+        handler:
+          HANDLER_NAME,
 
-            correlationId:
-              event.correlation
-                .correlationId,
+        handlerVersion:
+          HANDLER_VERSION,
 
-            causationId:
-              event.correlation
-                .causationId,
+        eventName:
+          event.name,
 
-            parentEventId:
-              event.correlation
-                .parentEventId,
+        eventVersion:
+          event.version,
 
-            traceId:
-              event.correlation
-                .traceId,
+        eventSourceProduct:
+          event.sourceProduct,
 
-            handler:
-              HANDLER_NAME,
+        eventSourceService:
+          event.sourceService,
 
-            handlerVersion:
-              HANDLER_VERSION,
-          },
-        },
+        containsMinorData:
+          event.privacy
+            .containsMinorData,
 
-        processingOptions: {
-          validate:
-            true,
-
-          classifyFramework:
-            true,
-
-          evaluateQuality:
-            true,
-
-          evaluateReliability:
-            true,
-
-          detectContradictions:
-            false,
-
-          consolidate:
-            false,
-
-          linkKnowledgeGraph:
-            false,
-
-          allowAutomaticValidation:
-            false,
-
-          allowAutomaticClassification:
-            true,
-
-          requireHumanReviewForSensitiveData:
-            true,
-
-          minimumConfidenceForAutomaticValidation:
-            0.9,
-
-          metadata: {
-            sourceEventId:
-              event.id,
-
-            sourceEventName:
-              event.name,
-
-            correlationId:
-              event.correlation
-                .correlationId,
-
-            causationId:
-              event.correlation
-                .causationId,
-
-            parentEventId:
-              event.correlation
-                .parentEventId,
-
-            traceId:
-              event.correlation
-                .traceId,
-
-            handler:
-              HANDLER_NAME,
-
-            handlerVersion:
-              HANDLER_VERSION,
-          },
-        },
+        eventOccurredAt:
+          event.occurredAt,
       },
     })
 
+  /*
+   * Uma execução finalizada com a mesma chave representa
+   * um retry já processado. O resultado persistido é
+   * reaproveitado, evitando processamento duplicado.
+   */
   if (
-    !intelligence.success
-  ) {
-    const errors =
-      intelligence
-        .processing
-        .errors
-
-    const message =
-      errors.length >
-        0
-        ? errors.join(
-            ' | ',
-          )
-        : 'O Evidence Intelligence não concluiu o processamento da evidência.'
-
-    throw new Error(
-      message,
+    startResult.idempotent &&
+    (
+      startResult.run
+        .processing_status ===
+          'completed' ||
+      startResult.run
+        .processing_status ===
+          'requires_human_review'
     )
+  ) {
+    const intelligence =
+      executeIntelligence({
+        event,
+        evidence,
+      })
+
+    return {
+      success:
+        true,
+
+      eventId:
+        event.id,
+
+      agendaEvidenceId:
+        evidence.id,
+
+      intelligence,
+
+      persistedRun:
+        startResult.run,
+
+      idempotent:
+        true,
+
+      processedAt:
+        startResult.run
+          .processed_at ??
+        nowIso(),
+    }
   }
 
-  return {
-    success:
-      true,
+  const processingRun =
+    await evidenceIntelligenceRunsService
+      .markProcessing(
+        startResult.run.id,
+      )
 
-    eventId:
-      event.id,
+  try {
+    const intelligence =
+      executeIntelligence({
+        event,
+        evidence,
+      })
 
-    agendaEvidenceId:
-      evidence.id,
+    if (
+      !intelligence.success
+    ) {
+      const errors =
+        intelligence
+          .processing
+          .errors
 
-    intelligence,
+      const message =
+        errors.length >
+          0
+          ? errors.join(
+              ' | ',
+            )
+          : 'O Evidence Intelligence não concluiu o processamento da evidência.'
 
-    processedAt:
-      nowIso(),
+      await evidenceIntelligenceRunsService.fail(
+        processingRun.id,
+        {
+          error:
+            message,
+
+          errors: [
+            ...errors,
+          ],
+
+          warnings: [
+            ...intelligence
+              .processing
+              .warnings,
+          ],
+
+          metadata: {
+            intelligenceStatus:
+              intelligence
+                .processing
+                .status,
+
+            requiresHumanReview:
+              intelligence
+                .processing
+                .requiresHumanReview,
+
+            intelligenceCompletedAt:
+              intelligence
+                .context
+                .completedAt,
+          },
+        },
+      )
+
+      throw new Error(
+        message,
+      )
+    }
+
+    const quality =
+      intelligence
+        .processing
+        .quality
+
+    const reliability =
+      intelligence
+        .processing
+        .reliability
+
+    const validation =
+      intelligence
+        .processing
+        .validation
+
+    const persistedRun =
+      await evidenceIntelligenceRunsService.complete(
+        processingRun.id,
+        {
+          qualityScore:
+            extractNormalizedScore(
+              quality,
+            ),
+
+          reliabilityScore:
+            extractNormalizedScore(
+              reliability,
+            ),
+
+          confidenceScore:
+            extractConfidenceScore({
+              quality,
+              reliability,
+              validation,
+            }),
+
+          quality:
+            toJsonObject(
+              quality,
+            ),
+
+          reliability:
+            toJsonObject(
+              reliability,
+            ),
+
+          frameworkClassifications: [
+            ...intelligence
+              .processing
+              .classifications,
+          ],
+
+          validation:
+            toJsonObject(
+              validation,
+            ),
+
+          explanation: {
+            source:
+              HANDLER_NAME,
+
+            handlerVersion:
+              HANDLER_VERSION,
+
+            engineName:
+              EVIDENCE_INTELLIGENCE_ENGINE_NAME,
+
+            engineVersion:
+              EVIDENCE_INTELLIGENCE_ENGINE_VERSION,
+
+            intelligenceStatus:
+              intelligence
+                .processing
+                .status,
+
+            agendaEvidenceId:
+              evidence.id,
+
+            eventId:
+              event.id,
+
+            processedAt:
+              intelligence
+                .processing
+                .processedAt,
+          },
+
+          warnings: [
+            ...intelligence
+              .processing
+              .warnings,
+          ],
+
+          errors: [
+            ...intelligence
+              .processing
+              .errors,
+          ],
+
+          requiresHumanReview:
+            intelligence
+              .processing
+              .requiresHumanReview,
+
+          processedAt:
+            intelligence
+              .processing
+              .processedAt,
+
+          metadata: {
+            intelligenceStartedAt:
+              intelligence
+                .context
+                .startedAt,
+
+            intelligenceCompletedAt:
+              intelligence
+                .context
+                .completedAt,
+
+            integrationSource:
+              intelligence
+                .context
+                .source,
+
+            eventId:
+              event.id,
+
+            idempotencyKey,
+          },
+        },
+      )
+
+    return {
+      success:
+        true,
+
+      eventId:
+        event.id,
+
+      agendaEvidenceId:
+        evidence.id,
+
+      intelligence,
+
+      persistedRun,
+
+      idempotent:
+        startResult.idempotent,
+
+      processedAt:
+        persistedRun
+          .processed_at ??
+        nowIso(),
+    }
+  } catch (
+    error
+  ) {
+    const currentRun =
+      await evidenceIntelligenceRunsService
+        .findById(
+          processingRun.id,
+        )
+
+    if (
+      currentRun &&
+      currentRun.processing_status !==
+        'failed'
+    ) {
+      await evidenceIntelligenceRunsService.fail(
+        currentRun.id,
+        {
+          error,
+
+          metadata: {
+            eventId:
+              event.id,
+
+            agendaEvidenceId:
+              evidence.id,
+
+            handler:
+              HANDLER_NAME,
+
+            handlerVersion:
+              HANDLER_VERSION,
+          },
+        },
+      )
+    }
+
+    throw error
   }
 }
 
@@ -527,7 +1083,7 @@ export const processAgendaEvidenceCreatedHandler:
   async event => {
     try {
       const result =
-        processAgendaEvidenceCreatedEvent(
+        await processAgendaEvidenceCreatedEvent(
           event,
         )
 
@@ -539,6 +1095,14 @@ export const processAgendaEvidenceCreatedHandler:
 
           agendaEvidenceId:
             result.agendaEvidenceId,
+
+          intelligenceRunId:
+            result.persistedRun.id,
+
+          persistenceStatus:
+            result
+              .persistedRun
+              .processing_status,
 
           intelligenceStatus:
             result
@@ -558,6 +1122,9 @@ export const processAgendaEvidenceCreatedHandler:
               .processing
               .warnings
               .length,
+
+          idempotent:
+            result.idempotent,
 
           processedAt:
             result.processedAt,
