@@ -2,18 +2,21 @@ import type {
   AgendaEvidence,
 } from '@/lib/agenda/repository/evidences.repository'
 
+import type {
+  AgendaEvidenceCreatedEventPayload,
+} from '@/lib/agenda/events/agenda-evidence-created.event'
+
 import {
   executeAgendaEvidenceIntelligence,
   type AgendaEvidenceIntelligenceFacadeResult,
 } from '@/lib/agenda/services/agenda-evidence-intelligence.facade'
 
 import type {
-  AgendaEvidenceCreatedEventPayload,
-} from '@/lib/agenda/events/agenda-evidence-created.event'
+  EiosEventHandler,
+} from '@/lib/eios/events/eios-event-bus.service'
 
 import type {
   EiosEvent,
-  EiosEventHandler,
 } from '@/lib/eios/events/eios-event.contract'
 
 export type ProcessAgendaEvidenceCreatedHandlerResult = {
@@ -39,6 +42,9 @@ const HANDLER_NAME =
 const HANDLER_VERSION =
   '1.0.0'
 
+const DEFAULT_PRIVACY_NOTICE_VERSION =
+  'edi-protecao-menores-v1.0'
+
 function nowIso(): string {
   return new Date()
     .toISOString()
@@ -50,8 +56,7 @@ function isRecord(
   return (
     typeof value ===
       'object' &&
-    value !==
-      null &&
+    value !== null &&
     !Array.isArray(
       value,
     )
@@ -258,7 +263,7 @@ function createAgendaEvidenceFromEvent(
     privacy_notice_version:
       payload
         .privacyNoticeVersion ??
-      'edi-protecao-menores-v1.0',
+      DEFAULT_PRIVACY_NOTICE_VERSION,
 
     storage_bucket:
       payload.storageBucket,
@@ -293,6 +298,14 @@ function createAgendaEvidenceFromEvent(
       eventCorrelationId:
         event.correlation
           .correlationId,
+
+      eventCausationId:
+        event.correlation
+          .causationId,
+
+      eventParentEventId:
+        event.correlation
+          .parentEventId,
 
       eventTraceId:
         event.correlation
@@ -448,6 +461,14 @@ export function processAgendaEvidenceCreatedEvent(
             correlationId:
               event.correlation
                 .correlationId,
+
+            causationId:
+              event.correlation
+                .causationId,
+
+            parentEventId:
+              event.correlation
+                .parentEventId,
 
             traceId:
               event.correlation
