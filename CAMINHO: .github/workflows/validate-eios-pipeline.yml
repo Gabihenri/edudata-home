@@ -1,0 +1,84 @@
+name: Validar Pipeline EIOS
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - main
+
+    paths:
+      - 'src/lib/eios/**'
+      - 'src/lib/agenda/events/**'
+      - 'src/lib/agenda/services/agenda-evidence-intelligence.**'
+      - 'src/scripts/validate-agenda-evidence-event-pipeline.ts'
+      - '.github/workflows/validate-eios-pipeline.yml'
+
+concurrency:
+  group: validate-eios-pipeline-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate-eios-pipeline:
+    name: Pipeline Agenda → EIOS
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 15
+
+    env:
+      NODE_ENV: test
+
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm install
+
+      - name: Verificar TypeScript e build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: validation-placeholder-key
+          SUPABASE_SERVICE_ROLE_KEY: validation-placeholder-service-role-key
+
+      - name: Executar validação ponta a ponta
+        run: npx tsx src/scripts/validate-agenda-evidence-event-pipeline.ts
+
+      - name: Registrar resumo aprovado
+        if: success()
+        run: |
+          {
+            echo "## Pipeline EIOS aprovado"
+            echo ""
+            echo "Fluxo validado:"
+            echo ""
+            echo "- registro idempotente do handler"
+            echo "- criação do evento evidence.created"
+            echo "- publicação no Event Bus"
+            echo "- execução do handler"
+            echo "- processamento pelo Evidence Intelligence"
+            echo "- auditoria e limpeza do barramento"
+            echo ""
+            echo "**Commit:** \`${GITHUB_SHA}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Registrar resumo de falha
+        if: failure()
+        run: |
+          {
+            echo "## Pipeline EIOS com falha"
+            echo ""
+            echo "Consulte o passo que apresentou erro neste workflow."
+            echo ""
+            echo "**Commit:** \`${GITHUB_SHA}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
