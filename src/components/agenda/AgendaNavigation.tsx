@@ -4,6 +4,7 @@ import Link from 'next/link'
 
 import {
   useEffect,
+  useMemo,
   useState,
 } from 'react'
 
@@ -22,36 +23,72 @@ type NavigationGroup =
   | 'Inteligência'
 
 type NavigationItem = {
-  code: string
-  label: string
-  description: string
-  href: string
-  group: NavigationGroup
+  code:
+    string
+
+  label:
+    string
+
+  description:
+    string
+
+  href:
+    string
+
+  group:
+    NavigationGroup
+
+  emphasis?:
+    boolean
 }
 
 type AccountProfile = {
-  displayName: string | null
-  email: string | null
-  role: string
-  status: string
+  displayName:
+    string | null
+
+  email:
+    string | null
+
+  role:
+    string
+
+  status:
+    string
 }
 
 type ProfileApiResponse = {
-  success: boolean
-  error?: string
+  success:
+    boolean
+
+  error?:
+    string
 
   user?: {
-    id: string
-    email: string | null
+    id:
+      string
+
+    email:
+      string | null
   }
 
   profile?: {
-    userId: string
-    displayName: string | null
-    phone: string | null
-    role: string
-    status: string
-    onboardingCompleted: boolean
+    userId:
+      string
+
+    displayName:
+      string | null
+
+    phone:
+      string | null
+
+    role:
+      string
+
+    status:
+      string
+
+    onboardingCompleted:
+      boolean
   }
 }
 
@@ -190,6 +227,25 @@ const navigationItems:
         '09',
 
       label:
+        'Evidências Inteligentes',
+
+      description:
+        'Scores, diagnósticos e recomendações EDI',
+
+      href:
+        '/agenda/evidencias/inteligencia',
+
+      group:
+        'Inteligência',
+
+      emphasis:
+        true,
+    },
+    {
+      code:
+        '10',
+
+      label:
         'Indicadores',
 
       description:
@@ -203,7 +259,7 @@ const navigationItems:
     },
     {
       code:
-        '10',
+        '11',
 
       label:
         'Histórico',
@@ -262,9 +318,11 @@ const ROLE_LABELS:
       'Superadministrador',
   }
 
-function isActivePath(
-  pathname: string,
-  href: string,
+function pathMatchesItem(
+  pathname:
+    string,
+  href:
+    string,
 ): boolean {
   return (
     pathname ===
@@ -275,20 +333,86 @@ function isActivePath(
   )
 }
 
-function getNavigationItemClass(
-  active: boolean,
-): string {
+function resolveCurrentItem(
+  pathname:
+    string,
+): NavigationItem {
+  const matchingItems =
+    navigationItems
+      .filter(
+        item =>
+          pathMatchesItem(
+            pathname,
+            item.href,
+          ),
+      )
+      .sort(
+        (
+          first,
+          second,
+        ) =>
+          second.href.length -
+          first.href.length,
+      )
+
+  return (
+    matchingItems[0] ??
+    navigationItems[0]
+  )
+}
+
+function getNavigationItemClass({
+  active,
+  emphasis,
+}: {
+  active:
+    boolean
+
+  emphasis:
+    boolean
+}): string {
+  const baseClasses = [
+    'group relative flex min-w-[184px]',
+    'flex-1 items-center gap-3',
+    'rounded-xl border px-4 py-3',
+    'text-left transition duration-200',
+    'focus:outline-none',
+    'focus:ring-4 focus:ring-cyan-100',
+  ]
+
+  if (active) {
+    return [
+      ...baseClasses,
+      'border-[#071827]',
+      'bg-[#071827]',
+      'text-white shadow-sm',
+    ].join(' ')
+  }
+
+  if (emphasis) {
+    return [
+      ...baseClasses,
+      'border-cyan-300',
+      'bg-cyan-50',
+      'text-[#075F78]',
+      'hover:border-cyan-500',
+      'hover:bg-cyan-100',
+    ].join(' ')
+  }
+
   return [
-    'group flex min-w-[168px] flex-1 items-center gap-3 rounded-xl border px-4 py-3 text-left',
-    'transition duration-200 focus:outline-none focus:ring-4 focus:ring-cyan-100',
-    active
-      ? 'border-[#071827] bg-[#071827] text-white shadow-sm'
-      : 'border-slate-200 bg-white text-slate-700 hover:border-cyan-300 hover:bg-cyan-50',
+    ...baseClasses,
+    'border-slate-200',
+    'bg-white',
+    'text-slate-700',
+    'hover:border-cyan-300',
+    'hover:bg-cyan-50',
   ].join(' ')
 }
 
 function getRoleLabel(
-  role: string,
+  role:
+    string,
 ): string {
   const normalizedRole =
     role
@@ -310,7 +434,9 @@ function getRoleLabel(
 
   return normalizedRole
     .split('_')
-    .filter(Boolean)
+    .filter(
+      Boolean,
+    )
     .map(
       part =>
         part
@@ -322,7 +448,8 @@ function getRoleLabel(
 }
 
 function getStatusLabel(
-  status: string,
+  status:
+    string,
 ): string {
   const normalizedStatus =
     status
@@ -362,45 +489,48 @@ export function AgendaNavigation() {
   const [
     mobileMenuOpen,
     setMobileMenuOpen,
-  ] =
-    useState(false)
+  ] = useState(
+    false,
+  )
 
   const [
     mounted,
     setMounted,
-  ] =
-    useState(false)
+  ] = useState(
+    false,
+  )
 
   const [
     accountProfile,
     setAccountProfile,
-  ] =
-    useState<
-      AccountProfile |
-      null
-    >(null)
+  ] = useState<
+    AccountProfile | null
+  >(null)
 
   const [
     profileLoading,
     setProfileLoading,
-  ] =
-    useState(true)
+  ] = useState(
+    true,
+  )
 
   const [
     loggingOut,
     setLoggingOut,
-  ] =
-    useState(false)
+  ] = useState(
+    false,
+  )
 
   const currentItem =
-    navigationItems.find(
-      item =>
-        isActivePath(
+    useMemo(
+      () =>
+        resolveCurrentItem(
           pathname,
-          item.href,
         ),
-    ) ??
-    navigationItems[0]
+      [
+        pathname,
+      ],
+    )
 
   useEffect(() => {
     setMounted(
@@ -472,11 +602,12 @@ export function AgendaNavigation() {
       'none'
 
     function handleKeyDown(
-      event: KeyboardEvent,
+      event:
+        KeyboardEvent,
     ): void {
       if (
         event.key ===
-        'Escape'
+          'Escape'
       ) {
         setMobileMenuOpen(
           false,
@@ -548,7 +679,8 @@ export function AgendaNavigation() {
           )
 
         const result =
-          (await response.json()) as
+          await response
+            .json() as
             ProfileApiResponse
 
         if (
@@ -675,26 +807,70 @@ export function AgendaNavigation() {
             role="dialog"
             aria-modal="true"
             aria-label="Menu da Agenda Inteligente EDI"
-            className="fixed inset-0 z-[150] flex h-[100dvh] min-h-0 w-screen max-w-full flex-col overflow-hidden bg-white text-slate-950 lg:hidden"
+            className={[
+              'fixed inset-0 z-[150]',
+              'flex h-[100dvh]',
+              'min-h-0 w-screen',
+              'max-w-full flex-col',
+              'overflow-hidden',
+              'bg-white text-slate-950',
+              'lg:hidden',
+            ].join(' ')}
           >
-            <header className="shrink-0 border-b border-slate-200 bg-[#071827] px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] text-white sm:px-6">
-              <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300">
+            <header
+              className={[
+                'shrink-0 border-b',
+                'border-slate-200',
+                'bg-[#071827]',
+                'px-4 pb-4',
+                'pt-[calc(1rem+env(safe-area-inset-top))]',
+                'text-white sm:px-6',
+              ].join(' ')}
+            >
+              <div
+                className={[
+                  'mx-auto flex w-full',
+                  'max-w-7xl items-center',
+                  'justify-between gap-4',
+                ].join(' ')}
+              >
+                <div
+                  className="min-w-0"
+                >
+                  <p
+                    className={[
+                      'text-[10px] font-bold',
+                      'uppercase',
+                      'tracking-[0.2em]',
+                      'text-cyan-300',
+                    ].join(' ')}
+                  >
                     Agenda Inteligente EDI
                   </p>
 
-                  <div className="mt-1 flex min-w-0 items-center gap-2">
-                    <span className="shrink-0 font-mono text-xs font-bold text-slate-400">
-                      {
-                        currentItem.code
-                      }
+                  <div
+                    className={[
+                      'mt-1 flex min-w-0',
+                      'items-center gap-2',
+                    ].join(' ')}
+                  >
+                    <span
+                      className={[
+                        'shrink-0 font-mono',
+                        'text-xs font-bold',
+                        'text-slate-400',
+                      ].join(' ')}
+                    >
+                      {currentItem.code}
                     </span>
 
-                    <p className="truncate text-base font-bold text-white">
-                      {
-                        currentItem.label
-                      }
+                    <p
+                      className={[
+                        'truncate text-base',
+                        'font-bold text-white',
+                      ].join(' ')}
+                    >
+                      {currentItem.label}
                     </p>
                   </div>
                 </div>
@@ -705,7 +881,16 @@ export function AgendaNavigation() {
                     closeMobileMenu
                   }
                   aria-label="Fechar menu da Agenda"
-                  className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-4 text-sm font-semibold text-white transition hover:bg-white/10"
+                  className={[
+                    'inline-flex min-h-11',
+                    'shrink-0 items-center',
+                    'justify-center rounded-xl',
+                    'border border-white/20',
+                    'bg-white/5 px-4',
+                    'text-sm font-semibold',
+                    'text-white transition',
+                    'hover:bg-white/10',
+                  ].join(' ')}
                 >
                   Fechar
                 </button>
@@ -713,29 +898,71 @@ export function AgendaNavigation() {
             </header>
 
             <div
-              className="min-h-0 flex-1 touch-pan-y overflow-x-hidden overflow-y-scroll overscroll-contain bg-white px-4 py-5 sm:px-6"
+              className={[
+                'min-h-0 flex-1',
+                'touch-pan-y',
+                'overflow-x-hidden',
+                'overflow-y-scroll',
+                'overscroll-contain',
+                'bg-white px-4 py-5',
+                'sm:px-6',
+              ].join(' ')}
               style={{
                 WebkitOverflowScrolling:
                   'touch',
               }}
             >
-              <div className="mx-auto w-full max-w-7xl">
+              <div
+                className={[
+                  'mx-auto w-full',
+                  'max-w-7xl',
+                ].join(' ')}
+              >
                 <section
                   aria-label="Conta ativa"
-                  className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
+                  className={[
+                    'overflow-hidden',
+                    'rounded-2xl border',
+                    'border-slate-200',
+                    'bg-slate-50',
+                  ].join(' ')}
                 >
-                  <header className="border-b border-slate-200 bg-white px-4 py-4">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                  <header
+                    className={[
+                      'border-b',
+                      'border-slate-200',
+                      'bg-white px-4 py-4',
+                    ].join(' ')}
+                  >
+                    <p
+                      className={[
+                        'text-[10px] font-bold',
+                        'uppercase',
+                        'tracking-[0.18em]',
+                        'text-[#0B7491]',
+                      ].join(' ')}
+                    >
                       Conta ativa
                     </p>
 
                     {profileLoading ? (
-                      <p className="mt-2 text-sm text-slate-500">
+                      <p
+                        className={[
+                          'mt-2 text-sm',
+                          'text-slate-500',
+                        ].join(' ')}
+                      >
                         Carregando informações da conta...
                       </p>
                     ) : (
                       <>
-                        <p className="mt-2 break-words font-bold text-[#071827]">
+                        <p
+                          className={[
+                            'mt-2 break-words',
+                            'font-bold',
+                            'text-[#071827]',
+                          ].join(' ')}
+                        >
                           {accountProfile
                             ?.displayName ??
                             'Usuário EduData IA'}
@@ -743,15 +970,36 @@ export function AgendaNavigation() {
 
                         {accountProfile
                           ?.email ? (
-                          <p className="mt-1 break-all text-sm text-slate-600">
+                          <p
+                            className={[
+                              'mt-1 break-all',
+                              'text-sm',
+                              'text-slate-600',
+                            ].join(' ')}
+                          >
                             {
-                              accountProfile.email
+                              accountProfile
+                                .email
                             }
                           </p>
                         ) : null}
 
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <span className="rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-[#075F78]">
+                        <div
+                          className={[
+                            'mt-3 flex',
+                            'flex-wrap gap-2',
+                          ].join(' ')}
+                        >
+                          <span
+                            className={[
+                              'rounded-lg border',
+                              'border-cyan-200',
+                              'bg-cyan-50',
+                              'px-3 py-2',
+                              'text-xs font-semibold',
+                              'text-[#075F78]',
+                            ].join(' ')}
+                          >
                             {getRoleLabel(
                               accountProfile
                                 ?.role ??
@@ -759,7 +1007,16 @@ export function AgendaNavigation() {
                             )}
                           </span>
 
-                          <span className="rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600">
+                          <span
+                            className={[
+                              'rounded-lg border',
+                              'border-slate-200',
+                              'bg-slate-100',
+                              'px-3 py-2',
+                              'text-xs font-semibold',
+                              'text-slate-600',
+                            ].join(' ')}
+                          >
                             {getStatusLabel(
                               accountProfile
                                 ?.status ??
@@ -771,13 +1028,32 @@ export function AgendaNavigation() {
                     )}
                   </header>
 
-                  <div className="grid gap-2 p-4 sm:grid-cols-2">
+                  <div
+                    className={[
+                      'grid gap-2 p-4',
+                      'sm:grid-cols-2',
+                    ].join(' ')}
+                  >
                     <Link
                       href="/perfil"
                       onClick={
                         closeMobileMenu
                       }
-                      className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78]"
+                      className={[
+                        'inline-flex min-h-11',
+                        'w-full items-center',
+                        'justify-center',
+                        'rounded-xl border',
+                        'border-slate-300',
+                        'bg-white px-4 py-3',
+                        'text-center text-sm',
+                        'font-semibold',
+                        'text-slate-700',
+                        'transition',
+                        'hover:border-cyan-300',
+                        'hover:bg-cyan-50',
+                        'hover:text-[#075F78]',
+                      ].join(' ')}
                     >
                       Meu perfil
                     </Link>
@@ -787,14 +1063,33 @@ export function AgendaNavigation() {
                       onClick={
                         closeMobileMenu
                       }
-                      className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78]"
+                      className={[
+                        'inline-flex min-h-11',
+                        'w-full items-center',
+                        'justify-center',
+                        'rounded-xl border',
+                        'border-slate-300',
+                        'bg-white px-4 py-3',
+                        'text-center text-sm',
+                        'font-semibold',
+                        'text-slate-700',
+                        'transition',
+                        'hover:border-cyan-300',
+                        'hover:bg-cyan-50',
+                        'hover:text-[#075F78]',
+                      ].join(' ')}
                     >
                       Central EIOS
                     </Link>
                   </div>
                 </section>
 
-                <div className="mt-6 space-y-7 pb-8">
+                <div
+                  className={[
+                    'mt-6 space-y-7',
+                    'pb-8',
+                  ].join(' ')}
+                >
                   {navigationGroups.map(
                     group => {
                       const items =
@@ -810,20 +1105,29 @@ export function AgendaNavigation() {
                             group
                           }
                         >
-                          <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-                            {
-                              group
-                            }
+                          <p
+                            className={[
+                              'text-xs font-bold',
+                              'uppercase',
+                              'tracking-[0.16em]',
+                              'text-slate-400',
+                            ].join(' ')}
+                          >
+                            {group}
                           </p>
 
-                          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                          <div
+                            className={[
+                              'mt-2 grid gap-2',
+                              'sm:grid-cols-2',
+                            ].join(' ')}
+                          >
                             {items.map(
                               item => {
                                 const active =
-                                  isActivePath(
-                                    pathname,
-                                    item.href,
-                                  )
+                                  currentItem
+                                    .href ===
+                                  item.href
 
                                 return (
                                   <Link
@@ -841,38 +1145,85 @@ export function AgendaNavigation() {
                                         ? 'page'
                                         : undefined
                                     }
-                                    className={`rounded-xl border p-4 transition ${
+                                    className={[
+                                      'relative rounded-xl',
+                                      'border p-4',
+                                      'transition',
                                       active
-                                        ? 'border-[#071827] bg-[#071827] text-white'
-                                        : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-cyan-300 hover:bg-cyan-50'
-                                    }`}
+                                        ? [
+                                            'border-[#071827]',
+                                            'bg-[#071827]',
+                                            'text-white',
+                                          ].join(' ')
+                                        : item.emphasis
+                                          ? [
+                                              'border-cyan-300',
+                                              'bg-cyan-50',
+                                              'text-[#075F78]',
+                                              'hover:border-cyan-500',
+                                              'hover:bg-cyan-100',
+                                            ].join(' ')
+                                          : [
+                                              'border-slate-200',
+                                              'bg-slate-50',
+                                              'text-slate-700',
+                                              'hover:border-cyan-300',
+                                              'hover:bg-cyan-50',
+                                            ].join(' '),
+                                    ].join(' ')}
                                   >
-                                    <div className="flex items-start gap-3">
+                                    {item.emphasis ? (
                                       <span
-                                        className={`font-mono text-xs font-bold ${
+                                        aria-hidden="true"
+                                        className={[
+                                          'absolute inset-x-0',
+                                          'top-0 h-1',
+                                          'rounded-t-xl',
+                                          active
+                                            ? 'bg-cyan-300'
+                                            : 'bg-cyan-600',
+                                        ].join(' ')}
+                                      />
+                                    ) : null}
+
+                                    <div
+                                      className={[
+                                        'flex items-start',
+                                        'gap-3',
+                                      ].join(' ')}
+                                    >
+                                      <span
+                                        className={[
+                                          'font-mono text-xs',
+                                          'font-bold',
                                           active
                                             ? 'text-cyan-300'
-                                            : 'text-[#0B7491]'
-                                        }`}
+                                            : 'text-[#0B7491]',
+                                        ].join(' ')}
                                       >
-                                        {
-                                          item.code
-                                        }
+                                        {item.code}
                                       </span>
 
-                                      <div className="min-w-0">
-                                        <p className="break-words font-bold">
-                                          {
-                                            item.label
-                                          }
+                                      <div
+                                        className="min-w-0"
+                                      >
+                                        <p
+                                          className={[
+                                            'break-words',
+                                            'font-bold',
+                                          ].join(' ')}
+                                        >
+                                          {item.label}
                                         </p>
 
                                         <p
-                                          className={`mt-1 text-xs leading-5 ${
+                                          className={[
+                                            'mt-1 text-xs',
+                                            'leading-5',
                                             active
                                               ? 'text-slate-300'
-                                              : 'text-slate-500'
-                                          }`}
+                                              : 'text-slate-500',
+                                          ].join(' ')}
                                         >
                                           {
                                             item.description
@@ -893,8 +1244,21 @@ export function AgendaNavigation() {
               </div>
             </div>
 
-            <footer className="shrink-0 border-t border-red-100 bg-red-50 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 sm:px-6">
-              <div className="mx-auto w-full max-w-7xl">
+            <footer
+              className={[
+                'shrink-0 border-t',
+                'border-red-100',
+                'bg-red-50 px-4',
+                'pb-[calc(0.75rem+env(safe-area-inset-bottom))]',
+                'pt-3 sm:px-6',
+              ].join(' ')}
+            >
+              <div
+                className={[
+                  'mx-auto w-full',
+                  'max-w-7xl',
+                ].join(' ')}
+              >
                 <button
                   type="button"
                   onClick={
@@ -903,14 +1267,32 @@ export function AgendaNavigation() {
                   disabled={
                     loggingOut
                   }
-                  className="inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-red-300 bg-white px-5 py-3 text-sm font-bold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  className={[
+                    'inline-flex min-h-12',
+                    'w-full items-center',
+                    'justify-center',
+                    'rounded-xl border',
+                    'border-red-300',
+                    'bg-white px-5 py-3',
+                    'text-sm font-bold',
+                    'text-red-700 transition',
+                    'hover:bg-red-100',
+                    'disabled:cursor-not-allowed',
+                    'disabled:opacity-60',
+                  ].join(' ')}
                 >
                   {loggingOut
                     ? 'Encerrando sessão...'
                     : 'Sair e trocar de conta'}
                 </button>
 
-                <p className="mt-2 text-center text-xs leading-5 text-red-700">
+                <p
+                  className={[
+                    'mt-2 text-center',
+                    'text-xs leading-5',
+                    'text-red-700',
+                  ].join(' ')}
+                >
                   Encerra o acesso atual e retorna à tela de login.
                 </p>
               </div>
@@ -924,26 +1306,66 @@ export function AgendaNavigation() {
     <>
       <nav
         aria-label="Módulos da Agenda Inteligente EDI"
-        className="sticky top-20 z-[50] border-b border-slate-200 bg-white shadow-sm"
+        className={[
+          'sticky top-20 z-[50]',
+          'border-b border-slate-200',
+          'bg-white shadow-sm',
+        ].join(' ')}
       >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex min-h-[72px] items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#0B7491] sm:text-xs">
+        <div
+          className={[
+            'mx-auto max-w-7xl',
+            'px-4 sm:px-6',
+            'lg:px-8',
+          ].join(' ')}
+        >
+          <div
+            className={[
+              'flex min-h-[72px]',
+              'items-center',
+              'justify-between gap-4',
+            ].join(' ')}
+          >
+            <div
+              className="min-w-0"
+            >
+              <p
+                className={[
+                  'text-[10px] font-bold',
+                  'uppercase',
+                  'tracking-[0.2em]',
+                  'text-[#0B7491]',
+                  'sm:text-xs',
+                ].join(' ')}
+              >
                 Módulos operacionais
               </p>
 
-              <div className="mt-1 flex min-w-0 items-center gap-2">
-                <span className="shrink-0 font-mono text-xs font-bold text-slate-400">
-                  {
-                    currentItem.code
-                  }
+              <div
+                className={[
+                  'mt-1 flex min-w-0',
+                  'items-center gap-2',
+                ].join(' ')}
+              >
+                <span
+                  className={[
+                    'shrink-0 font-mono',
+                    'text-xs font-bold',
+                    'text-slate-400',
+                  ].join(' ')}
+                >
+                  {currentItem.code}
                 </span>
 
-                <p className="truncate text-sm font-bold text-[#071827] sm:text-base">
-                  {
-                    currentItem.label
-                  }
+                <p
+                  className={[
+                    'truncate text-sm',
+                    'font-bold',
+                    'text-[#071827]',
+                    'sm:text-base',
+                  ].join(' ')}
+                >
+                  {currentItem.label}
                 </p>
               </div>
             </div>
@@ -959,22 +1381,58 @@ export function AgendaNavigation() {
                   true,
                 )
               }
-              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] lg:hidden"
+              className={[
+                'inline-flex min-h-11',
+                'shrink-0 items-center',
+                'justify-center rounded-xl',
+                'border border-slate-300',
+                'bg-white px-4',
+                'text-sm font-semibold',
+                'text-slate-700',
+                'transition',
+                'hover:border-cyan-300',
+                'hover:bg-cyan-50',
+                'hover:text-[#075F78]',
+                'lg:hidden',
+              ].join(' ')}
             >
               Menu
             </button>
 
-            <div className="hidden items-center gap-2 lg:flex">
+            <div
+              className={[
+                'hidden items-center',
+                'gap-2 lg:flex',
+              ].join(' ')}
+            >
               <Link
                 href="/portal"
-                className="inline-flex min-h-10 items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-[#071827]"
+                className={[
+                  'inline-flex min-h-10',
+                  'items-center justify-center',
+                  'rounded-lg px-3 py-2',
+                  'text-sm font-semibold',
+                  'text-slate-500',
+                  'transition',
+                  'hover:bg-slate-100',
+                  'hover:text-[#071827]',
+                ].join(' ')}
               >
                 Central EIOS
               </Link>
 
               <Link
                 href="/perfil"
-                className="inline-flex min-h-10 items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-[#071827]"
+                className={[
+                  'inline-flex min-h-10',
+                  'items-center justify-center',
+                  'rounded-lg px-3 py-2',
+                  'text-sm font-semibold',
+                  'text-slate-500',
+                  'transition',
+                  'hover:bg-slate-100',
+                  'hover:text-[#071827]',
+                ].join(' ')}
               >
                 Minha conta
               </Link>
@@ -987,7 +1445,20 @@ export function AgendaNavigation() {
                 disabled={
                   loggingOut
                 }
-                className="inline-flex min-h-10 items-center justify-center rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className={[
+                  'inline-flex min-h-10',
+                  'items-center justify-center',
+                  'rounded-lg border',
+                  'border-red-200',
+                  'bg-white px-3 py-2',
+                  'text-sm font-semibold',
+                  'text-red-700',
+                  'transition',
+                  'hover:border-red-300',
+                  'hover:bg-red-50',
+                  'disabled:cursor-not-allowed',
+                  'disabled:opacity-60',
+                ].join(' ')}
               >
                 {loggingOut
                   ? 'Saindo...'
@@ -996,15 +1467,24 @@ export function AgendaNavigation() {
             </div>
           </div>
 
-          <div className="hidden border-t border-slate-200 py-3 lg:block">
-            <div className="flex gap-2 overflow-x-auto pb-1">
+          <div
+            className={[
+              'hidden border-t',
+              'border-slate-200',
+              'py-3 lg:block',
+            ].join(' ')}
+          >
+            <div
+              className={[
+                'flex gap-2',
+                'overflow-x-auto pb-1',
+              ].join(' ')}
+            >
               {navigationItems.map(
                 item => {
                   const active =
-                    isActivePath(
-                      pathname,
-                      item.href,
-                    )
+                    currentItem.href ===
+                    item.href
 
                   return (
                     <Link
@@ -1019,39 +1499,65 @@ export function AgendaNavigation() {
                           ? 'page'
                           : undefined
                       }
-                      className={getNavigationItemClass(
-                        active,
-                      )}
+                      className={
+                        getNavigationItemClass({
+                          active,
+
+                          emphasis:
+                            Boolean(
+                              item.emphasis,
+                            ),
+                        })
+                      }
                     >
+                      {item.emphasis ? (
+                        <span
+                          aria-hidden="true"
+                          className={[
+                            'absolute inset-x-0',
+                            'top-0 h-1',
+                            'rounded-t-xl',
+                            active
+                              ? 'bg-cyan-300'
+                              : 'bg-cyan-600',
+                          ].join(' ')}
+                        />
+                      ) : null}
+
                       <span
-                        className={`font-mono text-xs font-bold ${
+                        className={[
+                          'font-mono text-xs',
+                          'font-bold',
                           active
                             ? 'text-cyan-300'
-                            : 'text-[#0B7491]'
-                        }`}
+                            : 'text-[#0B7491]',
+                        ].join(' ')}
                       >
-                        {
-                          item.code
-                        }
+                        {item.code}
                       </span>
 
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-bold">
-                          {
-                            item.label
-                          }
+                      <div
+                        className="min-w-0"
+                      >
+                        <p
+                          className={[
+                            'truncate text-sm',
+                            'font-bold',
+                          ].join(' ')}
+                        >
+                          {item.label}
                         </p>
 
                         <p
-                          className={`mt-0.5 truncate text-[11px] ${
+                          className={[
+                            'mt-0.5 truncate',
+                            'text-[11px]',
                             active
                               ? 'text-slate-300'
-                              : 'text-slate-500 group-hover:text-slate-600'
-                          }`}
+                              : 'text-slate-500 group-hover:text-slate-600',
+                          ].join(' ')}
                         >
-                          {
-                            item.group
-                          }
+                          {item.group}
                         </p>
                       </div>
                     </Link>
