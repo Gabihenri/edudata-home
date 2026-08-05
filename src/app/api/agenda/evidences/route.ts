@@ -15,6 +15,10 @@ import {
 } from '@/lib/access/guards/require-feature-access'
 
 import {
+  publishAgendaEvidenceCreatedEvent,
+} from '@/lib/agenda/events/publish-agenda-evidence-created-event.service'
+
+import {
   EvidencesRepository,
   type AgendaEvidenceMetadata,
   type AgendaEvidenceType,
@@ -72,6 +76,26 @@ type CreateEvidenceRequestBody = {
   fileSizeBytes?: unknown
 
   metadata?: unknown
+}
+
+type EvidenceEventPublicationSummary = {
+  attempted:
+    boolean
+
+  success:
+    boolean
+
+  eventId:
+    string | null
+
+  status:
+    string | null
+
+  warnings:
+    string[]
+
+  errors:
+    string[]
 }
 
 const NO_CACHE_HEADERS = {
@@ -452,6 +476,26 @@ function normalizeOptionalBooleanQuery(
   )
 }
 
+function getErrorMessage(
+  error: unknown,
+): string {
+  if (
+    error instanceof Error
+  ) {
+    return error.message
+  }
+
+  if (
+    typeof error ===
+      'string' &&
+    error.trim()
+  ) {
+    return error.trim()
+  }
+
+  return 'Erro inesperado ao publicar o evento da evidência.'
+}
+
 function getErrorStatus(
   error: unknown,
 ): number {
@@ -630,6 +674,119 @@ function createErrorResponse(
         NO_CACHE_HEADERS,
     },
   )
+}
+
+async function publishEvidenceCreatedEventSafely({
+  evidence,
+  requestedBy,
+}: {
+  evidence:
+    Awaited<
+      ReturnType<
+        EvidencesService['create']
+      >
+    >
+
+  requestedBy:
+    string
+}): Promise<
+  EvidenceEventPublicationSummary
+> {
+  try {
+    const result =
+      await publishAgendaEvidenceCreatedEvent({
+        evidence,
+
+        options: {
+          requestedBy,
+
+          stopOnHandlerError:
+            false,
+
+          storeEvent:
+            true,
+
+          metadata: {
+            route:
+              '/api/agenda/evidences',
+
+            method:
+              'POST',
+
+            publicationMode:
+              'non-blocking-business-flow',
+          },
+        },
+      })
+
+    return {
+      attempted:
+        true,
+
+      success:
+        result.success,
+
+      eventId:
+        result.event.id,
+
+      status:
+        result.processing.status,
+
+      warnings: [
+        ...result
+          .processing
+          .warnings,
+      ],
+
+      errors: [
+        ...result
+          .processing
+          .errors,
+      ],
+    }
+  } catch (error) {
+    const message =
+      getErrorMessage(
+        error,
+      )
+
+    console.error(
+      '[AGENDA_EVIDENCE_EVENT_PUBLICATION_ERROR]',
+      {
+        agendaEvidenceId:
+          evidence.id,
+
+        requestedBy,
+
+        message,
+
+        occurredAt:
+          new Date()
+            .toISOString(),
+      },
+    )
+
+    return {
+      attempted:
+        true,
+
+      success:
+        false,
+
+      eventId:
+        null,
+
+      status:
+        'failed',
+
+      warnings:
+        [],
+
+      errors: [
+        message,
+      ],
+    }
+  }
 }
 
 export async function GET(
@@ -1050,6 +1207,45 @@ export async function POST(
         input,
       )
 
+    /*
+     * A evidência já foi persistida neste ponto.
+     *
+     * Uma eventual falha na publicação do evento não desfaz
+     * nem impede o cadastro realizado pelo usuário.
+     */
+    const eventPublication =
+      await publishEvidenceCreatedEventSafely({
+        evidence:
+          data,
+
+        requestedBy:
+          user.id,
+      })
+
+    if (
+      !eventPublication.success
+    ) {
+      console.warn(
+        '[AGENDA_EVIDENCE_CREATED_WITH_EVENT_WARNING]',
+        {
+          agendaEvidenceId:
+            data.id,
+
+          eventId:
+            eventPublication.eventId,
+
+          eventStatus:
+            eventPublication.status,
+
+          warnings:
+            eventPublication.warnings,
+
+          errors:
+            eventPublication.errors,
+        },
+      )
+    }
+
     return NextResponse.json(
       {
         success:
@@ -1061,6 +1257,8 @@ export async function POST(
             : 'Evidência criada com sucesso.',
 
         data,
+
+        eventPublication,
       },
       {
         status:
