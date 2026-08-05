@@ -17,6 +17,11 @@ import {
 } from '@/lib/agenda/services/agenda-evidence-intelligence.facade'
 
 import {
+  generateAgendaEvidencePedagogicalInsights,
+  type AgendaEvidencePedagogicalInsightsResult,
+} from '@/lib/agenda/services/agenda-evidence-pedagogical-insights.service'
+
+import {
   evidenceIntelligenceRunsService,
 } from '@/lib/agenda/services/evidence-intelligence-runs.service'
 
@@ -41,6 +46,9 @@ export type ProcessAgendaEvidenceCreatedHandlerResult = {
   intelligence:
     AgendaEvidenceIntelligenceFacadeResult
 
+  pedagogicalInsights:
+    AgendaEvidencePedagogicalInsightsResult
+
   persistedRun:
     EvidenceIntelligenceRun
 
@@ -55,13 +63,13 @@ const HANDLER_NAME =
   'process-agenda-evidence-created-handler'
 
 const HANDLER_VERSION =
-  '1.1.0'
+  '1.2.0'
 
 const EVIDENCE_INTELLIGENCE_ENGINE_NAME =
   'evidence-intelligence'
 
 const EVIDENCE_INTELLIGENCE_ENGINE_VERSION =
-  '1.0.0'
+  '1.1.0'
 
 const DEFAULT_PRIVACY_NOTICE_VERSION =
   'edi-protecao-menores-v1.0'
@@ -72,7 +80,8 @@ function nowIso(): string {
 }
 
 function isRecord(
-  value: unknown,
+  value:
+    unknown,
 ): value is Record<string, unknown> {
   return (
     typeof value ===
@@ -85,7 +94,8 @@ function isRecord(
 }
 
 function normalizeOptionalText(
-  value: unknown,
+  value:
+    unknown,
 ): string | null {
   if (
     typeof value !==
@@ -102,7 +112,8 @@ function normalizeOptionalText(
 }
 
 function getErrorMessage(
-  error: unknown,
+  error:
+    unknown,
 ): string {
   if (
     error instanceof Error
@@ -122,7 +133,8 @@ function getErrorMessage(
 }
 
 function toJsonObject(
-  value: unknown,
+  value:
+    unknown,
 ): EvidenceIntelligenceJsonObject {
   if (
     isRecord(
@@ -147,7 +159,8 @@ function toJsonObject(
 }
 
 function extractNormalizedScore(
-  value: unknown,
+  value:
+    unknown,
 ): number | null {
   if (
     typeof value ===
@@ -282,7 +295,8 @@ function extractConfidenceScore({
 }
 
 function createIdempotencyKey(
-  event: EiosEvent,
+  event:
+    EiosEvent,
 ): string {
   return [
     EVIDENCE_INTELLIGENCE_ENGINE_NAME,
@@ -292,7 +306,8 @@ function createIdempotencyKey(
 }
 
 function assertAgendaEvidenceCreatedEvent(
-  event: EiosEvent,
+  event:
+    EiosEvent,
 ): asserts event is EiosEvent<
   AgendaEvidenceCreatedEventPayload
 > {
@@ -675,6 +690,24 @@ function executeIntelligence({
   })
 }
 
+function generatePedagogicalInsights({
+  evidence,
+  intelligence,
+}: {
+  evidence:
+    AgendaEvidence
+
+  intelligence:
+    AgendaEvidenceIntelligenceFacadeResult
+}): AgendaEvidencePedagogicalInsightsResult {
+  return generateAgendaEvidencePedagogicalInsights({
+    evidence,
+
+    intelligence:
+      intelligence.processing,
+  })
+}
+
 export async function processAgendaEvidenceCreatedEvent(
   receivedEvent:
     EiosEvent,
@@ -764,13 +797,16 @@ export async function processAgendaEvidenceCreatedEvent(
 
         eventOccurredAt:
           event.occurredAt,
+
+        pedagogicalInsightsEnabled:
+          true,
       },
     })
 
   /*
    * Uma execução finalizada com a mesma chave representa
    * um retry já processado. O resultado persistido é
-   * reaproveitado, evitando processamento duplicado.
+   * reaproveitado, evitando nova gravação.
    */
   if (
     startResult.idempotent &&
@@ -789,6 +825,12 @@ export async function processAgendaEvidenceCreatedEvent(
         evidence,
       })
 
+    const pedagogicalInsights =
+      generatePedagogicalInsights({
+        evidence,
+        intelligence,
+      })
+
     return {
       success:
         true,
@@ -800,6 +842,8 @@ export async function processAgendaEvidenceCreatedEvent(
         evidence.id,
 
       intelligence,
+
+      pedagogicalInsights,
 
       persistedRun:
         startResult.run,
@@ -874,6 +918,9 @@ export async function processAgendaEvidenceCreatedEvent(
               intelligence
                 .context
                 .completedAt,
+
+            pedagogicalInsightsGenerated:
+              false,
           },
         },
       )
@@ -882,6 +929,12 @@ export async function processAgendaEvidenceCreatedEvent(
         message,
       )
     }
+
+    const pedagogicalInsights =
+      generatePedagogicalInsights({
+        evidence,
+        intelligence,
+      })
 
     const quality =
       intelligence
@@ -897,6 +950,13 @@ export async function processAgendaEvidenceCreatedEvent(
       intelligence
         .processing
         .validation
+
+    const requiresHumanReview =
+      intelligence
+        .processing
+        .requiresHumanReview ||
+      pedagogicalInsights
+        .requiresHumanReview
 
     const persistedRun =
       await evidenceIntelligenceRunsService.complete(
@@ -968,6 +1028,68 @@ export async function processAgendaEvidenceCreatedEvent(
               intelligence
                 .processing
                 .processedAt,
+
+            pedagogicalInsights: {
+              success:
+                pedagogicalInsights
+                  .success,
+
+              summary:
+                pedagogicalInsights
+                  .summary,
+
+              evidenceScore:
+                pedagogicalInsights
+                  .evidenceScore,
+
+              inclusionScore:
+                pedagogicalInsights
+                  .inclusionScore,
+
+              intelligenceScore:
+                pedagogicalInsights
+                  .intelligenceScore,
+
+              overallScore:
+                pedagogicalInsights
+                  .overallScore,
+
+              dimensions:
+                pedagogicalInsights
+                  .dimensions,
+
+              insights:
+                pedagogicalInsights
+                  .insights,
+
+              strengths:
+                pedagogicalInsights
+                  .strengths,
+
+              improvementOpportunities:
+                pedagogicalInsights
+                  .improvementOpportunities,
+
+              recommendedNextActions:
+                pedagogicalInsights
+                  .recommendedNextActions,
+
+              requiresHumanReview:
+                pedagogicalInsights
+                  .requiresHumanReview,
+
+              generatedAt:
+                pedagogicalInsights
+                  .generatedAt,
+
+              engine:
+                pedagogicalInsights
+                  .engine,
+
+              metadata:
+                pedagogicalInsights
+                  .metadata,
+            },
           },
 
           warnings: [
@@ -982,10 +1104,7 @@ export async function processAgendaEvidenceCreatedEvent(
               .errors,
           ],
 
-          requiresHumanReview:
-            intelligence
-              .processing
-              .requiresHumanReview,
+          requiresHumanReview,
 
           processedAt:
             intelligence
@@ -1012,6 +1131,68 @@ export async function processAgendaEvidenceCreatedEvent(
               event.id,
 
             idempotencyKey,
+
+            pedagogicalInsightsGenerated:
+              true,
+
+            pedagogicalInsightsEngine:
+              pedagogicalInsights
+                .engine
+                .name,
+
+            pedagogicalInsightsVersion:
+              pedagogicalInsights
+                .engine
+                .version,
+
+            pedagogicalInsightsMode:
+              pedagogicalInsights
+                .engine
+                .mode,
+
+            pedagogicalInsightsGeneratedAt:
+              pedagogicalInsights
+                .generatedAt,
+
+            pedagogicalOverallScore:
+              pedagogicalInsights
+                .overallScore,
+
+            pedagogicalEvidenceScore:
+              pedagogicalInsights
+                .evidenceScore,
+
+            pedagogicalInclusionScore:
+              pedagogicalInsights
+                .inclusionScore,
+
+            pedagogicalIntelligenceScore:
+              pedagogicalInsights
+                .intelligenceScore,
+
+            pedagogicalInsightCount:
+              pedagogicalInsights
+                .insights
+                .length,
+
+            pedagogicalStrengthCount:
+              pedagogicalInsights
+                .strengths
+                .length,
+
+            pedagogicalImprovementOpportunityCount:
+              pedagogicalInsights
+                .improvementOpportunities
+                .length,
+
+            pedagogicalRecommendedActionCount:
+              pedagogicalInsights
+                .recommendedNextActions
+                .length,
+
+            pedagogicalRequiresHumanReview:
+              pedagogicalInsights
+                .requiresHumanReview,
           },
         },
       )
@@ -1027,6 +1208,8 @@ export async function processAgendaEvidenceCreatedEvent(
         evidence.id,
 
       intelligence,
+
+      pedagogicalInsights,
 
       persistedRun,
 
@@ -1069,6 +1252,9 @@ export async function processAgendaEvidenceCreatedEvent(
 
             handlerVersion:
               HANDLER_VERSION,
+
+            pedagogicalInsightsGenerated:
+              false,
           },
         },
       )
@@ -1112,8 +1298,7 @@ export const processAgendaEvidenceCreatedHandler:
 
           requiresHumanReview:
             result
-              .intelligence
-              .processing
+              .pedagogicalInsights
               .requiresHumanReview,
 
           warningCount:
@@ -1121,6 +1306,38 @@ export const processAgendaEvidenceCreatedHandler:
               .intelligence
               .processing
               .warnings
+              .length,
+
+          pedagogicalOverallScore:
+            result
+              .pedagogicalInsights
+              .overallScore,
+
+          pedagogicalEvidenceScore:
+            result
+              .pedagogicalInsights
+              .evidenceScore,
+
+          pedagogicalInclusionScore:
+            result
+              .pedagogicalInsights
+              .inclusionScore,
+
+          pedagogicalIntelligenceScore:
+            result
+              .pedagogicalInsights
+              .intelligenceScore,
+
+          pedagogicalInsightCount:
+            result
+              .pedagogicalInsights
+              .insights
+              .length,
+
+          recommendedActionCount:
+            result
+              .pedagogicalInsights
+              .recommendedNextActions
               .length,
 
           idempotent:
