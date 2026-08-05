@@ -72,7 +72,7 @@ export type AgendaEvidenceCreatedEventPayload =
       string | null
 
     userId:
-      string
+      string | null
 
     containsIdentifiableMinor:
       boolean
@@ -130,6 +130,9 @@ export type AgendaEvidenceCreatedEvent =
 const SOURCE_SERVICE =
   'agenda-evidence-created-event'
 
+const EVENT_FACTORY_VERSION =
+  '1.0.0'
+
 function normalizeOptionalText(
   value:
     string | null | undefined,
@@ -141,25 +144,27 @@ function normalizeOptionalText(
     return null
   }
 
-  return value.trim() ||
+  const normalizedValue =
+    value.trim()
+
+  return normalizedValue ||
     null
 }
 
 function resolveEnvironment():
   EiosEvent['sourceEnvironment'] {
-  const environment =
-    process.env
-      .VERCEL_ENV
+  const vercelEnvironment =
+    process.env.VERCEL_ENV
 
   if (
-    environment ===
+    vercelEnvironment ===
       'production'
   ) {
     return 'production'
   }
 
   if (
-    environment ===
+    vercelEnvironment ===
       'preview'
   ) {
     return 'preview'
@@ -400,7 +405,9 @@ export function createAgendaEvidenceCreatedEvent({
     normalizeOptionalText(
       evidence.created_by,
     ) ??
-    evidence.user_id
+    normalizeOptionalText(
+      evidence.user_id,
+    )
 
   const containsMinorData =
     evidence
@@ -408,9 +415,18 @@ export function createAgendaEvidenceCreatedEvent({
 
   const containsPersonalData =
     containsMinorData ||
-    Boolean(
+    requestedBy !==
+      null ||
+    normalizeOptionalText(
       evidence.user_id,
-    )
+    ) !==
+      null
+
+  const consentConfirmed =
+    containsMinorData
+      ? evidence
+          .guardian_authorization_confirmed
+      : false
 
   return createEiosEvent<
     AgendaEvidenceCreatedEventPayload
@@ -425,7 +441,7 @@ export function createAgendaEvidenceCreatedEvent({
       'created',
 
     version:
-      '1.0.0',
+      EVENT_FACTORY_VERSION,
 
     priority:
       containsMinorData
@@ -466,6 +482,9 @@ export function createAgendaEvidenceCreatedEvent({
 
         createdBy:
           evidence.created_by,
+
+        updatedBy:
+          evidence.updated_by,
       },
     },
 
@@ -527,16 +546,14 @@ export function createAgendaEvidenceCreatedEvent({
       consentRequired:
         containsMinorData,
 
-      consentConfirmed:
-        containsMinorData
-          ? evidence
-              .guardian_authorization_confirmed
-          : false,
+      consentConfirmed,
 
       legalBasis:
         containsMinorData
-          ? evidence
-              .authorization_reference
+          ? normalizeOptionalText(
+              evidence
+                .authorization_reference,
+            )
           : 'execução de atividade educacional',
 
       accessRoles: [
@@ -550,6 +567,10 @@ export function createAgendaEvidenceCreatedEvent({
         privacyNoticeVersion:
           evidence
             .privacy_notice_version,
+
+        authorizationReference:
+          evidence
+            .authorization_reference,
 
         authorizationConfirmedAt:
           evidence
@@ -600,7 +621,7 @@ export function createAgendaEvidenceCreatedEvent({
         SOURCE_SERVICE,
 
       eventFactoryVersion:
-        '1.0.0',
+        EVENT_FACTORY_VERSION,
     },
   })
 }
