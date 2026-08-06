@@ -10,13 +10,13 @@
  * → Core Compartilhado
  * → Produtos Especializados
  *
- * Este serviço:
- * - valida e normaliza solicitações;
- * - executa o motor do Pedagogical Copilot;
- * - padroniza erros, avisos e metadados;
- * - cria resumos para interfaces;
- * - prepara os dados para persistência futura;
- * - não acessa diretamente React, Next.js ou Supabase.
+ * Responsabilidades:
+ * - validar e normalizar solicitações;
+ * - executar o motor do Pedagogical Copilot;
+ * - padronizar erros, avisos e metadados;
+ * - criar resumos para interfaces;
+ * - preparar os dados para persistência;
+ * - manter regras de infraestrutura fora do domínio.
  */
 
 import {
@@ -204,8 +204,7 @@ export type GeneratePedagogicalInterventionServiceResult = {
 }
 
 function nowIso(): string {
-  return new Date()
-    .toISOString()
+  return new Date().toISOString()
 }
 
 function normalizeText(
@@ -289,7 +288,7 @@ function getErrorMessage(
   return 'Erro inesperado no serviço de intervenção pedagógica.'
 }
 
-function durationMs(
+function calculateDurationMs(
   startedAt: string,
   completedAt: string,
 ): number | null {
@@ -346,22 +345,22 @@ function createLog({
     PedagogicalInterventionMetadata
 }): PedagogicalInterventionServiceLog {
   return {
-    id:
-      [
-        'pedagogical-service',
-        operation,
-        correlationId,
-        startedAt,
-      ]
-        .join('-')
-        .toLowerCase()
-        .replace(
-          /[^a-z0-9]+/g,
-          '-',
-        )
-        .replace(
-          /^-+|-+$/g,
-          ''),
+    id: [
+      'pedagogical-service',
+      operation,
+      correlationId,
+      startedAt,
+    ]
+      .join('-')
+      .toLowerCase()
+      .replace(
+        /[^a-z0-9]+/g,
+        '-',
+      )
+      .replace(
+        /^-+|-+$/g,
+        '',
+      ),
 
     operation,
 
@@ -375,7 +374,7 @@ function createLog({
 
     durationMs:
       completedAt
-        ? durationMs(
+        ? calculateDurationMs(
             startedAt,
             completedAt,
           )
@@ -550,23 +549,17 @@ function normalizeInput(
 
         targetIds:
           uniqueStrings(
-            input.context
-              .audience
-              .targetIds,
+            input.context.audience.targetIds,
           ),
 
         groupId:
           normalizeNullableText(
-            input.context
-              .audience
-              .groupId,
+            input.context.audience.groupId,
           ),
 
         groupLabel:
           normalizeNullableText(
-            input.context
-              .audience
-              .groupLabel,
+            input.context.audience.groupLabel,
           ),
 
         selectionRationale:
@@ -589,37 +582,27 @@ function normalizeInput(
 
         schoolId:
           normalizeNullableText(
-            input.context
-              .links
-              .schoolId,
+            input.context.links.schoolId,
           ),
 
         teacherId:
           normalizeNullableText(
-            input.context
-              .links
-              .teacherId,
+            input.context.links.teacherId,
           ),
 
         classIds:
           uniqueStrings(
-            input.context
-              .links
-              .classIds,
+            input.context.links.classIds,
           ),
 
         planningIds:
           uniqueStrings(
-            input.context
-              .links
-              .planningIds,
+            input.context.links.planningIds,
           ),
 
         lessonIds:
           uniqueStrings(
-            input.context
-              .links
-              .lessonIds,
+            input.context.links.lessonIds,
           ),
 
         learningObjectiveIds:
@@ -631,9 +614,7 @@ function normalizeInput(
 
         skillIds:
           uniqueStrings(
-            input.context
-              .links
-              .skillIds,
+            input.context.links.skillIds,
           ),
 
         competencyIds:
@@ -652,16 +633,12 @@ function normalizeInput(
 
         evidenceIds:
           uniqueStrings(
-            input.context
-              .links
-              .evidenceIds,
+            input.context.links.evidenceIds,
           ),
 
         indicatorIds:
           uniqueStrings(
-            input.context
-              .links
-              .indicatorIds,
+            input.context.links.indicatorIds,
           ),
 
         assessmentIds:
@@ -822,7 +799,8 @@ function normalizeInput(
           ),
 
       sources:
-        input.diagnostic.sources
+        input.diagnostic
+          .sources
           .map(
             source => ({
               ...source,
@@ -902,8 +880,7 @@ function normalizeInput(
       ...input.privacy,
 
       legalBasis:
-        input.privacy
-          .legalBasis ??
+        input.privacy.legalBasis ??
         null,
 
       retentionPolicy:
@@ -981,11 +958,14 @@ export function validatePedagogicalInterventionRequest(
     typeof input !== 'object'
   ) {
     return {
-      valid: false,
+      valid:
+        false,
 
-      input: null,
+      input:
+        null,
 
-      warnings: [],
+      warnings:
+        [],
 
       errors: [
         createError({
@@ -1445,13 +1425,17 @@ export function generatePedagogicalInterventionService(
     )
 
     return {
-      success: false,
+      success:
+        false,
 
-      intervention: null,
+      intervention:
+        null,
 
-      summary: null,
+      summary:
+        null,
 
-      persistencePayload: null,
+      persistencePayload:
+        null,
 
       warnings:
         validation.warnings,
@@ -1514,6 +1498,12 @@ export function generatePedagogicalInterventionService(
             }),
         )
 
+      const warnings =
+        uniqueStrings([
+          ...validation.warnings,
+          ...result.warnings,
+        ])
+
       logs.push(
         createLog({
           operation:
@@ -1528,11 +1518,7 @@ export function generatePedagogicalInterventionService(
 
           completedAt,
 
-          warnings:
-            uniqueStrings([
-              ...validation.warnings,
-              ...result.warnings,
-            ]),
+          warnings,
 
           errors,
 
@@ -1544,19 +1530,19 @@ export function generatePedagogicalInterventionService(
       )
 
       return {
-        success: false,
+        success:
+          false,
 
-        intervention: null,
+        intervention:
+          null,
 
-        summary: null,
+        summary:
+          null,
 
-        persistencePayload: null,
+        persistencePayload:
+          null,
 
-        warnings:
-          uniqueStrings([
-            ...validation.warnings,
-            ...result.warnings,
-          ]),
+        warnings,
 
         errors,
 
@@ -1642,7 +1628,8 @@ export function generatePedagogicalInterventionService(
     )
 
     return {
-      success: true,
+      success:
+        true,
 
       intervention,
 
@@ -1652,7 +1639,8 @@ export function generatePedagogicalInterventionService(
 
       warnings,
 
-      errors: [],
+      errors:
+        [],
 
       logs,
 
@@ -1728,13 +1716,17 @@ export function generatePedagogicalInterventionService(
     )
 
     return {
-      success: false,
+      success:
+        false,
 
-      intervention: null,
+      intervention:
+        null,
 
-      summary: null,
+      summary:
+        null,
 
-      persistencePayload: null,
+      persistencePayload:
+        null,
 
       warnings:
         validation.warnings,
@@ -1782,9 +1774,11 @@ export function createPedagogicalInterventionApiResponse(
     !result.summary
   ) {
     return {
-      success: false,
+      success:
+        false,
 
-      data: null,
+      data:
+        null,
 
       errors:
         result.errors,
@@ -1795,7 +1789,8 @@ export function createPedagogicalInterventionApiResponse(
   }
 
   return {
-    success: true,
+    success:
+      true,
 
     data: {
       intervention:
@@ -1811,7 +1806,8 @@ export function createPedagogicalInterventionApiResponse(
         result.logs,
     },
 
-    errors: [],
+    errors:
+      [],
 
     meta:
       result.meta,
