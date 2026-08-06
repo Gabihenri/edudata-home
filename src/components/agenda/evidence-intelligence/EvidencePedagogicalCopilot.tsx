@@ -1004,6 +1004,38 @@ export function EvidencePedagogicalCopilot({
             </div>
           ) : null}
 
+          {loadingState ===
+          'generating' ? (
+            <div
+              role="status"
+              className={[
+                'rounded-2xl border',
+                'border-cyan-200',
+                'bg-cyan-50 p-4',
+                'text-sm text-cyan-900',
+              ].join(' ')}
+            >
+              Gerando e registrando a
+              intervenção pedagógica...
+            </div>
+          ) : null}
+
+          {loadingState ===
+          'updating' ? (
+            <div
+              role="status"
+              className={[
+                'rounded-2xl border',
+                'border-cyan-200',
+                'bg-cyan-50 p-4',
+                'text-sm text-cyan-900',
+              ].join(' ')}
+            >
+              Registrando a decisão
+              profissional...
+            </div>
+          ) : null}
+
           {error ? (
             <div
               role="alert"
@@ -1126,10 +1158,7 @@ export function EvidencePedagogicalCopilot({
                   'disabled:opacity-50',
                 ].join(' ')}
               >
-                {loadingState ===
-                'generating'
-                  ? 'Gerando intervenção...'
-                  : 'Gerar intervenção pedagógica'}
+                Gerar intervenção pedagógica
               </button>
 
               {!generationInput ? (
