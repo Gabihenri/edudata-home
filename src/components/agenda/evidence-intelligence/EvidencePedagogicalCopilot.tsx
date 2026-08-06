@@ -9,6 +9,8 @@ import {
 
 import PedagogicalCopilotPanel from '@/components/agenda/evidence-intelligence/PedagogicalCopilotPanel'
 
+import PedagogicalInterventionMonitoringPanel from '@/components/agenda/evidence-intelligence/PedagogicalInterventionMonitoringPanel'
+
 import type {
   GeneratePedagogicalInterventionInput,
   PedagogicalIntervention,
@@ -875,6 +877,21 @@ export function EvidencePedagogicalCopilot({
     )
   }
 
+  function handleLongitudinalChange(
+    updatedIntervention:
+      PedagogicalIntervention,
+  ): void {
+    updateIntervention(
+      updatedIntervention,
+    )
+
+    setError(null)
+
+    setMessage(
+      'Acompanhamento longitudinal atualizado.',
+    )
+  }
+
   const isBusy =
     loadingState ===
       'loading' ||
@@ -936,9 +953,10 @@ export function EvidencePedagogicalCopilot({
             ].join(' ')}
           >
             Converte a análise da evidência
-            em um plano de intervenção
-            sujeito à decisão profissional
-            do professor.
+            em um plano de intervenção,
+            execução, acompanhamento e
+            avaliação sujeitos à decisão
+            profissional do professor.
           </p>
         </div>
 
@@ -1180,21 +1198,33 @@ export function EvidencePedagogicalCopilot({
           ) : null}
 
           {intervention ? (
-            <PedagogicalCopilotPanel
-              intervention={
-                intervention
-              }
-              disabled={isBusy}
-              onAccept={
-                handleAccept
-              }
-              onAdapt={
-                handleAdapt
-              }
-              onReject={
-                handleReject
-              }
-            />
+            <div className="space-y-6">
+              <PedagogicalCopilotPanel
+                intervention={
+                  intervention
+                }
+                disabled={isBusy}
+                onAccept={
+                  handleAccept
+                }
+                onAdapt={
+                  handleAdapt
+                }
+                onReject={
+                  handleReject
+                }
+              />
+
+              <PedagogicalInterventionMonitoringPanel
+                intervention={
+                  intervention
+                }
+                disabled={isBusy}
+                onInterventionChange={
+                  handleLongitudinalChange
+                }
+              />
+            </div>
           ) : null}
         </div>
       ) : null}
