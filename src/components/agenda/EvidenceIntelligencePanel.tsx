@@ -7,6 +7,13 @@ import {
   useState,
 } from 'react'
 
+import {
+  EvidencePedagogicalAnalysis,
+  type EvidencePedagogicalAnalysisData,
+  type EvidencePedagogicalDimension,
+  type EvidencePedagogicalInsight,
+} from '@/components/agenda/evidence-intelligence/EvidencePedagogicalAnalysis'
+
 type IntelligenceProcessingStatus =
   | 'pending'
   | 'processing'
@@ -24,291 +31,72 @@ type HumanReviewStatus =
   | 'rejected'
   | 'changes_requested'
 
-type PedagogicalDimension =
-  | 'evidence'
-  | 'inclusion'
-  | 'intelligence'
-
-type PedagogicalDimensionLevel =
-  | 'initial'
-  | 'developing'
-  | 'adequate'
-  | 'advanced'
-
-type PedagogicalInsightSeverity =
-  | 'information'
-  | 'attention'
-  | 'priority'
-  | 'critical'
-
-type PedagogicalDimensionScore = {
-  dimension:
-    PedagogicalDimension
-
-  label:
-    string
-
-  score:
-    number
-
-  level:
-    PedagogicalDimensionLevel
-
-  explanation:
-    string
-
-  strengths:
-    string[]
-
-  gaps:
-    string[]
-}
-
-type PedagogicalInsight = {
-  id:
-    string
-
-  category:
-    string
-
-  severity:
-    PedagogicalInsightSeverity
-
-  title:
-    string
-
-  description:
-    string
-
-  recommendation:
-    string
-
-  evidence:
-    string[]
-
-  priority:
-    number
-
-  requiresHumanReview:
-    boolean
-}
-
-type PedagogicalInsights = {
-  success:
-    boolean
-
-  summary:
-    string
-
-  evidenceScore:
-    number
-
-  inclusionScore:
-    number
-
-  intelligenceScore:
-    number
-
-  overallScore:
-    number
-
-  dimensions:
-    PedagogicalDimensionScore[]
-
-  insights:
-    PedagogicalInsight[]
-
-  strengths:
-    string[]
-
-  improvementOpportunities:
-    string[]
-
-  recommendedNextActions:
-    string[]
-
-  requiresHumanReview:
-    boolean
-
-  generatedAt:
-    string
-
-  engine: {
-    name:
-      string
-
-    version:
-      string
-
-    mode:
-      string
-  }
-
-  metadata:
-    Record<string, unknown>
-}
-
 type IntelligenceRun = {
-  id:
-    string
-
-  evidence_id:
-    string
-
-  event_id:
-    string | null
-
-  engine_name:
-    string
-
-  engine_version:
-    string
-
-  processing_status:
-    IntelligenceProcessingStatus
-
-  quality_score:
-    number | null
-
-  reliability_score:
-    number | null
-
-  confidence_score:
-    number | null
-
-  quality:
-    Record<string, unknown>
-
-  reliability:
-    Record<string, unknown>
-
-  framework_classifications:
-    unknown[]
-
-  validation:
-    Record<string, unknown>
-
-  explanation:
-    Record<string, unknown>
-
-  requires_human_review:
-    boolean
-
-  human_review_status:
-    HumanReviewStatus
-
-  warnings:
-    unknown[]
-
-  errors:
-    unknown[]
-
-  attempt_count:
-    number
-
-  processed_at:
-    string | null
-
-  failed_at:
-    string | null
-
-  last_error:
-    string | null
-
-  created_at:
-    string
-
-  updated_at:
-    string
+  id: string
+  evidence_id: string
+  event_id: string | null
+  engine_name: string
+  engine_version: string
+  processing_status: IntelligenceProcessingStatus
+  quality_score: number | null
+  reliability_score: number | null
+  confidence_score: number | null
+  quality: Record<string, unknown>
+  reliability: Record<string, unknown>
+  framework_classifications: unknown[]
+  validation: Record<string, unknown>
+  explanation: Record<string, unknown>
+  requires_human_review: boolean
+  human_review_status: HumanReviewStatus
+  warnings: unknown[]
+  errors: unknown[]
+  attempt_count: number
+  processed_at: string | null
+  failed_at: string | null
+  last_error: string | null
+  created_at: string
+  updated_at: string
 }
 
 type IntelligenceApiResponse = {
-  success:
-    boolean
-
+  success: boolean
   data: {
     evidence: {
-      id:
-        string
-
-      title:
-        string
-
-      evidenceType:
-        string
-
-      containsIdentifiableMinor:
-        boolean
-
-      createdAt:
-        string
-
-      updatedAt:
-        string
+      id: string
+      title: string
+      evidenceType: string
+      containsIdentifiableMinor: boolean
+      createdAt: string
+      updatedAt: string
     }
-
     intelligence: {
-      available:
-        boolean
-
-      latest:
-        IntelligenceRun | null
-
-      history:
-        IntelligenceRun[]
-
+      available: boolean
+      latest: IntelligenceRun | null
+      history: IntelligenceRun[]
       summary: {
-        totalRuns:
-          number
-
-        completedRuns:
-          number
-
-        failedRuns:
-          number
-
-        pendingReviewRuns:
-          number
-
-        latestStatus:
-          IntelligenceProcessingStatus | null
-
-        latestRequiresHumanReview:
-          boolean
-
-        latestProcessedAt:
-          string | null
-
-        latestEngineVersion:
-          string | null
+        totalRuns: number
+        completedRuns: number
+        failedRuns: number
+        pendingReviewRuns: number
+        latestStatus: IntelligenceProcessingStatus | null
+        latestRequiresHumanReview: boolean
+        latestProcessedAt: string | null
+        latestEngineVersion: string | null
       }
     }
   }
-
   meta: {
-    includeHistory:
-      boolean
-
-    historyLimit:
-      number
-
-    returnedHistoryItems:
-      number
-
-    generatedAt:
-      string
+    includeHistory: boolean
+    historyLimit: number
+    returnedHistoryItems: number
+    generatedAt: string
   }
 }
 
 type EvidenceIntelligencePanelProps = {
-  evidenceId:
-    string
-
-  evidenceTitle?:
-    string
-
-  initiallyOpen?:
-    boolean
+  evidenceId: string
+  evidenceTitle?: string
+  initiallyOpen?: boolean
 }
 
 type LoadingState =
@@ -317,498 +105,177 @@ type LoadingState =
   | 'success'
   | 'error'
 
-const STATUS_LABELS:
-  Record<
-    IntelligenceProcessingStatus,
-    string
-  > = {
-    pending:
-      'Aguardando análise',
-
-    processing:
-      'Analisando',
-
-    completed:
-      'Análise concluída',
-
-    requires_human_review:
-      'Revisão humana necessária',
-
-    failed:
-      'Falha na análise',
-
-    cancelled:
-      'Análise cancelada',
-
-    ignored:
-      'Análise não executada',
-  }
-
-const HUMAN_REVIEW_LABELS:
-  Record<
-    HumanReviewStatus,
-    string
-  > = {
-    not_required:
-      'Não necessária',
-
-    pending:
-      'Pendente',
-
-    in_review:
-      'Em revisão',
-
-    approved:
-      'Aprovada',
-
-    rejected:
-      'Rejeitada',
-
-    changes_requested:
-      'Ajustes solicitados',
-  }
-
-const DIMENSION_LEVEL_LABELS:
-  Record<
-    PedagogicalDimensionLevel,
-    string
-  > = {
-    initial:
-      'Inicial',
-
-    developing:
-      'Em desenvolvimento',
-
-    adequate:
-      'Adequado',
-
-    advanced:
-      'Avançado',
-  }
-
-const SEVERITY_LABELS:
-  Record<
-    PedagogicalInsightSeverity,
-    string
-  > = {
-    information:
-      'Informação',
-
-    attention:
-      'Atenção',
-
-    priority:
-      'Prioridade',
-
-    critical:
-      'Crítico',
-  }
-
-function isRecord(
-  value:
-    unknown,
-): value is Record<
-  string,
-  unknown
-> {
-  return (
-    typeof value ===
-      'object' &&
-    value !==
-      null &&
-    !Array.isArray(
-      value,
-    )
-  )
+const STATUS_LABELS: Record<IntelligenceProcessingStatus, string> = {
+  pending: 'Aguardando anÃ¡lise',
+  processing: 'Analisando',
+  completed: 'AnÃ¡lise concluÃ­da',
+  requires_human_review: 'RevisÃ£o humana necessÃ¡ria',
+  failed: 'Falha na anÃ¡lise',
+  cancelled: 'AnÃ¡lise cancelada',
+  ignored: 'AnÃ¡lise nÃ£o executada',
 }
 
-function isStringArray(
-  value:
-    unknown,
-): value is string[] {
+const HUMAN_REVIEW_LABELS: Record<HumanReviewStatus, string> = {
+  not_required: 'NÃ£o necessÃ¡ria',
+  pending: 'Pendente',
+  in_review: 'Em revisÃ£o',
+  approved: 'Aprovada',
+  rejected: 'Rejeitada',
+  changes_requested: 'Ajustes solicitados',
+}
+
+function isRecord(
+  value: unknown,
+): value is Record<string, unknown> {
   return (
-    Array.isArray(
-      value,
-    ) &&
-    value.every(
-      item =>
-        typeof item ===
-        'string',
-    )
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value)
   )
 }
 
 function isFiniteNumber(
-  value:
-    unknown,
+  value: unknown,
 ): value is number {
   return (
-    typeof value ===
-      'number' &&
-    Number.isFinite(
-      value,
-    )
+    typeof value === 'number' &&
+    Number.isFinite(value)
   )
 }
 
-function getErrorMessage(
-  error:
-    unknown,
-): string {
-  if (
-    error instanceof Error
-  ) {
-    return error.message
-  }
-
-  if (
-    typeof error ===
-      'string' &&
-    error.trim()
-  ) {
-    return error.trim()
-  }
-
-  return 'Não foi possível carregar a análise inteligente.'
+function isStringArray(
+  value: unknown,
+): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      item => typeof item === 'string',
+    )
+  )
 }
 
 function formatDateTime(
-  value:
-    string | null,
+  value: string | null,
 ): string {
   if (!value) {
-    return 'Não informado'
+    return 'NÃ£o informado'
   }
 
-  const date =
-    new Date(
-      value,
-    )
+  const date = new Date(value)
 
-  if (
-    Number.isNaN(
-      date.getTime(),
-    )
-  ) {
-    return 'Data indisponível'
+  if (Number.isNaN(date.getTime())) {
+    return 'Data indisponÃ­vel'
   }
 
-  return date.toLocaleString(
-    'pt-BR',
-    {
-      day:
-        '2-digit',
-
-      month:
-        '2-digit',
-
-      year:
-        'numeric',
-
-      hour:
-        '2-digit',
-
-      minute:
-        '2-digit',
-    },
-  )
+  return date.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 function formatNormalizedScore(
-  value:
-    number | null,
+  value: number | null,
 ): string {
   if (
-    typeof value !==
-      'number' ||
-    !Number.isFinite(
-      value,
-    )
+    typeof value !== 'number' ||
+    !Number.isFinite(value)
   ) {
-    return 'Não calculado'
+    return 'NÃ£o calculado'
   }
 
-  return `${Math.round(
-    value *
-      100,
-  )}%`
-}
-
-function formatPercentageScore(
-  value:
-    number | null,
-): string {
-  if (
-    typeof value !==
-      'number' ||
-    !Number.isFinite(
-      value,
-    )
-  ) {
-    return 'Não calculado'
-  }
-
-  return `${Math.round(
-    value,
-  )}%`
+  return `${Math.round(value * 100)}%`
 }
 
 function getNormalizedScoreDescription(
-  value:
-    number | null,
+  value: number | null,
 ): string {
-  if (
-    typeof value !==
-      'number'
-  ) {
-    return 'Ainda não há pontuação disponível.'
+  if (typeof value !== 'number') {
+    return 'Ainda nÃ£o hÃ¡ pontuaÃ§Ã£o disponÃ­vel.'
   }
 
-  if (
-    value >=
-      0.85
-  ) {
-    return 'Nível elevado.'
+  if (value >= 0.85) {
+    return 'NÃ­vel elevado.'
   }
 
-  if (
-    value >=
-      0.65
-  ) {
-    return 'Nível adequado, com possibilidade de aprimoramento.'
+  if (value >= 0.65) {
+    return 'NÃ­vel adequado, com possibilidade de aprimoramento.'
   }
 
-  if (
-    value >=
-      0.4
-  ) {
-    return 'Nível intermediário. Recomenda-se complementar o registro.'
+  if (value >= 0.4) {
+    return 'NÃ­vel intermediÃ¡rio. Recomenda-se complementar o registro.'
   }
 
-  return 'Nível baixo. Recomenda-se revisar e ampliar a evidência.'
+  return 'NÃ­vel baixo. Recomenda-se revisar e ampliar a evidÃªncia.'
 }
 
 function getStatusClasses(
-  status:
-    IntelligenceProcessingStatus,
+  status: IntelligenceProcessingStatus,
 ): string {
-  if (
-    status ===
-      'completed'
-  ) {
-    return [
-      'border-emerald-200',
-      'bg-emerald-50',
-      'text-emerald-800',
-    ].join(' ')
+  if (status === 'completed') {
+    return 'border-emerald-200 bg-emerald-50 text-emerald-800'
+  }
+
+  if (status === 'requires_human_review') {
+    return 'border-amber-200 bg-amber-50 text-amber-900'
+  }
+
+  if (status === 'failed') {
+    return 'border-rose-200 bg-rose-50 text-rose-800'
   }
 
   if (
-    status ===
-      'requires_human_review'
+    status === 'processing' ||
+    status === 'pending'
   ) {
-    return [
-      'border-amber-200',
-      'bg-amber-50',
-      'text-amber-900',
-    ].join(' ')
+    return 'border-blue-200 bg-blue-50 text-blue-800'
   }
 
-  if (
-    status ===
-      'failed'
-  ) {
-    return [
-      'border-rose-200',
-      'bg-rose-50',
-      'text-rose-800',
-    ].join(' ')
-  }
-
-  if (
-    status ===
-      'processing' ||
-    status ===
-      'pending'
-  ) {
-    return [
-      'border-blue-200',
-      'bg-blue-50',
-      'text-blue-800',
-    ].join(' ')
-  }
-
-  return [
-    'border-slate-200',
-    'bg-slate-50',
-    'text-slate-700',
-  ].join(' ')
-}
-
-function getSeverityClasses(
-  severity:
-    PedagogicalInsightSeverity,
-): string {
-  if (
-    severity ===
-      'critical'
-  ) {
-    return [
-      'border-rose-200',
-      'bg-rose-50',
-      'text-rose-900',
-    ].join(' ')
-  }
-
-  if (
-    severity ===
-      'priority'
-  ) {
-    return [
-      'border-orange-200',
-      'bg-orange-50',
-      'text-orange-900',
-    ].join(' ')
-  }
-
-  if (
-    severity ===
-      'attention'
-  ) {
-    return [
-      'border-amber-200',
-      'bg-amber-50',
-      'text-amber-900',
-    ].join(' ')
-  }
-
-  return [
-    'border-blue-200',
-    'bg-blue-50',
-    'text-blue-900',
-  ].join(' ')
-}
-
-function getDimensionClasses(
-  level:
-    PedagogicalDimensionLevel,
-): string {
-  if (
-    level ===
-      'advanced'
-  ) {
-    return [
-      'border-emerald-200',
-      'bg-emerald-50',
-      'text-emerald-900',
-    ].join(' ')
-  }
-
-  if (
-    level ===
-      'adequate'
-  ) {
-    return [
-      'border-cyan-200',
-      'bg-cyan-50',
-      'text-cyan-900',
-    ].join(' ')
-  }
-
-  if (
-    level ===
-      'developing'
-  ) {
-    return [
-      'border-amber-200',
-      'bg-amber-50',
-      'text-amber-900',
-    ].join(' ')
-  }
-
-  return [
-    'border-rose-200',
-    'bg-rose-50',
-    'text-rose-900',
-  ].join(' ')
+  return 'border-slate-200 bg-slate-50 text-slate-700'
 }
 
 function stringifyMessage(
-  value:
-    unknown,
+  value: unknown,
 ): string {
-  if (
-    typeof value ===
-      'string'
-  ) {
+  if (typeof value === 'string') {
     return value
   }
 
   if (
-    typeof value ===
-      'number' ||
-    typeof value ===
-      'boolean'
+    typeof value === 'number' ||
+    typeof value === 'boolean'
   ) {
-    return String(
-      value,
-    )
+    return String(value)
   }
 
-  if (
-    isRecord(
-      value,
-    )
-  ) {
-    const message =
-      value.message
-
-    if (
-      typeof message ===
-        'string'
-    ) {
-      return message
+  if (isRecord(value)) {
+    if (typeof value.message === 'string') {
+      return value.message
     }
 
-    const description =
-      value.description
-
-    if (
-      typeof description ===
-        'string'
-    ) {
-      return description
+    if (typeof value.description === 'string') {
+      return value.description
     }
   }
 
   try {
-    return JSON.stringify(
-      value,
-    )
+    return JSON.stringify(value)
   } catch {
-    return 'Informação indisponível'
+    return 'InformaÃ§Ã£o indisponÃ­vel'
   }
 }
 
 function getClassificationLabel(
-  classification:
-    unknown,
+  classification: unknown,
 ): string {
-  if (
-    typeof classification ===
-      'string'
-  ) {
+  if (typeof classification === 'string') {
     return classification
   }
 
-  if (
-    !isRecord(
-      classification,
-    )
-  ) {
-    return stringifyMessage(
-      classification,
-    )
+  if (!isRecord(classification)) {
+    return stringifyMessage(classification)
   }
 
   const candidateKeys = [
@@ -821,385 +288,219 @@ function getClassificationLabel(
     'type',
   ]
 
-  for (
-    const key
-    of candidateKeys
-  ) {
-    const value =
-      classification[key]
+  for (const key of candidateKeys) {
+    const value = classification[key]
 
     if (
-      typeof value ===
-        'string' &&
+      typeof value === 'string' &&
       value.trim()
     ) {
       return value.trim()
     }
   }
 
-  return stringifyMessage(
-    classification,
-  )
+  return stringifyMessage(classification)
 }
 
 function parseDimension(
-  value:
-    unknown,
-): PedagogicalDimensionScore | null {
-  if (
-    !isRecord(
-      value,
-    )
-  ) {
+  value: unknown,
+): EvidencePedagogicalDimension | null {
+  if (!isRecord(value)) {
     return null
   }
 
-  const dimension =
-    value.dimension
-
-  const label =
-    value.label
-
-  const score =
-    value.score
-
-  const level =
-    value.level
-
-  const explanation =
-    value.explanation
+  const dimension = value.dimension
+  const level = value.level
 
   if (
-    dimension !==
-      'evidence' &&
-    dimension !==
-      'inclusion' &&
-    dimension !==
-      'intelligence'
+    dimension !== 'evidence' &&
+    dimension !== 'inclusion' &&
+    dimension !== 'intelligence'
   ) {
     return null
   }
 
   if (
-    typeof label !==
-      'string' ||
-    !isFiniteNumber(
-      score,
-    ) ||
-    (
-      level !==
-        'initial' &&
-      level !==
-        'developing' &&
-      level !==
-        'adequate' &&
-      level !==
-        'advanced'
-    ) ||
-    typeof explanation !==
-      'string'
+    level !== 'initial' &&
+    level !== 'developing' &&
+    level !== 'adequate' &&
+    level !== 'advanced'
+  ) {
+    return null
+  }
+
+  if (
+    typeof value.label !== 'string' ||
+    !isFiniteNumber(value.score) ||
+    typeof value.explanation !== 'string'
   ) {
     return null
   }
 
   return {
     dimension,
-
-    label,
-
-    score,
-
+    label: value.label,
+    score: value.score,
     level,
-
-    explanation,
-
-    strengths:
-      isStringArray(
-        value.strengths,
-      )
-        ? value.strengths
-        : [],
-
-    gaps:
-      isStringArray(
-        value.gaps,
-      )
-        ? value.gaps
-        : [],
+    explanation: value.explanation,
+    strengths: isStringArray(value.strengths)
+      ? value.strengths
+      : [],
+    gaps: isStringArray(value.gaps)
+      ? value.gaps
+      : [],
   }
 }
 
 function parseInsight(
-  value:
-    unknown,
-): PedagogicalInsight | null {
-  if (
-    !isRecord(
-      value,
-    )
-  ) {
+  value: unknown,
+): EvidencePedagogicalInsight | null {
+  if (!isRecord(value)) {
     return null
   }
 
-  const severity =
-    value.severity
+  const severity = value.severity
 
   if (
-    severity !==
-      'information' &&
-    severity !==
-      'attention' &&
-    severity !==
-      'priority' &&
-    severity !==
-      'critical'
+    severity !== 'information' &&
+    severity !== 'attention' &&
+    severity !== 'priority' &&
+    severity !== 'critical'
   ) {
     return null
   }
 
   if (
-    typeof value.id !==
-      'string' ||
-    typeof value.category !==
-      'string' ||
-    typeof value.title !==
-      'string' ||
-    typeof value.description !==
-      'string' ||
-    typeof value.recommendation !==
-      'string' ||
-    !isFiniteNumber(
-      value.priority,
-    ) ||
-    typeof value.requiresHumanReview !==
-      'boolean'
+    typeof value.id !== 'string' ||
+    typeof value.category !== 'string' ||
+    typeof value.title !== 'string' ||
+    typeof value.description !== 'string' ||
+    typeof value.recommendation !== 'string' ||
+    !isFiniteNumber(value.priority) ||
+    typeof value.requiresHumanReview !== 'boolean'
   ) {
     return null
   }
 
   return {
-    id:
-      value.id,
-
-    category:
-      value.category,
-
+    id: value.id,
+    category: value.category,
     severity,
-
-    title:
-      value.title,
-
-    description:
-      value.description,
-
-    recommendation:
-      value.recommendation,
-
-    evidence:
-      isStringArray(
-        value.evidence,
-      )
-        ? value.evidence
-        : [],
-
-    priority:
-      value.priority,
-
-    requiresHumanReview:
-      value.requiresHumanReview,
+    title: value.title,
+    description: value.description,
+    recommendation: value.recommendation,
+    evidence: isStringArray(value.evidence)
+      ? value.evidence
+      : [],
+    priority: value.priority,
+    requiresHumanReview: value.requiresHumanReview,
   }
 }
 
 function parsePedagogicalInsights(
-  explanation:
-    Record<string, unknown>,
-): PedagogicalInsights | null {
-  const rawInsights =
-    explanation
-      .pedagogicalInsights
+  explanation: Record<string, unknown>,
+): EvidencePedagogicalAnalysisData | null {
+  const raw = explanation.pedagogicalInsights
 
-  if (
-    !isRecord(
-      rawInsights,
-    )
-  ) {
+  if (!isRecord(raw)) {
     return null
   }
 
   if (
-    typeof rawInsights.success !==
-      'boolean' ||
-    typeof rawInsights.summary !==
-      'string' ||
-    !isFiniteNumber(
-      rawInsights.evidenceScore,
-    ) ||
-    !isFiniteNumber(
-      rawInsights.inclusionScore,
-    ) ||
-    !isFiniteNumber(
-      rawInsights.intelligenceScore,
-    ) ||
-    !isFiniteNumber(
-      rawInsights.overallScore,
-    ) ||
-    typeof rawInsights.requiresHumanReview !==
-      'boolean' ||
-    typeof rawInsights.generatedAt !==
-      'string'
+    typeof raw.success !== 'boolean' ||
+    typeof raw.summary !== 'string' ||
+    !isFiniteNumber(raw.evidenceScore) ||
+    !isFiniteNumber(raw.inclusionScore) ||
+    !isFiniteNumber(raw.intelligenceScore) ||
+    !isFiniteNumber(raw.overallScore) ||
+    typeof raw.requiresHumanReview !== 'boolean' ||
+    typeof raw.generatedAt !== 'string'
   ) {
     return null
   }
 
-  const dimensions =
-    Array.isArray(
-      rawInsights.dimensions,
-    )
-      ? rawInsights
-          .dimensions
-          .map(
-            parseDimension,
-          )
-          .filter(
-            (
-              item,
-            ): item is PedagogicalDimensionScore =>
-              item !==
-              null,
-          )
-      : []
+  const dimensions = Array.isArray(raw.dimensions)
+    ? raw.dimensions
+        .map(parseDimension)
+        .filter(
+          (
+            item,
+          ): item is EvidencePedagogicalDimension =>
+            item !== null,
+        )
+    : []
 
-  const insights =
-    Array.isArray(
-      rawInsights.insights,
-    )
-      ? rawInsights
-          .insights
-          .map(
-            parseInsight,
-          )
-          .filter(
-            (
-              item,
-            ): item is PedagogicalInsight =>
-              item !==
-              null,
-          )
-      : []
+  const insights = Array.isArray(raw.insights)
+    ? raw.insights
+        .map(parseInsight)
+        .filter(
+          (
+            item,
+          ): item is EvidencePedagogicalInsight =>
+            item !== null,
+        )
+    : []
 
-  const rawEngine =
-    rawInsights.engine
-
-  const engine =
-    isRecord(
-      rawEngine,
-    )
-      ? {
-          name:
-            typeof rawEngine.name ===
-              'string'
-              ? rawEngine.name
-              : 'pedagogical-insights',
-
-          version:
-            typeof rawEngine.version ===
-              'string'
-              ? rawEngine.version
-              : 'desconhecida',
-
-          mode:
-            typeof rawEngine.mode ===
-              'string'
-              ? rawEngine.mode
-              : 'não informado',
-        }
-      : {
-          name:
-            'pedagogical-insights',
-
-          version:
-            'desconhecida',
-
-          mode:
-            'não informado',
-        }
+  const rawEngine = raw.engine
+  const engine = isRecord(rawEngine)
+    ? {
+        name:
+          typeof rawEngine.name === 'string'
+            ? rawEngine.name
+            : 'pedagogical-insights',
+        version:
+          typeof rawEngine.version === 'string'
+            ? rawEngine.version
+            : 'desconhecida',
+        mode:
+          typeof rawEngine.mode === 'string'
+            ? rawEngine.mode
+            : 'nÃ£o informado',
+      }
+    : {
+        name: 'pedagogical-insights',
+        version: 'desconhecida',
+        mode: 'nÃ£o informado',
+      }
 
   return {
-    success:
-      rawInsights.success,
-
-    summary:
-      rawInsights.summary,
-
-    evidenceScore:
-      rawInsights.evidenceScore,
-
-    inclusionScore:
-      rawInsights.inclusionScore,
-
-    intelligenceScore:
-      rawInsights.intelligenceScore,
-
-    overallScore:
-      rawInsights.overallScore,
-
+    success: raw.success,
+    summary: raw.summary,
+    evidenceScore: raw.evidenceScore,
+    inclusionScore: raw.inclusionScore,
+    intelligenceScore: raw.intelligenceScore,
+    overallScore: raw.overallScore,
     dimensions,
-
     insights,
-
-    strengths:
-      isStringArray(
-        rawInsights.strengths,
-      )
-        ? rawInsights.strengths
-        : [],
-
+    strengths: isStringArray(raw.strengths)
+      ? raw.strengths
+      : [],
     improvementOpportunities:
-      isStringArray(
-        rawInsights.improvementOpportunities,
-      )
-        ? rawInsights.improvementOpportunities
+      isStringArray(raw.improvementOpportunities)
+        ? raw.improvementOpportunities
         : [],
-
     recommendedNextActions:
-      isStringArray(
-        rawInsights.recommendedNextActions,
-      )
-        ? rawInsights.recommendedNextActions
+      isStringArray(raw.recommendedNextActions)
+        ? raw.recommendedNextActions
         : [],
-
-    requiresHumanReview:
-      rawInsights.requiresHumanReview,
-
-    generatedAt:
-      rawInsights.generatedAt,
-
+    requiresHumanReview: raw.requiresHumanReview,
+    generatedAt: raw.generatedAt,
     engine,
-
-    metadata:
-      isRecord(
-        rawInsights.metadata,
-      )
-        ? rawInsights.metadata
-        : {},
+    metadata: isRecord(raw.metadata)
+      ? raw.metadata
+      : {},
   }
 }
 
 async function readErrorResponse(
-  response:
-    Response,
+  response: Response,
 ): Promise<string> {
   try {
-    const body:
-      unknown =
-      await response.json()
+    const body: unknown = await response.json()
 
     if (
-      isRecord(
-        body,
-      ) &&
-      typeof body.error ===
-        'string'
+      isRecord(body) &&
+      typeof body.error === 'string'
     ) {
       return body.error
     }
@@ -1210,19 +511,31 @@ async function readErrorResponse(
   return `Erro HTTP ${response.status}.`
 }
 
+function getErrorMessage(
+  error: unknown,
+): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  if (
+    typeof error === 'string' &&
+    error.trim()
+  ) {
+    return error.trim()
+  }
+
+  return 'NÃ£o foi possÃ­vel carregar a anÃ¡lise inteligente.'
+}
+
 function ScoreCard({
   label,
   value,
   description,
 }: {
-  label:
-    string
-
-  value:
-    string
-
-  description:
-    string
+  label: string
+  value: string
+  description: string
 }) {
   return (
     <article
@@ -1268,140 +581,79 @@ export function EvidenceIntelligencePanel({
   evidenceTitle,
   initiallyOpen = false,
 }: EvidenceIntelligencePanelProps) {
-  const [
-    open,
-    setOpen,
-  ] = useState(
-    initiallyOpen,
-  )
-
-  const [
-    loadingState,
-    setLoadingState,
-  ] = useState<
-    LoadingState
-  >('idle')
-
-  const [
-    data,
-    setData,
-  ] = useState<
+  const [open, setOpen] = useState(initiallyOpen)
+  const [loadingState, setLoadingState] =
+    useState<LoadingState>('idle')
+  const [data, setData] = useState<
     IntelligenceApiResponse['data'] | null
   >(null)
+  const [error, setError] =
+    useState<string | null>(null)
 
-  const [
-    error,
-    setError,
-  ] = useState<
-    string | null
-  >(null)
+  const loadIntelligence = useCallback(
+    async ({
+      force = false,
+    }: {
+      force?: boolean
+    } = {}): Promise<void> => {
+      if (
+        !force &&
+        loadingState === 'loading'
+      ) {
+        return
+      }
 
-  const loadIntelligence =
-    useCallback(
-      async ({
-        force = false,
-      }: {
-        force?:
-          boolean
-      } = {}):
-        Promise<void> => {
-        if (
-          !force &&
-          loadingState ===
-            'loading'
-        ) {
-          return
-        }
+      setLoadingState('loading')
+      setError(null)
 
-        setLoadingState(
-          'loading',
+      try {
+        const response = await fetch(
+          `/api/agenda/evidences/${encodeURIComponent(
+            evidenceId,
+          )}/intelligence?includeHistory=true&limit=10`,
+          {
+            method: 'GET',
+            credentials: 'include',
+            cache: 'no-store',
+            headers: {
+              Accept: 'application/json',
+            },
+          },
         )
 
-        setError(
-          null,
-        )
-
-        try {
-          const response =
-            await fetch(
-              `/api/agenda/evidences/${encodeURIComponent(
-                evidenceId,
-              )}/intelligence?includeHistory=true&limit=10`,
-              {
-                method:
-                  'GET',
-
-                credentials:
-                  'include',
-
-                cache:
-                  'no-store',
-
-                headers: {
-                  Accept:
-                    'application/json',
-                },
-              },
-            )
-
-          if (
-            !response.ok
-          ) {
-            throw new Error(
-              await readErrorResponse(
-                response,
-              ),
-            )
-          }
-
-          const body =
-            await response.json() as
-              IntelligenceApiResponse
-
-          if (
-            !body.success
-          ) {
-            throw new Error(
-              'A API não concluiu a consulta da análise.',
-            )
-          }
-
-          setData(
-            body.data,
-          )
-
-          setLoadingState(
-            'success',
-          )
-        } catch (
-          loadError
-        ) {
-          setData(
-            null,
-          )
-
-          setError(
-            getErrorMessage(
-              loadError,
-            ),
-          )
-
-          setLoadingState(
-            'error',
+        if (!response.ok) {
+          throw new Error(
+            await readErrorResponse(response),
           )
         }
-      },
-      [
-        evidenceId,
-        loadingState,
-      ],
-    )
+
+        const body =
+          (await response.json()) as IntelligenceApiResponse
+
+        if (!body.success) {
+          throw new Error(
+            'A API nÃ£o concluiu a consulta da anÃ¡lise.',
+          )
+        }
+
+        setData(body.data)
+        setLoadingState('success')
+      } catch (loadError) {
+        setData(null)
+        setError(getErrorMessage(loadError))
+        setLoadingState('error')
+      }
+    },
+    [
+      evidenceId,
+      loadingState,
+    ],
+  )
 
   useEffect(() => {
     if (
       open &&
-      loadingState ===
-        'idle'
+      loadingState === 'idle'
     ) {
       void loadIntelligence()
     }
@@ -1412,77 +664,44 @@ export function EvidenceIntelligencePanel({
   ])
 
   const latest =
-    data
-      ?.intelligence
-      .latest ??
-    null
+    data?.intelligence.latest ?? null
 
   const history =
-    data
-      ?.intelligence
-      .history ??
-    []
+    data?.intelligence.history ?? []
 
-  const pedagogicalInsights =
-    useMemo(
-      () =>
-        latest
-          ? parsePedagogicalInsights(
-              latest.explanation,
-            )
-          : null,
-      [
-        latest,
-      ],
-    )
-
-  const classifications =
-    useMemo(
-      () =>
-        latest
-          ?.framework_classifications
-          .map(
-            getClassificationLabel,
+  const pedagogicalInsights = useMemo(
+    () =>
+      latest
+        ? parsePedagogicalInsights(
+            latest.explanation,
           )
-          .filter(
-            value =>
-              Boolean(
-                value.trim(),
-              ),
-          ) ??
-        [],
-      [
-        latest,
-      ],
-    )
+        : null,
+    [latest],
+  )
 
-  const warnings =
-    useMemo(
-      () =>
-        latest
-          ?.warnings
-          .map(
-            stringifyMessage,
-          ) ??
-        [],
-      [
-        latest,
-      ],
-    )
+  const classifications = useMemo(
+    () =>
+      latest?.framework_classifications
+        .map(getClassificationLabel)
+        .filter(
+          value => Boolean(value.trim()),
+        ) ?? [],
+    [latest],
+  )
 
-  const errors =
-    useMemo(
-      () =>
-        latest
-          ?.errors
-          .map(
-            stringifyMessage,
-          ) ??
-        [],
-      [
-        latest,
-      ],
-    )
+  const warnings = useMemo(
+    () =>
+      latest?.warnings.map(stringifyMessage) ??
+      [],
+    [latest],
+  )
+
+  const errors = useMemo(
+    () =>
+      latest?.errors.map(stringifyMessage) ??
+      [],
+    [latest],
+  )
 
   return (
     <section
@@ -1495,10 +714,7 @@ export function EvidenceIntelligencePanel({
       <button
         type="button"
         onClick={() => {
-          setOpen(
-            current =>
-              !current,
-          )
+          setOpen(current => !current)
         }}
         className={[
           'flex w-full items-center',
@@ -1506,9 +722,7 @@ export function EvidenceIntelligencePanel({
           'px-5 py-4 text-left',
           'transition hover:bg-slate-50',
         ].join(' ')}
-        aria-expanded={
-          open
-        }
+        aria-expanded={open}
       >
         <span>
           <span
@@ -1517,7 +731,7 @@ export function EvidenceIntelligencePanel({
               'text-slate-950',
             ].join(' ')}
           >
-            Análise inteligente EDI
+            AnÃ¡lise inteligente EDI
           </span>
 
           <span
@@ -1527,8 +741,8 @@ export function EvidenceIntelligencePanel({
             ].join(' ')}
           >
             {evidenceTitle
-              ? `Evidência: ${evidenceTitle}`
-              : 'Scores EDI, qualidade, confiabilidade e recomendações pedagógicas.'}
+              ? `EvidÃªncia: ${evidenceTitle}`
+              : 'Scores, qualidade, confiabilidade e recomendaÃ§Ãµes pedagÃ³gicas.'}
           </span>
         </span>
 
@@ -1541,9 +755,7 @@ export function EvidenceIntelligencePanel({
             'text-slate-700',
           ].join(' ')}
         >
-          {open
-            ? 'Ocultar'
-            : 'Consultar'}
+          {open ? 'Ocultar' : 'Consultar'}
         </span>
       </button>
 
@@ -1554,8 +766,7 @@ export function EvidenceIntelligencePanel({
             'px-5 py-5',
           ].join(' ')}
         >
-          {loadingState ===
-          'loading' ? (
+          {loadingState === 'loading' ? (
             <div
               className={[
                 'rounded-xl border',
@@ -1564,12 +775,11 @@ export function EvidenceIntelligencePanel({
                 'text-sm text-blue-800',
               ].join(' ')}
             >
-              Carregando a análise inteligente…
+              Carregando a anÃ¡lise inteligente...
             </div>
           ) : null}
 
-          {loadingState ===
-            'error' &&
+          {loadingState === 'error' &&
           error ? (
             <div
               className={[
@@ -1584,7 +794,7 @@ export function EvidenceIntelligencePanel({
                   'text-rose-900',
                 ].join(' ')}
               >
-                Não foi possível carregar
+                NÃ£o foi possÃ­vel carregar
               </p>
 
               <p
@@ -1600,8 +810,7 @@ export function EvidenceIntelligencePanel({
                 type="button"
                 onClick={() => {
                   void loadIntelligence({
-                    force:
-                      true,
+                    force: true,
                   })
                 }}
                 className={[
@@ -1618,11 +827,9 @@ export function EvidenceIntelligencePanel({
             </div>
           ) : null}
 
-          {loadingState ===
-            'success' &&
+          {loadingState === 'success' &&
           data &&
-          !data.intelligence
-            .available ? (
+          !data.intelligence.available ? (
             <div
               className={[
                 'rounded-xl border',
@@ -1636,7 +843,7 @@ export function EvidenceIntelligencePanel({
                   'text-slate-800',
                 ].join(' ')}
               >
-                Análise ainda não disponível
+                AnÃ¡lise ainda nÃ£o disponÃ­vel
               </p>
 
               <p
@@ -1645,37 +852,14 @@ export function EvidenceIntelligencePanel({
                   'text-slate-600',
                 ].join(' ')}
               >
-                A evidência foi registrada, mas ainda não possui uma execução persistida do Evidence Intelligence.
+                A evidÃªncia ainda nÃ£o possui uma execuÃ§Ã£o persistida do Evidence Intelligence.
               </p>
-
-              <button
-                type="button"
-                onClick={() => {
-                  void loadIntelligence({
-                    force:
-                      true,
-                  })
-                }}
-                className={[
-                  'mt-3 rounded-lg',
-                  'border border-slate-300',
-                  'bg-white px-3 py-2',
-                  'text-xs font-semibold',
-                  'text-slate-700',
-                  'transition hover:bg-slate-100',
-                ].join(' ')}
-              >
-                Atualizar consulta
-              </button>
             </div>
           ) : null}
 
-          {loadingState ===
-            'success' &&
+          {loadingState === 'success' &&
           latest ? (
-            <div
-              className="space-y-6"
-            >
+            <div className="space-y-6">
               <div
                 className={[
                   'flex flex-wrap items-center',
@@ -1706,7 +890,7 @@ export function EvidenceIntelligencePanel({
                   ].join(' ')}
                 >
                   Motor {latest.engine_version}
-                  {' · '}
+                  {' Â· '}
                   {formatDateTime(
                     latest.processed_at ??
                       latest.updated_at,
@@ -1715,134 +899,13 @@ export function EvidenceIntelligencePanel({
               </div>
 
               {pedagogicalInsights ? (
-                <section
-                  className={[
-                    'overflow-hidden rounded-2xl',
-                    'border border-cyan-200',
-                    'bg-white',
-                  ].join(' ')}
-                >
-                  <header
-                    className={[
-                      'border-b border-cyan-200',
-                      'bg-cyan-50 px-5 py-4',
-                    ].join(' ')}
-                  >
-                    <p
-                      className={[
-                        'text-xs font-bold uppercase',
-                        'tracking-[0.16em]',
-                        'text-cyan-800',
-                      ].join(' ')}
-                    >
-                      Leitura pedagógica do Framework EDI
-                    </p>
-
-                    <h3
-                      className={[
-                        'mt-2 text-lg font-bold',
-                        'text-slate-950',
-                      ].join(' ')}
-                    >
-                      Score geral: {
-                        formatPercentageScore(
-                          pedagogicalInsights
-                            .overallScore,
-                        )
-                      }
-                    </h3>
-
-                    <p
-                      className={[
-                        'mt-2 text-sm leading-6',
-                        'text-slate-700',
-                      ].join(' ')}
-                    >
-                      {
-                        pedagogicalInsights
-                          .summary
-                      }
-                    </p>
-                  </header>
-
-                  <div
-                    className={[
-                      'grid gap-px bg-slate-200',
-                      'sm:grid-cols-3',
-                    ].join(' ')}
-                  >
-                    {pedagogicalInsights
-                      .dimensions
-                      .map(
-                        dimension => (
-                          <article
-                            key={
-                              dimension
-                                .dimension
-                            }
-                            className={[
-                              'bg-white p-4',
-                            ].join(' ')}
-                          >
-                            <p
-                              className={[
-                                'text-xs font-bold',
-                                'uppercase tracking-wide',
-                                'text-slate-500',
-                              ].join(' ')}
-                            >
-                              {
-                                dimension.label
-                              }
-                            </p>
-
-                            <p
-                              className={[
-                                'mt-2 text-3xl',
-                                'font-bold text-slate-950',
-                              ].join(' ')}
-                            >
-                              {
-                                formatPercentageScore(
-                                  dimension.score,
-                                )
-                              }
-                            </p>
-
-                            <span
-                              className={[
-                                'mt-2 inline-flex',
-                                'rounded-full border',
-                                'px-2.5 py-1',
-                                'text-xs font-semibold',
-                                getDimensionClasses(
-                                  dimension.level,
-                                ),
-                              ].join(' ')}
-                            >
-                              {
-                                DIMENSION_LEVEL_LABELS[
-                                  dimension.level
-                                ]
-                              }
-                            </span>
-
-                            <p
-                              className={[
-                                'mt-3 text-xs',
-                                'leading-5 text-slate-600',
-                              ].join(' ')}
-                            >
-                              {
-                                dimension
-                                  .explanation
-                              }
-                            </p>
-                          </article>
-                        ),
-                      )}
-                  </div>
-                </section>
+                <EvidencePedagogicalAnalysis
+                  analysis={pedagogicalInsights}
+                  evidenceTitle={
+                    evidenceTitle ??
+                    data?.evidence.title
+                  }
+                />
               ) : (
                 <div
                   className={[
@@ -1857,7 +920,7 @@ export function EvidenceIntelligencePanel({
                       'text-slate-800',
                     ].join(' ')}
                   >
-                    Leitura pedagógica não disponível nesta execução
+                    Leitura pedagÃ³gica nÃ£o disponÃ­vel nesta execuÃ§Ã£o
                   </p>
 
                   <p
@@ -1866,308 +929,60 @@ export function EvidenceIntelligencePanel({
                       'leading-6 text-slate-600',
                     ].join(' ')}
                   >
-                    Execuções anteriores à versão pedagógica do motor não possuem scores EDI e recomendações persistidas. Registre uma nova evidência para gerar essa camada.
+                    ExecuÃ§Ãµes anteriores Ã  versÃ£o pedagÃ³gica do motor nÃ£o possuem scores EDI e recomendaÃ§Ãµes persistidas.
                   </p>
                 </div>
               )}
 
-              <div
-                className={[
-                  'grid gap-3',
-                  'sm:grid-cols-3',
-                ].join(' ')}
-              >
-                <ScoreCard
-                  label="Qualidade técnica"
-                  value={
-                    formatNormalizedScore(
-                      latest.quality_score,
-                    )
-                  }
-                  description={
-                    getNormalizedScoreDescription(
-                      latest.quality_score,
-                    )
-                  }
-                />
-
-                <ScoreCard
-                  label="Confiabilidade"
-                  value={
-                    formatNormalizedScore(
-                      latest.reliability_score,
-                    )
-                  }
-                  description={
-                    getNormalizedScoreDescription(
-                      latest.reliability_score,
-                    )
-                  }
-                />
-
-                <ScoreCard
-                  label="Confiança"
-                  value={
-                    formatNormalizedScore(
-                      latest.confidence_score,
-                    )
-                  }
-                  description={
-                    getNormalizedScoreDescription(
-                      latest.confidence_score,
-                    )
-                  }
-                />
-              </div>
-
-              {pedagogicalInsights &&
-              pedagogicalInsights
-                .strengths
-                .length >
-                0 ? (
-                <section
+              <section>
+                <p
                   className={[
-                    'rounded-xl border',
-                    'border-emerald-200',
-                    'bg-emerald-50 p-4',
+                    'text-xs font-bold',
+                    'uppercase',
+                    'tracking-[0.14em]',
+                    'text-[#0B7491]',
                   ].join(' ')}
                 >
-                  <h4
-                    className={[
-                      'text-sm font-bold',
-                      'text-emerald-950',
-                    ].join(' ')}
-                  >
-                    Pontos fortes
-                  </h4>
+                  Qualidade e confiabilidade tÃ©cnica
+                </p>
 
-                  <ul
-                    className={[
-                      'mt-3 space-y-2',
-                      'text-sm leading-6',
-                      'text-emerald-900',
-                    ].join(' ')}
-                  >
-                    {pedagogicalInsights
-                      .strengths
-                      .map(
-                        strength => (
-                          <li
-                            key={
-                              strength
-                            }
-                          >
-                            {strength}
-                          </li>
-                        ),
-                      )}
-                  </ul>
-                </section>
-              ) : null}
-
-              {pedagogicalInsights &&
-              pedagogicalInsights
-                .recommendedNextActions
-                .length >
-                0 ? (
-                <section
+                <div
                   className={[
-                    'rounded-xl border',
-                    'border-cyan-200',
-                    'bg-cyan-50 p-4',
+                    'mt-4 grid gap-3',
+                    'sm:grid-cols-3',
                   ].join(' ')}
                 >
-                  <h4
-                    className={[
-                      'text-sm font-bold',
-                      'text-cyan-950',
-                    ].join(' ')}
-                  >
-                    Próximas ações recomendadas
-                  </h4>
+                  <ScoreCard
+                    label="Qualidade tÃ©cnica"
+                    value={formatNormalizedScore(
+                      latest.quality_score,
+                    )}
+                    description={getNormalizedScoreDescription(
+                      latest.quality_score,
+                    )}
+                  />
 
-                  <ol
-                    className={[
-                      'mt-3 space-y-3',
-                      'text-sm leading-6',
-                      'text-cyan-950',
-                    ].join(' ')}
-                  >
-                    {pedagogicalInsights
-                      .recommendedNextActions
-                      .map(
-                        (
-                          action,
-                          index,
-                        ) => (
-                          <li
-                            key={
-                              action
-                            }
-                            className="flex gap-3"
-                          >
-                            <span
-                              className={[
-                                'flex h-6 w-6',
-                                'shrink-0 items-center',
-                                'justify-center rounded-full',
-                                'bg-cyan-800',
-                                'text-xs font-bold',
-                                'text-white',
-                              ].join(' ')}
-                            >
-                              {index +
-                                1}
-                            </span>
+                  <ScoreCard
+                    label="Confiabilidade"
+                    value={formatNormalizedScore(
+                      latest.reliability_score,
+                    )}
+                    description={getNormalizedScoreDescription(
+                      latest.reliability_score,
+                    )}
+                  />
 
-                            <span>
-                              {action}
-                            </span>
-                          </li>
-                        ),
-                      )}
-                  </ol>
-                </section>
-              ) : null}
-
-              {pedagogicalInsights &&
-              pedagogicalInsights
-                .insights
-                .length >
-                0 ? (
-                <section>
-                  <h4
-                    className={[
-                      'text-sm font-bold',
-                      'text-slate-950',
-                    ].join(' ')}
-                  >
-                    Diagnóstico pedagógico
-                  </h4>
-
-                  <div
-                    className={[
-                      'mt-3 space-y-3',
-                    ].join(' ')}
-                  >
-                    {pedagogicalInsights
-                      .insights
-                      .map(
-                        insight => (
-                          <article
-                            key={
-                              insight.id
-                            }
-                            className={[
-                              'rounded-xl border',
-                              'p-4',
-                              getSeverityClasses(
-                                insight.severity,
-                              ),
-                            ].join(' ')}
-                          >
-                            <div
-                              className={[
-                                'flex flex-wrap',
-                                'items-start',
-                                'justify-between',
-                                'gap-3',
-                              ].join(' ')}
-                            >
-                              <div>
-                                <p
-                                  className={[
-                                    'text-xs font-bold',
-                                    'uppercase',
-                                    'tracking-wide',
-                                  ].join(' ')}
-                                >
-                                  {
-                                    SEVERITY_LABELS[
-                                      insight
-                                        .severity
-                                    ]
-                                  }
-                                  {' · '}
-                                  prioridade {
-                                    insight.priority
-                                  }
-                                </p>
-
-                                <h5
-                                  className={[
-                                    'mt-1 text-sm',
-                                    'font-bold',
-                                  ].join(' ')}
-                                >
-                                  {
-                                    insight.title
-                                  }
-                                </h5>
-                              </div>
-
-                              {insight
-                                .requiresHumanReview ? (
-                                <span
-                                  className={[
-                                    'rounded-full border',
-                                    'border-current',
-                                    'px-2.5 py-1',
-                                    'text-xs font-bold',
-                                  ].join(' ')}
-                                >
-                                  Revisão humana
-                                </span>
-                              ) : null}
-                            </div>
-
-                            <p
-                              className={[
-                                'mt-2 text-sm',
-                                'leading-6',
-                              ].join(' ')}
-                            >
-                              {
-                                insight
-                                  .description
-                              }
-                            </p>
-
-                            <div
-                              className={[
-                                'mt-3 rounded-lg',
-                                'border border-current/20',
-                                'bg-white/60 p-3',
-                              ].join(' ')}
-                            >
-                              <p
-                                className={[
-                                  'text-xs font-bold',
-                                  'uppercase',
-                                  'tracking-wide',
-                                ].join(' ')}
-                              >
-                                Recomendação
-                              </p>
-
-                              <p
-                                className={[
-                                  'mt-1 text-sm',
-                                  'leading-6',
-                                ].join(' ')}
-                              >
-                                {
-                                  insight
-                                    .recommendation
-                                }
-                              </p>
-                            </div>
-                          </article>
-                        ),
-                      )}
-                  </div>
-                </section>
-              ) : null}
+                  <ScoreCard
+                    label="ConfianÃ§a"
+                    value={formatNormalizedScore(
+                      latest.confidence_score,
+                    )}
+                    description={getNormalizedScoreDescription(
+                      latest.confidence_score,
+                    )}
+                  />
+                </div>
+              </section>
 
               {latest.requires_human_review ||
               pedagogicalInsights
@@ -2185,7 +1000,7 @@ export function EvidenceIntelligencePanel({
                       'text-amber-950',
                     ].join(' ')}
                   >
-                    Revisão humana necessária
+                    RevisÃ£o humana necessÃ¡ria
                   </p>
 
                   <p
@@ -2194,17 +1009,18 @@ export function EvidenceIntelligencePanel({
                       'leading-6 text-amber-900',
                     ].join(' ')}
                   >
-                    Situação: {
+                    SituaÃ§Ã£o:{' '}
+                    {
                       HUMAN_REVIEW_LABELS[
                         latest.human_review_status
                       ]
-                    }. A análise apoia a decisão pedagógica, mas a interpretação final permanece sob responsabilidade profissional.
+                    }
+                    . A interpretaÃ§Ã£o final permanece sob responsabilidade profissional.
                   </p>
                 </div>
               ) : null}
 
-              {classifications.length >
-              0 ? (
+              {classifications.length > 0 ? (
                 <section>
                   <h4
                     className={[
@@ -2212,7 +1028,7 @@ export function EvidenceIntelligencePanel({
                       'text-slate-900',
                     ].join(' ')}
                   >
-                    Classificações do Framework EDI
+                    ClassificaÃ§Ãµes do Framework EDI
                   </h4>
 
                   <div
@@ -2245,8 +1061,7 @@ export function EvidenceIntelligencePanel({
                 </section>
               ) : null}
 
-              {warnings.length >
-              0 ? (
+              {warnings.length > 0 ? (
                 <div
                   className={[
                     'rounded-xl border',
@@ -2260,7 +1075,7 @@ export function EvidenceIntelligencePanel({
                       'text-amber-950',
                     ].join(' ')}
                   >
-                    Pontos de atenção técnicos
+                    Pontos de atenÃ§Ã£o tÃ©cnicos
                   </h4>
 
                   <ul
@@ -2285,8 +1100,7 @@ export function EvidenceIntelligencePanel({
                 </div>
               ) : null}
 
-              {errors.length >
-              0 ? (
+              {errors.length > 0 ? (
                 <div
                   className={[
                     'rounded-xl border',
@@ -2344,7 +1158,7 @@ export function EvidenceIntelligencePanel({
                       'text-slate-900',
                     ].join(' ')}
                   >
-                    Histórico de processamento
+                    HistÃ³rico de processamento
                   </h4>
 
                   <span
@@ -2353,120 +1167,82 @@ export function EvidenceIntelligencePanel({
                       'text-slate-500',
                     ].join(' ')}
                   >
-                    {history.length} execução(ões)
+                    {history.length} execuÃ§Ã£o(Ãµes)
                   </span>
                 </div>
 
-                <div
-                  className={[
-                    'mt-3 space-y-2',
-                  ].join(' ')}
-                >
-                  {history.map(
-                    run => (
-                      <div
-                        key={
-                          run.id
-                        }
-                        className={[
-                          'flex flex-wrap',
-                          'items-center',
-                          'justify-between',
-                          'gap-2 rounded-lg',
-                          'border border-slate-200',
-                          'bg-slate-50',
-                          'px-3 py-3',
-                        ].join(' ')}
-                      >
-                        <div>
-                          <p
-                            className={[
-                              'text-xs font-semibold',
-                              'text-slate-800',
-                            ].join(' ')}
-                          >
-                            {
-                              STATUS_LABELS[
-                                run.processing_status
-                              ]
-                            }
-                          </p>
-
-                          <p
-                            className={[
-                              'mt-1 text-xs',
-                              'text-slate-500',
-                            ].join(' ')}
-                          >
-                            {formatDateTime(
-                              run.processed_at ??
-                                run.updated_at,
-                            )}
-                          </p>
-                        </div>
-
-                        <span
+                <div className="mt-3 space-y-2">
+                  {history.map(run => (
+                    <div
+                      key={run.id}
+                      className={[
+                        'flex flex-wrap',
+                        'items-center',
+                        'justify-between',
+                        'gap-2 rounded-lg',
+                        'border border-slate-200',
+                        'bg-slate-50',
+                        'px-3 py-3',
+                      ].join(' ')}
+                    >
+                      <div>
+                        <p
                           className={[
-                            'text-xs font-medium',
-                            'text-slate-600',
+                            'text-xs font-semibold',
+                            'text-slate-800',
                           ].join(' ')}
                         >
-                          versão {run.engine_version}
-                        </span>
+                          {
+                            STATUS_LABELS[
+                              run.processing_status
+                            ]
+                          }
+                        </p>
+
+                        <p
+                          className={[
+                            'mt-1 text-xs',
+                            'text-slate-500',
+                          ].join(' ')}
+                        >
+                          {formatDateTime(
+                            run.processed_at ??
+                              run.updated_at,
+                          )}
+                        </p>
                       </div>
-                    ),
-                  )}
+
+                      <span
+                        className={[
+                          'text-xs font-medium',
+                          'text-slate-600',
+                        ].join(' ')}
+                      >
+                        versÃ£o {run.engine_version}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </section>
 
-              <div
+              <button
+                type="button"
+                onClick={() => {
+                  void loadIntelligence({
+                    force: true,
+                  })
+                }}
                 className={[
-                  'flex flex-wrap gap-3',
+                  'rounded-lg border',
+                  'border-slate-300',
+                  'bg-white px-3 py-2',
+                  'text-xs font-semibold',
+                  'text-slate-700',
+                  'transition hover:bg-slate-100',
                 ].join(' ')}
               >
-                <button
-                  type="button"
-                  onClick={() => {
-                    void loadIntelligence({
-                      force:
-                        true,
-                    })
-                  }}
-                  className={[
-                    'rounded-lg border',
-                    'border-slate-300',
-                    'bg-white px-3 py-2',
-                    'text-xs font-semibold',
-                    'text-slate-700',
-                    'transition hover:bg-slate-100',
-                  ].join(' ')}
-                >
-                  Atualizar análise
-                </button>
-
-                {pedagogicalInsights ? (
-                  <span
-                    className={[
-                      'inline-flex items-center',
-                      'rounded-lg border',
-                      'border-slate-200',
-                      'bg-slate-50 px-3 py-2',
-                      'text-xs text-slate-500',
-                    ].join(' ')}
-                  >
-                    Insights {
-                      pedagogicalInsights
-                        .engine
-                        .version
-                    }
-                    {' · '}
-                    {formatDateTime(
-                      pedagogicalInsights
-                        .generatedAt,
-                    )}
-                  </span>
-                ) : null}
-              </div>
+                Atualizar anÃ¡lise
+              </button>
             </div>
           ) : null}
         </div>
