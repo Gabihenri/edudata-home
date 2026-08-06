@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from 'react'
 
@@ -22,6 +23,12 @@ type EvidencePedagogicalCopilotProps = {
   sourceAnalysisId?: string | null
 
   sourceEventId?: string | null
+
+  requestId?: string | null
+
+  sessionId?: string | null
+
+  traceId?: string | null
 
   generationInput:
     GeneratePedagogicalInterventionInput | null
@@ -64,8 +71,11 @@ type InterventionCreateResponse = {
 
     persistence?: {
       created: boolean
+
       idempotent: boolean
+
       databaseId: string
+
       versionId: string
     }
 
@@ -76,6 +86,7 @@ type InterventionCreateResponse = {
 
   errors?: Array<{
     code?: string
+
     message?: string
   }>
 }
@@ -226,11 +237,37 @@ function createInterventionUrl(
   ].join('/')
 }
 
+function createIdempotencyKey({
+  evidenceId,
+  evidenceIntelligenceRunId,
+  correlationId,
+}: {
+  evidenceId: string
+
+  evidenceIntelligenceRunId:
+    string | null | undefined
+
+  correlationId: string
+}): string {
+  return [
+    'evidence',
+    evidenceId,
+    normalizeOptionalText(
+      evidenceIntelligenceRunId,
+    ) ??
+      'without-run',
+    correlationId,
+  ].join(':')
+}
+
 export function EvidencePedagogicalCopilot({
   evidenceId,
   evidenceIntelligenceRunId = null,
   sourceAnalysisId = null,
   sourceEventId = null,
+  requestId = null,
+  sessionId = null,
+  traceId = null,
   generationInput,
   initiallyOpen = false,
   className = '',
@@ -276,6 +313,9 @@ export function EvidencePedagogicalCopilot({
     setLoaded,
   ] = useState(false)
 
+  const loadingRef =
+    useRef(false)
+
   const updateIntervention =
     useCallback(
       (
@@ -303,15 +343,17 @@ export function EvidencePedagogicalCopilot({
         force?: boolean
       } = {}): Promise<void> => {
         if (
-          !force &&
+          loadingRef.current ||
           (
-            loadingState ===
-              'loading' ||
-            loaded
+            loaded &&
+            !force
           )
         ) {
           return
         }
+
+        loadingRef.current =
+          true
 
         setLoadingState(
           'loading',
@@ -324,10 +366,13 @@ export function EvidencePedagogicalCopilot({
           const searchParams =
             new URLSearchParams({
               evidenceId,
+
               isCurrentVersion:
                 'true',
+
               includeArchived:
                 'false',
+
               limit:
                 '1',
             })
@@ -393,23 +438,34 @@ export function EvidencePedagogicalCopilot({
               'Não foi possível carregar a intervenção pedagógica.',
             ),
           )
+        } finally {
+          loadingRef.current =
+            false
         }
       },
       [
         evidenceId,
         loaded,
-        loadingState,
         updateIntervention,
       ],
     )
 
   useEffect(
     () => {
+      loadingRef.current =
+        false
+
       setLoaded(false)
+
       updateIntervention(null)
+
       setError(null)
+
       setMessage(null)
-      setLoadingState('idle')
+
+      setLoadingState(
+        'idle',
+      )
     },
     [
       evidenceId,
@@ -447,6 +503,7 @@ export function EvidencePedagogicalCopilot({
     }
 
     if (
+      loadingRef.current ||
       loadingState ===
         'generating' ||
       loadingState ===
@@ -454,6 +511,9 @@ export function EvidencePedagogicalCopilot({
     ) {
       return
     }
+
+    loadingRef.current =
+      true
 
     setLoadingState(
       'generating',
@@ -463,14 +523,16 @@ export function EvidencePedagogicalCopilot({
     setMessage(null)
 
     try {
-      const idempotencyKey = [
-        'evidence',
-        evidenceId,
-        evidenceIntelligenceRunId ??
-          'without-run',
-        generationInput
-          .correlationId,
-      ].join(':')
+      const idempotencyKey =
+        createIdempotencyKey({
+          evidenceId,
+
+          evidenceIntelligenceRunId,
+
+          correlationId:
+            generationInput
+              .correlationId,
+        })
 
       const response =
         await fetch(
@@ -511,6 +573,7 @@ export function EvidencePedagogicalCopilot({
                         Array.from(
                           new Set([
                             evidenceId,
+
                             ...generationInput
                               .context
                               .links
@@ -542,16 +605,19 @@ export function EvidencePedagogicalCopilot({
                   idempotencyKey,
 
                   requestId:
-                    generationInput
-                      .traceability
-                      ?.requestId ??
-                    null,
+                    normalizeOptionalText(
+                      requestId,
+                    ),
 
                   sessionId:
-                    generationInput
-                      .traceability
-                      ?.sessionId ??
-                    null,
+                    normalizeOptionalText(
+                      sessionId,
+                    ),
+
+                  traceId:
+                    normalizeOptionalText(
+                      traceId,
+                    ),
                 },
               }),
           },
@@ -608,6 +674,9 @@ export function EvidencePedagogicalCopilot({
           'Não foi possível gerar a intervenção pedagógica.',
         ),
       )
+    } finally {
+      loadingRef.current =
+        false
     }
   }
 
@@ -625,11 +694,15 @@ export function EvidencePedagogicalCopilot({
     }
 
     if (
+      loadingRef.current ||
       loadingState ===
         'updating'
     ) {
       return
     }
+
+    loadingRef.current =
+      true
 
     setLoadingState(
       'updating',
@@ -706,7 +779,8 @@ export function EvidencePedagogicalCopilot({
                         )
                     : [],
 
-                professionalNotes: [],
+                professionalNotes:
+                  [],
 
                 expectedVersionId:
                   intervention
@@ -767,11 +841,16 @@ export function EvidencePedagogicalCopilot({
           'Não foi possível registrar a decisão docente.',
         )
 
-      setError(errorMessage)
+      setError(
+        errorMessage,
+      )
 
       throw new Error(
         errorMessage,
       )
+    } finally {
+      loadingRef.current =
+        false
     }
   }
 
@@ -856,10 +935,10 @@ export function EvidencePedagogicalCopilot({
               'text-slate-600',
             ].join(' ')}
           >
-            Converte a análise da
-            evidência em um plano de
-            intervenção sujeito à decisão
-            profissional do professor.
+            Converte a análise da evidência
+            em um plano de intervenção
+            sujeito à decisão profissional
+            do professor.
           </p>
         </div>
 
