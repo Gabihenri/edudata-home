@@ -2,8 +2,7 @@
  * EduData IA — EIOS
  * Capability 02: Pedagogical Copilot
  *
- * Serviço de aplicação para geração e preparação de
- * intervenções pedagógicas.
+ * Serviço de aplicação das intervenções pedagógicas.
  *
  * Arquitetura:
  * Framework EDI
@@ -11,18 +10,12 @@
  * → Core Compartilhado
  * → Produtos Especializados
  *
- * Fluxo:
- * API / Produto
- * → PedagogicalInterventionService
- * → PedagogicalInterventionEngine
- * → Contrato de domínio
- *
  * Este serviço:
  * - valida e normaliza solicitações;
- * - centraliza a execução do motor;
- * - padroniza erros e avisos;
- * - produz registros operacionais do EIOS;
- * - prepara dados para persistência futura;
+ * - executa o motor do Pedagogical Copilot;
+ * - padroniza erros, avisos e metadados;
+ * - cria resumos para interfaces;
+ * - prepara os dados para persistência futura;
  * - não acessa diretamente React, Next.js ou Supabase.
  */
 
@@ -32,15 +25,11 @@ import {
 
 import type {
   GeneratePedagogicalInterventionInput,
-  GeneratePedagogicalInterventionResult,
   PedagogicalIntervention,
   PedagogicalInterventionApiError,
   PedagogicalInterventionApiMeta,
   PedagogicalInterventionApiResponse,
-  PedagogicalInterventionAuditEvent,
   PedagogicalInterventionMetadata,
-  PedagogicalInterventionProduct,
-  PedagogicalInterventionSource,
   PedagogicalInterventionSummary,
 } from './pedagogical-intervention.types'
 
@@ -48,16 +37,16 @@ const SERVICE_NAME =
   'pedagogical-intervention-service'
 
 const SERVICE_VERSION =
-  '1.0.0'
+  '1.0.1'
 
 const CAPABILITY_NAME =
   'pedagogical_copilot'
 
 export type PedagogicalInterventionServiceOperation =
-  | 'generate'
   | 'validate'
-  | 'prepare_persistence'
+  | 'generate'
   | 'summarize'
+  | 'prepare_persistence'
 
 export type PedagogicalInterventionServiceStatus =
   | 'started'
@@ -76,25 +65,13 @@ export type PedagogicalInterventionServiceLog = {
 
   correlationId: string
 
-  sourceProduct:
-    PedagogicalInterventionProduct
-
-  source:
-    PedagogicalInterventionSource
-
   startedAt: string
 
-  completedAt?: string | null
+  completedAt: string | null
 
-  durationMs?: number | null
+  durationMs: number | null
 
-  interventionId?: string | null
-
-  userId?: string | null
-
-  organizationId?: string | null
-
-  schoolId?: string | null
+  interventionId: string | null
 
   warnings: string[]
 
@@ -108,19 +85,17 @@ export type PedagogicalInterventionServiceLog = {
 export type PedagogicalInterventionServiceValidation = {
   valid: boolean
 
-  errors:
-    PedagogicalInterventionApiError[]
+  input:
+    GeneratePedagogicalInterventionInput | null
 
   warnings: string[]
 
-  normalizedInput:
-    GeneratePedagogicalInterventionInput | null
+  errors:
+    PedagogicalInterventionApiError[]
 }
 
 export type PedagogicalInterventionPersistencePayload = {
-  interventionId: string
-
-  versionId: string
+  id: string
 
   organizationId: string | null
 
@@ -128,15 +103,20 @@ export type PedagogicalInterventionPersistencePayload = {
 
   ownerUserId: string | null
 
-  status: string
+  status:
+    PedagogicalIntervention['status']
 
-  priority: string
+  priority:
+    PedagogicalIntervention['priority']
 
-  source: string
+  source:
+    PedagogicalIntervention['source']
 
-  sourceProduct: string
+  sourceProduct:
+    PedagogicalIntervention['sourceProduct']
 
-  capability: string
+  capability:
+    PedagogicalIntervention['capability']
 
   context:
     PedagogicalIntervention['context']
@@ -228,6 +208,25 @@ function nowIso(): string {
     .toISOString()
 }
 
+function normalizeText(
+  value:
+    string | null | undefined,
+): string {
+  return typeof value === 'string'
+    ? value.trim()
+    : ''
+}
+
+function normalizeNullableText(
+  value:
+    string | null | undefined,
+): string | null {
+  const normalized =
+    normalizeText(value)
+
+  return normalized || null
+}
+
 function uniqueStrings(
   values:
     Array<string | null | undefined>,
@@ -250,51 +249,7 @@ function uniqueStrings(
   )
 }
 
-function normalizeText(
-  value:
-    string | null | undefined,
-): string {
-  if (
-    typeof value !== 'string'
-  ) {
-    return ''
-  }
-
-  return value.trim()
-}
-
-function normalizeNullableText(
-  value:
-    string | null | undefined,
-): string | null {
-  const normalized =
-    normalizeText(value)
-
-  return normalized || null
-}
-
-function createLogId(
-  correlationId: string,
-  operation:
-    PedagogicalInterventionServiceOperation,
-  timestamp: string,
-): string {
-  const normalized =
-    `${correlationId}-${operation}-${timestamp}`
-      .toLowerCase()
-      .replace(
-        /[^a-z0-9]+/g,
-        '-',
-      )
-      .replace(
-        /^-+|-+$/g,
-        '',
-      )
-
-  return `pedagogical-service-${normalized}`
-}
-
-function createApiError({
+function createError({
   code,
   message,
   field = null,
@@ -334,7 +289,7 @@ function getErrorMessage(
   return 'Erro inesperado no serviço de intervenção pedagógica.'
 }
 
-function calculateDuration(
+function durationMs(
   startedAt: string,
   completedAt: string,
 ): number | null {
@@ -355,6 +310,127 @@ function calculateDuration(
     0,
     end - start,
   )
+}
+
+function createLog({
+  operation,
+  status,
+  correlationId,
+  startedAt,
+  completedAt = null,
+  interventionId = null,
+  warnings = [],
+  errors = [],
+  metadata = {},
+}: {
+  operation:
+    PedagogicalInterventionServiceOperation
+
+  status:
+    PedagogicalInterventionServiceStatus
+
+  correlationId: string
+
+  startedAt: string
+
+  completedAt?: string | null
+
+  interventionId?: string | null
+
+  warnings?: string[]
+
+  errors?:
+    PedagogicalInterventionApiError[]
+
+  metadata?:
+    PedagogicalInterventionMetadata
+}): PedagogicalInterventionServiceLog {
+  return {
+    id:
+      [
+        'pedagogical-service',
+        operation,
+        correlationId,
+        startedAt,
+      ]
+        .join('-')
+        .toLowerCase()
+        .replace(
+          /[^a-z0-9]+/g,
+          '-',
+        )
+        .replace(
+          /^-+|-+$/g,
+          ''),
+
+    operation,
+
+    status,
+
+    correlationId,
+
+    startedAt,
+
+    completedAt,
+
+    durationMs:
+      completedAt
+        ? durationMs(
+            startedAt,
+            completedAt,
+          )
+        : null,
+
+    interventionId,
+
+    warnings:
+      uniqueStrings(warnings),
+
+    errors,
+
+    metadata: {
+      serviceName:
+        SERVICE_NAME,
+
+      serviceVersion:
+        SERVICE_VERSION,
+
+      capability:
+        CAPABILITY_NAME,
+
+      ...metadata,
+    },
+  }
+}
+
+function createMeta({
+  correlationId,
+  generatedAt,
+  metadata = {},
+}: {
+  correlationId: string
+  generatedAt: string
+  metadata?:
+    PedagogicalInterventionMetadata
+}): PedagogicalInterventionApiMeta {
+  return {
+    correlationId,
+
+    generatedAt,
+
+    metadata: {
+      serviceName:
+        SERVICE_NAME,
+
+      serviceVersion:
+        SERVICE_VERSION,
+
+      capability:
+        CAPABILITY_NAME,
+
+      ...metadata,
+    },
+  }
 }
 
 function normalizeInput(
@@ -474,25 +550,29 @@ function normalizeInput(
 
         targetIds:
           uniqueStrings(
-            input.context.audience
+            input.context
+              .audience
               .targetIds,
           ),
 
         groupId:
           normalizeNullableText(
-            input.context.audience
+            input.context
+              .audience
               .groupId,
           ),
 
         groupLabel:
           normalizeNullableText(
-            input.context.audience
+            input.context
+              .audience
               .groupLabel,
           ),
 
         selectionRationale:
           normalizeNullableText(
-            input.context.audience
+            input.context
+              .audience
               .selectionRationale,
           ),
       },
@@ -502,92 +582,114 @@ function normalizeInput(
 
         organizationId:
           normalizeNullableText(
-            input.context.links
+            input.context
+              .links
               .organizationId,
           ),
 
         schoolId:
           normalizeNullableText(
-            input.context.links.schoolId,
+            input.context
+              .links
+              .schoolId,
           ),
 
         teacherId:
           normalizeNullableText(
-            input.context.links.teacherId,
+            input.context
+              .links
+              .teacherId,
           ),
 
         classIds:
           uniqueStrings(
-            input.context.links.classIds,
+            input.context
+              .links
+              .classIds,
           ),
 
         planningIds:
           uniqueStrings(
-            input.context.links
+            input.context
+              .links
               .planningIds,
           ),
 
         lessonIds:
           uniqueStrings(
-            input.context.links.lessonIds,
+            input.context
+              .links
+              .lessonIds,
           ),
 
         learningObjectiveIds:
           uniqueStrings(
-            input.context.links
+            input.context
+              .links
               .learningObjectiveIds,
           ),
 
         skillIds:
           uniqueStrings(
-            input.context.links.skillIds,
+            input.context
+              .links
+              .skillIds,
           ),
 
         competencyIds:
           uniqueStrings(
-            input.context.links
+            input.context
+              .links
               .competencyIds,
           ),
 
         curriculumReferenceIds:
           uniqueStrings(
-            input.context.links
+            input.context
+              .links
               .curriculumReferenceIds,
           ),
 
         evidenceIds:
           uniqueStrings(
-            input.context.links
+            input.context
+              .links
               .evidenceIds,
           ),
 
         indicatorIds:
           uniqueStrings(
-            input.context.links
+            input.context
+              .links
               .indicatorIds,
           ),
 
         assessmentIds:
           uniqueStrings(
-            input.context.links
+            input.context
+              .links
               .assessmentIds,
           ),
 
         assessmentResultIds:
           uniqueStrings(
-            input.context.links
+            input.context
+              .links
               .assessmentResultIds,
           ),
 
         relatedInterventionIds:
           uniqueStrings(
-            input.context.links
+            input.context
+              .links
               .relatedInterventionIds,
           ),
 
         additionalEntities:
-          input.context.links
-            .additionalEntities.map(
+          input.context
+            .links
+            .additionalEntities
+            .map(
               entity => ({
                 ...entity,
 
@@ -618,7 +720,9 @@ function normalizeInput(
             )
             .filter(
               entity =>
-                Boolean(entity.entityId),
+                Boolean(
+                  entity.entityId,
+                ),
             ),
       },
     },
@@ -684,7 +788,8 @@ function normalizeInput(
 
       probableCauses:
         input.diagnostic
-          .probableCauses.map(
+          .probableCauses
+          .map(
             cause => ({
               ...cause,
 
@@ -749,39 +854,45 @@ function normalizeInput(
 
         summary:
           normalizeText(
-            input.diagnostic.risk
+            input.diagnostic
+              .risk
               .summary,
           ),
 
         types:
           Array.from(
             new Set(
-              input.diagnostic.risk
+              input.diagnostic
+                .risk
                 .types,
             ),
           ),
 
         signals:
           uniqueStrings(
-            input.diagnostic.risk
+            input.diagnostic
+              .risk
               .signals,
           ),
 
         protectiveFactors:
           uniqueStrings(
-            input.diagnostic.risk
+            input.diagnostic
+              .risk
               .protectiveFactors,
           ),
 
         aggravatingFactors:
           uniqueStrings(
-            input.diagnostic.risk
+            input.diagnostic
+              .risk
               .aggravatingFactors,
           ),
 
         limitations:
           uniqueStrings(
-            input.diagnostic.risk
+            input.diagnostic
+              .risk
               .limitations,
           ),
       },
@@ -789,6 +900,17 @@ function normalizeInput(
 
     privacy: {
       ...input.privacy,
+
+      legalBasis:
+        input.privacy
+          .legalBasis ??
+        null,
+
+      retentionPolicy:
+        normalizeNullableText(
+          input.privacy
+            .retentionPolicy,
+        ),
 
       accessRestrictions:
         uniqueStrings(
@@ -802,16 +924,6 @@ function normalizeInput(
             .prohibitedUses,
         ),
 
-      legalBasis:
-        input.privacy.legalBasis ??
-        null,
-
-      retentionPolicy:
-        normalizeNullableText(
-          input.privacy
-            .retentionPolicy,
-        ),
-
       notes:
         normalizeNullableText(
           input.privacy.notes,
@@ -821,8 +933,7 @@ function normalizeInput(
     researchEligibility:
       input.researchEligibility
         ? {
-            ...input
-              .researchEligibility,
+            ...input.researchEligibility,
 
             restrictions:
               uniqueStrings(
@@ -857,4 +968,852 @@ function normalizeInput(
 
 export function validatePedagogicalInterventionRequest(
   input:
-    GeneratePedagog
+    GeneratePedagogicalInterventionInput,
+): PedagogicalInterventionServiceValidation {
+  const errors:
+    PedagogicalInterventionApiError[] =
+      []
+
+  const warnings: string[] = []
+
+  if (
+    !input ||
+    typeof input !== 'object'
+  ) {
+    return {
+      valid: false,
+
+      input: null,
+
+      warnings: [],
+
+      errors: [
+        createError({
+          code:
+            'invalid_request',
+
+          message:
+            'A solicitação de intervenção pedagógica é inválida.',
+        }),
+      ],
+    }
+  }
+
+  const normalized =
+    normalizeInput(input)
+
+  if (!normalized.correlationId) {
+    errors.push(
+      createError({
+        code:
+          'missing_correlation_id',
+
+        message:
+          'O correlationId é obrigatório.',
+
+        field:
+          'correlationId',
+      }),
+    )
+  }
+
+  if (!normalized.context.title) {
+    errors.push(
+      createError({
+        code:
+          'missing_context_title',
+
+        message:
+          'O título do contexto pedagógico é obrigatório.',
+
+        field:
+          'context.title',
+      }),
+    )
+  }
+
+  if (!normalized.context.summary) {
+    errors.push(
+      createError({
+        code:
+          'missing_context_summary',
+
+        message:
+          'O resumo do contexto pedagógico é obrigatório.',
+
+        field:
+          'context.summary',
+      }),
+    )
+  }
+
+  if (
+    !normalized.diagnostic
+      .problemStatement
+  ) {
+    errors.push(
+      createError({
+        code:
+          'missing_problem_statement',
+
+        message:
+          'A descrição do problema pedagógico é obrigatória.',
+
+        field:
+          'diagnostic.problemStatement',
+      }),
+    )
+  }
+
+  if (
+    !normalized.diagnostic
+      .pedagogicalInterpretation
+  ) {
+    errors.push(
+      createError({
+        code:
+          'missing_pedagogical_interpretation',
+
+        message:
+          'A interpretação pedagógica é obrigatória.',
+
+        field:
+          'diagnostic.pedagogicalInterpretation',
+      }),
+    )
+  }
+
+  if (
+    normalized.context
+      .audience
+      .targetIds
+      .length === 0
+  ) {
+    warnings.push(
+      'Nenhum sujeito, grupo ou turma foi explicitamente vinculado.',
+    )
+  }
+
+  if (
+    normalized.context
+      .links
+      .evidenceIds
+      .length === 0 &&
+    normalized.diagnostic
+      .sources
+      .length === 0
+  ) {
+    warnings.push(
+      'Nenhuma evidência ou fonte diagnóstica foi vinculada.',
+    )
+  }
+
+  if (
+    normalized.diagnostic
+      .requiresAdditionalEvidence
+  ) {
+    warnings.push(
+      'O diagnóstico informa necessidade de evidências adicionais.',
+    )
+  }
+
+  if (
+    normalized.privacy
+      .containsSensitiveData &&
+    !normalized.privacy.anonymized &&
+    !normalized.privacy.pseudonymized
+  ) {
+    warnings.push(
+      'Há dados sensíveis sem anonimização ou pseudonimização.',
+    )
+  }
+
+  if (
+    normalized.privacy
+      .containsMinorData &&
+    normalized.privacy
+      .sensitivity === 'public'
+  ) {
+    errors.push(
+      createError({
+        code:
+          'minor_data_public_visibility',
+
+        message:
+          'Dados de menores não podem ser classificados como públicos.',
+
+        field:
+          'privacy.sensitivity',
+      }),
+    )
+  }
+
+  return {
+    valid:
+      errors.length === 0,
+
+    input:
+      errors.length === 0
+        ? normalized
+        : null,
+
+    warnings:
+      uniqueStrings(warnings),
+
+    errors,
+  }
+}
+
+export function createPedagogicalInterventionSummary(
+  intervention:
+    PedagogicalIntervention,
+): PedagogicalInterventionSummary {
+  const completedActionCount =
+    intervention.plan.actions
+      .filter(
+        action =>
+          action.executionStatus ===
+          'completed',
+      )
+      .length
+
+  return {
+    id:
+      intervention.id,
+
+    versionId:
+      intervention.version.id,
+
+    versionNumber:
+      intervention.version
+        .versionNumber,
+
+    title:
+      intervention.context.title,
+
+    summary:
+      intervention.plan.summary,
+
+    status:
+      intervention.status,
+
+    priority:
+      intervention.priority,
+
+    riskLevel:
+      intervention.diagnostic
+        .risk
+        .level,
+
+    scope:
+      intervention.context
+        .audience
+        .scope,
+
+    teacherDecision:
+      intervention.teacherDecision
+        .decision,
+
+    humanReviewStatus:
+      intervention.humanReview
+        .status,
+
+    executionStatus:
+      intervention.monitoring
+        .executionStatus,
+
+    evaluationStatus:
+      intervention.effectiveness
+        ?.status ??
+      'not_started',
+
+    objectiveCount:
+      intervention.plan
+        .objectives
+        .length,
+
+    actionCount:
+      intervention.plan
+        .actions
+        .length,
+
+    completedActionCount,
+
+    progressPercentage:
+      intervention.monitoring
+        .progressPercentage,
+
+    plannedStartAt:
+      intervention.schedule
+        .plannedStartAt,
+
+    plannedEndAt:
+      intervention.schedule
+        .plannedEndAt,
+
+    createdAt:
+      intervention.createdAt,
+
+    updatedAt:
+      intervention.updatedAt,
+  }
+}
+
+export function preparePedagogicalInterventionPersistence(
+  intervention:
+    PedagogicalIntervention,
+): PedagogicalInterventionPersistencePayload {
+  return {
+    id:
+      intervention.id,
+
+    organizationId:
+      intervention.organizationId ??
+      null,
+
+    schoolId:
+      intervention.schoolId ??
+      null,
+
+    ownerUserId:
+      intervention.ownerUserId ??
+      null,
+
+    status:
+      intervention.status,
+
+    priority:
+      intervention.priority,
+
+    source:
+      intervention.source,
+
+    sourceProduct:
+      intervention.sourceProduct,
+
+    capability:
+      intervention.capability,
+
+    context:
+      intervention.context,
+
+    diagnostic:
+      intervention.diagnostic,
+
+    plan:
+      intervention.plan,
+
+    expectedEvidence:
+      intervention.expectedEvidence,
+
+    indicators:
+      intervention.indicators,
+
+    successCriteria:
+      intervention.successCriteria,
+
+    schedule:
+      intervention.schedule,
+
+    humanReview:
+      intervention.humanReview,
+
+    teacherDecision:
+      intervention.teacherDecision,
+
+    monitoring:
+      intervention.monitoring,
+
+    effectiveness:
+      intervention.effectiveness ??
+      null,
+
+    explainability:
+      intervention.explainability,
+
+    privacy:
+      intervention.privacy,
+
+    researchEligibility:
+      intervention.researchEligibility,
+
+    traceability:
+      intervention.traceability,
+
+    version:
+      intervention.version,
+
+    engine:
+      intervention.engine,
+
+    metadata: {
+      ...intervention.metadata,
+
+      preparedByService:
+        SERVICE_NAME,
+
+      preparedByServiceVersion:
+        SERVICE_VERSION,
+
+      preparedAt:
+        nowIso(),
+    },
+
+    createdAt:
+      intervention.createdAt,
+
+    updatedAt:
+      intervention.updatedAt,
+
+    archivedAt:
+      intervention.archivedAt ??
+      null,
+  }
+}
+
+export function generatePedagogicalInterventionService(
+  input:
+    GeneratePedagogicalInterventionInput,
+): GeneratePedagogicalInterventionServiceResult {
+  const startedAt =
+    nowIso()
+
+  const correlationId =
+    normalizeText(
+      input?.correlationId,
+    ) ||
+    `pedagogical-intervention-${startedAt}`
+
+  const logs:
+    PedagogicalInterventionServiceLog[] =
+      [
+        createLog({
+          operation:
+            'generate',
+
+          status:
+            'started',
+
+          correlationId,
+
+          startedAt,
+
+          metadata: {
+            stage:
+              'request_received',
+          },
+        }),
+      ]
+
+  const validation =
+    validatePedagogicalInterventionRequest(
+      input,
+    )
+
+  if (
+    !validation.valid ||
+    !validation.input
+  ) {
+    const completedAt =
+      nowIso()
+
+    logs.push(
+      createLog({
+        operation:
+          'validate',
+
+        status:
+          'rejected',
+
+        correlationId,
+
+        startedAt,
+
+        completedAt,
+
+        warnings:
+          validation.warnings,
+
+        errors:
+          validation.errors,
+
+        metadata: {
+          stage:
+            'request_validation',
+        },
+      }),
+    )
+
+    return {
+      success: false,
+
+      intervention: null,
+
+      summary: null,
+
+      persistencePayload: null,
+
+      warnings:
+        validation.warnings,
+
+      errors:
+        validation.errors,
+
+      logs,
+
+      meta:
+        createMeta({
+          correlationId,
+
+          generatedAt:
+            completedAt,
+
+          metadata: {
+            status:
+              'rejected',
+          },
+        }),
+    }
+  }
+
+  const normalizedInput =
+    validation.input
+
+  try {
+    const result =
+      generatePedagogicalIntervention(
+        normalizedInput,
+      )
+
+    if (
+      !result.success ||
+      !result.intervention
+    ) {
+      const completedAt =
+        nowIso()
+
+      const errors =
+        result.errors.map(
+          (
+            message,
+            index,
+          ) =>
+            createError({
+              code:
+                `pedagogical_engine_error_${index + 1}`,
+
+              message,
+
+              details: {
+                engineName:
+                  result.engine.name,
+
+                engineVersion:
+                  result.engine.version,
+              },
+            }),
+        )
+
+      logs.push(
+        createLog({
+          operation:
+            'generate',
+
+          status:
+            'failed',
+
+          correlationId,
+
+          startedAt,
+
+          completedAt,
+
+          warnings:
+            uniqueStrings([
+              ...validation.warnings,
+              ...result.warnings,
+            ]),
+
+          errors,
+
+          metadata: {
+            stage:
+              'engine_generation',
+          },
+        }),
+      )
+
+      return {
+        success: false,
+
+        intervention: null,
+
+        summary: null,
+
+        persistencePayload: null,
+
+        warnings:
+          uniqueStrings([
+            ...validation.warnings,
+            ...result.warnings,
+          ]),
+
+        errors,
+
+        logs,
+
+        meta:
+          createMeta({
+            correlationId,
+
+            generatedAt:
+              completedAt,
+
+            metadata: {
+              status:
+                'failed',
+            },
+          }),
+      }
+    }
+
+    const intervention =
+      result.intervention
+
+    const summary =
+      createPedagogicalInterventionSummary(
+        intervention,
+      )
+
+    const persistencePayload =
+      preparePedagogicalInterventionPersistence(
+        intervention,
+      )
+
+    const completedAt =
+      nowIso()
+
+    const warnings =
+      uniqueStrings([
+        ...validation.warnings,
+        ...result.warnings,
+      ])
+
+    logs.push(
+      createLog({
+        operation:
+          'generate',
+
+        status:
+          'completed',
+
+        correlationId,
+
+        startedAt,
+
+        completedAt,
+
+        interventionId:
+          intervention.id,
+
+        warnings,
+
+        metadata: {
+          stage:
+            'service_completed',
+
+          persisted:
+            false,
+
+          engineName:
+            result.engine.name,
+
+          engineVersion:
+            result.engine.version,
+
+          versionId:
+            intervention.version.id,
+
+          requiresHumanReview:
+            intervention.humanReview
+              .required,
+        },
+      }),
+    )
+
+    return {
+      success: true,
+
+      intervention,
+
+      summary,
+
+      persistencePayload,
+
+      warnings,
+
+      errors: [],
+
+      logs,
+
+      meta:
+        createMeta({
+          correlationId,
+
+          generatedAt:
+            completedAt,
+
+          metadata: {
+            status:
+              'completed',
+
+            interventionId:
+              intervention.id,
+
+            versionId:
+              intervention.version.id,
+
+            persisted:
+              false,
+          },
+        }),
+    }
+  } catch (error) {
+    const completedAt =
+      nowIso()
+
+    const serviceError =
+      createError({
+        code:
+          'pedagogical_intervention_service_failure',
+
+        message:
+          getErrorMessage(error),
+
+        details: {
+          serviceName:
+            SERVICE_NAME,
+
+          serviceVersion:
+            SERVICE_VERSION,
+        },
+      })
+
+    logs.push(
+      createLog({
+        operation:
+          'generate',
+
+        status:
+          'failed',
+
+        correlationId,
+
+        startedAt,
+
+        completedAt,
+
+        warnings:
+          validation.warnings,
+
+        errors: [
+          serviceError,
+        ],
+
+        metadata: {
+          stage:
+            'service_exception',
+        },
+      }),
+    )
+
+    return {
+      success: false,
+
+      intervention: null,
+
+      summary: null,
+
+      persistencePayload: null,
+
+      warnings:
+        validation.warnings,
+
+      errors: [
+        serviceError,
+      ],
+
+      logs,
+
+      meta:
+        createMeta({
+          correlationId,
+
+          generatedAt:
+            completedAt,
+
+          metadata: {
+            status:
+              'failed',
+          },
+        }),
+    }
+  }
+}
+
+export function createPedagogicalInterventionApiResponse(
+  result:
+    GeneratePedagogicalInterventionServiceResult,
+): PedagogicalInterventionApiResponse<{
+  intervention:
+    PedagogicalIntervention
+
+  summary:
+    PedagogicalInterventionSummary
+
+  warnings: string[]
+
+  logs:
+    PedagogicalInterventionServiceLog[]
+}> {
+  if (
+    !result.success ||
+    !result.intervention ||
+    !result.summary
+  ) {
+    return {
+      success: false,
+
+      data: null,
+
+      errors:
+        result.errors,
+
+      meta:
+        result.meta,
+    }
+  }
+
+  return {
+    success: true,
+
+    data: {
+      intervention:
+        result.intervention,
+
+      summary:
+        result.summary,
+
+      warnings:
+        result.warnings,
+
+      logs:
+        result.logs,
+    },
+
+    errors: [],
+
+    meta:
+      result.meta,
+  }
+}
