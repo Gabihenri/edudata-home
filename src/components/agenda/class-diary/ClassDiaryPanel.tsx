@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
-import { useClasses } from '@/lib/agenda/hooks/useClasses'
+import { usePedagogicalContext } from '@/lib/agenda/hooks/usePedagogicalContext'
+import { usePlanning } from '@/lib/agenda/hooks/usePlanning'
 
 type AttendanceStatus =
   | 'present'
@@ -29,7 +30,6 @@ type DiaryResponse = {
   success: boolean
   roster?: RosterStudent[]
   attendance?: AttendanceEntry[]
-  student?: RosterStudent
   error?: string
 }
 
@@ -60,33 +60,54 @@ function todayIso() {
 }
 
 export default function ClassDiaryPanel() {
-  const { classes, loading: classesLoading } = useClasses()
-  const [classId, setClassId] = useState('')
+  const {
+    classes,
+    classesLoading,
+    classesError,
+    classId,
+    changeClass,
+    selectedClass,
+    academicPeriods,
+    periodsLoading,
+    periodsError,
+    academicPeriodId,
+    setAcademicPeriodId,
+  } = usePedagogicalContext()
+
+  const { planning, loading: planningLoading } = usePlanning()
+
+  const [planningId, setPlanningId] = useState('')
   const [lessonDate, setLessonDate] = useState(todayIso())
-  const [componentId, setComponentId] = useState('')
-  const [academicPeriodId, setAcademicPeriodId] = useState('')
   const [instrumentTitle, setInstrumentTitle] = useState('Avaliação')
   const [roster, setRoster] = useState<RosterStudent[]>([])
   const [drafts, setDrafts] = useState<Record<string, RowDraft>>({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [newStudentName, setNewStudentName] = useState('')
-  const [addingStudent, setAddingStudent] = useState(false)
 
-  const selectedClass = useMemo(
-    () => classes.find(item => item.id === classId) ?? null,
-    [classes, classId],
+  const selectedPlanning = useMemo(
+    () => planning.find(item => item.id === planningId) ?? null,
+    [planning, planningId],
+  )
+
+  const availablePlanning = useMemo(
+    () => planning.filter(item => item.class_id === classId && item.status !== 'arquivado'),
+    [planning, classId],
   )
 
   useEffect(() => {
-    if (selectedClass?.subject && !componentId) {
-      setComponentId(selectedClass.subject)
-    }
-  }, [selectedClass, componentId])
+    setPlanningId('')
+    setRoster([])
+    setDrafts({})
+  }, [classId])
 
   async function loadDiary() {
     if (!classId) {
       setError('Selecione uma turma.')
+      return
+    }
+
+    if (!planningId) {
+      setError('Selecione um planejamento da turma antes de abrir o Diário de Classe.')
       return
     }
 
@@ -156,6 +177,9 @@ export default function ClassDiaryPanel() {
           studentId: student.id,
           lessonDate,
           status,
+          notes: selectedPlanning
+            ? `Planejamento: ${selectedPlanning.title}`
+            : null,
         }),
       })
       const body = await response.json() as DiaryResponse
@@ -190,8 +214,10 @@ export default function ClassDiaryPanel() {
     const row = drafts[student.id]
     if (!row) return
 
-    if (!componentId.trim() || !academicPeriodId.trim() || !instrumentTitle.trim()) {
-      setError('Para lançar nota, informe componente, período e instrumento no topo.')
+    const componentId = selectedClass?.subject?.trim() ?? ''
+
+    if (!componentId || !academicPeriodId || !instrumentTitle.trim()) {
+      setError('Para lançar nota, a turma precisa ter componente e período letivo configurados.')
       return
     }
 
@@ -224,8 +250,8 @@ export default function ClassDiaryPanel() {
           grade: {
             studentId: student.id,
             classId,
-            componentId: componentId.trim(),
-            academicPeriodId: academicPeriodId.trim(),
+            componentId,
+            academicPeriodId,
             type: 'assessment',
             title: instrumentTitle.trim(),
             value: row.grade === '' ? null : Number(row.grade),
@@ -235,6 +261,8 @@ export default function ClassDiaryPanel() {
               source: 'agenda_class_diary',
               lessonDate,
               studentName: student.full_name,
+              planningId,
+              planningTitle: selectedPlanning?.title ?? null,
             },
           },
         }),
@@ -268,40 +296,6 @@ export default function ClassDiaryPanel() {
     }
   }
 
-  async function addStudent() {
-    if (!classId || !newStudentName.trim()) return
-    setAddingStudent(true)
-    setError(null)
-
-    try {
-      const response = await fetch('/api/agenda/diario-classe', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          operation: 'add_student',
-          classId,
-          fullName: newStudentName.trim(),
-          sequenceNumber: roster.length + 1,
-        }),
-      })
-      const body = await response.json() as DiaryResponse
-      if (!response.ok || !body.success || !body.student) {
-        throw new Error(body.error || 'Não foi possível adicionar o estudante.')
-      }
-      setNewStudentName('')
-      await loadDiary()
-    } catch (addError) {
-      setError(
-        addError instanceof Error
-          ? addError.message
-          : 'Não foi possível adicionar o estudante.',
-      )
-    } finally {
-      setAddingStudent(false)
-    }
-  }
-
   async function markAllPresent() {
     for (const student of roster) {
       if (drafts[student.id]?.attendance !== 'present') {
@@ -319,18 +313,18 @@ export default function ClassDiaryPanel() {
           </p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight">Diário de Classe</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-            Uma única lista nominal para frequência e notas. O estudante permanece visível durante todo o lançamento para reduzir trocas e registros incorretos.
+            A chamada consome a lista nominal já cadastrada. A aula é aberta a partir de um planejamento da turma, preservando o encadeamento pedagógico.
           </p>
         </div>
       </header>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <label className="text-sm font-semibold text-slate-700 xl:col-span-2">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <label className="text-sm font-semibold text-slate-700">
             Turma
             <select
               value={classId}
-              onChange={event => setClassId(event.target.value)}
+              onChange={event => changeClass(event.target.value)}
               disabled={classesLoading}
               className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 font-normal outline-none focus:border-cyan-500"
             >
@@ -339,6 +333,27 @@ export default function ClassDiaryPanel() {
                 <option key={item.id} value={item.id}>
                   {item.name}{item.subject ? ` · ${item.subject}` : ''}
                 </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="text-sm font-semibold text-slate-700">
+            Planejamento
+            <select
+              value={planningId}
+              onChange={event => setPlanningId(event.target.value)}
+              disabled={!classId || planningLoading}
+              className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 font-normal"
+            >
+              <option value="">
+                {!classId
+                  ? 'Selecione a turma primeiro'
+                  : availablePlanning.length === 0
+                    ? 'Nenhum planejamento disponível'
+                    : 'Selecione o planejamento'}
+              </option>
+              {availablePlanning.map(item => (
+                <option key={item.id} value={item.id}>{item.title}</option>
               ))}
             </select>
           </label>
@@ -354,25 +369,34 @@ export default function ClassDiaryPanel() {
           </label>
 
           <label className="text-sm font-semibold text-slate-700">
-            Componente
-            <input
-              value={componentId}
-              onChange={event => setComponentId(event.target.value)}
-              placeholder="Ex.: Física"
-              className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 px-3 py-2.5 font-normal"
-            />
-          </label>
-
-          <label className="text-sm font-semibold text-slate-700">
-            Período
-            <input
+            Período letivo
+            <select
               value={academicPeriodId}
               onChange={event => setAcademicPeriodId(event.target.value)}
-              placeholder="Ex.: 2º bimestre"
-              className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 px-3 py-2.5 font-normal"
-            />
+              disabled={periodsLoading || academicPeriods.length === 0}
+              className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 font-normal"
+            >
+              <option value="">
+                {periodsLoading
+                  ? 'Carregando períodos...'
+                  : academicPeriods.length === 0
+                    ? 'Período ainda não configurado'
+                    : 'Selecione o período'}
+              </option>
+              {academicPeriods.map(period => (
+                <option key={period.id} value={period.id}>{period.name}</option>
+              ))}
+            </select>
           </label>
         </div>
+
+        {selectedClass ? (
+          <div className="mt-4 grid gap-3 rounded-xl border border-cyan-200 bg-cyan-50 p-4 text-sm text-slate-700 sm:grid-cols-3">
+            <div><span className="block text-xs font-bold uppercase text-[#0B7491]">Turma</span>{selectedClass.name}</div>
+            <div><span className="block text-xs font-bold uppercase text-[#0B7491]">Componente</span>{selectedClass.subject ?? 'Não configurado'}</div>
+            <div><span className="block text-xs font-bold uppercase text-[#0B7491]">Planejamento</span>{selectedPlanning?.title ?? 'Selecione acima'}</div>
+          </div>
+        ) : null}
 
         <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
           <label className="text-sm font-semibold text-slate-700">
@@ -387,42 +411,26 @@ export default function ClassDiaryPanel() {
           <button
             type="button"
             onClick={() => void loadDiary()}
-            disabled={loading || !classId}
-            className="min-h-12 rounded-xl bg-[#071827] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#0B2940] disabled:opacity-60"
+            disabled={loading || !classId || !planningId}
+            className="min-h-12 rounded-xl bg-[#071827] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#0B2940] disabled:opacity-50"
           >
-            {loading ? 'Carregando…' : 'Abrir turma'}
+            {loading ? 'Carregando…' : 'Abrir chamada'}
           </button>
         </div>
 
-        {error ? (
+        {(classesError || periodsError || error) ? (
           <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">
-            {error}
+            {error || classesError || periodsError}
           </p>
         ) : null}
       </section>
 
-      {classId && roster.length === 0 && !loading ? (
+      {classId && planningId && roster.length === 0 && !loading ? (
         <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-[#071827]">Lista nominal ainda vazia</p>
-          <p className="mt-1 text-sm text-slate-600">
-            Adicione os estudantes uma única vez. Depois, o Diário sempre abrirá a mesma lista da turma.
+          <p className="text-sm font-semibold text-[#071827]">Nenhum estudante vinculado a esta turma.</p>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            A chamada não cadastra estudantes. Cadastre ou importe a lista nominal na gestão da turma e retorne ao Diário.
           </p>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <input
-              value={newStudentName}
-              onChange={event => setNewStudentName(event.target.value)}
-              placeholder="Nome completo do estudante"
-              className="min-h-12 flex-1 rounded-xl border border-slate-300 px-4 py-3"
-            />
-            <button
-              type="button"
-              onClick={() => void addStudent()}
-              disabled={addingStudent || !newStudentName.trim()}
-              className="min-h-12 rounded-xl bg-[#0B7491] px-5 py-3 font-bold text-white disabled:opacity-60"
-            >
-              Adicionar estudante
-            </button>
-          </div>
         </section>
       ) : null}
 
@@ -434,30 +442,17 @@ export default function ClassDiaryPanel() {
               <h2 className="mt-1 text-xl font-bold text-[#071827]">
                 {selectedClass?.name ?? 'Turma'} · {roster.length} estudantes
               </h2>
+              <p className="mt-1 text-xs text-slate-500">
+                {selectedPlanning?.title ?? ''} · {lessonDate}
+              </p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => void markAllPresent()}
-                className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-800"
-              >
-                Marcar todos presentes
-              </button>
-              <input
-                value={newStudentName}
-                onChange={event => setNewStudentName(event.target.value)}
-                placeholder="Adicionar estudante"
-                className="min-h-10 rounded-xl border border-slate-300 px-3 py-2 text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => void addStudent()}
-                disabled={addingStudent || !newStudentName.trim()}
-                className="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-bold text-[#075F78] disabled:opacity-60"
-              >
-                Adicionar
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => void markAllPresent()}
+              className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-800"
+            >
+              Marcar todos presentes
+            </button>
           </header>
 
           <div className="divide-y divide-slate-100">
@@ -474,9 +469,10 @@ export default function ClassDiaryPanel() {
                     <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
                       Estudante {String(student.sequence_number ?? index + 1).padStart(2, '0')}
                     </p>
-                    <p className="mt-1 truncate text-base font-bold text-[#071827]">
-                      {student.full_name}
-                    </p>
+                    <p className="mt-1 truncate text-base font-bold text-[#071827]">{student.full_name}</p>
+                    {student.enrollment_code ? (
+                      <p className="mt-1 text-xs text-slate-500">Matrícula {student.enrollment_code}</p>
+                    ) : null}
                   </div>
 
                   <div className="flex flex-wrap gap-2" aria-label={`Frequência de ${student.full_name}`}>
@@ -559,7 +555,7 @@ export default function ClassDiaryPanel() {
       ) : null}
 
       <aside className="rounded-2xl border border-cyan-200 bg-cyan-50 p-5 text-sm leading-6 text-slate-700">
-        O Diário de Classe é a tela operacional de lançamento coletivo. O Caderno Pedagógico continua sendo a visão individual e longitudinal do estudante; Analytics analisa os resultados e o Professor Digital apoia a interpretação e a intervenção.
+        O Diário de Classe é uma tela operacional. Cadastros de turma e estudante ficam fora da chamada; o Diário apenas consome o contexto previamente organizado e registra o que aconteceu na aula.
       </aside>
     </section>
   )
