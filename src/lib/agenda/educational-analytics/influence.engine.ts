@@ -1867,42 +1867,106 @@ function enumeratePaths(
           ].join(':'),
         )
 
+      const pathEdges =
+        nextEdgeIds
+          .map(
+            edgeId =>
+              indexes.edgeById.get(edgeId),
+          )
+          .filter(
+            (
+              pathEdge,
+            ): pathEdge is InfluenceEdge =>
+              Boolean(pathEdge),
+          )
+
+      const sourceNode =
+        indexes.nodeById.get(
+          originNodeId,
+        )
+
+      const targetNode =
+        indexes.nodeById.get(
+          neighbor,
+        )
+
+      const pathWeight =
+        pathEdges.length > 0
+          ? pathEdges.reduce(
+              (total, pathEdge) =>
+                total +
+                pathEdge.weight,
+              0,
+            ) / pathEdges.length
+          : null
+
+      const confidenceValue =
+        mean(nextConfidence)
+
       paths.push({
         id: pathId,
-        sourceNodeId:
+        sourceEntityId:
+          sourceNode?.entityId ??
           originNodeId,
-        targetNodeId:
+        targetEntityId:
+          targetNode?.entityId ??
           neighbor,
         nodeIds:
           nextNodeIds,
         edgeIds:
           nextEdgeIds,
-        relationTypes:
-          nextEdgeIds.map(
-            edgeId =>
-              indexes.edgeById.get(edgeId)
-                ?.type ??
-              'custom',
-          ) as never,
-        length:
+        pathLength:
           nextEdgeIds.length,
-        averageConfidence:
-          mean(nextConfidence),
-        minimumConfidence:
-          nextConfidence.length > 0
-            ? Math.min(...nextConfidence)
-            : null,
-        containsInferredRelations:
-          current.containsInferred ||
-          edge.inferred,
-        humanValidated:
+        weight:
+          pathWeight,
+        confidence:
+          buildConfidence(
+            confidenceValue,
+            nextEdgeIds.length,
+            'influence_path',
+            'Confiança baseada nas arestas que compõem o caminho de influência.',
+          ),
+        direct:
+          nextEdgeIds.length === 1,
+        temporal:
+          pathEdges.some(
+            pathEdge =>
+              Boolean(
+                pathEdge.observedAt ||
+                pathEdge.validFrom ||
+                pathEdge.validUntil,
+              ),
+          ),
+        spatial:
+          pathEdges.some(
+            pathEdge =>
+              pathEdge.type ===
+              'proximity',
+          ),
+        validatedByHuman:
           current.validatedByHuman &&
           edge.validatedByHuman,
-        causalityWarning:
-          true,
+        causalityStatus:
+          'association_only',
         metadata: {
           engineName:
             ENGINE_NAME,
+          engineVersion:
+            ENGINE_VERSION,
+          relationTypes:
+            pathEdges.map(
+              pathEdge =>
+                pathEdge.type,
+            ),
+          containsInferredRelations:
+            current.containsInferred ||
+            edge.inferred,
+          minimumConfidence:
+            nextConfidence.length > 0
+              ? Math.min(
+                  ...nextConfidence,
+                )
+              : null,
         },
       })
 
@@ -2151,10 +2215,19 @@ function buildInfluenceResults(
 
     const targetNodeIds =
       uniqueStrings(
-        paths.map(
-          path =>
-            path.targetNodeId,
-        ),
+        paths
+          .map(
+            path =>
+              path.nodeIds[
+                path.nodeIds.length - 1
+              ],
+          )
+          .filter(
+            (
+              nodeId,
+            ): nodeId is string =>
+              Boolean(nodeId),
+          ),
       )
 
     const targetEntityTypes =
@@ -2278,7 +2351,7 @@ function buildInfluenceResults(
         paths.length > 0
           ? Math.max(
               ...paths.map(
-                path => path.length,
+                path => path.pathLength,
               ),
             )
           : null,
