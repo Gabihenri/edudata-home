@@ -9,6 +9,9 @@ import {
   AgendaNavigation,
 } from '@/components/agenda/AgendaNavigation'
 import {
+  AgendaSecondaryNavigation,
+} from '@/components/agenda/AgendaSecondaryNavigation'
+import {
   requireSessionUser,
 } from '@/lib/auth/session'
 
@@ -102,53 +105,7 @@ export default async function AgendaLayout({
         </section>
 
         <AgendaNavigation />
-
-        <section className="border-b border-slate-200 bg-white/90">
-          <div className="mx-auto flex max-w-7xl flex-wrap gap-2 px-4 py-3 sm:px-6 lg:px-8">
-            <Link
-              href="/agenda/avaliacoes"
-              className="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-semibold text-[#075F78] transition hover:bg-cyan-100"
-            >
-              Avaliações
-            </Link>
-            <Link
-              href="/agenda/avaliacoes/resultados"
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50"
-            >
-              Diagnóstico
-            </Link>
-            <Link
-              href="/agenda/avaliacoes/notas"
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50"
-            >
-              Diário de Notas
-            </Link>
-            <Link
-              href="/agenda/avaliacoes/classificacao"
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50"
-            >
-              Classificação
-            </Link>
-            <Link
-              href="/agenda/ocorrencias"
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50"
-            >
-              Ocorrências
-            </Link>
-            <Link
-              href="/agenda/casos"
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50"
-            >
-              Casos Pedagógicos
-            </Link>
-            <Link
-              href="/agenda/caderno"
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50"
-            >
-              Caderno Pedagógico
-            </Link>
-          </div>
-        </section>
+        <AgendaSecondaryNavigation />
 
         <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
           {children}
