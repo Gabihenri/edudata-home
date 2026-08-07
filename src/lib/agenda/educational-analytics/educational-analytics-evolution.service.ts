@@ -71,10 +71,56 @@ function normalizeRequiredText(
   return normalized
 }
 
+function safeText(
+  value: unknown,
+  fallback: string,
+): string {
+  return typeof value === 'string' && value.trim()
+    ? value.trim()
+    : fallback
+}
+
+function safeNumber(
+  value: unknown,
+  fallback = 0,
+): number {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : fallback
+}
+
+function safeDateIso(
+  value: unknown,
+): string {
+  if (typeof value === 'string') {
+    const parsed = new Date(value)
+
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString()
+    }
+  }
+
+  return new Date(0).toISOString()
+}
+
 function readDataQualityScore(
   row: EducationalAnalyticsRunRow,
 ): number | null {
-  const raw = row.data_quality?.overallScore
+  const rawContainer = row.data_quality
+
+  if (
+    !rawContainer ||
+    typeof rawContainer !== 'object' ||
+    Array.isArray(rawContainer)
+  ) {
+    return null
+  }
+
+  const container = rawContainer as Record<string, unknown>
+  const raw =
+    container.overallScore ??
+    container.overall_score ??
+    container.score
 
   return typeof raw === 'number' && Number.isFinite(raw)
     ? raw
@@ -85,22 +131,25 @@ function toPoint(
   row: EducationalAnalyticsRunRow,
 ): EducationalAnalyticsEvolutionPoint {
   return {
-    runId: row.id,
-    analysisKey: row.analysis_key,
-    versionNumber: row.version_number,
-    versionLabel: row.version_label,
-    generatedAt: row.generated_at,
-    status: row.status,
-    approved: row.approved,
-    humanReviewStatus: row.human_review_status,
+    runId: safeText(row.id, 'unknown-run'),
+    analysisKey: safeText(row.analysis_key, 'unknown-analysis'),
+    versionNumber: Math.max(1, Math.trunc(safeNumber(row.version_number, 1))),
+    versionLabel: safeText(row.version_label, '1.0'),
+    generatedAt: safeDateIso(row.generated_at),
+    status: safeText(row.status, 'unknown'),
+    approved: row.approved === true,
+    humanReviewStatus: safeText(
+      row.human_review_status,
+      'pending',
+    ),
     counts: {
-      correlations: row.correlation_count,
-      patterns: row.pattern_count,
-      anomalies: row.anomaly_count,
-      influences: row.influence_count,
-      predictions: row.prediction_count,
-      recommendations: row.recommendation_count,
-      researchResults: row.research_result_count,
+      correlations: Math.max(0, safeNumber(row.correlation_count)),
+      patterns: Math.max(0, safeNumber(row.pattern_count)),
+      anomalies: Math.max(0, safeNumber(row.anomaly_count)),
+      influences: Math.max(0, safeNumber(row.influence_count)),
+      predictions: Math.max(0, safeNumber(row.prediction_count)),
+      recommendations: Math.max(0, safeNumber(row.recommendation_count)),
+      researchResults: Math.max(0, safeNumber(row.research_result_count)),
     },
     dataQualityScore: readDataQualityScore(row),
   }
@@ -110,8 +159,14 @@ function buildTrend(
   metric: EducationalAnalyticsEvolutionMetric,
   points: EducationalAnalyticsEvolutionPoint[],
 ): EducationalAnalyticsEvolutionTrend {
-  const first = points[0]?.counts[metric] ?? 0
-  const latest = points.at(-1)?.counts[metric] ?? 0
+  const firstPoint = points.length > 0 ? points[0] : null
+  const latestPoint =
+    points.length > 0
+      ? points[points.length - 1]
+      : null
+
+  const first = firstPoint?.counts[metric] ?? 0
+  const latest = latestPoint?.counts[metric] ?? 0
   const delta = latest - first
 
   return {
@@ -139,24 +194,29 @@ export async function buildEducationalAnalyticsEvolution({
   analysisKey?: string | null
   limit?: number
 }): Promise<EducationalAnalyticsEvolutionResult> {
+  const normalizedLimit =
+    Number.isFinite(limit)
+      ? Math.min(100, Math.max(2, Math.trunc(limit)))
+      : 50
+
   const rows = await listEducationalAnalyticsHistory({
     client,
     options: {
       userId: normalizeRequiredText(userId, 'userId'),
       analysisKey: analysisKey?.trim() || null,
       includeArchived: false,
-      limit: Math.min(100, Math.max(2, Math.trunc(limit))),
+      limit: normalizedLimit,
     },
   })
 
-  const points = rows
-    .slice()
+  const points = (Array.isArray(rows) ? rows : [])
+    .map(toPoint)
+    .filter(point => point.runId !== 'unknown-run')
     .sort(
       (first, second) =>
-        new Date(first.generated_at).getTime() -
-        new Date(second.generated_at).getTime(),
+        new Date(first.generatedAt).getTime() -
+        new Date(second.generatedAt).getTime(),
     )
-    .map(toPoint)
 
   const metrics: EducationalAnalyticsEvolutionMetric[] = [
     'correlations',
@@ -186,6 +246,12 @@ export async function buildEducationalAnalyticsEvolution({
     )
   }
 
+  const firstPoint = points.length > 0 ? points[0] : null
+  const latestPoint =
+    points.length > 0
+      ? points[points.length - 1]
+      : null
+
   return {
     points,
     trends: metrics.map(metric => buildTrend(metric, points)),
@@ -197,8 +263,8 @@ export async function buildEducationalAnalyticsEvolution({
         points.filter(
           point => point.humanReviewStatus === 'pending',
         ).length,
-      firstGeneratedAt: points[0]?.generatedAt ?? null,
-      latestGeneratedAt: points.at(-1)?.generatedAt ?? null,
+      firstGeneratedAt: firstPoint?.generatedAt ?? null,
+      latestGeneratedAt: latestPoint?.generatedAt ?? null,
     },
     generatedAt: new Date().toISOString(),
     warnings,
