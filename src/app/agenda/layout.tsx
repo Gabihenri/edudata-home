@@ -17,16 +17,66 @@ import {
 import {
   requireSessionUser,
 } from '@/lib/auth/session'
+import {
+  profileService,
+} from '@/lib/profile/profile.service'
 
 type AgendaLayoutProps = {
   children: ReactNode
+}
+
+function getDefaultDisplayName(
+  user: Awaited<
+    ReturnType<typeof requireSessionUser>
+  >,
+): string | null {
+  const fullName =
+    user.user_metadata?.full_name
+
+  if (
+    typeof fullName === 'string' &&
+    fullName.trim()
+  ) {
+    return fullName.trim()
+  }
+
+  const name =
+    user.user_metadata?.name
+
+  if (
+    typeof name === 'string' &&
+    name.trim()
+  ) {
+    return name.trim()
+  }
+
+  if (user.email) {
+    return (
+      user.email
+        .split('@')[0]
+        ?.trim() || null
+    )
+  }
+
+  return null
 }
 
 export default async function AgendaLayout({
   children,
 }: AgendaLayoutProps) {
   try {
-    await requireSessionUser()
+    const user =
+      await requireSessionUser()
+
+    const profile =
+      await profileService.getOrCreate(
+        user.id,
+        getDefaultDisplayName(user),
+      )
+
+    if (!profile.onboarding_completed) {
+      redirect('/perfil/onboarding')
+    }
 
     return (
       <div className="min-h-screen bg-[#EEF3F7] pb-[calc(4rem+env(safe-area-inset-bottom))] text-slate-950 lg:pb-0">
@@ -127,7 +177,14 @@ export default async function AgendaLayout({
         <AgendaMobileNavigation />
       </div>
     )
-  } catch {
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message === 'NEXT_REDIRECT'
+    ) {
+      throw error
+    }
+
     redirect('/login')
   }
 }
