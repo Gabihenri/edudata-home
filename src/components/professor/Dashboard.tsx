@@ -32,6 +32,7 @@ export default async function Dashboard() {
   const eiosData = await getProfessorDigitalData()
 
   const navigation = [
+    { label: 'Copiloto', href: '/professor-digital/copiloto' },
     { label: 'Perfil docente', href: '/professor-digital/perfil' },
     { label: 'Plano', href: '/professor-digital/plano' },
     { label: 'Evidências', href: '/professor-digital/evidencias' },
@@ -48,12 +49,11 @@ export default async function Dashboard() {
           </p>
 
           <h1 className="mt-4 max-w-4xl text-5xl font-bold leading-tight">
-            Desenvolvimento profissional orientado por evidências
+            Copiloto pedagógico orientado por evidências
           </h1>
 
           <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
-            Perfil docente, recomendações inteligentes, plano de desenvolvimento
-            e evidências conectadas ao EIOS da EduData IA.
+            O Professor Digital interpreta o contexto registrado na Agenda Inteligente EDI para apoiar planejamento, análise, acompanhamento e desenvolvimento profissional. A Agenda opera; o Copiloto recomenda.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
@@ -82,6 +82,46 @@ export default async function Dashboard() {
       <section className="mx-auto grid max-w-7xl gap-8 px-6 pb-16 lg:grid-cols-2">
         <Recommendations eiosData={eiosData} />
         <DevelopmentPlan />
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 pb-12">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <Link
+            href="/agenda/avaliacoes"
+            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-cyan-300"
+          >
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-cyan-700">Avaliar</p>
+            <h2 className="mt-2 font-bold text-slate-950">Centro de Avaliações</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Diagnóstico e resultados que alimentam o contexto do Copiloto.</p>
+          </Link>
+
+          <Link
+            href="/agenda/avaliacoes/classificacao"
+            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-cyan-300"
+          >
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-cyan-700">Interpretar</p>
+            <h2 className="mt-2 font-bold text-slate-950">Classificação da Aprendizagem</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Nível e tendência com regras transparentes e revisão docente.</p>
+          </Link>
+
+          <Link
+            href="/agenda/caderno"
+            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-cyan-300"
+          >
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-cyan-700">Compreender</p>
+            <h2 className="mt-2 font-bold text-slate-950">Caderno Pedagógico</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Timeline longitudinal para contextualizar decisões sobre o estudante.</p>
+          </Link>
+
+          <Link
+            href="/agenda/casos"
+            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-cyan-300"
+          >
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-cyan-700">Acompanhar</p>
+            <h2 className="mt-2 font-bold text-slate-950">Casos Pedagógicos</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Transforme necessidades identificadas em acompanhamento estruturado.</p>
+          </Link>
+        </div>
       </section>
 
       <section className="mx-auto max-w-7xl px-6 pb-24">
