@@ -6,6 +6,9 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import {
+  AgendaMobileNavigation,
+} from '@/components/agenda/AgendaMobileNavigation'
+import {
   AgendaNavigation,
 } from '@/components/agenda/AgendaNavigation'
 import {
@@ -26,12 +29,12 @@ export default async function AgendaLayout({
     await requireSessionUser()
 
     return (
-      <div className="min-h-screen bg-[#EEF3F7] text-slate-950">
+      <div className="min-h-screen bg-[#EEF3F7] pb-[calc(4rem+env(safe-area-inset-bottom))] text-slate-950 lg:pb-0">
         <section className="border-b border-slate-200 bg-white">
-          <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-6">
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.18em]">
+                <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] sm:text-xs">
                   <Link
                     href="/portal"
                     className="text-[#0B7491] transition hover:text-[#075F78]"
@@ -46,29 +49,29 @@ export default async function AgendaLayout({
                   </span>
                 </div>
 
-                <div className="mt-4 flex items-start gap-4">
+                <div className="mt-3 flex items-start gap-4 sm:mt-4">
                   <div
                     aria-hidden="true"
                     className="mt-1 hidden h-16 w-2 shrink-0 rounded-full bg-[#0B7491] sm:block"
                   />
 
                   <div className="min-w-0">
-                    <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#0B7491]">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#0B7491] sm:text-xs sm:tracking-[0.22em]">
                       Evidências, inclusão e inteligência
                     </p>
 
-                    <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#071827] sm:text-4xl">
+                    <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-[#071827] sm:mt-2 sm:text-4xl">
                       Agenda Inteligente EDI
                     </h1>
 
-                    <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base sm:leading-7">
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 sm:mt-3 sm:text-base sm:leading-7">
                       Planejamento, registros, evidências, acompanhamento e análise pedagógica em um único ambiente operacional.
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap lg:max-w-sm lg:justify-end">
+              <div className="hidden grid-cols-2 gap-3 sm:flex sm:flex-wrap lg:flex lg:max-w-sm lg:justify-end">
                 <Link
                   href="/portal"
                   className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78]"
@@ -85,20 +88,20 @@ export default async function AgendaLayout({
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-3 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-              <div className="border-r border-slate-200 px-3 py-4 text-center sm:px-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 sm:text-xs">Organizar</p>
-                <p className="mt-1 text-sm font-bold text-[#071827] sm:text-base">Planejamento</p>
+            <div className="mt-5 grid grid-cols-3 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 sm:mt-6">
+              <div className="border-r border-slate-200 px-2 py-3 text-center sm:px-5 sm:py-4">
+                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500 sm:text-xs sm:tracking-[0.14em]">Organizar</p>
+                <p className="mt-1 truncate text-xs font-bold text-[#071827] sm:text-base">Planejamento</p>
               </div>
 
-              <div className="border-r border-slate-200 px-3 py-4 text-center sm:px-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 sm:text-xs">Registrar</p>
-                <p className="mt-1 text-sm font-bold text-[#071827] sm:text-base">Evidências</p>
+              <div className="border-r border-slate-200 px-2 py-3 text-center sm:px-5 sm:py-4">
+                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500 sm:text-xs sm:tracking-[0.14em]">Registrar</p>
+                <p className="mt-1 truncate text-xs font-bold text-[#071827] sm:text-base">Evidências</p>
               </div>
 
-              <div className="px-3 py-4 text-center sm:px-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 sm:text-xs">Analisar</p>
-                <p className="mt-1 text-sm font-bold text-[#071827] sm:text-base">Indicadores</p>
+              <div className="px-2 py-3 text-center sm:px-5 sm:py-4">
+                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500 sm:text-xs sm:tracking-[0.14em]">Analisar</p>
+                <p className="mt-1 truncate text-xs font-bold text-[#071827] sm:text-base">Indicadores</p>
               </div>
             </div>
           </div>
@@ -107,9 +110,10 @@ export default async function AgendaLayout({
         <div className="hidden lg:block">
           <AgendaNavigation />
         </div>
+
         <AgendaSecondaryNavigation />
 
-        <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+        <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
           {children}
         </main>
 
@@ -119,6 +123,8 @@ export default async function AgendaLayout({
             <p>Produto operacional integrado ao EIOS</p>
           </div>
         </footer>
+
+        <AgendaMobileNavigation />
       </div>
     )
   } catch {
