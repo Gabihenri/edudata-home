@@ -16,9 +16,10 @@
  * - executar Correlation Engine quando habilitado;
  * - executar Pattern Engine quando habilitado;
  * - executar Influence Engine quando houver grafo disponível;
+ * - executar Prediction Engine somente quando explicitamente habilitado;
  * - consolidar os resultados no contrato oficial;
  * - preservar explicabilidade, rastreabilidade e revisão humana;
- * - nunca converter associação em causalidade.
+ * - nunca converter associação ou previsão em causalidade.
  */
 
 import {
@@ -41,6 +42,12 @@ import {
   type InfluenceEngineResult,
 } from './influence.engine'
 
+import {
+  runPredictionEngine,
+  type PredictionEngineResult,
+  type PredictionTarget,
+} from './prediction.engine'
+
 import type {
   AnalyticsCapability,
   AnalyticsMetadata,
@@ -54,7 +61,7 @@ const SERVICE_NAME =
   'eios-educational-analytics-service'
 
 const SERVICE_VERSION =
-  '1.0.0'
+  '1.1.0'
 
 export type EducationalAnalyticsSpecializedExecution = {
   correlation:
@@ -65,6 +72,9 @@ export type EducationalAnalyticsSpecializedExecution = {
 
   influence:
     InfluenceEngineResult | null
+
+  prediction:
+    PredictionEngineResult | null
 }
 
 export type RunEducationalAnalyticsInput = {
@@ -77,11 +87,16 @@ export type RunEducationalAnalyticsInput = {
       'correlationId'
     > | null
 
+  predictionTargets?:
+    PredictionTarget[]
+
   executeCorrelation?: boolean
 
   executePattern?: boolean
 
   executeInfluence?: boolean
+
+  executePrediction?: boolean
 
   metadata?: AnalyticsMetadata
 }
@@ -189,6 +204,7 @@ export function runEducationalAnalytics(
       correlation: null,
       pattern: null,
       influence: null,
+      prediction: null,
     }
 
   const executedCapabilities:
@@ -251,6 +267,18 @@ export function runEducationalAnalytics(
     isCapabilityEnabled(
       request.input,
       'influence_engine',
+    )
+
+  const shouldExecutePrediction =
+    request.executePrediction ??
+    (
+      request.input
+        .configuration
+        .generatePredictions &&
+      isCapabilityEnabled(
+        request.input,
+        'prediction_engine',
+      )
     )
 
   if (shouldExecuteCorrelation) {
@@ -385,6 +413,63 @@ export function runEducationalAnalytics(
     }
   }
 
+  if (shouldExecutePrediction) {
+    specialized.prediction =
+      runPredictionEngine({
+        observations:
+          base.analytics.observations,
+        variableDefinitions:
+          base.analytics
+            .configuration
+            .variableDefinitions,
+        targets:
+          request.predictionTargets,
+        defaultHorizon: 1,
+        defaultHorizonUnit:
+          base.analytics
+            .configuration
+            .timeWindow
+            .granularity,
+        minimumObservations:
+          base.analytics
+            .configuration
+            .minimumSampleSize,
+        allowSensitiveVariables:
+          base.analytics
+            .configuration
+            .allowSensitiveAttributes,
+        requestedByUserId:
+          base.analytics
+            .context
+            .requestedByUserId,
+        correlationId:
+          request.input
+            .correlationId,
+        metadata: {
+          analysisId:
+            base.analytics.id,
+          serviceName:
+            SERVICE_NAME,
+        },
+      })
+
+    executedCapabilities.push(
+      'prediction_engine',
+    )
+
+    warnings.push(
+      ...specialized
+        .prediction
+        .warnings,
+    )
+
+    errors.push(
+      ...specialized
+        .prediction
+        .errors,
+    )
+  }
+
   const normalizedWarnings =
     uniqueStrings(
       warnings.filter(
@@ -420,6 +505,11 @@ export function runEducationalAnalytics(
       specialized.influence
         ?.influences ??
       base.analytics.influences,
+
+    predictions:
+      specialized.prediction
+        ?.predictions ??
+      base.analytics.predictions,
 
     warnings:
       normalizedWarnings,
@@ -474,6 +564,11 @@ export function runEducationalAnalytics(
           specialized.influence
             ?.propagations ??
           [],
+        predictionCount:
+          specialized.prediction
+            ?.predictions
+            .length ??
+          0,
       },
     },
   }
@@ -522,10 +617,12 @@ export function getEducationalAnalyticsServiceInfo() {
       'correlation_engine',
       'pattern_engine',
       'influence_engine',
+      'prediction_engine',
     ] as AnalyticsCapability[],
     guarantees: [
       'single_analytics_contract',
       'correlation_is_not_causation',
+      'prediction_is_not_causation',
       'human_review_preserved',
       'professional_autonomy_preserved',
       'specialized_results_are_traceable',
