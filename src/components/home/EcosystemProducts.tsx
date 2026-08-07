@@ -34,11 +34,11 @@ const productStages:
         'border-emerald-200 bg-emerald-50 text-emerald-800',
     },
     analytics: {
-      label: 'Roadmap',
+      label: 'Operacional',
       description:
-        'Camada analítica planejada para indicadores e apoio à decisão.',
+        'Produto ativo de inteligência analítica, histórico longitudinal, comparação, tendências e exportação institucional.',
       badgeClassName:
-        'border-slate-200 bg-slate-100 text-slate-700',
+        'border-cyan-200 bg-cyan-50 text-[#075F78]',
     },
     sgpa: {
       label: 'Roadmap',
@@ -104,6 +104,13 @@ function getProductAction(
     'academy'
   ) {
     return 'Acessar a Academy'
+  }
+
+  if (
+    productId ===
+    'analytics'
+  ) {
+    return 'Acessar o Analytics'
   }
 
   return 'Conhecer o produto'
