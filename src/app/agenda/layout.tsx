@@ -141,6 +141,12 @@ export default async function AgendaLayout({
             >
               Casos Pedagógicos
             </Link>
+            <Link
+              href="/agenda/caderno"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50"
+            >
+              Caderno Pedagógico
+            </Link>
           </div>
         </section>
 
