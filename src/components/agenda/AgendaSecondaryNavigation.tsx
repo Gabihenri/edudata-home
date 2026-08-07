@@ -34,7 +34,7 @@ const items = [
     href: '/agenda/casos',
   },
   {
-    label: 'Caderno Pedagógico',
+    label: 'Estudantes',
     href: '/agenda/caderno',
   },
 ] as const
