@@ -17,7 +17,7 @@ export default function manifest():
       'Camada operacional da EduData IA para planejamento, registros, turmas, tarefas, evidências e acompanhamento pedagógico.',
 
     start_url:
-      '/agenda',
+      '/agenda/dashboard',
 
     scope:
       '/',
