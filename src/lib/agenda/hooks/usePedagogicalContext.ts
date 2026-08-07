@@ -13,6 +13,29 @@ export type PedagogicalContextStudent = {
   active: boolean
 }
 
+export type PedagogicalContextPeriod = {
+  id: string
+  name: string
+  code: string | null
+  sequence: number
+  start_date: string
+  end_date: string
+  status: string
+}
+
+type CalendarContext = {
+  organization: { id: string }
+  school: { id: string }
+}
+
+type SchoolYear = {
+  id: string
+  year: number
+  name: string | null
+  active: boolean
+  status: string
+}
+
 type ClassDiaryResponse = {
   success?: boolean
   roster?: PedagogicalContextStudent[]
@@ -33,6 +56,11 @@ export function usePedagogicalContext(initialClassId = '') {
   const [studentsLoading, setStudentsLoading] = useState(false)
   const [studentsError, setStudentsError] = useState<string | null>(null)
 
+  const [academicPeriodId, setAcademicPeriodId] = useState('')
+  const [academicPeriods, setAcademicPeriods] = useState<PedagogicalContextPeriod[]>([])
+  const [periodsLoading, setPeriodsLoading] = useState(false)
+  const [periodsError, setPeriodsError] = useState<string | null>(null)
+
   const selectedClass = useMemo(
     () => classes.find(item => item.id === classId) ?? null,
     [classes, classId],
@@ -41,6 +69,11 @@ export function usePedagogicalContext(initialClassId = '') {
   const selectedStudent = useMemo(
     () => students.find(item => item.id === studentId) ?? null,
     [students, studentId],
+  )
+
+  const selectedAcademicPeriod = useMemo(
+    () => academicPeriods.find(item => item.id === academicPeriodId) ?? null,
+    [academicPeriods, academicPeriodId],
   )
 
   const loadStudents = useCallback(async (nextClassId: string) => {
@@ -83,10 +116,111 @@ export function usePedagogicalContext(initialClassId = '') {
     }
   }, [])
 
+  const loadAcademicPeriods = useCallback(async () => {
+    setPeriodsLoading(true)
+    setPeriodsError(null)
+
+    try {
+      const contextsResponse = await fetch(
+        '/api/agenda/institutional-calendar/contexts?limit=100',
+        { credentials: 'include', cache: 'no-store' },
+      )
+
+      const contextsBody = await contextsResponse.json() as {
+        success?: boolean
+        data?: CalendarContext[]
+        error?: string
+      }
+
+      if (!contextsResponse.ok || !contextsBody.success) {
+        throw new Error(contextsBody.error || 'Não foi possível carregar o contexto acadêmico.')
+      }
+
+      const context = contextsBody.data?.[0]
+      if (!context) {
+        setAcademicPeriods([])
+        return
+      }
+
+      const schoolYearsUrl = new URLSearchParams({
+        organizationId: context.organization.id,
+        schoolId: context.school.id,
+      })
+
+      const schoolYearsResponse = await fetch(
+        `/api/agenda/institutional-calendar?${schoolYearsUrl.toString()}`,
+        { credentials: 'include', cache: 'no-store' },
+      )
+
+      const schoolYearsBody = await schoolYearsResponse.json() as {
+        success?: boolean
+        data?: SchoolYear[]
+        error?: string
+      }
+
+      if (!schoolYearsResponse.ok || !schoolYearsBody.success) {
+        throw new Error(schoolYearsBody.error || 'Não foi possível carregar o ano letivo.')
+      }
+
+      const currentYear = new Date().getFullYear()
+      const schoolYear =
+        schoolYearsBody.data?.find(item => item.active) ??
+        schoolYearsBody.data?.find(item => item.year === currentYear) ??
+        schoolYearsBody.data?.[0]
+
+      if (!schoolYear) {
+        setAcademicPeriods([])
+        return
+      }
+
+      const periodsResponse = await fetch(
+        `/api/agenda/institutional-calendar/periods?schoolYearId=${encodeURIComponent(schoolYear.id)}`,
+        { credentials: 'include', cache: 'no-store' },
+      )
+
+      const periodsBody = await periodsResponse.json() as {
+        success?: boolean
+        data?: PedagogicalContextPeriod[]
+        error?: string
+      }
+
+      if (!periodsResponse.ok || !periodsBody.success) {
+        throw new Error(periodsBody.error || 'Não foi possível carregar os períodos letivos.')
+      }
+
+      const periods = [...(periodsBody.data ?? [])].sort(
+        (first, second) => first.sequence - second.sequence,
+      )
+
+      setAcademicPeriods(periods)
+
+      if (!academicPeriodId && periods.length > 0) {
+        const today = new Date().toISOString().slice(0, 10)
+        const currentPeriod = periods.find(
+          item => item.start_date <= today && item.end_date >= today,
+        )
+        setAcademicPeriodId(currentPeriod?.id ?? periods[0].id)
+      }
+    } catch (error) {
+      setAcademicPeriods([])
+      setPeriodsError(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível carregar os períodos letivos.',
+      )
+    } finally {
+      setPeriodsLoading(false)
+    }
+  }, [academicPeriodId])
+
   useEffect(() => {
     if (!classId) return
     void loadStudents(classId)
   }, [classId, loadStudents])
+
+  useEffect(() => {
+    void loadAcademicPeriods()
+  }, [loadAcademicPeriods])
 
   function changeClass(nextClassId: string) {
     setClassId(nextClassId)
@@ -100,6 +234,7 @@ export function usePedagogicalContext(initialClassId = '') {
     classId,
     changeClass,
     selectedClass,
+
     students,
     studentsLoading,
     studentsError,
@@ -107,5 +242,13 @@ export function usePedagogicalContext(initialClassId = '') {
     setStudentId,
     selectedStudent,
     reloadStudents: () => loadStudents(classId),
+
+    academicPeriods,
+    periodsLoading,
+    periodsError,
+    academicPeriodId,
+    setAcademicPeriodId,
+    selectedAcademicPeriod,
+    reloadAcademicPeriods: loadAcademicPeriods,
   }
 }
