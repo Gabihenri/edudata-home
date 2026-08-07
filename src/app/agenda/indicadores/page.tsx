@@ -5,12 +5,13 @@ import {
 import EducationalAnalyticsPanel from '@/components/agenda/educational-analytics/EducationalAnalyticsPanel'
 import EducationalAnalyticsHistoryPanel from '@/components/agenda/educational-analytics/EducationalAnalyticsHistoryPanel'
 import EducationalAnalyticsComparisonPanel from '@/components/agenda/educational-analytics/EducationalAnalyticsComparisonPanel'
+import EducationalAnalyticsEvolutionPanel from '@/components/agenda/educational-analytics/EducationalAnalyticsEvolutionPanel'
 
 export const metadata = {
   title:
     'Indicadores | Agenda Inteligente EDI',
   description:
-    'Indicadores operacionais, inteligência educacional, histórico longitudinal e comparação de versões da Agenda Inteligente EDI.',
+    'Indicadores operacionais, inteligência educacional, histórico longitudinal, comparação de versões e evolução temporal da Agenda Inteligente EDI.',
 }
 
 export default function AgendaIndicatorsPage() {
@@ -22,6 +23,7 @@ export default function AgendaIndicatorsPage() {
         <EducationalAnalyticsPanel />
         <EducationalAnalyticsHistoryPanel />
         <EducationalAnalyticsComparisonPanel />
+        <EducationalAnalyticsEvolutionPanel />
       </div>
     </main>
   )
