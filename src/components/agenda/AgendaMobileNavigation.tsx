@@ -70,7 +70,7 @@ const menuGroups = [
         code: '05',
         label: 'Evidências',
         href: '/agenda/evidencias',
-        description: 'Registros pedagógicos e evidências',
+        description: 'Consulta, registro e inteligência de evidências',
       },
       {
         code: '06',
@@ -93,7 +93,7 @@ const menuGroups = [
         code: '08',
         label: 'Aulas',
         href: '/agenda/aulas',
-        description: 'Registros de aula',
+        description: 'Aulas vinculadas ao planejamento',
       },
       {
         code: '09',
@@ -122,28 +122,40 @@ const menuGroups = [
     ],
   },
   {
-    title: 'Inteligência',
+    title: 'Inteligência e documentos',
     items: [
       {
         code: '13',
+        label: 'Centro de Inteligência',
+        href: '/agenda/inteligencia',
+        description: 'Mapa relacional do contexto pedagógico',
+      },
+      {
+        code: '14',
+        label: 'Relatórios',
+        href: '/agenda/relatorios',
+        description: 'PDFs de ocorrências, notas e frequência',
+      },
+      {
+        code: '15',
         label: 'Objetivos',
         href: '/agenda/objetivos',
         description: 'Metas e acompanhamento',
       },
       {
-        code: '14',
+        code: '16',
         label: 'Evidências Inteligentes',
         href: '/agenda/evidencias/inteligencia',
         description: 'Qualidade, classificação e análise EDI',
       },
       {
-        code: '15',
+        code: '17',
         label: 'Indicadores',
         href: '/agenda/indicadores',
         description: 'Leitura e análise de dados',
       },
       {
-        code: '16',
+        code: '18',
         label: 'Histórico',
         href: '/agenda/historico',
         description: 'Memória e rastreabilidade',
@@ -229,12 +241,8 @@ export function AgendaMobileNavigation() {
             aria-controls="agenda-mobile-menu-sheet"
             className="relative flex min-h-[56px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-2 text-center text-slate-500 transition hover:bg-slate-50 hover:text-[#075F78] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7491] focus-visible:ring-inset"
           >
-            <span className="font-mono text-[9px] font-bold tracking-[0.1em] text-[#0B7491]">
-              00
-            </span>
-            <span className="text-[11px] font-bold leading-4 sm:text-xs">
-              Menu
-            </span>
+            <span className="font-mono text-[9px] font-bold tracking-[0.1em] text-[#0B7491]">00</span>
+            <span className="text-[11px] font-bold leading-4 sm:text-xs">Menu</span>
           </button>
         </div>
       </nav>
@@ -257,12 +265,8 @@ export function AgendaMobileNavigation() {
             <header className="shrink-0 border-b border-slate-200 bg-[#071827] px-4 pb-4 pt-5 text-white sm:px-6">
               <div className="mx-auto flex max-w-xl items-center justify-between gap-4">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300">
-                    Agenda Inteligente EDI
-                  </p>
-                  <h2 className="mt-1 text-lg font-bold">
-                    Todos os módulos
-                  </h2>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300">Agenda Inteligente EDI</p>
+                  <h2 className="mt-1 text-lg font-bold">Todos os módulos</h2>
                 </div>
 
                 <button
@@ -279,9 +283,7 @@ export function AgendaMobileNavigation() {
               <div className="mx-auto max-w-xl space-y-7 pb-5">
                 {menuGroups.map(group => (
                   <section key={group.title}>
-                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-                      {group.title}
-                    </p>
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{group.title}</p>
 
                     <div className="mt-2 grid gap-2 sm:grid-cols-2">
                       {group.items.map(item => {
@@ -299,25 +301,19 @@ export function AgendaMobileNavigation() {
                                 : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-cyan-300 hover:bg-cyan-50',
                             ].join(' ')}
                           >
-                            <span
-                              className={[
-                                'shrink-0 font-mono text-[10px] font-bold',
-                                active ? 'text-cyan-300' : 'text-[#0B7491]',
-                              ].join(' ')}
-                            >
+                            <span className={[
+                              'shrink-0 font-mono text-[10px] font-bold',
+                              active ? 'text-cyan-300' : 'text-[#0B7491]',
+                            ].join(' ')}>
                               {item.code}
                             </span>
 
                             <span className="min-w-0">
-                              <span className="block font-bold">
-                                {item.label}
-                              </span>
-                              <span
-                                className={[
-                                  'mt-1 block text-xs leading-5',
-                                  active ? 'text-slate-300' : 'text-slate-500',
-                                ].join(' ')}
-                              >
+                              <span className="block font-bold">{item.label}</span>
+                              <span className={[
+                                'mt-1 block text-xs leading-5',
+                                active ? 'text-slate-300' : 'text-slate-500',
+                              ].join(' ')}>
                                 {item.description}
                               </span>
                             </span>
