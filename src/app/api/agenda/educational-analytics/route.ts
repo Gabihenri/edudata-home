@@ -14,8 +14,11 @@ import {
 } from '@/lib/auth/session'
 
 import {
-  runEducationalAnalytics,
-  type RunEducationalAnalyticsInput,
+  runEducationalAnalyticsWithReport,
+} from '@/lib/agenda/educational-analytics/educational-analytics-report.service'
+
+import type {
+  RunEducationalAnalyticsInput,
 } from '@/lib/agenda/educational-analytics/educational-analytics.service'
 
 import type {
@@ -175,7 +178,7 @@ export async function POST(
     }
 
     const result =
-      runEducationalAnalytics({
+      runEducationalAnalyticsWithReport({
         ...body,
         input,
         metadata: {
