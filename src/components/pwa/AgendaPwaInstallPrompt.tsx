@@ -14,7 +14,7 @@ type BeforeInstallPromptEvent = Event & {
 }
 
 const DISMISS_KEY =
-  'agenda-pwa-install-dismissed-v1'
+  'agenda-pwa-install-dismissed-v2'
 
 function isStandaloneMode() {
   if (
@@ -46,8 +46,22 @@ function isIosDevice() {
     return false
   }
 
-  return /iphone|ipad|ipod/i.test(
-    window.navigator.userAgent,
+  const userAgent =
+    window.navigator.userAgent
+
+  const classicIos =
+    /iphone|ipad|ipod/i.test(
+      userAgent,
+    )
+
+  const modernIpadOs =
+    window.navigator.platform ===
+      'MacIntel' &&
+    window.navigator.maxTouchPoints > 1
+
+  return (
+    classicIos ||
+    modernIpadOs
   )
 }
 
