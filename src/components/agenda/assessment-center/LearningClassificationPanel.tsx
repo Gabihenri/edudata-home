@@ -1,9 +1,8 @@
 'use client'
 
-import {
-  useMemo,
-  useState,
-} from 'react'
+import { useMemo, useState } from 'react'
+
+import { usePedagogicalContext } from '@/lib/agenda/hooks/usePedagogicalContext'
 
 type GradeEntry = {
   id: string
@@ -53,17 +52,33 @@ function classifyPercentage(value: number | null): string {
 }
 
 export default function LearningClassificationPanel() {
-  const [studentId, setStudentId] = useState('')
-  const [classId, setClassId] = useState('')
-  const [componentId, setComponentId] = useState('')
-  const [academicPeriodId, setAcademicPeriodId] = useState('')
+  const {
+    classes,
+    classesLoading,
+    classId,
+    changeClass,
+    selectedClass,
+    students,
+    studentsLoading,
+    studentId,
+    setStudentId,
+    selectedStudent,
+    academicPeriods,
+    periodsLoading,
+    academicPeriodId,
+    setAcademicPeriodId,
+    selectedAcademicPeriod,
+  } = usePedagogicalContext()
+
   const [items, setItems] = useState<GradeEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const componentId = selectedClass?.subject?.trim() ?? ''
+
   async function load() {
     if (!studentId || !classId || !componentId || !academicPeriodId) {
-      setError('Informe estudante, turma, componente e período letivo.')
+      setError('Selecione turma, estudante e período. O componente é herdado da turma cadastrada.')
       return
     }
 
@@ -164,65 +179,71 @@ export default function LearningClassificationPanel() {
   return (
     <section className="space-y-6">
       <header className="rounded-[1.75rem] border border-slate-200 bg-[#071827] px-5 py-7 text-white shadow-sm sm:px-7">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">
-          Agenda Inteligente EDI · Avaliação da Aprendizagem
-        </p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">
-          Classificação da Aprendizagem
-        </h1>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">Agenda Inteligente EDI · Avaliação da Aprendizagem</p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight">Classificação da Aprendizagem</h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-          Consolidação transparente das evidências avaliativas para apoiar acompanhamento, recuperação e recomposição. A decisão pedagógica permanece com o professor.
+          Consolidação transparente das evidências avaliativas usando o contexto já registrado. A decisão pedagógica permanece com o professor.
         </p>
       </header>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {[
-            ['Estudante', studentId, setStudentId, 'ID do estudante'],
-            ['Turma', classId, setClassId, 'ID da turma'],
-            ['Componente', componentId, setComponentId, 'ID do componente'],
-            ['Período', academicPeriodId, setAcademicPeriodId, 'ID do período'],
-          ].map(([label, value, setter, placeholder]) => (
-            <label key={String(label)} className="block text-sm font-semibold text-slate-700">
-              {String(label)}
-              <input
-                value={String(value)}
-                onChange={event => (setter as (value: string) => void)(event.target.value)}
-                placeholder={String(placeholder)}
-                className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 font-normal outline-none focus:border-cyan-500"
-              />
-            </label>
-          ))}
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0B7491]">Contexto de consulta</p>
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <label className="block text-sm font-semibold text-slate-700">
+            Turma
+            <select value={classId} onChange={event => { changeClass(event.target.value); setItems([]) }} disabled={classesLoading} className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 font-normal">
+              <option value="">Selecione a turma</option>
+              {classes.map(item => <option key={item.id} value={item.id}>{item.name}{item.subject ? ` · ${item.subject}` : ''}</option>)}
+            </select>
+          </label>
+
+          <label className="block text-sm font-semibold text-slate-700">
+            Estudante
+            <select value={studentId} onChange={event => { setStudentId(event.target.value); setItems([]) }} disabled={!classId || studentsLoading} className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 font-normal">
+              <option value="">{!classId ? 'Selecione a turma primeiro' : studentsLoading ? 'Carregando estudantes...' : 'Selecione o estudante'}</option>
+              {students.map(student => <option key={student.id} value={student.id}>{student.sequence_number ? `${student.sequence_number}. ` : ''}{student.full_name}</option>)}
+            </select>
+          </label>
+
+          <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-3 text-sm text-slate-700">
+            <p className="text-xs font-bold uppercase text-[#0B7491]">Componente</p>
+            <p className="mt-2 font-semibold">{componentId || 'Selecione uma turma configurada'}</p>
+          </div>
+
+          <label className="block text-sm font-semibold text-slate-700">
+            Período letivo
+            <select value={academicPeriodId} onChange={event => { setAcademicPeriodId(event.target.value); setItems([]) }} disabled={periodsLoading || academicPeriods.length === 0} className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 font-normal">
+              <option value="">Selecione o período</option>
+              {academicPeriods.map(period => <option key={period.id} value={period.id}>{period.name}</option>)}
+            </select>
+          </label>
         </div>
 
-        <button
-          type="button"
-          onClick={() => void load()}
-          disabled={loading}
-          className="mt-4 rounded-xl bg-[#071827] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-        >
-          Atualizar classificação
+        <button type="button" onClick={() => void load()} disabled={loading || !studentId || !componentId || !academicPeriodId} className="mt-4 rounded-xl bg-[#071827] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
+          {loading ? 'Atualizando...' : 'Atualizar classificação'}
         </button>
 
-        {error ? (
-          <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-            {error}
-          </p>
-        ) : null}
+        {error ? <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{error}</p> : null}
       </section>
+
+      {selectedStudent ? (
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm">
+          <span className="font-bold text-[#071827]">{selectedStudent.full_name}</span>
+          <span className="mx-2 text-slate-300">·</span>
+          {selectedClass?.name ?? 'Turma'}
+          <span className="mx-2 text-slate-300">·</span>
+          {selectedAcademicPeriod?.name ?? 'Período'}
+        </section>
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Média percentual</p>
-          <p className="mt-2 text-3xl font-bold text-[#071827]">
-            {summary.average === null ? '—' : `${summary.average.toFixed(1)}%`}
-          </p>
+          <p className="mt-2 text-3xl font-bold text-[#071827]">{summary.average === null ? '—' : `${summary.average.toFixed(1)}%`}</p>
         </article>
         <article className="rounded-2xl border border-cyan-200 bg-cyan-50 p-5 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-cyan-800">Nível atual</p>
-          <p className="mt-2 text-xl font-bold text-[#071827]">
-            {CLASSIFICATION_LABELS[summary.classification] ?? summary.classification}
-          </p>
+          <p className="mt-2 text-xl font-bold text-[#071827]">{CLASSIFICATION_LABELS[summary.classification] ?? summary.classification}</p>
         </article>
         <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Tendência</p>
@@ -230,9 +251,7 @@ export default function LearningClassificationPanel() {
         </article>
         <article className={`rounded-2xl border p-5 shadow-sm ${summary.requiresIntervention ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'}`}>
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-600">Acompanhamento</p>
-          <p className="mt-2 text-xl font-bold text-[#071827]">
-            {summary.requiresIntervention ? 'Requer atenção' : 'Sem alerta atual'}
-          </p>
+          <p className="mt-2 text-xl font-bold text-[#071827]">{summary.requiresIntervention ? 'Requer atenção' : 'Sem alerta atual'}</p>
         </article>
       </div>
 
@@ -252,12 +271,8 @@ export default function LearningClassificationPanel() {
                   <p className="font-semibold text-[#071827]">{item.title}</p>
                   <p className="mt-1 text-xs text-slate-500">{item.entry_type}</p>
                 </div>
-                <p className="text-sm font-semibold text-slate-700">
-                  {item.percentage === null ? '—' : `${item.percentage}%`}
-                </p>
-                <p className="text-sm font-semibold text-[#075F78]">
-                  {CLASSIFICATION_LABELS[item.classification] ?? item.classification}
-                </p>
+                <p className="text-sm font-semibold text-slate-700">{item.percentage === null ? '—' : `${item.percentage}%`}</p>
+                <p className="text-sm font-semibold text-[#075F78]">{CLASSIFICATION_LABELS[item.classification] ?? item.classification}</p>
               </div>
             ))}
           </div>
