@@ -108,17 +108,17 @@ export default function AgendaPage() {
 
           <div className="flex shrink-0 items-center gap-2">
             <Link
-              href="/"
+              href="/login?redirectTo=%2Fagenda%2Fdashboard"
               className="hidden min-h-10 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 sm:inline-flex"
             >
-              Home
+              Entrar
             </Link>
 
             <Link
-              href="/agenda/dashboard"
+              href="/cadastro"
               className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#0B7491] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#09657E]"
             >
-              Acessar
+              Criar conta
             </Link>
           </div>
         </div>
@@ -163,10 +163,10 @@ export default function AgendaPage() {
 
             <div className="mt-8 grid gap-3 sm:flex sm:flex-wrap">
               <Link
-                href="/agenda/dashboard"
+                href="/cadastro"
                 className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0B7491] px-7 py-4 text-center font-semibold text-white transition hover:bg-[#09657E]"
               >
-                Acessar a Agenda
+                Criar minha conta
               </Link>
 
               <Link
@@ -176,6 +176,16 @@ export default function AgendaPage() {
                 Conhecer recursos
               </Link>
             </div>
+
+            <p className="mt-4 text-sm text-slate-400">
+              Já possui conta?{' '}
+              <Link
+                href="/login?redirectTo=%2Fagenda%2Fdashboard"
+                className="font-semibold text-cyan-200 hover:underline"
+              >
+                Entrar na Agenda
+              </Link>
+            </p>
           </div>
 
           <aside className="overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.04]">
@@ -352,25 +362,33 @@ export default function AgendaPage() {
         <div className="mx-auto flex max-w-7xl flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">
-              Ambiente operacional
+              Primeiro acesso
             </p>
 
             <h2 className="mt-3 text-3xl font-bold">
-              Acesse a Agenda Inteligente EDI.
+              Comece pela Agenda Inteligente EDI.
             </h2>
 
             <p className="mt-3 max-w-2xl text-base leading-7 text-slate-300">
-              Utilize os módulos integrados para organizar sua rotina
-              pedagógica.
+              Crie sua conta para organizar sua rotina pedagógica. Se já é usuário, entre com suas credenciais.
             </p>
           </div>
 
-          <Link
-            href="/agenda/dashboard"
-            className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0B7491] px-7 py-4 text-center font-semibold text-white transition hover:bg-[#09657E]"
-          >
-            Entrar na Agenda
-          </Link>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/cadastro"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0B7491] px-7 py-4 text-center font-semibold text-white transition hover:bg-[#09657E]"
+            >
+              Criar conta
+            </Link>
+
+            <Link
+              href="/login?redirectTo=%2Fagenda%2Fdashboard"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-7 py-4 text-center font-semibold text-white transition hover:bg-white/10"
+            >
+              Entrar
+            </Link>
+          </div>
         </div>
       </section>
 
