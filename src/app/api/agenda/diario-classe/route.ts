@@ -49,7 +49,9 @@ function errorResponse(error: unknown) {
   const normalized = message.toLowerCase()
   const status = normalized.includes('não autenticado')
     ? 401
-    : normalized.includes('obrigatório')
+    : normalized.includes('obrigatório') ||
+        normalized.includes('não corresponde') ||
+        normalized.includes('não encontrado')
       ? 400
       : 500
 
@@ -62,14 +64,58 @@ function errorResponse(error: unknown) {
   )
 }
 
+async function requirePlanningContext({
+  client,
+  userId,
+  classId,
+  planningId,
+}: {
+  client: SupabaseClient
+  userId: string
+  classId: string
+  planningId: string
+}) {
+  const { data, error } = await client
+    .from('agenda_planning')
+    .select('id,class_id,status,title')
+    .eq('id', planningId)
+    .eq('user_id', userId)
+    .is('deleted_at', null)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(`Não foi possível validar o planejamento: ${error.message}`)
+  }
+
+  if (!data) {
+    throw new Error('Planejamento não encontrado para o usuário atual.')
+  }
+
+  if (data.class_id !== classId) {
+    throw new Error('O planejamento selecionado não corresponde à turma informada.')
+  }
+
+  if (data.status === 'arquivado') {
+    throw new Error('O planejamento selecionado está arquivado.')
+  }
+
+  return data
+}
+
 export async function GET(request: NextRequest) {
   try {
     const user = await requireSessionUser()
     const client = createAuthenticatedClient(getAccessToken(request))
     const classId = request.nextUrl.searchParams.get('classId')?.trim()
     const lessonDate = request.nextUrl.searchParams.get('lessonDate')?.trim()
+    const planningId = request.nextUrl.searchParams.get('planningId')?.trim()
 
     if (!classId) throw new Error('classId é obrigatório.')
+
+    if (lessonDate) {
+      if (!planningId) throw new Error('planningId é obrigatório para abrir o Diário de Classe.')
+      await requirePlanningContext({ client, userId: user.id, classId, planningId })
+    }
 
     const roster = await listClassRoster({ client, userId: user.id, classId })
     const attendance = lessonDate
@@ -92,6 +138,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json() as {
       operation?: 'add_student' | 'attendance'
       classId?: string
+      planningId?: string
       fullName?: string
       enrollmentCode?: string | null
       sequenceNumber?: number | null
@@ -120,9 +167,17 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.operation === 'attendance') {
+      if (!body.planningId?.trim()) throw new Error('planningId é obrigatório.')
       if (!body.studentId?.trim()) throw new Error('studentId é obrigatório.')
       if (!body.lessonDate?.trim()) throw new Error('lessonDate é obrigatório.')
       if (!body.status) throw new Error('status é obrigatório.')
+
+      await requirePlanningContext({
+        client,
+        userId: user.id,
+        classId: body.classId,
+        planningId: body.planningId,
+      })
 
       const attendance = await upsertAttendance({
         client,
