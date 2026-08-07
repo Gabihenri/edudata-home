@@ -115,9 +115,9 @@ const menuGroups = [
       },
       {
         code: '12',
-        label: 'Caderno Pedagógico',
+        label: 'Estudantes',
         href: '/agenda/caderno',
-        description: 'Visão longitudinal do estudante',
+        description: 'Pesquisa e Caderno Pedagógico do estudante',
       },
     ],
   },
