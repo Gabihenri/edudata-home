@@ -31,28 +31,41 @@ type OccurrenceRow = {
   occurred_at: string
 }
 
+type RosterStudent = {
+  id: string
+  class_id: string
+  full_name: string
+  enrollment_code: string | null
+  sequence_number: number | null
+  active: boolean
+}
+
 type GradeRow = {
   id: string
+  student_id: string
   title: string
   value: number | null
   percentage: number | null
   concept: string | null
   classification: string
+  entry_type: string
   recorded_at: string
 }
 
 type AttendanceRow = {
+  id: string
   student_id: string
+  lesson_date: string
   status: string
-  notes?: string | null
+  notes: string | null
 }
 
-const attendanceLabels: Record<string, string> = {
-  present: 'Presente',
-  absent: 'Falta',
-  justified: 'Justificada',
-  late: 'Atraso',
-  not_recorded: 'Não registrado',
+type AggregateResponse = {
+  success?: boolean
+  roster?: RosterStudent[]
+  attendance?: AttendanceRow[]
+  grades?: GradeRow[]
+  error?: string
 }
 
 const occurrenceNatureLabels: Record<string, string> = {
@@ -70,10 +83,22 @@ const occurrenceNatureLabels: Record<string, string> = {
   other: 'Outro',
 }
 
-function todayIso() {
-  const date = new Date()
-  const offset = date.getTimezoneOffset()
-  return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 10)
+const severityLabels: Record<string, string> = {
+  informational: 'Informativa',
+  low: 'Baixa',
+  moderate: 'Moderada',
+  high: 'Alta',
+  critical: 'Crítica',
+}
+
+const classificationLabels: Record<string, string> = {
+  critical: 'Crítico',
+  initial: 'Inicial',
+  developing: 'Em desenvolvimento',
+  adequate: 'Adequado',
+  proficient: 'Proficiente',
+  advanced: 'Avançado',
+  not_classified: 'Não classificado',
 }
 
 function formatDateTime(value: string) {
@@ -84,6 +109,16 @@ function formatDateTime(value: string) {
     dateStyle: 'short',
     timeStyle: 'short',
   }).format(date)
+}
+
+function formatDate(value: string) {
+  const date = new Date(`${value}T12:00:00`)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat('pt-BR').format(date)
+}
+
+function percentage(value: number) {
+  return `${value.toFixed(1).replace('.', ',')}%`
 }
 
 export default function AgendaReportsPage() {
@@ -105,9 +140,9 @@ export default function AgendaReportsPage() {
   } = usePedagogicalContext()
 
   const [reportType, setReportType] = useState<ReportType>('occurrences')
-  const [lessonDate, setLessonDate] = useState(todayIso())
   const [context, setContext] = useState<CalendarContext | null>(null)
   const [occurrences, setOccurrences] = useState<OccurrenceRow[]>([])
+  const [roster, setRoster] = useState<RosterStudent[]>([])
   const [grades, setGrades] = useState<GradeRow[]>([])
   const [attendance, setAttendance] = useState<AttendanceRow[]>([])
   const [loading, setLoading] = useState(false)
@@ -125,7 +160,6 @@ export default function AgendaReportsPage() {
           success?: boolean
           data?: CalendarContext[]
         }
-
         setContext(body.success ? (body.data?.[0] ?? null) : null)
       } catch {
         setContext(null)
@@ -135,11 +169,56 @@ export default function AgendaReportsPage() {
     void loadContext()
   }, [])
 
-  const reportTitle = useMemo(() => {
-    if (reportType === 'grades') return 'Relatório de Notas'
-    if (reportType === 'attendance') return 'Relatório de Frequência'
-    return 'Relatório de Ocorrências'
-  }, [reportType])
+  const reportTitle =
+    reportType === 'grades'
+      ? 'Relatório de Notas'
+      : reportType === 'attendance'
+        ? 'Relatório de Frequência'
+        : 'Relatório de Ocorrências'
+
+  const attendanceSummary = useMemo(() => {
+    return roster.map(student => {
+      const entries = attendance.filter(item => item.student_id === student.id)
+      const present = entries.filter(item => item.status === 'present').length
+      const absent = entries.filter(item => item.status === 'absent').length
+      const justified = entries.filter(item => item.status === 'justified').length
+      const late = entries.filter(item => item.status === 'late').length
+      const total = entries.filter(item => item.status !== 'not_recorded').length
+      const attendanceRate = total === 0 ? 0 : ((present + late) / total) * 100
+
+      return {
+        student,
+        total,
+        present,
+        absent,
+        justified,
+        late,
+        attendanceRate,
+      }
+    })
+  }, [roster, attendance])
+
+  const gradeSummary = useMemo(() => {
+    return roster.map(student => {
+      const entries = grades.filter(item => item.student_id === student.id)
+      const percentages = entries
+        .map(item => item.percentage)
+        .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+      const averagePercentage = percentages.length === 0
+        ? null
+        : percentages.reduce((sum, value) => sum + value, 0) / percentages.length
+      const latest = [...entries].sort(
+        (first, second) => new Date(second.recorded_at).getTime() - new Date(first.recorded_at).getTime(),
+      )[0]
+
+      return {
+        student,
+        entries,
+        averagePercentage,
+        latestClassification: latest?.classification ?? 'not_classified',
+      }
+    })
+  }, [roster, grades])
 
   async function generateReport() {
     if (!classId) {
@@ -147,29 +226,27 @@ export default function AgendaReportsPage() {
       return
     }
 
-    if ((reportType === 'occurrences' || reportType === 'grades') && !studentId) {
-      setError('Selecione um estudante para este relatório.')
+    if (reportType === 'occurrences' && !studentId) {
+      setError('Selecione um estudante para o relatório de ocorrência.')
       return
     }
 
-    if (reportType === 'grades' && !academicPeriodId) {
-      setError('Selecione o período letivo para o relatório de notas.')
+    if ((reportType === 'grades' || reportType === 'attendance') && !academicPeriodId) {
+      setError('Selecione o período letivo para consolidar os dados.')
       return
     }
 
     setLoading(true)
     setError(null)
+    setGeneratedAt(null)
     setOccurrences([])
+    setRoster([])
     setGrades([])
     setAttendance([])
 
     try {
       if (reportType === 'occurrences') {
-        const params = new URLSearchParams({
-          classId,
-          studentId,
-          limit: '200',
-        })
+        const params = new URLSearchParams({ classId, studentId, limit: '200' })
         if (academicPeriodId) params.set('academicPeriodId', academicPeriodId)
 
         const response = await fetch(`/api/agenda/ocorrencias?${params.toString()}`, {
@@ -187,56 +264,30 @@ export default function AgendaReportsPage() {
         }
 
         setOccurrences(body.rows ?? [])
-      }
-
-      if (reportType === 'grades') {
-        const componentId = selectedClass?.subject?.trim()
-        if (!componentId) {
-          throw new Error('A turma selecionada precisa ter componente curricular configurado.')
-        }
-
+      } else {
         const params = new URLSearchParams({
-          view: 'gradebook',
-          studentId,
           classId,
-          componentId,
           academicPeriodId,
         })
 
-        const response = await fetch(`/api/agenda/avaliacoes?${params.toString()}`, {
+        if (selectedAcademicPeriod) {
+          params.set('from', selectedAcademicPeriod.start_date)
+          params.set('to', selectedAcademicPeriod.end_date)
+        }
+
+        const response = await fetch(`/api/agenda/relatorios/dados?${params.toString()}`, {
           credentials: 'include',
           cache: 'no-store',
         })
-        const body = await response.json() as {
-          success?: boolean
-          items?: GradeRow[]
-          error?: string
-        }
+        const body = await response.json() as AggregateResponse
 
         if (!response.ok || !body.success) {
-          throw new Error(body.error || 'Não foi possível gerar o relatório de notas.')
+          throw new Error(body.error || 'Não foi possível consolidar os dados do relatório.')
         }
 
-        setGrades(body.items ?? [])
-      }
-
-      if (reportType === 'attendance') {
-        const params = new URLSearchParams({ classId, lessonDate })
-        const response = await fetch(`/api/agenda/diario-classe?${params.toString()}`, {
-          credentials: 'include',
-          cache: 'no-store',
-        })
-        const body = await response.json() as {
-          success?: boolean
-          attendance?: AttendanceRow[]
-          error?: string
-        }
-
-        if (!response.ok || !body.success) {
-          throw new Error(body.error || 'Não foi possível gerar o relatório de frequência.')
-        }
-
+        setRoster(body.roster ?? [])
         setAttendance(body.attendance ?? [])
+        setGrades(body.grades ?? [])
       }
 
       setGeneratedAt(new Date())
@@ -251,10 +302,9 @@ export default function AgendaReportsPage() {
     }
   }
 
-  const attendanceByStudent = useMemo(
-    () => new Map(attendance.map(item => [item.student_id, item])),
-    [attendance],
-  )
+  const individualGrades = studentId
+    ? grades.filter(item => item.student_id === studentId)
+    : []
 
   const hasReport = generatedAt !== null
 
@@ -262,11 +312,11 @@ export default function AgendaReportsPage() {
     <AgendaPageShell
       eyebrow="EIOS · Report Intelligence"
       title="Central de Relatórios"
-      description="Gere documentos padronizados a partir dos registros existentes, sem redigitar dados. O cabeçalho respeita o contexto individual ou institucional disponível."
+      description="Documentos profissionais gerados a partir dos dados já existentes. O usuário seleciona o contexto e a Agenda monta o relatório."
     >
       <div className="space-y-6 sm:space-y-8">
         <section className="print:hidden rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-4 lg:grid-cols-4">
             <label className="text-sm font-semibold text-slate-700">
               Modelo
               <select
@@ -274,6 +324,7 @@ export default function AgendaReportsPage() {
                 onChange={event => {
                   setReportType(event.target.value as ReportType)
                   setGeneratedAt(null)
+                  setStudentId('')
                 }}
                 className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 font-normal"
               >
@@ -295,7 +346,7 @@ export default function AgendaReportsPage() {
                 className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 font-normal"
               >
                 <option value="">Selecione a turma</option>
-                {classes.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+                {classes.map(item => <option key={item.id} value={item.id}>{item.name}{item.subject ? ` · ${item.subject}` : ''}</option>)}
               </select>
             </label>
 
@@ -313,9 +364,11 @@ export default function AgendaReportsPage() {
                 <option value="">
                   {reportType === 'attendance'
                     ? 'Relatório da turma'
-                    : classId
-                      ? 'Selecione o estudante'
-                      : 'Selecione a turma primeiro'}
+                    : reportType === 'grades'
+                      ? 'Turma completa (ou escolha um estudante)'
+                      : classId
+                        ? 'Selecione o estudante'
+                        : 'Selecione a turma primeiro'}
                 </option>
                 {students.map(student => (
                   <option key={student.id} value={student.id}>
@@ -324,9 +377,7 @@ export default function AgendaReportsPage() {
                 ))}
               </select>
             </label>
-          </div>
 
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
             <label className="text-sm font-semibold text-slate-700">
               Período letivo
               <select
@@ -335,32 +386,24 @@ export default function AgendaReportsPage() {
                   setAcademicPeriodId(event.target.value)
                   setGeneratedAt(null)
                 }}
-                disabled={academicPeriods.length === 0 || reportType === 'attendance'}
+                disabled={academicPeriods.length === 0}
                 className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 font-normal"
               >
-                <option value="">Todos / não informado</option>
+                <option value="">{reportType === 'occurrences' ? 'Todos / opcional' : 'Selecione o período'}</option>
                 {academicPeriods.map(period => <option key={period.id} value={period.id}>{period.name}</option>)}
               </select>
             </label>
-
-            <label className="text-sm font-semibold text-slate-700">
-              Data da frequência
-              <input
-                type="date"
-                value={lessonDate}
-                onChange={event => {
-                  setLessonDate(event.target.value)
-                  setGeneratedAt(null)
-                }}
-                disabled={reportType !== 'attendance'}
-                className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 font-normal disabled:bg-slate-100"
-              />
-            </label>
           </div>
 
-          {error ? (
-            <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{error}</p>
-          ) : null}
+          <div className="mt-5 rounded-xl border border-cyan-200 bg-cyan-50 p-4 text-sm leading-6 text-slate-700">
+            {reportType === 'occurrences'
+              ? 'O relatório de ocorrência é individual e reúne os registros do estudante no contexto escolhido.'
+              : reportType === 'grades'
+                ? 'Sem estudante selecionado, o documento consolida a turma. Ao escolher um estudante, gera o histórico individual.'
+                : 'A frequência é consolidada automaticamente entre o início e o fim do período letivo selecionado.'}
+          </div>
+
+          {error ? <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{error}</p> : null}
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
             <button
@@ -391,7 +434,7 @@ export default function AgendaReportsPage() {
                     {context?.organization.name ?? 'Agenda Inteligente EDI'}
                   </p>
                   <h1 className="mt-1 text-2xl font-bold text-[#071827]">
-                    {context?.school.name ?? 'Relatório Individual'}
+                    {context?.school.name ?? 'Contexto Individual'}
                   </h1>
                   {context?.school.city || context?.school.state ? (
                     <p className="mt-1 text-xs text-slate-500">
@@ -409,9 +452,10 @@ export default function AgendaReportsPage() {
                 <h2 className="text-xl font-bold text-[#071827]">{reportTitle}</h2>
                 <dl className="mt-3 grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-4">
                   <div><dt className="font-bold text-slate-500">Turma</dt><dd className="mt-1 text-slate-800">{selectedClass?.name ?? '—'}</dd></div>
+                  <div><dt className="font-bold text-slate-500">Componente</dt><dd className="mt-1 text-slate-800">{selectedClass?.subject ?? '—'}</dd></div>
                   <div><dt className="font-bold text-slate-500">Estudante</dt><dd className="mt-1 text-slate-800">{selectedStudent?.full_name ?? 'Turma completa'}</dd></div>
-                  <div><dt className="font-bold text-slate-500">Período</dt><dd className="mt-1 text-slate-800">{selectedAcademicPeriod?.name ?? (reportType === 'attendance' ? lessonDate : '—')}</dd></div>
-                  <div><dt className="font-bold text-slate-500">Emissão</dt><dd className="mt-1 text-slate-800">{generatedAt ? formatDateTime(generatedAt.toISOString()) : '—'}</dd></div>
+                  <div><dt className="font-bold text-slate-500">Período</dt><dd className="mt-1 text-slate-800">{selectedAcademicPeriod?.name ?? '—'}</dd></div>
+                  <div className="lg:col-span-4"><dt className="font-bold text-slate-500">Emissão</dt><dd className="mt-1 text-slate-800">{generatedAt ? formatDateTime(generatedAt.toISOString()) : '—'}</dd></div>
                 </dl>
               </div>
             </header>
@@ -434,36 +478,36 @@ export default function AgendaReportsPage() {
                         <p className="mt-3 text-sm leading-6 text-slate-700">{item.description}</p>
                         <dl className="mt-4 grid gap-2 text-xs sm:grid-cols-3">
                           <div><dt className="font-bold text-slate-500">Natureza</dt><dd>{occurrenceNatureLabels[item.nature] ?? item.nature}</dd></div>
-                          <div><dt className="font-bold text-slate-500">Gravidade</dt><dd>{item.severity}</dd></div>
+                          <div><dt className="font-bold text-slate-500">Gravidade</dt><dd>{severityLabels[item.severity] ?? item.severity}</dd></div>
                           <div><dt className="font-bold text-slate-500">Status</dt><dd>{item.status}</dd></div>
                         </dl>
+                        {item.requires_follow_up ? <p className="mt-3 text-xs font-bold text-amber-700">Requer acompanhamento pedagógico.</p> : null}
                       </section>
                     ))}
+                    <div className="mt-10 grid grid-cols-2 gap-10 pt-8 text-center text-xs text-slate-500">
+                      <div className="border-t border-slate-400 pt-2">Professor / responsável pelo registro</div>
+                      <div className="border-t border-slate-400 pt-2">Coordenação / gestão, quando aplicável</div>
+                    </div>
                   </div>
                 )
               ) : null}
 
-              {reportType === 'grades' ? (
-                grades.length === 0 ? (
-                  <p className="text-sm text-slate-600">Nenhuma nota encontrada no contexto selecionado.</p>
+              {reportType === 'grades' && studentId ? (
+                individualGrades.length === 0 ? (
+                  <p className="text-sm text-slate-600">Nenhuma nota encontrada para o estudante no período.</p>
                 ) : (
                   <div className="overflow-hidden rounded-xl border border-slate-200">
                     <table className="w-full text-left text-sm">
                       <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                        <tr>
-                          <th className="px-4 py-3">Instrumento</th>
-                          <th className="px-4 py-3">Nota</th>
-                          <th className="px-4 py-3">Percentual</th>
-                          <th className="px-4 py-3">Classificação</th>
-                        </tr>
+                        <tr><th className="px-4 py-3">Instrumento</th><th className="px-4 py-3">Nota</th><th className="px-4 py-3">%</th><th className="px-4 py-3">Classificação</th></tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {grades.map(item => (
+                        {individualGrades.map(item => (
                           <tr key={item.id}>
                             <td className="px-4 py-3 font-semibold text-[#071827]">{item.title}</td>
                             <td className="px-4 py-3">{item.value ?? '—'}</td>
-                            <td className="px-4 py-3">{item.percentage === null ? '—' : `${item.percentage}%`}</td>
-                            <td className="px-4 py-3">{item.classification || item.concept || '—'}</td>
+                            <td className="px-4 py-3">{item.percentage === null ? '—' : percentage(item.percentage)}</td>
+                            <td className="px-4 py-3">{classificationLabels[item.classification] ?? item.classification}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -472,43 +516,61 @@ export default function AgendaReportsPage() {
                 )
               ) : null}
 
-              {reportType === 'attendance' ? (
+              {reportType === 'grades' && !studentId ? (
                 <div className="overflow-hidden rounded-xl border border-slate-200">
                   <table className="w-full text-left text-sm">
                     <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                      <tr>
-                        <th className="px-4 py-3">Nº</th>
-                        <th className="px-4 py-3">Estudante</th>
-                        <th className="px-4 py-3">Situação</th>
-                      </tr>
+                      <tr><th className="px-4 py-3">Nº</th><th className="px-4 py-3">Estudante</th><th className="px-4 py-3">Registros</th><th className="px-4 py-3">Média %</th><th className="px-4 py-3">Nível recente</th></tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {students.map((student, index) => {
-                        const entry = attendanceByStudent.get(student.id)
-                        return (
-                          <tr key={student.id}>
-                            <td className="px-4 py-3">{student.sequence_number ?? index + 1}</td>
-                            <td className="px-4 py-3 font-semibold text-[#071827]">{student.full_name}</td>
-                            <td className="px-4 py-3">{attendanceLabels[entry?.status ?? 'not_recorded'] ?? entry?.status ?? 'Não registrado'}</td>
-                          </tr>
-                        )
-                      })}
+                      {gradeSummary.map((item, index) => (
+                        <tr key={item.student.id}>
+                          <td className="px-4 py-3">{item.student.sequence_number ?? index + 1}</td>
+                          <td className="px-4 py-3 font-semibold text-[#071827]">{item.student.full_name}</td>
+                          <td className="px-4 py-3">{item.entries.length}</td>
+                          <td className="px-4 py-3">{item.averagePercentage === null ? '—' : percentage(item.averagePercentage)}</td>
+                          <td className="px-4 py-3">{classificationLabels[item.latestClassification] ?? item.latestClassification}</td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
+                </div>
+              ) : null}
+
+              {reportType === 'attendance' ? (
+                <div>
+                  <p className="mb-4 text-xs text-slate-500">
+                    Intervalo: {selectedAcademicPeriod ? `${formatDate(selectedAcademicPeriod.start_date)} a ${formatDate(selectedAcademicPeriod.end_date)}` : 'período não informado'}.
+                  </p>
+                  <div className="overflow-hidden rounded-xl border border-slate-200">
+                    <table className="w-full text-left text-xs sm:text-sm">
+                      <thead className="bg-slate-50 text-[10px] uppercase text-slate-500 sm:text-xs">
+                        <tr><th className="px-3 py-3">Nº</th><th className="px-3 py-3">Estudante</th><th className="px-3 py-3">P</th><th className="px-3 py-3">F</th><th className="px-3 py-3">J</th><th className="px-3 py-3">A</th><th className="px-3 py-3">Frequência</th></tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {attendanceSummary.map((item, index) => (
+                          <tr key={item.student.id}>
+                            <td className="px-3 py-3">{item.student.sequence_number ?? index + 1}</td>
+                            <td className="px-3 py-3 font-semibold text-[#071827]">{item.student.full_name}</td>
+                            <td className="px-3 py-3">{item.present}</td>
+                            <td className="px-3 py-3">{item.absent}</td>
+                            <td className="px-3 py-3">{item.justified}</td>
+                            <td className="px-3 py-3">{item.late}</td>
+                            <td className="px-3 py-3 font-semibold">{item.total === 0 ? '—' : percentage(item.attendanceRate)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="mt-3 text-[10px] leading-5 text-slate-500">P = presença · F = falta · J = falta justificada · A = atraso. O cálculo exibido considera presença e atraso como comparecimento entre registros válidos.</p>
                 </div>
               ) : null}
             </section>
 
             <footer className="mt-6 border-t border-slate-300 pt-4 text-[10px] leading-5 text-slate-500">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p>Documento gerado pela Agenda Inteligente EDI.</p>
-                  <p>Framework EDI → EIOS → Report Intelligence.</p>
-                </div>
-                <div className="text-right">
-                  <p>Rastreabilidade: {generatedAt ? `EDI-${generatedAt.getTime()}` : '—'}</p>
-                  <p>Dados sujeitos às permissões e políticas do contexto de uso.</p>
-                </div>
+                <div><p>Documento gerado pela Agenda Inteligente EDI.</p><p>Framework EDI → EIOS → Report Intelligence.</p></div>
+                <div className="text-right"><p>Rastreabilidade: {generatedAt ? `EDI-${generatedAt.getTime()}` : '—'}</p><p>Dados sujeitos às permissões e políticas do contexto de uso.</p></div>
               </div>
             </footer>
           </article>
@@ -516,22 +578,9 @@ export default function AgendaReportsPage() {
 
         <style jsx global>{`
           @media print {
-            @page {
-              size: A4;
-              margin: 14mm;
-            }
-
-            body {
-              background: white !important;
-            }
-
-            header, nav, footer[data-app-shell] {
-              display: none !important;
-            }
-
-            .break-inside-avoid {
-              break-inside: avoid;
-            }
+            @page { size: A4; margin: 14mm; }
+            body { background: white !important; }
+            .break-inside-avoid { break-inside: avoid; }
           }
         `}</style>
       </div>
