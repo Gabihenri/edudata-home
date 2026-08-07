@@ -17,9 +17,10 @@
  * - executar Pattern Engine quando habilitado;
  * - executar Influence Engine quando houver grafo disponível;
  * - executar Prediction Engine somente quando explicitamente habilitado;
+ * - executar Recommendation Engine somente quando explicitamente habilitado;
  * - consolidar os resultados no contrato oficial;
  * - preservar explicabilidade, rastreabilidade e revisão humana;
- * - nunca converter associação ou previsão em causalidade.
+ * - nunca converter associação, previsão ou recomendação em causalidade.
  */
 
 import {
@@ -48,6 +49,11 @@ import {
   type PredictionTarget,
 } from './prediction.engine'
 
+import {
+  runRecommendationEngine,
+  type RecommendationEngineResult,
+} from './recommendation.engine'
+
 import type {
   AnalyticsCapability,
   AnalyticsMetadata,
@@ -61,7 +67,7 @@ const SERVICE_NAME =
   'eios-educational-analytics-service'
 
 const SERVICE_VERSION =
-  '1.1.0'
+  '1.2.0'
 
 export type EducationalAnalyticsSpecializedExecution = {
   correlation:
@@ -75,6 +81,9 @@ export type EducationalAnalyticsSpecializedExecution = {
 
   prediction:
     PredictionEngineResult | null
+
+  recommendation:
+    RecommendationEngineResult | null
 }
 
 export type RunEducationalAnalyticsInput = {
@@ -97,6 +106,8 @@ export type RunEducationalAnalyticsInput = {
   executeInfluence?: boolean
 
   executePrediction?: boolean
+
+  executeRecommendation?: boolean
 
   metadata?: AnalyticsMetadata
 }
@@ -205,6 +216,7 @@ export function runEducationalAnalytics(
       pattern: null,
       influence: null,
       prediction: null,
+      recommendation: null,
     }
 
   const executedCapabilities:
@@ -278,6 +290,18 @@ export function runEducationalAnalytics(
       isCapabilityEnabled(
         request.input,
         'prediction_engine',
+      )
+    )
+
+  const shouldExecuteRecommendation =
+    request.executeRecommendation ??
+    (
+      request.input
+        .configuration
+        .generateRecommendations &&
+      isCapabilityEnabled(
+        request.input,
+        'recommendation_engine',
       )
     )
 
@@ -470,6 +494,69 @@ export function runEducationalAnalytics(
     )
   }
 
+  if (shouldExecuteRecommendation) {
+    specialized.recommendation =
+      runRecommendationEngine({
+        correlations:
+          specialized.correlation
+            ?.correlations ??
+          base.analytics.correlations,
+        patterns:
+          specialized.pattern
+            ?.patterns ??
+          base.analytics.patterns,
+        anomalies:
+          specialized.pattern
+            ?.anomalies ??
+          base.analytics.anomalies,
+        influences:
+          specialized.influence
+            ?.influences ??
+          base.analytics.influences,
+        predictions:
+          specialized.prediction
+            ?.predictions ??
+          base.analytics.predictions,
+        sourceInterventionIds:
+          base.analytics
+            .context
+            .interventionIds,
+        requestedByUserId:
+          base.analytics
+            .context
+            .requestedByUserId,
+        correlationId:
+          request.input
+            .correlationId,
+        minimumConfidence:
+          base.analytics
+            .configuration
+            .minimumConfidence,
+        metadata: {
+          analysisId:
+            base.analytics.id,
+          serviceName:
+            SERVICE_NAME,
+        },
+      })
+
+    executedCapabilities.push(
+      'recommendation_engine',
+    )
+
+    warnings.push(
+      ...specialized
+        .recommendation
+        .warnings,
+    )
+
+    errors.push(
+      ...specialized
+        .recommendation
+        .errors,
+    )
+  }
+
   const normalizedWarnings =
     uniqueStrings(
       warnings.filter(
@@ -510,6 +597,11 @@ export function runEducationalAnalytics(
       specialized.prediction
         ?.predictions ??
       base.analytics.predictions,
+
+    recommendations:
+      specialized.recommendation
+        ?.recommendations ??
+      base.analytics.recommendations,
 
     warnings:
       normalizedWarnings,
@@ -569,6 +661,11 @@ export function runEducationalAnalytics(
             ?.predictions
             .length ??
           0,
+        recommendationCount:
+          specialized.recommendation
+            ?.recommendations
+            .length ??
+          0,
       },
     },
   }
@@ -618,11 +715,13 @@ export function getEducationalAnalyticsServiceInfo() {
       'pattern_engine',
       'influence_engine',
       'prediction_engine',
+      'recommendation_engine',
     ] as AnalyticsCapability[],
     guarantees: [
       'single_analytics_contract',
       'correlation_is_not_causation',
       'prediction_is_not_causation',
+      'recommendation_requires_teacher_decision',
       'human_review_preserved',
       'professional_autonomy_preserved',
       'specialized_results_are_traceable',
