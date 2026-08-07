@@ -14,6 +14,7 @@ import {
 import {
   AgendaSecondaryNavigation,
 } from '@/components/agenda/AgendaSecondaryNavigation'
+import AgendaPwaInstallPrompt from '@/components/pwa/AgendaPwaInstallPrompt'
 import {
   requireSessionUser,
 } from '@/lib/auth/session'
@@ -174,6 +175,7 @@ export default async function AgendaLayout({
           </div>
         </footer>
 
+        <AgendaPwaInstallPrompt />
         <AgendaMobileNavigation />
       </div>
     )
