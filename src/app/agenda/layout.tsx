@@ -36,12 +36,7 @@ export default async function AgendaLayout({
                     EIOS
                   </Link>
 
-                  <span
-                    aria-hidden="true"
-                    className="text-slate-300"
-                  >
-                    /
-                  </span>
+                  <span aria-hidden="true" className="text-slate-300">/</span>
 
                   <span className="text-slate-500">
                     Produto especializado
@@ -56,8 +51,7 @@ export default async function AgendaLayout({
 
                   <div className="min-w-0">
                     <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#0B7491]">
-                      Evidências, inclusão e
-                      inteligência
+                      Evidências, inclusão e inteligência
                     </p>
 
                     <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#071827] sm:text-4xl">
@@ -65,10 +59,7 @@ export default async function AgendaLayout({
                     </h1>
 
                     <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base sm:leading-7">
-                      Planejamento, registros,
-                      evidências, acompanhamento
-                      e análise pedagógica em um
-                      único ambiente operacional.
+                      Planejamento, registros, evidências, acompanhamento e análise pedagógica em um único ambiente operacional.
                     </p>
                   </div>
                 </div>
@@ -93,33 +84,18 @@ export default async function AgendaLayout({
 
             <div className="mt-6 grid grid-cols-3 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
               <div className="border-r border-slate-200 px-3 py-4 text-center sm:px-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 sm:text-xs">
-                  Organizar
-                </p>
-
-                <p className="mt-1 text-sm font-bold text-[#071827] sm:text-base">
-                  Planejamento
-                </p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 sm:text-xs">Organizar</p>
+                <p className="mt-1 text-sm font-bold text-[#071827] sm:text-base">Planejamento</p>
               </div>
 
               <div className="border-r border-slate-200 px-3 py-4 text-center sm:px-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 sm:text-xs">
-                  Registrar
-                </p>
-
-                <p className="mt-1 text-sm font-bold text-[#071827] sm:text-base">
-                  Evidências
-                </p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 sm:text-xs">Registrar</p>
+                <p className="mt-1 text-sm font-bold text-[#071827] sm:text-base">Evidências</p>
               </div>
 
               <div className="px-3 py-4 text-center sm:px-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 sm:text-xs">
-                  Analisar
-                </p>
-
-                <p className="mt-1 text-sm font-bold text-[#071827] sm:text-base">
-                  Indicadores
-                </p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 sm:text-xs">Analisar</p>
+                <p className="mt-1 text-sm font-bold text-[#071827] sm:text-base">Indicadores</p>
               </div>
             </div>
           </div>
@@ -148,10 +124,22 @@ export default async function AgendaLayout({
               Diário de Notas
             </Link>
             <Link
+              href="/agenda/avaliacoes/classificacao"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50"
+            >
+              Classificação
+            </Link>
+            <Link
               href="/agenda/ocorrencias"
               className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50"
             >
               Ocorrências
+            </Link>
+            <Link
+              href="/agenda/casos"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50"
+            >
+              Casos Pedagógicos
             </Link>
           </div>
         </section>
@@ -162,14 +150,8 @@ export default async function AgendaLayout({
 
         <footer className="border-t border-slate-200 bg-white">
           <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-6 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-            <p>
-              Agenda Inteligente EDI
-            </p>
-
-            <p>
-              Produto operacional integrado ao
-              EIOS
-            </p>
+            <p>Agenda Inteligente EDI</p>
+            <p>Produto operacional integrado ao EIOS</p>
           </div>
         </footer>
       </div>
