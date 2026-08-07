@@ -6,12 +6,13 @@ import {
 } from '@/lib/auth/session'
 
 import SgpaGovernancePanel from '@/components/sgpa/SgpaGovernancePanel'
+import SgpaCompliancePanel from '@/components/sgpa/SgpaCompliancePanel'
 
 export const metadata = {
   title:
     'Painel SGPA | EduData IA',
   description:
-    'Painel operacional de governança, auditoria e decisões humanas do EIOS.',
+    'Painel operacional de governança, auditoria, compliance, planos de ação e decisões humanas do EIOS.',
 }
 
 export default async function SgpaDashboardPage() {
@@ -32,11 +33,11 @@ export default async function SgpaDashboardPage() {
               </p>
 
               <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
-                SGPA — Painel de Governança
+                SGPA — Governança Institucional
               </h1>
 
               <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">
-                Auditoria, workflow e decisões humanas consolidados em uma única visão institucional.
+                Governe processos, acompanhe conformidade, registre planos de ação e mantenha auditoria, workflow e decisões humanas em uma única visão institucional.
               </p>
             </div>
 
@@ -56,10 +57,30 @@ export default async function SgpaDashboardPage() {
               </Link>
             </div>
           </div>
+
+          <div className="mt-7 grid grid-cols-2 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] sm:grid-cols-4">
+            <div className="border-b border-r border-white/10 px-4 py-4 sm:border-b-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Governar</p>
+              <p className="mt-1 text-sm font-bold">Workflow</p>
+            </div>
+            <div className="border-b border-white/10 px-4 py-4 sm:border-b-0 sm:border-r">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Verificar</p>
+              <p className="mt-1 text-sm font-bold">Compliance</p>
+            </div>
+            <div className="border-r border-white/10 px-4 py-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Agir</p>
+              <p className="mt-1 text-sm font-bold">Planos</p>
+            </div>
+            <div className="px-4 py-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Rastrear</p>
+              <p className="mt-1 text-sm font-bold">Auditoria</p>
+            </div>
+          </div>
         </div>
       </section>
 
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+      <div className="mx-auto max-w-7xl space-y-8 px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+        <SgpaCompliancePanel />
         <SgpaGovernancePanel />
       </div>
     </main>
