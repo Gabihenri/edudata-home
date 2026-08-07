@@ -171,9 +171,9 @@ export default function AgendaPage() {
 
               <Link
                 href="#recursos-agenda"
-                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-7 py-4 text-center font-semibold text-white transition hover:border-cyan-300/40 hover:bg-white/10"
+                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-cyan-200/35 bg-cyan-200/10 px-7 py-4 text-center font-semibold text-cyan-50 transition hover:border-cyan-200/60 hover:bg-cyan-200/15 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cyan-300/30 active:scale-[0.99]"
               >
-                Conhecer recursos
+                Ver recursos da Agenda
               </Link>
             </div>
 
@@ -263,7 +263,8 @@ export default function AgendaPage() {
 
       <section
         id="recursos-agenda"
-        className="scroll-mt-20 px-4 py-14 sm:px-6 sm:py-20 lg:px-8"
+        tabIndex={-1}
+        className="scroll-mt-6 border-y border-transparent px-4 py-14 outline-none transition duration-500 target:border-cyan-200 target:bg-cyan-50/70 target:ring-4 target:ring-inset target:ring-cyan-100 sm:px-6 sm:py-20 lg:px-8"
       >
         <div className="mx-auto max-w-7xl">
           <div className="max-w-3xl">
