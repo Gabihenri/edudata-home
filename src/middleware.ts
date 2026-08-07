@@ -12,15 +12,36 @@ const REFRESH_TOKEN_COOKIE =
 const TOKEN_RENEWAL_MARGIN_SECONDS =
   60
 
+const BLOCKED_PRODUCT_ROUTES = [
+  {
+    prefix: '/professor-digital',
+    code: 'professor-digital',
+  },
+  {
+    prefix: '/analytics',
+    code: 'analytics',
+  },
+  {
+    prefix: '/sgpa',
+    code: 'sgpa',
+  },
+  {
+    prefix: '/observatorio',
+    code: 'observatorio',
+  },
+  {
+    prefix: '/academy',
+    code: 'academy',
+  },
+] as const
+
 const EXACT_PUBLIC_ROUTES = [
   '/',
   '/login',
   '/agenda',
-  '/professor-digital',
 ]
 
 const PUBLIC_ROUTE_PREFIXES = [
-  '/academy',
   '/participacao',
 ]
 
@@ -34,6 +55,21 @@ type RefreshedSession = {
   accessToken: string
   refreshToken: string
   expiresIn: number
+}
+
+function getBlockedProductCode(
+  pathname: string,
+): string | null {
+  const blockedProduct =
+    BLOCKED_PRODUCT_ROUTES.find(
+      product =>
+        pathname === product.prefix ||
+        pathname.startsWith(
+          `${product.prefix}/`,
+        ),
+    )
+
+  return blockedProduct?.code ?? null
 }
 
 function isPublicRoute(
@@ -550,6 +586,28 @@ export async function middleware(
     pathname,
   } = request.nextUrl
 
+  const blockedProductCode =
+    getBlockedProductCode(
+      pathname,
+    )
+
+  if (blockedProductCode) {
+    const statusUrl =
+      new URL(
+        '/produto-em-desenvolvimento',
+        request.url,
+      )
+
+    statusUrl.searchParams.set(
+      'produto',
+      blockedProductCode,
+    )
+
+    return NextResponse.redirect(
+      statusUrl,
+    )
+  }
+
   if (isPublicRoute(pathname)) {
     return NextResponse.next()
   }
@@ -605,6 +663,9 @@ export const config = {
     '/professor-digital/:path*',
     '/dashboard/:path*',
     '/analytics/:path*',
+    '/sgpa/:path*',
+    '/observatorio/:path*',
+    '/academy/:path*',
     '/professor/:path*',
     '/admin/:path*',
     '/backoffice/:path*',
