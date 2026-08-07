@@ -7,237 +7,122 @@ import Link from 'next/link'
 export const metadata: Metadata = {
   title:
     'Professor Digital | EduData IA',
-
   description:
-    'Ambiente de desenvolvimento profissional, identidade docente e inteligência educacional da EduData IA.',
+    'Copiloto pedagógico e ambiente de desenvolvimento profissional docente integrado ao EIOS.',
 }
 
-const primaryModules = [
+const capabilities = [
   {
-    eyebrow:
-      'Organizar',
-
-    title:
-      'Ambiente Docente',
-
+    code: '01',
+    eyebrow: 'Interpretar',
+    title: 'Copiloto Pedagógico',
     description:
-      'Acesse sua rotina pedagógica integrada à Agenda Inteligente EDI.',
-
-    href:
-      '/professor-digital/agenda',
-
-    action:
-      'Abrir ambiente',
+      'Interpreta o contexto produzido pela Agenda e organiza prioridades, próximos passos e possibilidades de intervenção para revisão humana.',
+    href: '/professor-digital/copiloto',
+    action: 'Abrir Copiloto',
   },
   {
-    eyebrow:
-      'Identidade',
-
-    title:
-      'Perfil Docente',
-
+    code: '02',
+    eyebrow: 'Orientar',
+    title: 'Recomendações',
     description:
-      'Acompanhe informações profissionais, indicadores e evolução do perfil EDI.',
-
-    href:
-      '/professor-digital/perfil',
-
-    action:
-      'Abrir perfil',
+      'Transforma evidências, avaliações e histórico pedagógico em recomendações explicáveis, sem substituir a decisão profissional.',
+    href: '/professor-digital/recomendacoes',
+    action: 'Ver recomendações',
   },
   {
-    eyebrow:
-      'Contextualizar',
-
-    title:
-      'Contexto da Escola',
-
+    code: '03',
+    eyebrow: 'Desenvolver',
+    title: 'Plano de Desenvolvimento',
     description:
-      'Mantenha atualizadas as informações institucionais que qualificam as análises.',
-
-    href:
-      '/professor-digital/escola',
-
-    action:
-      'Atualizar contexto',
+      'Organiza metas, competências e ações de desenvolvimento profissional a partir do contexto e das necessidades do professor.',
+    href: '/professor-digital/plano',
+    action: 'Abrir plano',
   },
   {
-    eyebrow:
-      'Desenvolver',
-
-    title:
-      'Plano de Desenvolvimento',
-
+    code: '04',
+    eyebrow: 'Compreender',
+    title: 'Perfil Docente',
     description:
-      'Organize metas profissionais, competências e ações de desenvolvimento docente.',
-
-    href:
-      '/professor-digital/plano',
-
-    action:
-      'Abrir plano',
+      'Consolida identidade profissional, trajetória, indicadores e evolução do perfil EDI sem transformar dados em rótulos.',
+    href: '/professor-digital/perfil',
+    action: 'Consultar perfil',
   },
   {
-    eyebrow:
-      'Analisar',
-
-    title:
-      'Recomendações',
-
+    code: '05',
+    eyebrow: 'Contextualizar',
+    title: 'Contexto Institucional',
     description:
-      'Consulte orientações explicáveis produzidas a partir do contexto pedagógico.',
-
-    href:
-      '/professor-digital/recomendacoes',
-
-    action:
-      'Ver recomendações',
+      'Mantém o contexto da escola e da atuação docente disponível para qualificar análises e evitar recomendações genéricas.',
+    href: '/professor-digital/escola',
+    action: 'Revisar contexto',
   },
 ]
 
-const operationalModules = [
+const intelligenceFlow = [
   {
-    title:
-      'Planejamentos',
-
+    code: '01',
+    title: 'Agenda registra',
     description:
-      'Organize objetivos, sequências didáticas e ações pedagógicas.',
-
-    href:
-      '/agenda/planejamento',
+      'Planejamentos, avaliações, evidências, frequência, ocorrências e acompanhamentos são registrados na operação docente.',
   },
   {
-    title:
-      'Calendário',
-
+    code: '02',
+    title: 'EIOS interpreta',
     description:
-      'Visualize compromissos, reuniões, formações e prazos.',
-
-    href:
-      '/agenda/calendario',
+      'O Core correlaciona somente os dados autorizados pela governança vigente e preserva contexto, rastreabilidade e explicabilidade.',
   },
   {
-    title:
-      'Evidências',
-
+    code: '03',
+    title: 'Professor Digital recomenda',
     description:
-      'Registre práticas, intervenções e produções dos estudantes.',
-
-    href:
-      '/agenda/evidencias',
+      'O Copiloto apresenta hipóteses, prioridades e caminhos pedagógicos contextualizados para análise profissional.',
   },
   {
-    title:
-      'Tarefas',
-
+    code: '04',
+    title: 'Professor decide',
     description:
-      'Acompanhe pendências, prioridades e responsabilidades.',
-
-    href:
-      '/agenda/tarefas',
-  },
-  {
-    title:
-      'Indicadores',
-
-    description:
-      'Consulte dados e tendências para apoiar decisões pedagógicas.',
-
-    href:
-      '/agenda/indicadores',
-  },
-  {
-    title:
-      'Histórico',
-
-    description:
-      'Acompanhe registros e a evolução do trabalho pedagógico.',
-
-    href:
-      '/agenda/historico',
+      'Toda recomendação permanece revisável. A decisão pedagógica e a intervenção continuam sob responsabilidade humana.',
   },
 ]
 
-function PrimaryModuleCard({
+function CapabilityCard({
+  code,
   eyebrow,
   title,
   description,
   href,
   action,
-}: {
-  eyebrow: string
-  title: string
-  description: string
-  href: string
-  action: string
-}) {
+}: (typeof capabilities)[number]) {
   return (
     <Link
       href={href}
-      className="group relative flex min-h-56 flex-col overflow-hidden rounded-panel border border-border bg-surface p-6 shadow-card transition duration-250 hover:-translate-y-0.5 hover:border-border-brand hover:shadow-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary focus-visible:ring-offset-2"
+      className="group relative flex min-h-64 flex-col overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2"
     >
       <div
         aria-hidden="true"
-        className="absolute left-0 top-0 h-full w-1 bg-brand-secondary"
+        className="absolute left-0 top-0 h-full w-1 bg-[#0B7491]"
       />
 
-      <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-secondary">
-        {eyebrow}
-      </p>
+      <div className="flex items-start justify-between gap-4">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+          {eyebrow}
+        </p>
+        <span className="font-mono text-xs font-bold text-slate-400">
+          {code}
+        </span>
+      </div>
 
-      <h2 className="mt-3 text-xl font-bold text-content-primary">
+      <h2 className="mt-4 text-xl font-bold text-[#071827]">
         {title}
       </h2>
 
-      <p className="mt-4 text-sm leading-7 text-content-secondary">
+      <p className="mt-3 text-sm leading-7 text-slate-600">
         {description}
       </p>
 
-      <span className="mt-auto inline-flex items-center gap-2 pt-6 text-sm font-bold text-brand-secondary">
-        {action}
-
-        <span
-          aria-hidden="true"
-          className="transition-transform duration-250 group-hover:translate-x-1"
-        >
-          →
-        </span>
-      </span>
-    </Link>
-  )
-}
-
-function OperationalModuleCard({
-  title,
-  description,
-  href,
-}: {
-  title: string
-  description: string
-  href: string
-}) {
-  return (
-    <Link
-      href={href}
-      className="group rounded-panel border border-border bg-surface p-5 shadow-card transition duration-250 hover:-translate-y-0.5 hover:border-border-brand hover:shadow-panel focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary focus-visible:ring-offset-2"
-    >
-      <h3 className="font-bold text-content-primary">
-        {title}
-      </h3>
-
-      <p className="mt-2 text-sm leading-6 text-content-secondary">
-        {description}
-      </p>
-
-      <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-brand-secondary">
-        Acessar
-
-        <span
-          aria-hidden="true"
-          className="transition-transform duration-250 group-hover:translate-x-1"
-        >
-          →
-        </span>
+      <span className="mt-auto pt-6 text-sm font-bold text-[#075F78] transition group-hover:translate-x-1">
+        {action} →
       </span>
     </Link>
   )
@@ -245,261 +130,162 @@ function OperationalModuleCard({
 
 export default function ProfessorDigitalPage() {
   return (
-    <main className="min-h-screen bg-surface-page text-content-primary">
-      <header className="border-b border-white/10 bg-brand-primary text-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-brand-accent">
-              Professor Digital
-            </p>
+    <main className="min-h-screen bg-[#EEF3F7] text-slate-950">
+      <section className="relative overflow-hidden bg-[#071827] text-white">
+        <div
+          aria-hidden="true"
+          className="absolute -right-24 top-8 h-72 w-72 rounded-full border border-cyan-300/10"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute -right-2 top-32 h-40 w-40 rounded-full border border-cyan-300/10"
+        />
 
-            <h1 className="mt-2 text-2xl font-bold">
-              Desenvolvimento profissional docente
-            </h1>
-
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-              Identidade pedagógica, desenvolvimento profissional,
-              recomendações e inteligência educacional em um único ambiente.
-            </p>
+        <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.18em]">
+            <span className="text-cyan-300">EIOS</span>
+            <span aria-hidden="true" className="text-slate-500">/</span>
+            <span className="text-slate-300">Produto especializado</span>
           </div>
 
-          <nav
-            aria-label="Navegação do Professor Digital"
-            className="flex flex-wrap gap-3"
-          >
-            <Link
-              href="/"
-              className="rounded-full border border-white/20 px-5 py-3 text-sm font-semibold text-white transition duration-250 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-brand-primary"
-            >
-              Central EIOS
-            </Link>
+          <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.38fr)] lg:items-end">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-cyan-300">
+                Inteligência para apoiar o trabalho docente
+              </p>
 
-            <Link
-              href="/professor-digital/agenda"
-              className="rounded-full bg-brand-secondary px-5 py-3 text-sm font-semibold text-white transition duration-250 hover:bg-brand-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-brand-primary"
-            >
-              Ambiente Docente
-            </Link>
-          </nav>
+              <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+                Professor Digital
+              </h1>
+
+              <p className="mt-5 max-w-4xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
+                Copiloto pedagógico que interpreta o contexto produzido pela Agenda Inteligente EDI, organiza recomendações explicáveis e apoia o desenvolvimento profissional sem substituir a autonomia do professor.
+              </p>
+
+              <div className="mt-7 flex flex-wrap gap-3">
+                <Link
+                  href="/professor-digital/copiloto"
+                  className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0B7491] px-6 py-3 font-semibold text-white transition hover:bg-[#09657E] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                >
+                  Abrir Copiloto Pedagógico
+                </Link>
+
+                <Link
+                  href="/agenda"
+                  className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-6 py-3 font-semibold text-white transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                >
+                  Ir para Agenda EDI
+                </Link>
+              </div>
+            </div>
+
+            <aside className="rounded-[1.5rem] border border-cyan-300/20 bg-cyan-300/10 p-5">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-200">
+                O que este produto faz
+              </p>
+              <p className="mt-3 text-sm leading-6 text-slate-200">
+                Interpreta, recomenda, contextualiza e acompanha desenvolvimento profissional.
+              </p>
+
+              <div className="mt-5 border-t border-white/10 pt-5">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                  O que não faz
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-300">
+                  Não substitui o Diário, não registra frequência e não duplica as ferramentas operacionais da Agenda.
+                </p>
+              </div>
+            </aside>
+          </div>
         </div>
-      </header>
+      </section>
 
-      <div className="mx-auto max-w-7xl space-y-8 px-4 py-6 sm:px-6 sm:py-8 lg:space-y-10 lg:py-10">
-        <section className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-brand-primary text-white shadow-card sm:rounded-shell">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 overflow-hidden"
+      <div className="mx-auto max-w-7xl space-y-10 px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+        <section aria-labelledby="pd-capabilities">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0B7491]">
+            Capabilities do produto
+          </p>
+          <h2
+            id="pd-capabilities"
+            className="mt-2 text-3xl font-bold tracking-tight text-[#071827] sm:text-4xl"
           >
-            <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full border border-brand-accent/15" />
+            Interpretar para apoiar decisões
+          </h2>
+          <p className="mt-3 max-w-3xl leading-7 text-slate-600">
+            Cada área possui uma finalidade própria. As ferramentas operacionais continuam na Agenda; o Professor Digital utiliza esse contexto para produzir apoio pedagógico e desenvolvimento profissional.
+          </p>
 
-            <div className="absolute -right-6 -top-10 h-40 w-40 rounded-full border border-brand-accent/10" />
-
-            <div className="absolute bottom-0 right-0 h-px w-2/3 bg-brand-line" />
-
-            <div className="absolute bottom-0 right-[18%] h-24 w-px bg-gradient-to-t from-brand-accent/25 to-transparent" />
-
-            <div className="absolute left-0 top-0 h-full w-1.5 bg-brand-secondary" />
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {capabilities.map(item => (
+              <CapabilityCard
+                key={item.code}
+                {...item}
+              />
+            ))}
           </div>
+        </section>
 
-          <div className="relative px-6 py-7 sm:px-8 sm:py-9 lg:px-10 lg:py-10">
-            <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] sm:text-xs">
-              <span className="text-brand-accent">
-                EIOS
-              </span>
+        <section aria-labelledby="pd-flow">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0B7491]">
+            Fluxo EIOS
+          </p>
+          <h2
+            id="pd-flow"
+            className="mt-2 text-3xl font-bold tracking-tight text-[#071827]"
+          >
+            Um produto diferente da Agenda, conectado à mesma inteligência
+          </h2>
 
-              <span
-                aria-hidden="true"
-                className="text-slate-500"
+          <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
+            {intelligenceFlow.map((item, index) => (
+              <article
+                key={item.code}
+                className={`grid gap-3 px-5 py-5 sm:grid-cols-[70px_minmax(0,1fr)] sm:px-7 ${
+                  index < intelligenceFlow.length - 1
+                    ? 'border-b border-slate-200'
+                    : ''
+                }`}
               >
-                /
-              </span>
-
-              <span className="text-slate-300">
-                Produto especializado
-              </span>
-            </div>
-
-            <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-              <div className="min-w-0">
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-accent">
-                  Centro de desenvolvimento docente
-                </p>
-
-                <h2 className="mt-3 max-w-4xl text-3xl font-bold leading-[1.08] tracking-tight text-white sm:text-4xl lg:text-5xl">
-                  Professor Digital
-                </h2>
-
-                <p className="mt-4 max-w-4xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
-                  Construa sua identidade pedagógica, acompanhe sua evolução
-                  profissional e utilize as evidências do Framework EDI para
-                  orientar seu desenvolvimento.
-                </p>
-
-                <div className="mt-7 flex flex-wrap gap-3">
-                  <Link
-                    href="/professor-digital/agenda"
-                    className="rounded-full bg-white px-6 py-3 font-semibold text-brand-primary transition duration-250 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-brand-primary"
-                  >
-                    Abrir ambiente docente
-                  </Link>
-
-                  <Link
-                    href="/professor-digital/perfil"
-                    className="rounded-full border border-white/20 px-6 py-3 font-semibold text-white transition duration-250 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-brand-primary"
-                  >
-                    Consultar perfil
-                  </Link>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:max-w-xs lg:justify-end">
-                <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                    Ambiente
-                  </p>
-
-                  <p className="mt-1 text-sm font-bold text-white">
-                    Profissional
+                <span className="font-mono text-xs font-bold text-[#0B7491]">
+                  {item.code}
+                </span>
+                <div>
+                  <h3 className="font-bold text-[#071827]">
+                    {item.title}
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">
+                    {item.description}
                   </p>
                 </div>
-
-                <div className="rounded-xl border border-brand-accent/20 bg-brand-accent/10 px-4 py-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200">
-                    Inteligência
-                  </p>
-
-                  <p className="mt-1 text-sm font-bold text-white">
-                    EIOS ativa
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="relative grid grid-cols-3 border-t border-white/10 bg-white/[0.03]">
-            <div className="border-r border-white/10 px-3 py-3 text-center sm:px-5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
-                Evidências
-              </p>
-            </div>
-
-            <div className="border-r border-white/10 px-3 py-3 text-center sm:px-5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
-                Inclusão
-              </p>
-            </div>
-
-            <div className="px-3 py-3 text-center sm:px-5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
-                Inteligência
-              </p>
-            </div>
+              </article>
+            ))}
           </div>
         </section>
 
-        <section aria-labelledby="professor-primary-modules">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-secondary">
-              Professor Digital
+        <section className="grid gap-4 lg:grid-cols-2">
+          <article className="rounded-[1.5rem] border border-cyan-200 bg-cyan-50 p-6">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-800">
+              Equidade Inteligente
             </p>
-
-            <h2
-              id="professor-primary-modules"
-              className="mt-2 text-3xl font-bold tracking-tight text-content-primary"
-            >
-              Desenvolvimento, identidade e evolução
+            <h2 className="mt-2 text-xl font-bold text-[#071827]">
+              Recomendações precisam de contexto
             </h2>
-
-            <p className="mt-3 max-w-3xl leading-7 text-content-secondary">
-              Acesse os módulos que organizam o contexto profissional e
-              qualificam as análises do Professor Digital.
+            <p className="mt-3 text-sm leading-6 text-slate-700">
+              O Professor Digital não aplica uma orientação universal a realidades diferentes. A análise deve considerar contexto docente, institucional e as políticas autorizadas pela governança.
             </p>
-          </div>
+          </article>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {primaryModules.map(
-              module => (
-                <PrimaryModuleCard
-                  key={module.href}
-                  eyebrow={module.eyebrow}
-                  title={module.title}
-                  description={module.description}
-                  href={module.href}
-                  action={module.action}
-                />
-              ),
-            )}
-          </div>
-        </section>
-
-        <section aria-labelledby="professor-operational-modules">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-secondary">
-              Agenda Inteligente EDI
+          <article className="rounded-[1.5rem] border border-slate-200 bg-white p-6">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              Revisão humana
             </p>
-
-            <h2
-              id="professor-operational-modules"
-              className="mt-2 text-3xl font-bold tracking-tight text-content-primary"
-            >
-              Ferramentas operacionais integradas
+            <h2 className="mt-2 text-xl font-bold text-[#071827]">
+              O professor permanece no centro da decisão
             </h2>
-
-            <p className="mt-3 max-w-3xl leading-7 text-content-secondary">
-              Planejamentos, registros e indicadores alimentam continuamente o
-              contexto educacional e a identidade pedagógica.
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              Recomendações, classificações e sinais permanecem explicáveis, rastreáveis e revisáveis. Nenhuma intervenção pedagógica é executada automaticamente.
             </p>
-          </div>
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {operationalModules.map(
-              module => (
-                <OperationalModuleCard
-                  key={module.href}
-                  title={module.title}
-                  description={module.description}
-                  href={module.href}
-                />
-              ),
-            )}
-          </div>
-        </section>
-
-        <section className="relative overflow-hidden rounded-panel border border-border bg-surface p-7 shadow-card sm:p-9">
-          <div
-            aria-hidden="true"
-            className="absolute left-0 top-0 h-full w-1 bg-brand-secondary"
-          />
-
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full border border-border-brand/60"
-          />
-
-          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-3xl">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-secondary">
-                Ecossistema EDI
-              </p>
-
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-content-primary">
-                Do registro à evolução profissional.
-              </h2>
-
-              <p className="mt-4 leading-7 text-content-secondary">
-                Cada planejamento, aula, evidência e ação de desenvolvimento
-                fortalece o histórico docente e melhora a qualidade das
-                recomendações apresentadas pelo EIOS.
-              </p>
-            </div>
-
-            <Link
-              href="/professor-digital/agenda"
-              className="inline-flex w-fit shrink-0 rounded-full bg-brand-secondary px-7 py-4 font-semibold text-white transition duration-250 hover:bg-brand-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary focus-visible:ring-offset-2"
-            >
-              Entrar no ambiente docente
-            </Link>
-          </div>
+          </article>
         </section>
       </div>
     </main>
