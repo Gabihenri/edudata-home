@@ -41,11 +41,11 @@ const productStages:
         'border-cyan-200 bg-cyan-50 text-[#075F78]',
     },
     sgpa: {
-      label: 'Roadmap',
+      label: 'Em implantação',
       description:
-        'Camada institucional de governança, acompanhamento e conformidade.',
+        'Governança institucional ativa com auditoria, workflow, decisões humanas e integração ao Governance Core do EIOS.',
       badgeClassName:
-        'border-slate-200 bg-slate-100 text-slate-700',
+        'border-emerald-200 bg-emerald-50 text-emerald-800',
     },
     observatorio: {
       label: 'Roadmap',
@@ -111,6 +111,13 @@ function getProductAction(
     'analytics'
   ) {
     return 'Acessar o Analytics'
+  }
+
+  if (
+    productId ===
+    'sgpa'
+  ) {
+    return 'Acessar o SGPA'
   }
 
   return 'Conhecer o produto'
