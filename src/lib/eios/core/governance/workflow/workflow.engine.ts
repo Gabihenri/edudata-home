@@ -37,9 +37,11 @@ export function validateEiosWorkflowTransition(
 
   const requiresHumanReview =
     request.requiresHumanReview ??
-    request.targetState === 'under_human_review' ||
-    request.targetState === 'approved' ||
-    request.targetState === 'published'
+    (
+      request.targetState === 'under_human_review' ||
+      request.targetState === 'approved' ||
+      request.targetState === 'published'
+    )
 
   if (
     request.targetState === 'published' &&
