@@ -128,7 +128,7 @@ function EvolutionBars({
   const maximum = Math.max(1, ...values)
 
   return (
-    <div className="mt-4 flex h-28 items-end gap-1.5">
+    <div className="mt-4 flex h-24 items-end gap-1 sm:h-28 sm:gap-1.5">
       {points.map(point => {
         const value = point.counts[metric]
         const height = Math.max(
@@ -223,7 +223,7 @@ export default function EducationalAnalyticsEvolutionPanel() {
 
   if (loading) {
     return (
-      <section className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:rounded-[1.75rem] sm:p-6">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
           EIOS · Evolução longitudinal
         </p>
@@ -236,7 +236,7 @@ export default function EducationalAnalyticsEvolutionPanel() {
 
   if (error) {
     return (
-      <section className="rounded-[1.75rem] border border-amber-200 bg-white p-6 shadow-sm">
+      <section className="rounded-[1.5rem] border border-amber-200 bg-white p-5 shadow-sm sm:rounded-[1.75rem] sm:p-6">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">
           EIOS · Evolução longitudinal
         </p>
@@ -249,7 +249,7 @@ export default function EducationalAnalyticsEvolutionPanel() {
         <button
           type="button"
           onClick={() => void load()}
-          className="mt-4 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
+          className="mt-4 min-h-11 w-full rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 sm:w-auto"
         >
           Tentar novamente
         </button>
@@ -258,14 +258,14 @@ export default function EducationalAnalyticsEvolutionPanel() {
   }
 
   return (
-    <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
-      <header className="border-b border-slate-200 bg-slate-50 px-5 py-6 sm:px-7">
+    <section className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm sm:rounded-[1.75rem]">
+      <header className="border-b border-slate-200 bg-slate-50 px-4 py-5 sm:px-7 sm:py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0B7491] sm:text-xs">
               EIOS · Dashboard Evolutivo
             </p>
-            <h2 className="mt-2 text-2xl font-bold text-[#071827]">
+            <h2 className="mt-2 text-xl font-bold text-[#071827] sm:text-2xl">
               Evolução dos sinais analíticos
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
@@ -276,17 +276,17 @@ export default function EducationalAnalyticsEvolutionPanel() {
           <button
             type="button"
             onClick={() => void load()}
-            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto"
           >
             Atualizar evolução
           </button>
         </div>
       </header>
 
-      <div className="space-y-7 p-5 sm:p-7">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="space-y-6 p-4 sm:space-y-7 sm:p-7">
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 sm:text-xs">
               Versões
             </p>
             <p className="mt-2 text-2xl font-bold text-[#071827]">
@@ -294,7 +294,7 @@ export default function EducationalAnalyticsEvolutionPanel() {
             </p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 sm:text-xs">
               Aprovadas
             </p>
             <p className="mt-2 text-2xl font-bold text-[#071827]">
@@ -302,7 +302,7 @@ export default function EducationalAnalyticsEvolutionPanel() {
             </p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 sm:text-xs">
               Revisões pendentes
             </p>
             <p className="mt-2 text-2xl font-bold text-[#071827]">
@@ -310,17 +310,17 @@ export default function EducationalAnalyticsEvolutionPanel() {
             </p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 sm:text-xs">
               Janela histórica
             </p>
-            <p className="mt-2 text-sm font-bold text-[#071827]">
+            <p className="mt-2 text-xs font-bold leading-5 text-[#071827] sm:text-sm">
               {formatDate(data?.summary.firstGeneratedAt ?? null)} → {formatDate(data?.summary.latestGeneratedAt ?? null)}
             </p>
           </div>
         </div>
 
         {points.length < 2 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm leading-6 text-slate-600">
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm leading-6 text-slate-600 sm:p-6">
             Ainda não há versões suficientes para uma leitura evolutiva. Reprocessamentos futuros serão incorporados automaticamente ao histórico.
           </div>
         ) : (
@@ -328,11 +328,11 @@ export default function EducationalAnalyticsEvolutionPanel() {
             {visibleTrends.map(trend => (
               <article
                 key={trend.metric}
-                className="rounded-2xl border border-slate-200 bg-white p-5"
+                className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#0B7491]">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#0B7491] sm:text-xs">
                       Série longitudinal
                     </p>
                     <h3 className="mt-1 font-bold text-[#071827]">
@@ -347,7 +347,7 @@ export default function EducationalAnalyticsEvolutionPanel() {
                   metric={trend.metric}
                 />
 
-                <div className="mt-3 flex justify-between text-xs text-slate-500">
+                <div className="mt-3 flex justify-between text-[10px] text-slate-500 sm:text-xs">
                   <span>v{points[0]?.versionNumber}</span>
                   <span>
                     {trend.first} → {trend.latest}
@@ -360,50 +360,91 @@ export default function EducationalAnalyticsEvolutionPanel() {
         )}
 
         {points.length > 0 ? (
-          <div className="overflow-x-auto rounded-2xl border border-slate-200">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.12em] text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">Versão</th>
-                  <th className="px-4 py-3">Data</th>
-                  <th className="px-4 py-3">Qualidade</th>
-                  <th className="px-4 py-3">Correlações</th>
-                  <th className="px-4 py-3">Padrões</th>
-                  <th className="px-4 py-3">Anomalias</th>
-                  <th className="px-4 py-3">Revisão</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {points.slice().reverse().map(point => (
-                  <tr key={point.runId}>
-                    <td className="px-4 py-3 font-semibold text-[#071827]">
-                      v{point.versionNumber}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {formatDate(point.generatedAt)}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {formatQuality(point.dataQualityScore)}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {point.counts.correlations}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {point.counts.patterns}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {point.counts.anomalies}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {point.approved
-                        ? 'Aprovada'
-                        : point.humanReviewStatus}
-                    </td>
+          <>
+            <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 md:hidden">
+              {points.slice().reverse().map(point => (
+                <article key={point.runId} className="bg-white p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-bold text-[#071827]">
+                        Versão {point.versionNumber}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {formatDate(point.generatedAt)}
+                      </p>
+                    </div>
+                    <span className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700">
+                      {point.approved ? 'Aprovada' : point.humanReviewStatus}
+                    </span>
+                  </div>
+
+                  <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-lg bg-slate-50 px-3 py-2">
+                      <dt className="font-semibold text-slate-500">Qualidade</dt>
+                      <dd className="mt-0.5 font-bold text-slate-700">{formatQuality(point.dataQualityScore)}</dd>
+                    </div>
+                    <div className="rounded-lg bg-slate-50 px-3 py-2">
+                      <dt className="font-semibold text-slate-500">Correlações</dt>
+                      <dd className="mt-0.5 font-bold text-slate-700">{point.counts.correlations}</dd>
+                    </div>
+                    <div className="rounded-lg bg-slate-50 px-3 py-2">
+                      <dt className="font-semibold text-slate-500">Padrões</dt>
+                      <dd className="mt-0.5 font-bold text-slate-700">{point.counts.patterns}</dd>
+                    </div>
+                    <div className="rounded-lg bg-slate-50 px-3 py-2">
+                      <dt className="font-semibold text-slate-500">Anomalias</dt>
+                      <dd className="mt-0.5 font-bold text-slate-700">{point.counts.anomalies}</dd>
+                    </div>
+                  </dl>
+                </article>
+              ))}
+            </div>
+
+            <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 md:block">
+              <table className="min-w-full divide-y divide-slate-200 text-sm">
+                <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.12em] text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3">Versão</th>
+                    <th className="px-4 py-3">Data</th>
+                    <th className="px-4 py-3">Qualidade</th>
+                    <th className="px-4 py-3">Correlações</th>
+                    <th className="px-4 py-3">Padrões</th>
+                    <th className="px-4 py-3">Anomalias</th>
+                    <th className="px-4 py-3">Revisão</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {points.slice().reverse().map(point => (
+                    <tr key={point.runId}>
+                      <td className="px-4 py-3 font-semibold text-[#071827]">
+                        v{point.versionNumber}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {formatDate(point.generatedAt)}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {formatQuality(point.dataQualityScore)}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {point.counts.correlations}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {point.counts.patterns}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {point.counts.anomalies}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {point.approved
+                          ? 'Aprovada'
+                          : point.humanReviewStatus}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         ) : null}
 
         {(data?.warnings.length ?? 0) > 0 ? (
