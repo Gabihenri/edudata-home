@@ -57,11 +57,12 @@ export function runEducationalAnalyticsWithReport(
         serviceName:
           'eios-educational-analytics-report-service',
         serviceVersion:
-          '1.0.0',
+          '1.0.1',
         sourceService:
           'eios-educational-analytics-service',
         correlationId:
-          request.correlationId,
+          request.input
+            .correlationId,
       },
     })
 
@@ -77,7 +78,7 @@ export function runEducationalAnalyticsWithReport(
       reportServiceName:
         'eios-educational-analytics-report-service',
       reportServiceVersion:
-        '1.0.0',
+        '1.0.1',
     },
   }
 }
