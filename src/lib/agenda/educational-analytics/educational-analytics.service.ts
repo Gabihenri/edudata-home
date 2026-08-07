@@ -18,9 +18,10 @@
  * - executar Influence Engine quando houver grafo disponível;
  * - executar Prediction Engine somente quando explicitamente habilitado;
  * - executar Recommendation Engine somente quando explicitamente habilitado;
+ * - executar Research Engine somente quando explicitamente habilitado;
  * - consolidar os resultados no contrato oficial;
  * - preservar explicabilidade, rastreabilidade e revisão humana;
- * - nunca converter associação, previsão ou recomendação em causalidade.
+ * - nunca converter associação, previsão, recomendação ou hipótese em causalidade.
  */
 
 import {
@@ -54,9 +55,15 @@ import {
   type RecommendationEngineResult,
 } from './recommendation.engine'
 
+import {
+  runResearchEngine,
+  type ResearchEngineResult,
+} from './research.engine'
+
 import type {
   AnalyticsCapability,
   AnalyticsMetadata,
+  AnalyticsResearchDesign,
   AnalyticsStatus,
   BuildEducationalAnalyticsInput,
   EducationalAnalyticsBuildResult,
@@ -67,7 +74,7 @@ const SERVICE_NAME =
   'eios-educational-analytics-service'
 
 const SERVICE_VERSION =
-  '1.2.0'
+  '1.3.0'
 
 export type EducationalAnalyticsSpecializedExecution = {
   correlation:
@@ -84,6 +91,9 @@ export type EducationalAnalyticsSpecializedExecution = {
 
   recommendation:
     RecommendationEngineResult | null
+
+  research:
+    ResearchEngineResult | null
 }
 
 export type RunEducationalAnalyticsInput = {
@@ -99,6 +109,9 @@ export type RunEducationalAnalyticsInput = {
   predictionTargets?:
     PredictionTarget[]
 
+  researchDesign?:
+    AnalyticsResearchDesign | null
+
   executeCorrelation?: boolean
 
   executePattern?: boolean
@@ -108,6 +121,8 @@ export type RunEducationalAnalyticsInput = {
   executePrediction?: boolean
 
   executeRecommendation?: boolean
+
+  executeResearch?: boolean
 
   metadata?: AnalyticsMetadata
 }
@@ -198,6 +213,69 @@ function resolveStatus(
   return 'completed'
 }
 
+function buildMergedAnalyticsSnapshot({
+  base,
+  specialized,
+  warnings,
+  errors,
+  generatedAt,
+}: {
+  base: EducationalAnalyticsResult
+  specialized:
+    EducationalAnalyticsSpecializedExecution
+  warnings: string[]
+  errors: string[]
+  generatedAt: string
+}): EducationalAnalyticsResult {
+  return {
+    ...base,
+
+    correlations:
+      specialized.correlation
+        ?.correlations ??
+      base.correlations,
+
+    patterns:
+      specialized.pattern
+        ?.patterns ??
+      base.patterns,
+
+    anomalies:
+      specialized.pattern
+        ?.anomalies ??
+      base.anomalies,
+
+    influences:
+      specialized.influence
+        ?.influences ??
+      base.influences,
+
+    predictions:
+      specialized.prediction
+        ?.predictions ??
+      base.predictions,
+
+    recommendations:
+      specialized.recommendation
+        ?.recommendations ??
+      base.recommendations,
+
+    researchResults:
+      specialized.research
+        ?.researchResults ??
+      base.researchResults,
+
+    warnings:
+      uniqueStrings(warnings),
+
+    errors:
+      uniqueStrings(errors),
+
+    completedAt:
+      generatedAt,
+  }
+}
+
 export function runEducationalAnalytics(
   request:
     RunEducationalAnalyticsInput,
@@ -217,6 +295,7 @@ export function runEducationalAnalytics(
       influence: null,
       prediction: null,
       recommendation: null,
+      research: null,
     }
 
   const executedCapabilities:
@@ -302,6 +381,18 @@ export function runEducationalAnalytics(
       isCapabilityEnabled(
         request.input,
         'recommendation_engine',
+      )
+    )
+
+  const shouldExecuteResearch =
+    request.executeResearch ??
+    (
+      request.input
+        .configuration
+        .generateResearchHypotheses &&
+      isCapabilityEnabled(
+        request.input,
+        'research_engine',
       )
     )
 
@@ -557,6 +648,52 @@ export function runEducationalAnalytics(
     )
   }
 
+  if (shouldExecuteResearch) {
+    const researchSource =
+      buildMergedAnalyticsSnapshot({
+        base:
+          base.analytics,
+        specialized,
+        warnings,
+        errors,
+        generatedAt,
+      })
+
+    specialized.research =
+      runResearchEngine({
+        analytics:
+          researchSource,
+        design:
+          request.researchDesign,
+        requestedByUserId:
+          base.analytics
+            .context
+            .requestedByUserId,
+        metadata: {
+          analysisId:
+            base.analytics.id,
+          serviceName:
+            SERVICE_NAME,
+        },
+      })
+
+    executedCapabilities.push(
+      'research_engine',
+    )
+
+    warnings.push(
+      ...specialized
+        .research
+        .warnings,
+    )
+
+    errors.push(
+      ...specialized
+        .research
+        .errors,
+    )
+  }
+
   const normalizedWarnings =
     uniqueStrings(
       warnings.filter(
@@ -569,45 +706,21 @@ export function runEducationalAnalytics(
   const normalizedErrors =
     uniqueStrings(errors)
 
+  const mergedAnalytics =
+    buildMergedAnalyticsSnapshot({
+      base:
+        base.analytics,
+      specialized,
+      warnings:
+        normalizedWarnings,
+      errors:
+        normalizedErrors,
+      generatedAt,
+    })
+
   const analytics:
     EducationalAnalyticsResult = {
-    ...base.analytics,
-
-    correlations:
-      specialized.correlation
-        ?.correlations ??
-      base.analytics.correlations,
-
-    patterns:
-      specialized.pattern
-        ?.patterns ??
-      base.analytics.patterns,
-
-    anomalies:
-      specialized.pattern
-        ?.anomalies ??
-      base.analytics.anomalies,
-
-    influences:
-      specialized.influence
-        ?.influences ??
-      base.analytics.influences,
-
-    predictions:
-      specialized.prediction
-        ?.predictions ??
-      base.analytics.predictions,
-
-    recommendations:
-      specialized.recommendation
-        ?.recommendations ??
-      base.analytics.recommendations,
-
-    warnings:
-      normalizedWarnings,
-
-    errors:
-      normalizedErrors,
+    ...mergedAnalytics,
 
     status:
       resolveStatus(
@@ -615,9 +728,6 @@ export function runEducationalAnalytics(
         normalizedErrors,
         normalizedWarnings,
       ),
-
-    completedAt:
-      generatedAt,
 
     metadata: {
       ...base.analytics.metadata,
@@ -664,6 +774,11 @@ export function runEducationalAnalytics(
         recommendationCount:
           specialized.recommendation
             ?.recommendations
+            .length ??
+          0,
+        researchResultCount:
+          specialized.research
+            ?.researchResults
             .length ??
           0,
       },
@@ -716,12 +831,14 @@ export function getEducationalAnalyticsServiceInfo() {
       'influence_engine',
       'prediction_engine',
       'recommendation_engine',
+      'research_engine',
     ] as AnalyticsCapability[],
     guarantees: [
       'single_analytics_contract',
       'correlation_is_not_causation',
       'prediction_is_not_causation',
       'recommendation_requires_teacher_decision',
+      'research_hypothesis_requires_human_validation',
       'human_review_preserved',
       'professional_autonomy_preserved',
       'specialized_results_are_traceable',
