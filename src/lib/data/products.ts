@@ -17,7 +17,7 @@ export const products: Product[] = [
     id: 'professor-digital',
     name: 'Professor Digital',
     description:
-      'Copiloto de desenvolvimento e prática profissional para apoiar o professor antes, durante e depois da aula.',
+      'Objetivo: apoiar o professor a planejar, criar, analisar e decidir melhor com um copiloto pedagógico.',
     href: '/professor-digital',
     order: 1,
     featured: true,
@@ -33,7 +33,7 @@ export const products: Product[] = [
     id: 'agenda-edi',
     name: 'Agenda Inteligente EDI',
     description:
-      'Ambiente operacional do trabalho docente: organiza e registra o ciclo pedagógico cotidiano em um único fluxo.',
+      'Objetivo: executar e registrar a rotina pedagógica diária — aulas, frequência, evidências, avaliações, notas, ocorrências e intervenções.',
     href: '/agenda',
     order: 2,
     featured: true,
@@ -49,7 +49,7 @@ export const products: Product[] = [
     id: 'academy',
     name: 'EduData Academy',
     description:
-      'Ambiente de formação continuada para desenvolver competências profissionais por cursos e trilhas.',
+      'Objetivo: formar e certificar profissionais da educação por cursos, trilhas, eventos e experiências de aprendizagem.',
     href: '/academy',
     order: 3,
     featured: true,
@@ -65,7 +65,7 @@ export const products: Product[] = [
     id: 'analytics',
     name: 'EduData Analytics',
     description:
-      'Camada de análise que transforma dados educacionais em indicadores, comparações e tendências para decisão.',
+      'Objetivo: transformar dados educacionais já produzidos em indicadores, comparações, tendências e inteligência para decisão.',
     href: '/analytics',
     order: 4,
     featured: true,
@@ -81,7 +81,7 @@ export const products: Product[] = [
     id: 'sgpa',
     name: 'SGPA',
     description:
-      'Sistema de governança e acompanhamento institucional para controlar processos, responsabilidades e conformidade.',
+      'Objetivo: governar processos institucionais — responsabilidades, workflows, planos de ação, auditoria e conformidade.',
     href: '/sgpa',
     order: 5,
     featured: true,
@@ -97,7 +97,7 @@ export const products: Product[] = [
     id: 'observatorio',
     name: 'Observatório da Educação',
     description:
-      'Ambiente de pesquisa e conhecimento para estudar indicadores, tendências e fenômenos educacionais em escala ampliada.',
+      'Objetivo: produzir conhecimento educacional por estudos, indicadores públicos, séries históricas, tendências e benchmarking.',
     href: '/observatorio',
     order: 6,
     featured: true,
@@ -113,7 +113,7 @@ export const products: Product[] = [
     id: 'comunidade',
     name: 'Comunidade EduData IA',
     description:
-      'Rede profissional para troca de práticas, experiências, materiais e colaboração entre educadores.',
+      'Objetivo: conectar profissionais para compartilhar práticas, materiais, experiências e construir conhecimento colaborativamente.',
     href: '/comunidade',
     order: 7,
     featured: true,
