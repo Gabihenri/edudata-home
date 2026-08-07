@@ -1,5 +1,6 @@
 import type {
   Metadata,
+  Viewport,
 } from 'next'
 
 import './globals.css'
@@ -15,6 +16,23 @@ import PwaServiceWorker from '@/components/pwa/PwaServiceWorker'
 import {
   siteConfig,
 } from '@/lib/data/site'
+
+export const viewport: Viewport = {
+  width:
+    'device-width',
+
+  initialScale:
+    1,
+
+  viewportFit:
+    'cover',
+
+  themeColor:
+    '#071827',
+
+  colorScheme:
+    'light',
+}
 
 export const metadata: Metadata = {
   title:
