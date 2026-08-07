@@ -31,6 +31,12 @@ export default function AssessmentCenterLayout({
             Diário de Notas
           </Link>
           <Link
+            href="/agenda/avaliacoes/classificacao"
+            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50"
+          >
+            Classificação
+          </Link>
+          <Link
             href="/agenda/ocorrencias"
             className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50"
           >
