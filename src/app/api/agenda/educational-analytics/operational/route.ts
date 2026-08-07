@@ -27,8 +27,12 @@ import {
 } from '@/lib/agenda/educational-analytics/agenda-analytics.adapter'
 
 import {
-  runEducationalAnalytics,
-} from '@/lib/agenda/educational-analytics/educational-analytics.service'
+  runEducationalAnalyticsWithReport,
+} from '@/lib/agenda/educational-analytics/educational-analytics-report.service'
+
+import {
+  persistEducationalAnalyticsRun,
+} from '@/lib/agenda/educational-analytics/educational-analytics.persistence.service'
 
 export const dynamic =
   'force-dynamic'
@@ -180,7 +184,7 @@ export async function GET(
       })
 
     const result =
-      runEducationalAnalytics({
+      runEducationalAnalyticsWithReport({
         input,
         executeCorrelation: true,
         executePattern: true,
@@ -193,9 +197,67 @@ export async function GET(
         },
       })
 
+    let persistence:
+      | Awaited<
+          ReturnType<
+            typeof persistEducationalAnalyticsRun
+          >
+        >
+      | {
+          persisted: false
+          reusedExisting: false
+          row: null
+          previousVersionId: null
+          generatedAt: string
+          warnings: string[]
+          error: string
+        }
+
+    try {
+      persistence =
+        await persistEducationalAnalyticsRun({
+          client,
+          execution:
+            result,
+          userId:
+            user.id,
+        })
+    } catch (persistenceError) {
+      const message =
+        persistenceError instanceof Error
+          ? persistenceError.message
+          : 'Erro desconhecido de persistência.'
+
+      console.error(
+        '[AGENDA_EDUCATIONAL_ANALYTICS_PERSISTENCE_ERROR]',
+        {
+          message,
+          analysisId:
+            result.analytics?.id ?? null,
+          occurredAt:
+            new Date().toISOString(),
+        },
+      )
+
+      persistence = {
+        persisted: false,
+        reusedExisting: false,
+        row: null,
+        previousVersionId: null,
+        generatedAt:
+          new Date().toISOString(),
+        warnings: [
+          'A análise foi executada, mas o histórico não pôde ser persistido nesta execução.',
+        ],
+        error:
+          message,
+      }
+    }
+
     return NextResponse.json(
       {
         ...result,
+        persistence,
         snapshot: {
           summary:
             snapshotResult.summary,
