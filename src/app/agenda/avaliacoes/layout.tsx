@@ -19,6 +19,12 @@ export default function AssessmentCenterLayout({
             Centro de Avaliações
           </Link>
           <Link
+            href="/agenda/avaliacoes/resultados"
+            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50"
+          >
+            Resultados Diagnósticos
+          </Link>
+          <Link
             href="/agenda/avaliacoes/notas"
             className="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-semibold text-[#075F78] transition hover:bg-cyan-100"
           >
