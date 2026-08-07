@@ -134,13 +134,14 @@ export default function StudentPedagogicalRecordPanel() {
 
       const occurrenceBody = await occurrenceResponse.json() as {
         success?: boolean
+        rows?: OccurrenceItem[]
         items?: OccurrenceItem[]
         error?: string
       }
       if (!occurrenceResponse.ok || !occurrenceBody.success) {
         throw new Error(occurrenceBody.error || 'Não foi possível carregar as ocorrências.')
       }
-      setOccurrences(occurrenceBody.items ?? [])
+      setOccurrences(occurrenceBody.rows ?? occurrenceBody.items ?? [])
 
       const caseBody = await caseResponse.json() as {
         success?: boolean
