@@ -90,11 +90,11 @@ export default function AgendaPage() {
   return (
     <main className="min-h-screen bg-[#EEF3F7]">
       <header className="border-b border-white/10 bg-[#071827] text-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:gap-4 sm:px-6 lg:px-8">
           <Link
             href="/"
             aria-label="Voltar para a Home da EduData IA"
-            className="min-w-0"
+            className="min-w-0 shrink"
           >
             <Image
               src="/logo-agenda-inteligente-edi.png"
@@ -102,21 +102,21 @@ export default function AgendaPage() {
               width={270}
               height={100}
               priority
-              className="h-auto w-36 object-contain object-left sm:w-44"
+              className="h-auto w-28 object-contain object-left sm:w-44"
             />
           </Link>
 
           <div className="flex shrink-0 items-center gap-2">
             <Link
               href="/login?redirectTo=%2Fagenda%2Fdashboard"
-              className="hidden min-h-10 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 sm:inline-flex"
+              className="inline-flex min-h-10 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10 sm:px-4 sm:text-sm"
             >
               Entrar
             </Link>
 
             <Link
               href="/cadastro"
-              className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#0B7491] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#09657E]"
+              className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#0B7491] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#09657E] sm:px-4 sm:text-sm"
             >
               Criar conta
             </Link>
