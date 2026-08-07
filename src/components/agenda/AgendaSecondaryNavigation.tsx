@@ -5,6 +5,10 @@ import { usePathname } from 'next/navigation'
 
 const items = [
   {
+    label: 'Diário de Classe',
+    href: '/agenda/diario-classe',
+  },
+  {
     label: 'Avaliações',
     href: '/agenda/avaliacoes',
     exact: true,
@@ -58,7 +62,7 @@ export function AgendaSecondaryNavigation() {
         <div className="mb-3 flex items-center gap-3">
           <span className="h-px w-8 bg-[#0B7491]" />
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#0B7491] sm:text-xs">
-            Acompanhamento pedagógico
+            Operação e acompanhamento pedagógico
           </p>
         </div>
 
