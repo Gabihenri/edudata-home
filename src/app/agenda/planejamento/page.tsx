@@ -1,28 +1,15 @@
 'use client'
 
-import {
-  type FormEvent,
-  useMemo,
-  useState,
-} from 'react'
+import { type FormEvent, useMemo, useState } from 'react'
 
-import {
-  AgendaPageShell,
-} from '@/components/agenda/AgendaPageShell'
-
-import {
-  PlanningRecordActions,
-} from '@/components/agenda/PlanningRecordActions'
-
-import {
-  usePlanning,
-} from '@/lib/agenda/hooks/usePlanning'
+import { AgendaPageShell } from '@/components/agenda/AgendaPageShell'
+import { PlanningRecordActions } from '@/components/agenda/PlanningRecordActions'
+import { usePedagogicalContext } from '@/lib/agenda/hooks/usePedagogicalContext'
+import { usePlanning } from '@/lib/agenda/hooks/usePlanning'
 
 type PlanningFormData = {
   title: string
   description: string
-  subject: string
-  className: string
   objective: string
   methodology: string
   resources: string
@@ -30,18 +17,15 @@ type PlanningFormData = {
   plannedDate: string
 }
 
-const initialFormData:
-  PlanningFormData = {
-    title: '',
-    description: '',
-    subject: '',
-    className: '',
-    objective: '',
-    methodology: '',
-    resources: '',
-    evaluation: '',
-    plannedDate: '',
-  }
+const initialFormData: PlanningFormData = {
+  title: '',
+  description: '',
+  objective: '',
+  methodology: '',
+  resources: '',
+  evaluation: '',
+  plannedDate: '',
+}
 
 const inputClassName = [
   'min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3',
@@ -50,400 +34,145 @@ const inputClassName = [
   'disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500',
 ].join(' ')
 
-function formatPlanningDate(
-  value: string | null,
-): string {
-  if (!value) {
-    return 'Data não definida'
-  }
+function formatPlanningDate(value: string | null): string {
+  if (!value) return 'Data não definida'
 
-  const parts =
-    value
-      .split('-')
-      .map(Number)
+  const date = new Date(`${value}T12:00:00`)
+  if (Number.isNaN(date.getTime())) return value
 
-  if (
-    parts.length !== 3 ||
-    parts.some(
-      part =>
-        !Number.isFinite(
-          part,
-        ),
-    )
-  ) {
-    return value
-  }
-
-  const [
-    year,
-    month,
-    day,
-  ] = parts
-
-  const date =
-    new Date(
-      year,
-      month - 1,
-      day,
-      12,
-      0,
-      0,
-      0,
-    )
-
-  if (
-    Number.isNaN(
-      date.getTime(),
-    )
-  ) {
-    return value
-  }
-
-  return new Intl
-    .DateTimeFormat(
-      'pt-BR',
-      {
-        dateStyle:
-          'medium',
-      },
-    )
-    .format(
-      date,
-    )
+  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(date)
 }
 
-function formatStatus(
-  value: string,
-): string {
-  const labels:
-    Record<
-      string,
-      string
-    > = {
-      rascunho:
-        'Rascunho',
-
-      em_revisao:
-        'Em revisão',
-
-      'em revisão':
-        'Em revisão',
-
-      aprovado:
-        'Aprovado',
-
-      programado:
-        'Programado',
-
-      planejado:
-        'Planejado',
-
-      executado:
-        'Executado',
-
-      concluido:
-        'Concluído',
-
-      concluído:
-        'Concluído',
-
-      arquivado:
-        'Arquivado',
-    }
-
-  return (
-    labels[value] ??
-    value
-      .replace(
-        /_/g,
-        ' ',
-      )
-      .replace(
-        /\b\w/g,
-        character =>
-          character
-            .toUpperCase(),
-      )
-  )
-}
-
-function getStatusClassName(
-  status: string,
-): string {
-  if (
-    status ===
-    'arquivado'
-  ) {
-    return [
-      'border-amber-200',
-      'bg-amber-50',
-      'text-amber-800',
-    ].join(' ')
+function formatStatus(value: string): string {
+  const labels: Record<string, string> = {
+    rascunho: 'Rascunho',
+    em_revisao: 'Em revisão',
+    'em revisão': 'Em revisão',
+    aprovado: 'Aprovado',
+    programado: 'Programado',
+    planejado: 'Planejado',
+    executado: 'Executado',
+    concluido: 'Concluído',
+    concluído: 'Concluído',
+    arquivado: 'Arquivado',
   }
 
-  if (
-    status ===
-      'executado' ||
-    status ===
-      'concluido' ||
-    status ===
-      'concluído'
-  ) {
-    return [
-      'border-emerald-200',
-      'bg-emerald-50',
-      'text-emerald-800',
-    ].join(' ')
-  }
-
-  if (
-    status ===
-      'aprovado' ||
-    status ===
-      'programado' ||
-    status ===
-      'planejado'
-  ) {
-    return [
-      'border-blue-200',
-      'bg-blue-50',
-      'text-blue-800',
-    ].join(' ')
-  }
-
-  return [
-    'border-cyan-200',
-    'bg-cyan-50',
-    'text-[#075F78]',
-  ].join(' ')
+  return labels[value] ?? value.replace(/_/g, ' ')
 }
 
 export default function AgendaPlanningPage() {
   const {
     planning,
-
     loading,
     mutating,
     error,
-
     reload,
-
     createPlanning,
     updatePlanning,
     archivePlanning,
     deletePlanning,
   } = usePlanning()
 
-  const [
-    formData,
-    setFormData,
-  ] =
-    useState<PlanningFormData>(
-      initialFormData,
-    )
+  const {
+    classes,
+    classesLoading,
+    classesError,
+    classId,
+    changeClass,
+    selectedClass,
+    academicPeriods,
+    periodsLoading,
+    periodsError,
+    academicPeriodId,
+    setAcademicPeriodId,
+  } = usePedagogicalContext()
 
-  const [
-    isSaving,
-    setIsSaving,
-  ] =
-    useState(false)
+  const [formData, setFormData] = useState<PlanningFormData>(initialFormData)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [formError, setFormError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
+  const [search, setSearch] = useState('')
+  const [filterClassId, setFilterClassId] = useState('')
 
-  const [
-    formError,
-    setFormError,
-  ] =
-    useState('')
+  const visiblePlanning = useMemo(() => {
+    const normalizedSearch = search.trim().toLocaleLowerCase('pt-BR')
 
-  const [
-    successMessage,
-    setSuccessMessage,
-  ] =
-    useState('')
+    return planning.filter(item => {
+      const matchesClass = !filterClassId || item.class_id === filterClassId
+      const matchesSearch =
+        !normalizedSearch ||
+        [item.title, item.objective, item.subject, item.class_name, item.description]
+          .filter(Boolean)
+          .some(value => String(value).toLocaleLowerCase('pt-BR').includes(normalizedSearch))
 
-  const formDisabled =
-    isSaving ||
-    mutating
+      return matchesClass && matchesSearch
+    })
+  }, [planning, search, filterClassId])
 
-  const summary =
-    useMemo(() => {
-      const dated =
-        planning
-          .filter(
-            item =>
-              Boolean(
-                item.planned_date,
-              ),
-          )
-          .length
+  const summary = useMemo(() => ({
+    total: planning.length,
+    drafts: planning.filter(item => item.status === 'rascunho').length,
+    scheduled: planning.filter(item => Boolean(item.planned_date)).length,
+    completed: planning.filter(item => ['executado', 'concluido', 'concluído'].includes(item.status)).length,
+  }), [planning])
 
-      const contextualized =
-        planning
-          .filter(
-            item =>
-              Boolean(
-                item.subject ||
-                item.class_name,
-              ),
-          )
-          .length
-
-      const drafts =
-        planning
-          .filter(
-            item =>
-              item.status ===
-              'rascunho',
-          )
-          .length
-
-      return {
-        total:
-          planning.length,
-
-        dated,
-        contextualized,
-        drafts,
-      }
-    }, [
-      planning,
-    ])
-
-  function updateField<
-    Key extends
-      keyof PlanningFormData,
-  >(
-    field: Key,
-
-    value:
-      PlanningFormData[Key],
-  ): void {
-    setFormData(
-      current => ({
-        ...current,
-        [field]:
-          value,
-      }),
-    )
-
+  function updateField<Key extends keyof PlanningFormData>(field: Key, value: PlanningFormData[Key]) {
+    setFormData(current => ({ ...current, [field]: value }))
     setFormError('')
     setSuccessMessage('')
   }
 
-  function clearForm(): void {
-    if (
-      formDisabled
-    ) {
-      return
-    }
-
-    setFormData(
-      initialFormData,
-    )
-
-    setFormError('')
-    setSuccessMessage('')
-  }
-
-  async function handleSubmit(
-    event:
-      FormEvent<HTMLFormElement>,
-  ): Promise<void> {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-
     setFormError('')
     setSuccessMessage('')
 
-    const title =
-      formData.title
-        .trim()
-
-    const objective =
-      formData.objective
-        .trim()
-
-    if (!title) {
-      setFormError(
-        'Informe o título do planejamento.',
-      )
-
+    if (!classId) {
+      setFormError('Selecione uma turma cadastrada para criar o planejamento.')
       return
     }
 
-    if (!objective) {
-      setFormError(
-        'Informe o objetivo do planejamento.',
-      )
-
+    if (!formData.title.trim() || !formData.objective.trim()) {
+      setFormError('Informe o título e o objetivo do planejamento.')
       return
     }
 
-    setIsSaving(true)
+    setSaving(true)
 
     try {
       await createPlanning({
-        title,
-
-        description:
-          formData.description
-            .trim() ||
-          null,
-
-        subject:
-          formData.subject
-            .trim() ||
-          null,
-
-        class_name:
-          formData.className
-            .trim() ||
-          null,
-
-        objective,
-
-        methodology:
-          formData.methodology
-            .trim() ||
-          null,
-
-        resources:
-          formData.resources
-            .trim() ||
-          null,
-
-        evaluation:
-          formData.evaluation
-            .trim() ||
-          null,
-
-        planned_date:
-          formData.plannedDate ||
-          null,
-
-        status:
-          'rascunho',
-
-        school_id:
-          null,
+        title: formData.title.trim(),
+        description: formData.description.trim() || null,
+        subject: selectedClass?.subject ?? null,
+        class_name: selectedClass?.name ?? null,
+        class_id: classId,
+        academic_period_id: academicPeriodId || null,
+        objective: formData.objective.trim(),
+        methodology: formData.methodology.trim() || null,
+        resources: formData.resources.trim() || null,
+        evaluation: formData.evaluation.trim() || null,
+        planned_date: formData.plannedDate || null,
+        status: 'rascunho',
+        school_id: selectedClass?.school_id ?? null,
+        metadata: {
+          source: 'agenda_planning_contextual_flow',
+          className: selectedClass?.name ?? null,
+          subject: selectedClass?.subject ?? null,
+        },
       })
 
-      setFormData(
-        initialFormData,
-      )
-
-      setSuccessMessage(
-        'Planejamento salvo com sucesso.',
-      )
-    } catch (
-      saveError
-    ) {
+      setFormData(initialFormData)
+      setSuccessMessage('Planejamento salvo e vinculado à turma selecionada.')
+      setCreateOpen(false)
+    } catch (saveError) {
       setFormError(
-        saveError instanceof
-        Error
+        saveError instanceof Error
           ? saveError.message
           : 'Não foi possível salvar o planejamento.',
       )
     } finally {
-      setIsSaving(false)
+      setSaving(false)
     }
   }
 
@@ -451,832 +180,251 @@ export default function AgendaPlanningPage() {
     <AgendaPageShell
       eyebrow="Organização pedagógica"
       title="Planejamento pedagógico"
-      description="Estruture objetivos, contexto, estratégias, recursos e formas de acompanhamento em um registro pedagógico integrado ao EIOS."
+      description="Consulte seus planejamentos e crie novos registros sempre vinculados a uma turma e ao contexto acadêmico já existente."
     >
       <div className="space-y-6 sm:space-y-8">
-        <section
-          aria-label="Resumo dos planejamentos"
-          className="grid overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm sm:grid-cols-2 xl:grid-cols-4"
-        >
-          <article className="border-b border-slate-200 p-5 sm:border-r xl:border-b-0">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-              Registros disponíveis
-            </p>
-
-            <p className="mt-3 text-3xl font-bold text-[#071827]">
-              {summary.total}
-            </p>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Planejamentos preservados
-            </p>
-          </article>
-
-          <article className="border-b border-slate-200 p-5 xl:border-b-0 xl:border-r">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-              Com data
-            </p>
-
-            <p className="mt-3 text-3xl font-bold text-[#071827]">
-              {summary.dated}
-            </p>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Cronogramas definidos
-            </p>
-          </article>
-
-          <article className="border-b border-slate-200 p-5 sm:border-r sm:border-b-0">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-              Contextualizados
-            </p>
-
-            <p className="mt-3 text-3xl font-bold text-[#071827]">
-              {
-                summary
-                  .contextualized
-              }
-            </p>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Com turma ou disciplina
-            </p>
-          </article>
-
-          <article className="p-5">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-              Rascunhos
-            </p>
-
-            <p className="mt-3 text-3xl font-bold text-[#071827]">
-              {summary.drafts}
-            </p>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Em elaboração
-            </p>
-          </article>
+        <section className="grid overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            ['Planejamentos', summary.total],
+            ['Rascunhos', summary.drafts],
+            ['Com data', summary.scheduled],
+            ['Executados', summary.completed],
+          ].map(([label, value], index) => (
+            <article
+              key={String(label)}
+              className={[
+                'p-5',
+                index < 3 ? 'border-b border-slate-200 xl:border-b-0 xl:border-r' : '',
+              ].join(' ')}
+            >
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">{label}</p>
+              <p className="mt-3 text-3xl font-bold text-[#071827]">{value}</p>
+            </article>
+          ))}
         </section>
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)]">
-          <form
-            onSubmit={
-              handleSubmit
-            }
-            className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm"
-          >
+        <section className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0B7491]">Consulta</p>
+              <h2 className="mt-1 text-xl font-bold text-[#071827]">Meus planejamentos</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Pesquise e filtre os registros existentes. A criação fica separada para não misturar consulta e operação.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCreateOpen(current => !current)}
+              className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0B7491] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#09657E]"
+            >
+              {createOpen ? 'Fechar novo planejamento' : 'Novo planejamento'}
+            </button>
+          </div>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.45fr)_auto]">
+            <input
+              value={search}
+              onChange={event => setSearch(event.target.value)}
+              placeholder="Pesquisar por título, objetivo ou componente"
+              className={inputClassName}
+            />
+            <select
+              value={filterClassId}
+              onChange={event => setFilterClassId(event.target.value)}
+              disabled={classesLoading}
+              className={inputClassName}
+            >
+              <option value="">Todas as turmas</option>
+              {classes.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+            <button
+              type="button"
+              onClick={() => void reload()}
+              disabled={loading}
+              className="min-h-12 rounded-xl border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700"
+            >
+              Atualizar
+            </button>
+          </div>
+        </section>
+
+        {createOpen ? (
+          <form onSubmit={handleSubmit} className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
             <header className="border-b border-slate-200 px-5 py-5 sm:px-7">
-              <div className="flex items-start gap-4">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#071827] font-mono text-xs font-bold text-cyan-300">
-                  03
-                </div>
-
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
-                    Novo registro
-                  </p>
-
-                  <h2 className="mt-2 text-2xl font-bold text-[#071827]">
-                    Criar planejamento
-                  </h2>
-
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
-                    Organize a intenção pedagógica antes de registrar ações e evidências.
-                  </p>
-                </div>
-              </div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">Operação</p>
+              <h2 className="mt-2 text-2xl font-bold text-[#071827]">Criar planejamento</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Primeiro selecione a turma. O componente e demais dados conhecidos são herdados automaticamente.
+              </p>
             </header>
 
-            <div className="space-y-8 p-5 sm:p-7">
-              <fieldset
-                disabled={
-                  formDisabled
-                }
-              >
-                <legend className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
-                  01 — Identificação
-                </legend>
-
-                <div className="mt-5 space-y-5">
-                  <div>
-                    <label
-                      htmlFor="planning-title"
-                      className="mb-2 block text-sm font-semibold text-slate-700"
-                    >
-                      Título
-                    </label>
-
-                    <input
-                      id="planning-title"
-                      type="text"
-                      required
-                      value={
-                        formData.title
-                      }
-                      onChange={
-                        event =>
-                          updateField(
-                            'title',
-                            event.target
-                              .value,
-                          )
-                      }
-                      placeholder="Ex.: Sequência didática sobre energia"
-                      autoComplete="off"
-                      className={
-                        inputClassName
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="planning-description"
-                      className="mb-2 block text-sm font-semibold text-slate-700"
-                    >
-                      Descrição geral
-                    </label>
-
-                    <textarea
-                      id="planning-description"
-                      rows={4}
-                      value={
-                        formData
-                          .description
-                      }
-                      onChange={
-                        event =>
-                          updateField(
-                            'description',
-                            event.target
-                              .value,
-                          )
-                      }
-                      placeholder="Apresente o contexto e a finalidade deste planejamento."
-                      className={`${inputClassName} resize-y`}
-                    />
-                  </div>
-
-                  <div className="grid gap-5 sm:grid-cols-2">
-                    <div>
-                      <label
-                        htmlFor="planning-subject"
-                        className="mb-2 block text-sm font-semibold text-slate-700"
-                      >
-                        Disciplina ou área
-                      </label>
-
-                      <input
-                        id="planning-subject"
-                        type="text"
-                        value={
-                          formData
-                            .subject
-                        }
-                        onChange={
-                          event =>
-                            updateField(
-                              'subject',
-                              event.target
-                                .value,
-                            )
-                        }
-                        placeholder="Ex.: Física"
-                        className={
-                          inputClassName
-                        }
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        htmlFor="planning-class"
-                        className="mb-2 block text-sm font-semibold text-slate-700"
-                      >
-                        Turma
-                      </label>
-
-                      <input
-                        id="planning-class"
-                        type="text"
-                        value={
-                          formData
-                            .className
-                        }
-                        onChange={
-                          event =>
-                            updateField(
-                              'className',
-                              event.target
-                                .value,
-                            )
-                        }
-                        placeholder="Ex.: 2º A"
-                        className={
-                          inputClassName
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="planning-date"
-                      className="mb-2 block text-sm font-semibold text-slate-700"
-                    >
-                      Data planejada
-                    </label>
-
-                    <input
-                      id="planning-date"
-                      type="date"
-                      value={
-                        formData
-                          .plannedDate
-                      }
-                      onChange={
-                        event =>
-                          updateField(
-                            'plannedDate',
-                            event.target
-                              .value,
-                          )
-                      }
-                      className={
-                        inputClassName
-                      }
-                    />
-                  </div>
-                </div>
-              </fieldset>
-
-              <div className="h-px bg-slate-200" />
-
-              <fieldset
-                disabled={
-                  formDisabled
-                }
-              >
-                <legend className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
-                  02 — Intencionalidade
-                </legend>
-
-                <div className="mt-5">
-                  <label
-                    htmlFor="planning-objective"
-                    className="mb-2 block text-sm font-semibold text-slate-700"
-                  >
-                    Objetivo pedagógico
-                  </label>
-
-                  <textarea
-                    id="planning-objective"
-                    rows={5}
+            <div className="space-y-6 p-5 sm:p-7">
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="block text-sm font-semibold text-slate-700">
+                  Turma
+                  <select
+                    value={classId}
+                    onChange={event => changeClass(event.target.value)}
+                    disabled={classesLoading || saving}
                     required
-                    value={
-                      formData.objective
-                    }
-                    onChange={
-                      event =>
-                        updateField(
-                          'objective',
-                          event.target
-                            .value,
-                        )
-                    }
-                    placeholder="Descreva o que se espera que os estudantes desenvolvam ou demonstrem."
-                    className={`${inputClassName} resize-y`}
-                  />
-                </div>
-              </fieldset>
-
-              <div className="h-px bg-slate-200" />
-
-              <fieldset
-                disabled={
-                  formDisabled
-                }
-              >
-                <legend className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
-                  03 — Estratégia
-                </legend>
-
-                <div className="mt-5 space-y-5">
-                  <div>
-                    <label
-                      htmlFor="planning-methodology"
-                      className="mb-2 block text-sm font-semibold text-slate-700"
-                    >
-                      Estratégias e metodologia
-                    </label>
-
-                    <textarea
-                      id="planning-methodology"
-                      rows={4}
-                      value={
-                        formData
-                          .methodology
-                      }
-                      onChange={
-                        event =>
-                          updateField(
-                            'methodology',
-                            event.target
-                              .value,
-                          )
-                      }
-                      placeholder="Descreva ações, organização da aula e formas de participação."
-                      className={`${inputClassName} resize-y`}
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="planning-resources"
-                      className="mb-2 block text-sm font-semibold text-slate-700"
-                    >
-                      Recursos
-                    </label>
-
-                    <textarea
-                      id="planning-resources"
-                      rows={3}
-                      value={
-                        formData
-                          .resources
-                      }
-                      onChange={
-                        event =>
-                          updateField(
-                            'resources',
-                            event.target
-                              .value,
-                          )
-                      }
-                      placeholder="Materiais, ambientes, tecnologias e apoios necessários."
-                      className={`${inputClassName} resize-y`}
-                    />
-                  </div>
-                </div>
-              </fieldset>
-
-              <div className="h-px bg-slate-200" />
-
-              <fieldset
-                disabled={
-                  formDisabled
-                }
-              >
-                <legend className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
-                  04 — Acompanhamento
-                </legend>
-
-                <div className="mt-5">
-                  <label
-                    htmlFor="planning-evaluation"
-                    className="mb-2 block text-sm font-semibold text-slate-700"
+                    className={`mt-2 ${inputClassName}`}
                   >
-                    Avaliação e evidências esperadas
-                  </label>
+                    <option value="">{classesLoading ? 'Carregando turmas...' : 'Selecione a turma'}</option>
+                    {classes.map(item => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}{item.subject ? ` · ${item.subject}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-                  <textarea
-                    id="planning-evaluation"
-                    rows={4}
-                    value={
-                      formData
-                        .evaluation
-                    }
-                    onChange={
-                      event =>
-                        updateField(
-                          'evaluation',
-                          event.target
-                            .value,
-                        )
-                    }
-                    placeholder="Indique como o desenvolvimento será acompanhado e quais evidências poderão ser registradas."
-                    className={`${inputClassName} resize-y`}
+                <label className="block text-sm font-semibold text-slate-700">
+                  Período letivo
+                  <select
+                    value={academicPeriodId}
+                    onChange={event => setAcademicPeriodId(event.target.value)}
+                    disabled={periodsLoading || academicPeriods.length === 0 || saving}
+                    className={`mt-2 ${inputClassName}`}
+                  >
+                    <option value="">
+                      {periodsLoading
+                        ? 'Carregando períodos...'
+                        : academicPeriods.length === 0
+                          ? 'Período ainda não configurado'
+                          : 'Selecione o período'}
+                    </option>
+                    {academicPeriods.map(period => (
+                      <option key={period.id} value={period.id}>{period.name}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              {selectedClass ? (
+                <div className="grid gap-3 rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm text-slate-700 sm:grid-cols-3">
+                  <div><span className="block text-xs font-bold uppercase text-[#0B7491]">Turma</span>{selectedClass.name}</div>
+                  <div><span className="block text-xs font-bold uppercase text-[#0B7491]">Componente</span>{selectedClass.subject ?? 'Não informado'}</div>
+                  <div><span className="block text-xs font-bold uppercase text-[#0B7491]">Ano/Série</span>{selectedClass.grade ?? selectedClass.school_year ?? 'Não informado'}</div>
+                </div>
+              ) : null}
+
+              {(classesError || periodsError) ? (
+                <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  {classesError || periodsError}
+                </p>
+              ) : null}
+
+              <div className="grid gap-5">
+                <label className="block text-sm font-semibold text-slate-700">
+                  Título
+                  <input
+                    value={formData.title}
+                    onChange={event => updateField('title', event.target.value)}
+                    placeholder="Ex.: Sequência didática sobre energia"
+                    required
+                    className={`mt-2 ${inputClassName}`}
                   />
-                </div>
-              </fieldset>
+                </label>
 
-              {formError ? (
-                <div
-                  role="alert"
-                  className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold leading-6 text-red-700"
-                >
-                  {formError}
-                </div>
-              ) : null}
+                <label className="block text-sm font-semibold text-slate-700">
+                  Objetivo
+                  <textarea
+                    value={formData.objective}
+                    onChange={event => updateField('objective', event.target.value)}
+                    rows={3}
+                    required
+                    className={`mt-2 ${inputClassName}`}
+                  />
+                </label>
 
-              {successMessage ? (
-                <div
-                  role="status"
-                  className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold leading-6 text-emerald-800"
-                >
-                  {
-                    successMessage
-                  }
-                </div>
-              ) : null}
-            </div>
+                <label className="block text-sm font-semibold text-slate-700">
+                  Contexto / descrição
+                  <textarea
+                    value={formData.description}
+                    onChange={event => updateField('description', event.target.value)}
+                    rows={3}
+                    className={`mt-2 ${inputClassName}`}
+                  />
+                </label>
 
-            <footer className="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-5 py-5 sm:flex-row sm:px-7">
-              <button
-                type="button"
-                onClick={
-                  clearForm
-                }
-                disabled={
-                  formDisabled
-                }
-                className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Limpar campos
-              </button>
+                <div className="grid gap-5 md:grid-cols-2">
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Metodologia
+                    <textarea value={formData.methodology} onChange={event => updateField('methodology', event.target.value)} rows={3} className={`mt-2 ${inputClassName}`} />
+                  </label>
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Recursos
+                    <textarea value={formData.resources} onChange={event => updateField('resources', event.target.value)} rows={3} className={`mt-2 ${inputClassName}`} />
+                  </label>
+                </div>
+
+                <div className="grid gap-5 md:grid-cols-2">
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Acompanhamento / avaliação
+                    <textarea value={formData.evaluation} onChange={event => updateField('evaluation', event.target.value)} rows={3} className={`mt-2 ${inputClassName}`} />
+                  </label>
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Data planejada
+                    <input type="date" value={formData.plannedDate} onChange={event => updateField('plannedDate', event.target.value)} className={`mt-2 ${inputClassName}`} />
+                  </label>
+                </div>
+              </div>
+
+              {formError ? <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{formError}</p> : null}
+              {successMessage ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{successMessage}</p> : null}
 
               <button
                 type="submit"
-                disabled={
-                  formDisabled
-                }
-                className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-[#0B7491] px-6 py-3 font-semibold text-white transition hover:bg-[#09657E] disabled:cursor-not-allowed disabled:bg-slate-300"
+                disabled={saving || mutating || !classId}
+                className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#071827] px-6 py-3 text-sm font-bold text-white disabled:opacity-50"
               >
-                {isSaving
-                  ? 'Salvando...'
-                  : 'Salvar planejamento'}
+                {saving ? 'Salvando...' : 'Salvar planejamento'}
               </button>
-            </footer>
+            </div>
           </form>
+        ) : null}
 
-          <aside className="self-start overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[#071827] text-white shadow-sm xl:sticky xl:top-[176px]">
-            <header className="border-b border-white/10 px-5 py-5 sm:px-7">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">
-                Referência EDI
-              </p>
+        {error ? (
+          <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{error}</p>
+        ) : null}
 
-              <h2 className="mt-2 text-2xl font-bold">
-                Estrutura do planejamento
-              </h2>
-
-              <p className="mt-2 text-sm leading-6 text-slate-300">
-                O registro deve apoiar a ação docente, e não aumentar a burocracia.
-              </p>
-            </header>
-
-            <div className="divide-y divide-white/10">
-              <article className="px-5 py-5 sm:px-7">
-                <div className="flex gap-4">
-                  <span className="font-mono text-xs font-bold text-cyan-300">
-                    01
-                  </span>
-
-                  <div>
-                    <h3 className="font-bold">
-                      Contexto
-                    </h3>
-
-                    <p className="mt-1 text-sm leading-6 text-slate-300">
-                      Identifique turma, área, período e situação pedagógica.
-                    </p>
-                  </div>
-                </div>
-              </article>
-
-              <article className="px-5 py-5 sm:px-7">
-                <div className="flex gap-4">
-                  <span className="font-mono text-xs font-bold text-cyan-300">
-                    02
-                  </span>
-
-                  <div>
-                    <h3 className="font-bold">
-                      Intencionalidade
-                    </h3>
-
-                    <p className="mt-1 text-sm leading-6 text-slate-300">
-                      Defina com clareza a aprendizagem ou o desenvolvimento esperado.
-                    </p>
-                  </div>
-                </div>
-              </article>
-
-              <article className="px-5 py-5 sm:px-7">
-                <div className="flex gap-4">
-                  <span className="font-mono text-xs font-bold text-cyan-300">
-                    03
-                  </span>
-
-                  <div>
-                    <h3 className="font-bold">
-                      Estratégia
-                    </h3>
-
-                    <p className="mt-1 text-sm leading-6 text-slate-300">
-                      Registre ações, recursos, apoios e formas de participação.
-                    </p>
-                  </div>
-                </div>
-              </article>
-
-              <article className="px-5 py-5 sm:px-7">
-                <div className="flex gap-4">
-                  <span className="font-mono text-xs font-bold text-cyan-300">
-                    04
-                  </span>
-
-                  <div>
-                    <h3 className="font-bold">
-                      Evidências
-                    </h3>
-
-                    <p className="mt-1 text-sm leading-6 text-slate-300">
-                      Antecipe como o processo será observado, documentado e analisado.
-                    </p>
-                  </div>
-                </div>
-              </article>
+        <section className="space-y-4">
+          {loading ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Carregando planejamentos...</div>
+          ) : visiblePlanning.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+              Nenhum planejamento encontrado para os filtros selecionados.
             </div>
-
-            <div className="border-t border-cyan-300/20 bg-cyan-300/10 px-5 py-5 sm:px-7">
-              <p className="text-sm font-semibold leading-6 text-cyan-100">
-                O Framework EDI orienta o planejamento por evidências, desenvolvimento e inteligência, sem impor uma metodologia pedagógica específica.
-              </p>
-            </div>
-          </aside>
-        </div>
-
-        <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
-          <header className="border-b border-slate-200 px-5 py-5 sm:px-7">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
-                  Memória de trabalho
-                </p>
-
-                <h2 className="mt-2 text-2xl font-bold text-[#071827]">
-                  Planejamentos cadastrados
-                </h2>
-
-                <p className="mt-2 text-sm text-slate-500">
-                  {planning.length}{' '}
-                  registro
-                  {planning.length === 1
-                    ? ''
-                    : 's'}{' '}
-                  disponível
-                  {planning.length === 1
-                    ? ''
-                    : 'is'}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() =>
-                  void reload()
-                }
-                disabled={
-                  loading ||
-                  mutating ||
-                  isSaving
-                }
-                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {loading
-                  ? 'Atualizando...'
-                  : 'Atualizar registros'}
-              </button>
-            </div>
-          </header>
-
-          <div className="p-5 sm:p-7">
-            {error ? (
-              <div
-                role="alert"
-                className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold leading-6 text-red-700"
-              >
-                {error}
-              </div>
-            ) : null}
-
-            {loading ? (
-              <div
-                role="status"
-                className="rounded-xl border border-cyan-200 bg-cyan-50 p-5 text-sm font-semibold text-cyan-900"
-              >
-                Carregando planejamentos...
-              </div>
-            ) : null}
-
-            {!loading &&
-            !error &&
-            planning.length ===
-              0 ? (
-              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-                <h3 className="text-lg font-bold text-[#071827]">
-                  Nenhum planejamento cadastrado
-                </h3>
-
-                <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Utilize o formulário para criar o primeiro planejamento pedagógico.
-                </p>
-              </div>
-            ) : null}
-
-            {!loading &&
-            planning.length >
-              0 ? (
-              <div className="grid gap-5 lg:grid-cols-2">
-                {planning.map(
-                  (
-                    item,
-                    index,
-                  ) => (
-                    <article
-                      key={
-                        item.id
-                      }
-                      className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white"
-                    >
-                      <header className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                          <div className="flex min-w-0 items-start gap-3">
-                            <span className="font-mono text-xs font-bold text-[#0B7491]">
-                              {String(
-                                index + 1,
-                              ).padStart(
-                                2,
-                                '0',
-                              )}
-                            </span>
-
-                            <div className="min-w-0">
-                              <span
-                                className={[
-                                  'inline-flex rounded-lg border px-3 py-1',
-                                  'text-xs font-bold uppercase tracking-[0.12em]',
-                                  getStatusClassName(
-                                    item.status,
-                                  ),
-                                ].join(' ')}
-                              >
-                                {formatStatus(
-                                  item.status,
-                                )}
-                              </span>
-
-                              <h3 className="mt-3 break-words text-xl font-bold text-[#071827]">
-                                {
-                                  item.title
-                                }
-                              </h3>
-                            </div>
-                          </div>
-
-                          <span className="w-fit shrink-0 rounded-lg bg-[#071827] px-3 py-2 text-xs font-bold text-white">
-                            {formatPlanningDate(
-                              item
-                                .planned_date,
-                            )}
-                          </span>
-                        </div>
-                      </header>
-
-                      <div className="flex-1 space-y-4 p-5">
-                        {item.description ? (
-                          <p className="break-words text-sm leading-6 text-slate-600">
-                            {
-                              item
-                                .description
-                            }
-                          </p>
-                        ) : null}
-
-                        <div className="flex flex-wrap gap-2">
-                          {item.subject ? (
-                            <span className="break-words rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">
-                              {
-                                item.subject
-                              }
-                            </span>
-                          ) : null}
-
-                          {item.class_name ? (
-                            <span className="break-words rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
-                              Turma{' '}
-                              {
-                                item
-                                  .class_name
-                              }
-                            </span>
-                          ) : null}
-                        </div>
-
-                        {item.objective ? (
-                          <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
-                              Objetivo
-                            </p>
-
-                            <p className="mt-2 break-words text-sm leading-6 text-slate-700">
-                              {
-                                item
-                                  .objective
-                              }
-                            </p>
-                          </section>
-                        ) : null}
-
-                        {item.methodology ||
-                        item.resources ||
-                        item.evaluation ? (
-                          <details className="group rounded-xl border border-slate-200">
-                            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 font-semibold text-[#075F78] [&::-webkit-details-marker]:hidden">
-                              Ver estrutura completa
-
-                              <span
-                                aria-hidden="true"
-                                className="transition group-open:rotate-180"
-                              >
-                                ↓
-                              </span>
-                            </summary>
-
-                            <div className="space-y-4 border-t border-slate-200 px-4 py-4">
-                              {item.methodology ? (
-                                <div>
-                                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
-                                    Estratégia
-                                  </p>
-
-                                  <p className="mt-1 break-words text-sm leading-6 text-slate-700">
-                                    {
-                                      item
-                                        .methodology
-                                    }
-                                  </p>
-                                </div>
-                              ) : null}
-
-                              {item.resources ? (
-                                <div>
-                                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
-                                    Recursos
-                                  </p>
-
-                                  <p className="mt-1 break-words text-sm leading-6 text-slate-700">
-                                    {
-                                      item
-                                        .resources
-                                    }
-                                  </p>
-                                </div>
-                              ) : null}
-
-                              {item.evaluation ? (
-                                <div>
-                                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
-                                    Avaliação
-                                  </p>
-
-                                  <p className="mt-1 break-words text-sm leading-6 text-slate-700">
-                                    {
-                                      item
-                                        .evaluation
-                                    }
-                                  </p>
-                                </div>
-                              ) : null}
-                            </div>
-                          </details>
-                        ) : null}
+          ) : (
+            visiblePlanning.map(item => (
+              <article key={item.id} className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
+                <div className="p-5 sm:p-6">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.12em]">
+                        <span className="text-[#0B7491]">{formatStatus(item.status)}</span>
+                        {item.class_name ? <span className="text-slate-400">· {item.class_name}</span> : null}
+                        {item.subject ? <span className="text-slate-400">· {item.subject}</span> : null}
                       </div>
+                      <h3 className="mt-2 text-xl font-bold text-[#071827]">{item.title}</h3>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">{item.objective || 'Objetivo não informado.'}</p>
+                      <p className="mt-3 text-xs text-slate-500">{formatPlanningDate(item.planned_date)}</p>
+                    </div>
+                  </div>
+                </div>
 
-                      <PlanningRecordActions
-                        planning={
-                          item
-                        }
-                        disabled={
-                          mutating ||
-                          isSaving
-                        }
-                        onUpdate={
-                          updatePlanning
-                        }
-                        onArchive={
-                          archivePlanning
-                        }
-                        onDelete={
-                          deletePlanning
-                        }
-                      />
-                    </article>
-                  ),
-                )}
-              </div>
-            ) : null}
-          </div>
+                <div className="border-t border-slate-200 bg-slate-50 p-4 sm:p-5">
+                  <PlanningRecordActions
+                    planning={item}
+                    disabled={mutating}
+                    onUpdate={updatePlanning}
+                    onArchive={archivePlanning}
+                    onDelete={deletePlanning}
+                  />
+                </div>
+              </article>
+            ))
+          )}
         </section>
       </div>
     </AgendaPageShell>
