@@ -89,6 +89,13 @@ const agendaModules: AgendaModuleLink[] = [
     description: 'Acompanhe compromissos, períodos, reuniões e prazos.',
     href: '/agenda/calendario',
   },
+  {
+    code: '13',
+    title: 'Cadastros e Integrações',
+    description: 'Configure identidade, calendário acadêmico, turmas e estudantes sem misturar cadastros com a operação diária.',
+    href: '/agenda/cadastros',
+    emphasis: true,
+  },
 ]
 
 export default function AgendaDashboardPage() {
@@ -100,6 +107,24 @@ export default function AgendaDashboardPage() {
     >
       <div className="space-y-6 sm:space-y-8">
         <TeacherCommandCenter />
+
+        <section className="rounded-[1.75rem] border border-cyan-200 bg-cyan-50 p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#075F78]">EIOS Registry · Configuração</p>
+              <h2 className="mt-2 text-2xl font-bold text-[#071827]">Cadastros ficam fora da operação.</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-700">
+                Use o Centro de Administração para organizar identidade dos relatórios, calendário acadêmico, turmas e estudantes. Depois, Planejamento, Diário, Avaliações e Evidências reutilizam esses dados automaticamente.
+              </p>
+            </div>
+            <Link
+              href="/agenda/cadastros"
+              className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl bg-[#0B7491] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#09657E]"
+            >
+              Abrir Cadastros e Integrações
+            </Link>
+          </div>
+        </section>
 
         <section className="overflow-hidden rounded-[2rem] border border-cyan-200 bg-[#071827] text-white shadow-[0_28px_90px_-55px_rgba(8,145,178,0.9)]">
           <div className="grid gap-7 px-5 py-7 sm:px-7 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
