@@ -10,6 +10,8 @@ const NO_CACHE_HEADERS = {
   'Cache-Control': 'no-store, no-cache, must-revalidate',
 }
 
+type ReportModel = 'grades' | 'attendance'
+
 function getAccessToken(request: NextRequest): string {
   const token =
     request.cookies.get('sb-access-token')?.value ??
@@ -43,6 +45,11 @@ function required(value: string | null, label: string): string {
   return normalized
 }
 
+function readModel(value: string | null): ReportModel {
+  if (value === 'attendance') return 'attendance'
+  return 'grades'
+}
+
 function errorResponse(error: unknown) {
   const message = error instanceof Error ? error.message : 'Erro desconhecido.'
   const normalized = message.toLowerCase()
@@ -67,6 +74,7 @@ export async function GET(request: NextRequest) {
     const client = createAuthenticatedClient(getAccessToken(request))
 
     const classId = required(request.nextUrl.searchParams.get('classId'), 'Turma')
+    const model = readModel(request.nextUrl.searchParams.get('model'))
     const academicPeriodId = request.nextUrl.searchParams.get('academicPeriodId')?.trim() || null
     const from = request.nextUrl.searchParams.get('from')?.trim() || null
     const to = request.nextUrl.searchParams.get('to')?.trim() || null
@@ -85,21 +93,53 @@ export async function GET(request: NextRequest) {
       throw new Error(`Não foi possível carregar a lista nominal: ${rosterError.message}`)
     }
 
-    let attendanceQuery = client
-      .from('agenda_attendance_entries')
-      .select('id,class_id,student_id,lesson_date,status,notes,recorded_at')
-      .eq('user_id', user.id)
-      .eq('class_id', classId)
-      .is('archived_at', null)
-      .order('lesson_date', { ascending: true })
+    const activeRoster = roster ?? []
 
-    if (from) attendanceQuery = attendanceQuery.gte('lesson_date', from)
-    if (to) attendanceQuery = attendanceQuery.lte('lesson_date', to)
+    // Uma turma sem estudantes é um estado válido. Não consultamos tabelas
+    // operacionais desnecessariamente e deixamos a interface orientar o cadastro.
+    if (activeRoster.length === 0) {
+      return NextResponse.json(
+        {
+          success: true,
+          model,
+          emptyRoster: true,
+          roster: [],
+          attendance: [],
+          grades: [],
+        },
+        { status: 200, headers: NO_CACHE_HEADERS },
+      )
+    }
 
-    const { data: attendance, error: attendanceError } = await attendanceQuery
+    if (model === 'attendance') {
+      let attendanceQuery = client
+        .from('agenda_attendance_entries')
+        .select('id,class_id,student_id,lesson_date,status,notes,recorded_at')
+        .eq('user_id', user.id)
+        .eq('class_id', classId)
+        .is('archived_at', null)
+        .order('lesson_date', { ascending: true })
 
-    if (attendanceError) {
-      throw new Error(`Não foi possível carregar a frequência: ${attendanceError.message}`)
+      if (from) attendanceQuery = attendanceQuery.gte('lesson_date', from)
+      if (to) attendanceQuery = attendanceQuery.lte('lesson_date', to)
+
+      const { data: attendance, error: attendanceError } = await attendanceQuery
+
+      if (attendanceError) {
+        throw new Error(`Não foi possível carregar a frequência: ${attendanceError.message}`)
+      }
+
+      return NextResponse.json(
+        {
+          success: true,
+          model,
+          emptyRoster: false,
+          roster: activeRoster,
+          attendance: attendance ?? [],
+          grades: [],
+        },
+        { status: 200, headers: NO_CACHE_HEADERS },
+      )
     }
 
     let gradeQuery = client
@@ -123,8 +163,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        roster: roster ?? [],
-        attendance: attendance ?? [],
+        model,
+        emptyRoster: false,
+        roster: activeRoster,
+        attendance: [],
         grades: grades ?? [],
       },
       { status: 200, headers: NO_CACHE_HEADERS },
