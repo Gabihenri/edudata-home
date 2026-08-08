@@ -19,6 +19,57 @@ type CalendarContext = {
   roleLabel: string
 }
 
+type IndividualIdentity = {
+  professionalTitle: string | null
+  registrationLabel: string | null
+  registrationValue: string | null
+  city: string | null
+  state: string | null
+  addressLine: string | null
+  footerText: string | null
+  showEduDataBrand: boolean
+}
+
+type IndividualProfile = {
+  displayName: string
+  email: string | null
+  phone: string | null
+  role: string
+  identity: IndividualIdentity
+}
+
+type Organization = {
+  id: string
+  name: string
+  short_name?: string | null
+  email?: string | null
+  phone?: string | null
+  website?: string | null
+  logo_url?: string | null
+  address?: string | null
+  city?: string | null
+  state?: string | null
+  zip_code?: string | null
+}
+
+type School = {
+  id: string
+  name: string
+  short_name?: string | null
+  inep_code?: string | null
+  principal_name?: string | null
+  email?: string | null
+  phone?: string | null
+  website?: string | null
+  postal_code?: string | null
+  address?: string | null
+  number?: string | null
+  complement?: string | null
+  district?: string | null
+  city?: string | null
+  state?: string | null
+}
+
 type OccurrenceRow = {
   id: string
   title: string
@@ -141,6 +192,9 @@ export default function AgendaReportsPage() {
 
   const [reportType, setReportType] = useState<ReportType>('occurrences')
   const [context, setContext] = useState<CalendarContext | null>(null)
+  const [individualProfile, setIndividualProfile] = useState<IndividualProfile | null>(null)
+  const [organization, setOrganization] = useState<Organization | null>(null)
+  const [school, setSchool] = useState<School | null>(null)
   const [occurrences, setOccurrences] = useState<OccurrenceRow[]>([])
   const [roster, setRoster] = useState<RosterStudent[]>([])
   const [grades, setGrades] = useState<GradeRow[]>([])
@@ -150,24 +204,73 @@ export default function AgendaReportsPage() {
   const [generatedAt, setGeneratedAt] = useState<Date | null>(null)
 
   useEffect(() => {
-    async function loadContext() {
+    async function loadDocumentContext() {
       try {
-        const response = await fetch(
-          '/api/agenda/institutional-calendar/contexts?limit=100',
-          { credentials: 'include', cache: 'no-store' },
-        )
-        const body = await response.json() as {
+        const [contextsResponse, profileResponse] = await Promise.all([
+          fetch('/api/agenda/institutional-calendar/contexts?limit=100', {
+            credentials: 'include',
+            cache: 'no-store',
+          }),
+          fetch('/api/agenda/registry/document-identity', {
+            credentials: 'include',
+            cache: 'no-store',
+          }),
+        ])
+
+        const contextsBody = await contextsResponse.json() as {
           success?: boolean
           data?: CalendarContext[]
         }
-        setContext(body.success ? (body.data?.[0] ?? null) : null)
+        const profileBody = await profileResponse.json() as {
+          success?: boolean
+          data?: IndividualProfile
+        }
+
+        setContext(contextsResponse.ok && contextsBody.success ? (contextsBody.data?.[0] ?? null) : null)
+        setIndividualProfile(profileResponse.ok && profileBody.success ? (profileBody.data ?? null) : null)
       } catch {
         setContext(null)
+        setIndividualProfile(null)
       }
     }
 
-    void loadContext()
+    void loadDocumentContext()
   }, [])
+
+  useEffect(() => {
+    if (!context) {
+      setOrganization(null)
+      setSchool(null)
+      return
+    }
+
+    let cancelled = false
+
+    async function loadInstitutionalHeader() {
+      try {
+        const [organizationResponse, schoolResponse] = await Promise.all([
+          fetch(`/api/organizations/${context!.organization.id}`, { credentials: 'include', cache: 'no-store' }),
+          fetch(`/api/schools/${context!.school.id}`, { credentials: 'include', cache: 'no-store' }),
+        ])
+
+        const organizationBody = await organizationResponse.json() as { success?: boolean; data?: Organization }
+        const schoolBody = await schoolResponse.json() as { success?: boolean; data?: School }
+
+        if (!cancelled) {
+          setOrganization(organizationResponse.ok && organizationBody.success ? (organizationBody.data ?? null) : null)
+          setSchool(schoolResponse.ok && schoolBody.success ? (schoolBody.data ?? null) : null)
+        }
+      } catch {
+        if (!cancelled) {
+          setOrganization(null)
+          setSchool(null)
+        }
+      }
+    }
+
+    void loadInstitutionalHeader()
+    return () => { cancelled = true }
+  }, [context?.organization.id, context?.school.id])
 
   const reportTitle =
     reportType === 'grades'
@@ -308,6 +411,15 @@ export default function AgendaReportsPage() {
 
   const hasReport = generatedAt !== null
 
+  const institutionalLocation = school
+    ? [school.address, school.number, school.district, school.city, school.state].filter(Boolean).join(' · ')
+    : [context?.school.city, context?.school.state].filter(Boolean).join(' · ')
+
+  const individualLocation = [
+    individualProfile?.identity.city,
+    individualProfile?.identity.state,
+  ].filter(Boolean).join(' · ')
+
   return (
     <AgendaPageShell
       eyebrow="EIOS · Report Intelligence"
@@ -429,22 +541,46 @@ export default function AgendaReportsPage() {
           <article className="mx-auto max-w-[210mm] bg-white p-6 shadow-sm print:max-w-none print:p-0 print:shadow-none">
             <header className="border-b-2 border-[#071827] pb-5">
               <div className="flex items-start justify-between gap-6">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
-                    {context?.organization.name ?? 'Agenda Inteligente EDI'}
-                  </p>
-                  <h1 className="mt-1 text-2xl font-bold text-[#071827]">
-                    {context?.school.name ?? 'Contexto Individual'}
-                  </h1>
-                  {context?.school.city || context?.school.state ? (
-                    <p className="mt-1 text-xs text-slate-500">
-                      {[context?.school.city, context?.school.state].filter(Boolean).join(' · ')}
-                    </p>
+                <div className="flex min-w-0 items-start gap-4">
+                  {context && organization?.logo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={organization.logo_url} alt="" className="h-14 w-14 shrink-0 object-contain" />
                   ) : null}
+                  <div className="min-w-0">
+                    {context ? (
+                      <>
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                          {organization?.name ?? context.organization.name}
+                        </p>
+                        <h1 className="mt-1 text-2xl font-bold text-[#071827]">
+                          {school?.name ?? context.school.name}
+                        </h1>
+                        {school?.inep_code ? <p className="mt-1 text-xs text-slate-500">INEP {school.inep_code}</p> : null}
+                        {institutionalLocation ? <p className="mt-1 text-xs text-slate-500">{institutionalLocation}</p> : null}
+                        <p className="mt-1 text-xs text-slate-500">
+                          {[school?.phone, school?.email].filter(Boolean).join(' · ')}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">Perfil profissional individual</p>
+                        <h1 className="mt-1 text-2xl font-bold text-[#071827]">{individualProfile?.displayName ?? 'Professor'}</h1>
+                        <p className="mt-1 text-sm font-semibold text-[#0B7491]">{individualProfile?.identity.professionalTitle ?? 'Professor'}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {[individualProfile?.email, individualProfile?.phone].filter(Boolean).join(' · ')}
+                        </p>
+                        {individualLocation ? <p className="mt-1 text-xs text-slate-500">{individualLocation}</p> : null}
+                      </>
+                    )}
+                  </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Agenda Inteligente EDI</p>
-                  <p className="mt-1 text-xs text-slate-500">EIOS · Report Intelligence</p>
+                  {(context || individualProfile?.identity.showEduDataBrand !== false) ? (
+                    <>
+                      <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Agenda Inteligente EDI</p>
+                      <p className="mt-1 text-xs text-slate-500">EIOS · Report Intelligence</p>
+                    </>
+                  ) : null}
                 </div>
               </div>
 
@@ -568,8 +704,16 @@ export default function AgendaReportsPage() {
             </section>
 
             <footer className="mt-6 border-t border-slate-300 pt-4 text-[10px] leading-5 text-slate-500">
+              {context ? (
+                <p className="mb-2">{school?.principal_name ? `Direção: ${school.principal_name}. ` : ''}{school?.website ?? organization?.website ?? ''}</p>
+              ) : individualProfile?.identity.footerText ? (
+                <p className="mb-2">{individualProfile.identity.footerText}</p>
+              ) : null}
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                <div><p>Documento gerado pela Agenda Inteligente EDI.</p><p>Framework EDI → EIOS → Report Intelligence.</p></div>
+                <div>
+                  {(context || individualProfile?.identity.showEduDataBrand !== false) ? <p>Documento gerado pela Agenda Inteligente EDI.</p> : null}
+                  <p>Framework EDI → EIOS → Report Intelligence.</p>
+                </div>
                 <div className="text-right"><p>Rastreabilidade: {generatedAt ? `EDI-${generatedAt.getTime()}` : '—'}</p><p>Dados sujeitos às permissões e políticas do contexto de uso.</p></div>
               </div>
             </footer>
