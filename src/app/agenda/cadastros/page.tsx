@@ -43,7 +43,14 @@ const sections = [
   {
     code: '05',
     title: 'Instituições e unidades',
-    description: 'Reutiliza o cadastro institucional já existente na plataforma, evitando duplicação de organizações e escolas.',
+    description: 'Gerencie as escolas/unidades efetivamente vinculadas à plataforma e reutilize os dados já existentes.',
+    href: '/schools',
+    action: 'Ver unidades',
+  },
+  {
+    code: '06',
+    title: 'Organizações',
+    description: 'Redes, mantenedoras e organizações já cadastradas no Core compartilhado do EIOS.',
     href: '/organizations',
     action: 'Ver organizações',
   },
@@ -115,13 +122,13 @@ export default function RegistryCenterPage() {
           </article>
         </section>
 
-        {contexts.length > 0 ? (
-          <section className="rounded-[1.5rem] border border-cyan-200 bg-cyan-50 p-5 sm:p-6">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#075F78]">Base institucional existente</p>
-            <h2 className="mt-1 text-xl font-bold text-[#071827]">Os dados de instituições já cadastradas são preservados</h2>
-            <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
-              O EIOS Registry não cria uma segunda base. Ele reutiliza organizations e schools já existentes e transforma esses dados em contexto para cabeçalhos, calendário, turmas, relatórios e futuras integrações.
-            </p>
+        <section className="rounded-[1.5rem] border border-cyan-200 bg-cyan-50 p-5 sm:p-6">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#075F78]">Base institucional existente</p>
+          <h2 className="mt-1 text-xl font-bold text-[#071827]">Os dados de instituições já cadastradas são preservados</h2>
+          <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
+            O EIOS Registry não cria uma segunda base. Ele reutiliza organizations, schools e o cadastro de referência institucional já existente na plataforma. Quando uma escola for localizada na base, ela poderá ser vinculada ao contexto da Agenda sem redigitação dos dados disponíveis.
+          </p>
+          {contexts.length > 0 ? (
             <div className="mt-4 flex flex-wrap gap-2">
               {contexts.slice(0, 10).map(item => (
                 <span key={item.id} className="rounded-full border border-cyan-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#075F78]">
@@ -129,8 +136,8 @@ export default function RegistryCenterPage() {
                 </span>
               ))}
             </div>
-          </section>
-        ) : null}
+          ) : null}
+        </section>
 
         <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
           {sections.map(item => (
