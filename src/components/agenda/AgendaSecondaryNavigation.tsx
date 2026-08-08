@@ -6,35 +6,43 @@ import { usePathname } from 'next/navigation'
 const items = [
   {
     label: 'Diário de Classe',
+    shortLabel: 'Diário',
     href: '/agenda/diario-classe',
   },
   {
     label: 'Avaliações',
+    shortLabel: 'Avaliações',
     href: '/agenda/avaliacoes',
     exact: true,
   },
   {
     label: 'Diagnóstico',
+    shortLabel: 'Diagnóstico',
     href: '/agenda/avaliacoes/resultados',
   },
   {
     label: 'Diário de Notas',
+    shortLabel: 'Notas',
     href: '/agenda/avaliacoes/notas',
   },
   {
     label: 'Classificação',
+    shortLabel: 'Classificação',
     href: '/agenda/avaliacoes/classificacao',
   },
   {
     label: 'Ocorrências',
+    shortLabel: 'Ocorrências',
     href: '/agenda/ocorrencias',
   },
   {
     label: 'Casos Pedagógicos',
+    shortLabel: 'Casos',
     href: '/agenda/casos',
   },
   {
     label: 'Estudantes',
+    shortLabel: 'Estudantes',
     href: '/agenda/caderno',
   },
 ] as const
@@ -58,52 +66,52 @@ export function AgendaSecondaryNavigation() {
 
   return (
     <section className="border-b border-slate-200 bg-white">
-      <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
-        <div className="mb-2.5 flex items-center gap-3">
+      <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+        <div className="mb-3 flex items-center gap-3">
           <span className="h-px w-7 shrink-0 bg-[#0B7491]" />
-          <p className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.18em] text-[#0B7491] sm:text-xs">
+          <p className="text-[10px] font-bold uppercase leading-4 tracking-[0.16em] text-[#0B7491] sm:text-xs sm:tracking-[0.18em]">
             Operação e acompanhamento pedagógico
           </p>
         </div>
 
-        <div className="-mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <nav
-            aria-label="Ferramentas pedagógicas da Agenda"
-            className="flex min-w-max items-center gap-1.5 rounded-2xl border border-slate-200 bg-[#F8FAFC] p-1.5 shadow-[0_8px_28px_-24px_rgba(15,23,42,0.45)]"
-          >
-            {items.map(item => {
-              const active = isActive(pathname, item)
+        <nav
+          aria-label="Ferramentas pedagógicas da Agenda"
+          className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8"
+        >
+          {items.map(item => {
+            const active = isActive(pathname, item)
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={active ? 'page' : undefined}
-                  className={[
-                    'relative inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-xl px-3.5 text-sm font-semibold transition-all duration-200',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7491] focus-visible:ring-offset-2',
-                    active
-                      ? 'bg-[#071827] text-white shadow-sm'
-                      : 'text-slate-600 hover:bg-white hover:text-[#075F78] hover:shadow-sm',
-                  ].join(' ')}
-                >
-                  {active ? (
-                    <span
-                      aria-hidden="true"
-                      className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-cyan-300"
-                    />
-                  ) : null}
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? 'page' : undefined}
+                title={item.label}
+                className={[
+                  'relative flex min-h-12 min-w-0 items-center justify-center rounded-xl border px-2.5 py-2.5 text-center text-[13px] font-bold leading-4 transition-all duration-200 sm:text-sm',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7491] focus-visible:ring-offset-2',
+                  active
+                    ? 'border-[#071827] bg-[#071827] text-white shadow-sm'
+                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-cyan-300 hover:bg-cyan-50 hover:text-[#075F78]',
+                ].join(' ')}
+              >
+                {active ? (
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-cyan-300"
+                  />
+                ) : null}
 
+                <span className="sm:hidden">
+                  {item.shortLabel}
+                </span>
+                <span className="hidden sm:inline">
                   {item.label}
-                </Link>
-              )
-            })}
-          </nav>
-        </div>
-
-        <p className="mt-1.5 text-[10px] text-slate-400 sm:hidden">
-          Deslize para ver todas as ferramentas.
-        </p>
+                </span>
+              </Link>
+            )
+          })}
+        </nav>
       </div>
     </section>
   )
