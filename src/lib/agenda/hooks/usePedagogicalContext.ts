@@ -48,9 +48,10 @@ export type PedagogicalInstitutionalContext = {
   canManage?: boolean
 }
 
-type ClassDiaryResponse = {
+type RosterResponse = {
   success?: boolean
   roster?: PedagogicalContextStudent[]
+  state?: 'empty' | 'ready'
   error?: string
 }
 
@@ -58,25 +59,6 @@ function todayIso() {
   const date = new Date()
   const offset = date.getTimezoneOffset()
   return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 10)
-}
-
-function normalizeStudentContextError(message?: string | null) {
-  if (!message?.trim()) {
-    return 'Não foi possível carregar os estudantes da turma.'
-  }
-
-  const normalized = message.trim().toLocaleLowerCase('pt-BR')
-
-  if (
-    normalized.includes('diário de classe') ||
-    normalized.includes('diario de classe') ||
-    normalized.includes('processar o diário') ||
-    normalized.includes('processar o diario')
-  ) {
-    return 'Não foi possível carregar os estudantes da turma.'
-  }
-
-  return message.trim()
 }
 
 export function usePedagogicalContext(initialClassId = '') {
@@ -142,7 +124,7 @@ export function usePedagogicalContext(initialClassId = '') {
 
     try {
       const response = await fetch(
-        `/api/agenda/diario-classe?classId=${encodeURIComponent(normalizedClassId)}`,
+        `/api/agenda/roster?classId=${encodeURIComponent(normalizedClassId)}`,
         {
           method: 'GET',
           credentials: 'include',
@@ -151,19 +133,17 @@ export function usePedagogicalContext(initialClassId = '') {
         },
       )
 
-      const body = await response.json() as ClassDiaryResponse
+      const body = await response.json() as RosterResponse
 
       if (!response.ok || !body.success) {
-        throw new Error(
-          normalizeStudentContextError(body.error),
-        )
+        throw new Error(body.error || 'Não foi possível carregar os estudantes da turma.')
       }
 
       setStudents((body.roster ?? []).filter(student => student.active))
     } catch (error) {
       setStudentsError(
-        error instanceof Error
-          ? normalizeStudentContextError(error.message)
+        error instanceof Error && error.message.trim()
+          ? error.message
           : 'Não foi possível carregar os estudantes da turma.',
       )
     } finally {
