@@ -26,6 +26,24 @@ type AgendaLayoutProps = {
   children: ReactNode
 }
 
+const quickActions = [
+  {
+    eyebrow: 'Organizar',
+    label: 'Planejamento',
+    href: '/agenda/planejamento',
+  },
+  {
+    eyebrow: 'Registrar',
+    label: 'Evidências',
+    href: '/agenda/evidencias',
+  },
+  {
+    eyebrow: 'Analisar',
+    label: 'Indicadores',
+    href: '/agenda/indicadores',
+  },
+] as const
+
 function getDefaultDisplayName(
   user: Awaited<
     ReturnType<typeof requireSessionUser>
@@ -80,12 +98,12 @@ export default async function AgendaLayout({
     }
 
     return (
-      <div className="min-h-screen bg-[#EEF3F7] pb-[calc(4rem+env(safe-area-inset-bottom))] text-slate-950 lg:pb-0">
+      <div className="min-h-screen bg-[#EEF3F7] pb-[calc(4rem+env(safe-area-inset-bottom))] font-sans text-slate-950 lg:pb-0">
         <section className="border-b border-slate-200 bg-white">
-          <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+          <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8">
             <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-6">
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] sm:text-xs">
+                <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.17em] sm:text-xs sm:tracking-[0.18em]">
                   <Link
                     href="/portal"
                     className="text-[#0B7491] transition hover:text-[#075F78]"
@@ -103,19 +121,19 @@ export default async function AgendaLayout({
                 <div className="mt-3 flex items-start gap-4 sm:mt-4">
                   <div
                     aria-hidden="true"
-                    className="mt-1 hidden h-16 w-2 shrink-0 rounded-full bg-[#0B7491] sm:block"
+                    className="mt-1 hidden h-16 w-1.5 shrink-0 rounded-full bg-[#0B7491] sm:block"
                   />
 
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#0B7491] sm:text-xs sm:tracking-[0.22em]">
+                    <p className="text-[11px] font-bold uppercase leading-5 tracking-[0.18em] text-[#0B7491] sm:text-xs sm:tracking-[0.22em]">
                       Evidências, inclusão e inteligência
                     </p>
 
-                    <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-[#071827] sm:mt-2 sm:text-4xl">
+                    <h1 className="mt-1.5 text-[2rem] font-extrabold leading-[1.08] tracking-[-0.035em] text-[#071827] sm:mt-2 sm:text-4xl lg:text-[2.6rem]">
                       Agenda Inteligente EDI
                     </h1>
 
-                    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 sm:mt-3 sm:text-base sm:leading-7">
+                    <p className="mt-2.5 max-w-3xl text-[15px] leading-6 text-slate-600 sm:mt-3 sm:text-base sm:leading-7">
                       Planejamento, registros, evidências, acompanhamento e análise pedagógica em um único ambiente operacional.
                     </p>
                   </div>
@@ -139,22 +157,25 @@ export default async function AgendaLayout({
               </div>
             </div>
 
-            <div className="mt-5 grid grid-cols-3 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 sm:mt-6">
-              <div className="border-r border-slate-200 px-2 py-3 text-center sm:px-5 sm:py-4">
-                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500 sm:text-xs sm:tracking-[0.14em]">Organizar</p>
-                <p className="mt-1 truncate text-xs font-bold text-[#071827] sm:text-base">Planejamento</p>
-              </div>
-
-              <div className="border-r border-slate-200 px-2 py-3 text-center sm:px-5 sm:py-4">
-                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500 sm:text-xs sm:tracking-[0.14em]">Registrar</p>
-                <p className="mt-1 truncate text-xs font-bold text-[#071827] sm:text-base">Evidências</p>
-              </div>
-
-              <div className="px-2 py-3 text-center sm:px-5 sm:py-4">
-                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500 sm:text-xs sm:tracking-[0.14em]">Analisar</p>
-                <p className="mt-1 truncate text-xs font-bold text-[#071827] sm:text-base">Indicadores</p>
-              </div>
-            </div>
+            <nav
+              aria-label="Ações rápidas da Agenda"
+              className="mt-5 grid grid-cols-3 gap-2 sm:mt-6 sm:gap-3"
+            >
+              {quickActions.map((action) => (
+                <Link
+                  key={action.href}
+                  href={action.href}
+                  className="group flex min-h-[74px] min-w-0 flex-col items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-2 py-3 text-center transition hover:border-cyan-300 hover:bg-cyan-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7491] focus-visible:ring-offset-2 sm:min-h-[82px] sm:px-5 sm:py-4"
+                >
+                  <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500 transition group-hover:text-[#0B7491] sm:text-xs sm:tracking-[0.16em]">
+                    {action.eyebrow}
+                  </span>
+                  <span className="mt-1.5 max-w-full truncate text-[13px] font-extrabold leading-4 tracking-tight text-[#071827] sm:text-base sm:leading-5">
+                    {action.label}
+                  </span>
+                </Link>
+              ))}
+            </nav>
           </div>
         </section>
 
