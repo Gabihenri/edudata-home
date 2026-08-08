@@ -58,6 +58,25 @@ function normalizeUserId(
   return normalizedUserId || null
 }
 
+function settledArray<T>(
+  result: PromiseSettledResult<T[]>,
+  source: string,
+): T[] {
+  if (result.status === 'fulfilled') {
+    return result.value
+  }
+
+  console.warn('[AGENDA_DASHBOARD_PARTIAL_SOURCE]', {
+    source,
+    message:
+      result.reason instanceof Error
+        ? result.reason.message
+        : 'Falha não identificada.',
+  })
+
+  return []
+}
+
 class DashboardService {
   async getSummary(
     userId?: string,
@@ -75,39 +94,54 @@ class DashboardService {
     }
 
     /*
-     * Cada consulta já é limitada no banco
-     * ao usuário autenticado.
-     *
-     * Nenhum registro de outro usuário é
-     * carregado no servidor.
+     * As coleções são independentes. Uma indisponibilidade localizada não
+     * deve derrubar todo o Dashboard nem transformar ausência parcial de
+     * dados em erro global da Agenda.
      */
     const [
-      events,
-      tasks,
-      planning,
-      evidences,
-      classes,
-    ] = await Promise.all([
+      eventsResult,
+      tasksResult,
+      planningResult,
+      evidencesResult,
+      classesResult,
+    ] = await Promise.allSettled([
       eventsService.listByUserId(
         normalizedUserId,
       ),
-
       tasksService.listByUserId(
         normalizedUserId,
       ),
-
       planningService.listByUserId(
         normalizedUserId,
       ),
-
       evidencesService.listByUserId(
         normalizedUserId,
       ),
-
       classesService.listByTeacherId(
         normalizedUserId,
       ),
     ])
+
+    const events = settledArray(
+      eventsResult,
+      'events',
+    )
+    const tasks = settledArray(
+      tasksResult,
+      'tasks',
+    )
+    const planning = settledArray(
+      planningResult,
+      'planning',
+    )
+    const evidences = settledArray(
+      evidencesResult,
+      'evidences',
+    )
+    const classes = settledArray(
+      classesResult,
+      'classes',
+    )
 
     const now = Date.now()
 
