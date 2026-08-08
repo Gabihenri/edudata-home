@@ -18,6 +18,42 @@ const STATUS_LABELS: Record<AgendaLessonStatus, string> = {
   cancelada: 'Cancelada',
 }
 
+type CalendarEvent = {
+  id: string
+  title: string
+  event_type: string
+  start_date: string
+  end_date: string
+  is_instructional_day: boolean
+  counts_as_school_day: boolean
+  suspends_classes: boolean
+  status: string
+}
+
+type CalendarEventsResponse = {
+  success?: boolean
+  data?: CalendarEvent[]
+  error?: string
+}
+
+const CALENDAR_EVENT_LABELS: Record<string, string> = {
+  holiday: 'Feriado',
+  optional_holiday: 'Ponto facultativo',
+  recess: 'Férias / recesso escolar',
+  planning: 'Planejamento pedagógico',
+  teacher_training: 'Formação / ATPC',
+  school_council: 'Conselho de classe',
+  assessment: 'Avaliação / simulado',
+  recovery: 'Recuperação',
+  school_saturday: 'Dia letivo / reposição',
+  closure: 'Suspensão de atividades',
+  commemorative: 'Evento comemorativo',
+  operational: 'Evento operacional',
+  enrollment: 'Matrícula',
+  deadline: 'Prazo institucional',
+  other: 'Evento institucional',
+}
+
 function todayIso() {
   const date = new Date()
   const offset = date.getTimezoneOffset()
@@ -50,6 +86,8 @@ export function AgendaLessonsOperational() {
     classId,
     changeClass,
     selectedClass,
+    institutionalContext,
+    schoolYear,
     academicPeriods,
     periodsLoading,
     periodsError,
@@ -81,6 +119,8 @@ export function AgendaLessonsOperational() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [checkingCalendar, setCheckingCalendar] = useState(false)
+  const [calendarNotice, setCalendarNotice] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [title, setTitle] = useState('')
@@ -104,7 +144,12 @@ export function AgendaLessonsOperational() {
 
   useEffect(() => {
     setPlanningId('')
+    setCalendarNotice(null)
   }, [classId])
+
+  useEffect(() => {
+    setCalendarNotice(null)
+  }, [scheduledDate])
 
   useEffect(() => {
     if (!selectedPlanning) return
@@ -141,6 +186,62 @@ export function AgendaLessonsOperational() {
     completed: lessons.filter(item => ['realizada', 'parcialmente_realizada'].includes(item.status)).length,
   }), [lessons])
 
+  async function validateCalendarDate(): Promise<void> {
+    setCalendarNotice(null)
+
+    if (!scheduledDate || !schoolYear || !institutionalContext) return
+
+    if (
+      selectedClass?.school_id &&
+      selectedClass.school_id !== institutionalContext.school.id
+    ) {
+      return
+    }
+
+    setCheckingCalendar(true)
+
+    try {
+      const params = new URLSearchParams({
+        schoolYearId: schoolYear.id,
+        startDate: scheduledDate,
+        endDate: scheduledDate,
+      })
+
+      const response = await fetch(
+        `/api/agenda/institutional-calendar/events?${params.toString()}`,
+        { credentials: 'include', cache: 'no-store' },
+      )
+      const body = await response.json() as CalendarEventsResponse
+
+      if (!response.ok || !body.success) {
+        throw new Error(body.error || 'Não foi possível consultar o Calendário Acadêmico.')
+      }
+
+      const activeEvents = (body.data ?? []).filter(
+        item => !['cancelled', 'archived'].includes(item.status),
+      )
+
+      const blockingEvent = activeEvents.find(item => item.suspends_classes)
+      if (blockingEvent) {
+        const typeLabel = CALENDAR_EVENT_LABELS[blockingEvent.event_type] ?? 'Evento institucional'
+        throw new Error(
+          `${typeLabel}: “${blockingEvent.title}”. Esta data está configurada com suspensão de aulas. Escolha outra data ou ajuste o Calendário Acadêmico.`,
+        )
+      }
+
+      const instructionalEvent = activeEvents.find(item => item.is_instructional_day)
+      const schoolActivity = activeEvents.find(item => item.counts_as_school_day)
+
+      if (instructionalEvent) {
+        setCalendarNotice(`Calendário Acadêmico: ${instructionalEvent.title} · data letiva confirmada.`)
+      } else if (schoolActivity) {
+        setCalendarNotice(`Calendário Acadêmico: ${schoolActivity.title} · atividade escolar cadastrada para esta data.`)
+      }
+    } finally {
+      setCheckingCalendar(false)
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setFormError(null)
@@ -165,6 +266,8 @@ export function AgendaLessonsOperational() {
     setSubmitting(true)
 
     try {
+      await validateCalendarDate()
+
       await createLesson({
         title: title.trim(),
         classId,
@@ -179,11 +282,14 @@ export function AgendaLessonsOperational() {
         methodology: methodology.trim() || selectedPlanning.methodology || null,
         resources: resources.trim() || selectedPlanning.resources || null,
         status: 'planejada',
-        schoolId: selectedClass?.school_id ?? selectedPlanning.school_id ?? null,
+        organizationId: institutionalContext?.organization.id ?? null,
+        schoolId: selectedClass?.school_id ?? selectedPlanning.school_id ?? institutionalContext?.school.id ?? null,
         metadata: {
           source: 'agenda_lessons_operational',
           planningTitle: selectedPlanning.title,
           className: selectedClass?.name ?? selectedPlanning.class_name ?? null,
+          calendarValidated: Boolean(scheduledDate && schoolYear && institutionalContext),
+          schoolYearId: schoolYear?.id ?? null,
         },
       })
 
@@ -255,7 +361,7 @@ export function AgendaLessonsOperational() {
     <AgendaPageShell
       eyebrow="Execução pedagógica"
       title="Aulas"
-      description="A aula nasce de uma turma e de um planejamento já existentes. A Agenda reaproveita o contexto e solicita apenas o que é novo na execução."
+      description="A aula nasce de uma turma e de um planejamento já existentes. A Agenda reaproveita o contexto e consulta o Calendário Acadêmico antes de registrar a execução."
     >
       <div className="space-y-6 sm:space-y-8">
         <section className="grid overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm sm:grid-cols-2 xl:grid-cols-4">
@@ -439,14 +545,24 @@ export function AgendaLessonsOperational() {
               </label>
             </div>
 
+            {calendarNotice ? (
+              <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">{calendarNotice}</p>
+            ) : null}
+
+            {schoolYear && institutionalContext ? (
+              <p className="mt-4 rounded-xl border border-cyan-200 bg-cyan-50 p-3 text-xs leading-5 text-slate-700">
+                A data será validada automaticamente no Calendário Acadêmico de {institutionalContext.school.name ?? 'sua instituição'} antes do registro da aula.
+              </p>
+            ) : null}
+
             {formError ? <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{formError}</p> : null}
 
             <button
               type="submit"
-              disabled={submitting || mutating || !classId || !planningId}
+              disabled={submitting || checkingCalendar || mutating || !classId || !planningId}
               className="mt-5 inline-flex min-h-12 items-center justify-center rounded-xl bg-[#071827] px-6 py-3 text-sm font-bold text-white disabled:opacity-50"
             >
-              {submitting ? 'Salvando...' : 'Salvar aula'}
+              {checkingCalendar ? 'Validando calendário...' : submitting ? 'Salvando...' : 'Salvar aula'}
             </button>
           </form>
         ) : null}
