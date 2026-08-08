@@ -81,40 +81,51 @@ const menuGroups = [
     ],
   },
   {
+    title: 'Cadastros e Integrações',
+    items: [
+      {
+        code: 'C1',
+        label: 'Turmas',
+        href: '/agenda/turmas',
+        description: 'Painel visual e configuração das turmas',
+      },
+      {
+        code: 'C2',
+        label: 'Cadastro de Estudantes',
+        href: '/agenda/cadastros/estudantes',
+        description: 'Lista nominal, matrícula institucional e importação',
+      },
+    ],
+  },
+  {
     title: 'Turmas e acompanhamento',
     items: [
       {
         code: '07',
-        label: 'Turmas',
-        href: '/agenda/turmas',
-        description: 'Turmas e contextos de aprendizagem',
-      },
-      {
-        code: '08',
         label: 'Aulas',
         href: '/agenda/aulas',
         description: 'Aulas vinculadas ao planejamento',
       },
       {
-        code: '09',
+        code: '08',
         label: 'Avaliações',
         href: '/agenda/avaliacoes',
         description: 'Instrumentos e resultados',
       },
       {
-        code: '10',
+        code: '09',
         label: 'Ocorrências',
         href: '/agenda/ocorrencias',
         description: 'Registros de ocorrências',
       },
       {
-        code: '11',
+        code: '10',
         label: 'Casos Pedagógicos',
         href: '/agenda/casos',
         description: 'Acompanhamento estruturado',
       },
       {
-        code: '12',
+        code: '11',
         label: 'Estudantes',
         href: '/agenda/caderno',
         description: 'Pesquisa e Caderno Pedagógico do estudante',
