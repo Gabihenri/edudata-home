@@ -10,7 +10,7 @@ const NO_CACHE_HEADERS = {
   'Cache-Control': 'no-store, no-cache, must-revalidate',
 }
 
-type ReportModel = 'grades' | 'attendance'
+type ReportModel = 'grades' | 'attendance' | 'all'
 
 function getAccessToken(request: NextRequest): string {
   const token =
@@ -47,7 +47,8 @@ function required(value: string | null, label: string): string {
 
 function readModel(value: string | null): ReportModel {
   if (value === 'attendance') return 'attendance'
-  return 'grades'
+  if (value === 'grades') return 'grades'
+  return 'all'
 }
 
 function errorResponse(error: unknown) {
@@ -95,8 +96,6 @@ export async function GET(request: NextRequest) {
 
     const activeRoster = roster ?? []
 
-    // Uma turma sem estudantes é um estado válido. Não consultamos tabelas
-    // operacionais desnecessariamente e deixamos a interface orientar o cadastro.
     if (activeRoster.length === 0) {
       return NextResponse.json(
         {
@@ -106,12 +105,17 @@ export async function GET(request: NextRequest) {
           roster: [],
           attendance: [],
           grades: [],
+          warnings: [],
         },
         { status: 200, headers: NO_CACHE_HEADERS },
       )
     }
 
-    if (model === 'attendance') {
+    let attendance: unknown[] = []
+    let grades: unknown[] = []
+    const warnings: string[] = []
+
+    if (model === 'attendance' || model === 'all') {
       let attendanceQuery = client
         .from('agenda_attendance_entries')
         .select('id,class_id,student_id,lesson_date,status,notes,recorded_at')
@@ -123,41 +127,45 @@ export async function GET(request: NextRequest) {
       if (from) attendanceQuery = attendanceQuery.gte('lesson_date', from)
       if (to) attendanceQuery = attendanceQuery.lte('lesson_date', to)
 
-      const { data: attendance, error: attendanceError } = await attendanceQuery
+      const attendanceResult = await attendanceQuery
 
-      if (attendanceError) {
-        throw new Error(`Não foi possível carregar a frequência: ${attendanceError.message}`)
+      if (attendanceResult.error) {
+        if (model === 'attendance') {
+          throw new Error(`Não foi possível carregar a frequência: ${attendanceResult.error.message}`)
+        }
+        warnings.push('Frequência indisponível nesta consolidação.')
+      } else {
+        attendance = attendanceResult.data ?? []
+      }
+    }
+
+    if (model === 'grades' || model === 'all') {
+      let gradeQuery = client
+        .from('agenda_gradebook_entries')
+        .select('id,student_id,class_id,component_id,academic_period_id,title,value,percentage,concept,classification,entry_type,weight,recorded_at')
+        .eq('user_id', user.id)
+        .eq('class_id', classId)
+        .is('archived_at', null)
+        .order('recorded_at', { ascending: true })
+
+      if (academicPeriodId) {
+        gradeQuery = gradeQuery.eq('academic_period_id', academicPeriodId)
       }
 
-      return NextResponse.json(
-        {
-          success: true,
-          model,
-          emptyRoster: false,
-          roster: activeRoster,
-          attendance: attendance ?? [],
-          grades: [],
-        },
-        { status: 200, headers: NO_CACHE_HEADERS },
-      )
+      const gradeResult = await gradeQuery
+
+      if (gradeResult.error) {
+        if (model === 'grades') {
+          throw new Error(`Não foi possível carregar as notas: ${gradeResult.error.message}`)
+        }
+        warnings.push('Notas indisponíveis nesta consolidação.')
+      } else {
+        grades = gradeResult.data ?? []
+      }
     }
 
-    let gradeQuery = client
-      .from('agenda_gradebook_entries')
-      .select('id,student_id,class_id,component_id,academic_period_id,title,value,percentage,concept,classification,entry_type,weight,recorded_at')
-      .eq('user_id', user.id)
-      .eq('class_id', classId)
-      .is('archived_at', null)
-      .order('recorded_at', { ascending: true })
-
-    if (academicPeriodId) {
-      gradeQuery = gradeQuery.eq('academic_period_id', academicPeriodId)
-    }
-
-    const { data: grades, error: gradesError } = await gradeQuery
-
-    if (gradesError) {
-      throw new Error(`Não foi possível carregar as notas: ${gradesError.message}`)
+    if (model === 'all' && warnings.length === 2) {
+      throw new Error('Não foi possível carregar notas nem frequência para este relatório.')
     }
 
     return NextResponse.json(
@@ -166,8 +174,9 @@ export async function GET(request: NextRequest) {
         model,
         emptyRoster: false,
         roster: activeRoster,
-        attendance: [],
-        grades: grades ?? [],
+        attendance,
+        grades,
+        warnings,
       },
       { status: 200, headers: NO_CACHE_HEADERS },
     )
