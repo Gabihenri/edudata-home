@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import {
   FormEvent,
   useCallback,
@@ -88,9 +89,10 @@ export default function StudentOccurrencesPanel() {
   } = usePedagogicalContext()
 
   const [rows, setRows] = useState<OccurrenceRow[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [historyError, setHistoryError] = useState<string | null>(null)
+  const [operationError, setOperationError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -99,13 +101,23 @@ export default function StudentOccurrencesPanel() {
   const [nature, setNature] = useState('pedagogical')
   const [severity, setSeverity] = useState('informational')
 
+  const hasClassContext = Boolean(classId)
+  const hasRoster = hasClassContext && !studentsLoading && !studentsError && students.length > 0
+  const canRegister = hasRoster && Boolean(studentId)
+
   const loadRows = useCallback(async () => {
+    if (!classId) {
+      setRows([])
+      setHistoryError(null)
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
-      setError(null)
+      setHistoryError(null)
 
-      const params = new URLSearchParams({ limit: '100' })
-      if (classId) params.set('classId', classId)
+      const params = new URLSearchParams({ limit: '100', classId })
       if (studentId) params.set('studentId', studentId)
       if (academicPeriodId) params.set('academicPeriodId', academicPeriodId)
 
@@ -117,15 +129,16 @@ export default function StudentOccurrencesPanel() {
       const payload = await response.json() as ListResponse
 
       if (!response.ok || !payload.success) {
-        throw new Error(payload.error ?? 'Não foi possível carregar as ocorrências.')
+        throw new Error(payload.error ?? 'Não foi possível atualizar o histórico de ocorrências.')
       }
 
       setRows(payload.rows ?? [])
     } catch (loadError) {
-      setError(
+      setRows([])
+      setHistoryError(
         loadError instanceof Error
           ? loadError.message
-          : 'Não foi possível carregar as ocorrências.',
+          : 'Não foi possível atualizar o histórico de ocorrências.',
       )
     } finally {
       setLoading(false)
@@ -136,17 +149,24 @@ export default function StudentOccurrencesPanel() {
     void loadRows()
   }, [loadRows])
 
+  useEffect(() => {
+    if (!classId) {
+      setCreateOpen(false)
+      setOperationError(null)
+    }
+  }, [classId])
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     if (!classId || !studentId) {
-      setError('Selecione a turma e o estudante antes de registrar a ocorrência.')
+      setOperationError('Selecione a turma e o estudante antes de registrar a ocorrência.')
       return
     }
 
     try {
       setSaving(true)
-      setError(null)
+      setOperationError(null)
       setSuccess(null)
 
       const response = await fetch('/api/agenda/ocorrencias', {
@@ -184,7 +204,7 @@ export default function StudentOccurrencesPanel() {
       setSuccess('Ocorrência registrada e vinculada ao estudante selecionado.')
       await loadRows()
     } catch (saveError) {
-      setError(
+      setOperationError(
         saveError instanceof Error
           ? saveError.message
           : 'Não foi possível registrar a ocorrência.',
@@ -224,15 +244,20 @@ export default function StudentOccurrencesPanel() {
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">
               Acompanhamento longitudinal
             </p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight">Ocorrências educacionais</h1>
+            <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Ocorrências educacionais</h1>
             <p className="mt-3 text-sm leading-6 text-slate-300">
-              Consulte o histórico e registre novas situações somente a partir de uma turma e de um estudante já cadastrados.
+              Consulte o histórico e registre novas situações a partir de uma turma e de um estudante já cadastrados.
             </p>
           </div>
           <button
             type="button"
-            onClick={() => setCreateOpen(current => !current)}
-            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0B7491] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#09657E]"
+            onClick={() => {
+              if (!hasRoster) return
+              setCreateOpen(current => !current)
+              setOperationError(null)
+            }}
+            disabled={!hasRoster}
+            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0B7491] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#09657E] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {createOpen ? 'Fechar registro' : 'Registrar ocorrência'}
           </button>
@@ -240,7 +265,8 @@ export default function StudentOccurrencesPanel() {
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(200px,0.45fr)_minmax(220px,0.5fr)_auto]">
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0B7491]">Contexto de consulta</p>
+        <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(200px,0.45fr)_minmax(220px,0.5fr)_auto]">
           <input
             value={search}
             onChange={event => setSearch(event.target.value)}
@@ -253,16 +279,24 @@ export default function StudentOccurrencesPanel() {
             disabled={classesLoading}
             className="min-h-12 rounded-xl border border-slate-300 bg-white px-3 text-sm"
           >
-            <option value="">Todas as turmas</option>
+            <option value="">Selecione a turma</option>
             {classes.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
           <select
             value={studentId}
             onChange={event => setStudentId(event.target.value)}
-            disabled={!classId || studentsLoading}
+            disabled={!classId || studentsLoading || Boolean(studentsError)}
             className="min-h-12 rounded-xl border border-slate-300 bg-white px-3 text-sm"
           >
-            <option value="">{classId ? 'Todos os estudantes' : 'Selecione uma turma'}</option>
+            <option value="">
+              {!classId
+                ? 'Selecione uma turma'
+                : studentsLoading
+                  ? 'Carregando estudantes...'
+                  : students.length === 0
+                    ? 'Nenhum estudante cadastrado'
+                    : 'Todos os estudantes'}
+            </option>
             {students.map(student => (
               <option key={student.id} value={student.id}>
                 {student.sequence_number ? `${student.sequence_number}. ` : ''}{student.full_name}
@@ -272,55 +306,66 @@ export default function StudentOccurrencesPanel() {
           <button
             type="button"
             onClick={() => void loadRows()}
-            disabled={loading}
-            className="min-h-12 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700"
+            disabled={loading || !classId}
+            className="min-h-12 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 disabled:opacity-40"
           >
             Atualizar
           </button>
         </div>
+
+        {!classId ? (
+          <p className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+            Selecione uma turma para consultar o histórico e habilitar o registro de ocorrências.
+          </p>
+        ) : null}
+
+        {classId && !studentsLoading && !studentsError && students.length === 0 ? (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <p className="font-semibold">Esta turma ainda não possui estudantes vinculados.</p>
+            <p className="mt-1 leading-6">Cadastre ou importe a lista nominal antes de registrar ocorrências.</p>
+            <Link
+              href={`/agenda/cadastros/estudantes?classId=${encodeURIComponent(classId)}`}
+              className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-[#071827] px-4 py-2 font-bold text-white"
+            >
+              Gerenciar estudantes
+            </Link>
+          </div>
+        ) : null}
+
+        {(classesError || studentsError || periodsError) ? (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <p className="font-semibold">Não foi possível carregar todo o contexto.</p>
+            <p className="mt-1 leading-6">{classesError || studentsError || periodsError}</p>
+          </div>
+        ) : null}
       </section>
 
-      {createOpen ? (
+      {createOpen && hasRoster ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="max-w-3xl">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">Operação</p>
             <h2 className="mt-2 text-2xl font-bold text-[#071827]">Registrar ocorrência educacional</h2>
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              O contexto pedagógico é herdado da Agenda. O professor registra somente a informação nova.
+              O contexto pedagógico é herdado da Agenda. Registre somente a informação nova.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="mt-6 grid gap-4 md:grid-cols-2">
-            <label className="text-sm font-semibold text-slate-700">
-              Turma
-              <select
-                value={classId}
-                onChange={event => changeClass(event.target.value)}
-                disabled={classesLoading}
-                required
-                className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 font-normal"
-              >
-                <option value="">Selecione a turma</option>
-                {classes.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-              </select>
-            </label>
+            <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-4 text-sm text-slate-700">
+              <span className="block text-xs font-bold uppercase text-[#0B7491]">Turma</span>
+              <span className="mt-1 block font-semibold">{selectedClass?.name ?? 'Turma selecionada'}</span>
+            </div>
 
             <label className="text-sm font-semibold text-slate-700">
               Estudante
               <select
                 value={studentId}
                 onChange={event => setStudentId(event.target.value)}
-                disabled={!classId || studentsLoading}
+                disabled={studentsLoading}
                 required
                 className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 font-normal"
               >
-                <option value="">
-                  {!classId
-                    ? 'Selecione a turma primeiro'
-                    : studentsLoading
-                      ? 'Carregando estudantes...'
-                      : 'Selecione o estudante'}
-                </option>
+                <option value="">Selecione o estudante</option>
                 {students.map(student => (
                   <option key={student.id} value={student.id}>
                     {student.sequence_number ? `${student.sequence_number}. ` : ''}{student.full_name}
@@ -374,16 +419,14 @@ export default function StudentOccurrencesPanel() {
               <textarea value={description} onChange={event => setDescription(event.target.value)} required rows={4} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3 font-normal" />
             </label>
 
-            {(classesError || studentsError || periodsError) ? (
-              <p className="md:col-span-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                {classesError || studentsError || periodsError}
-              </p>
+            {operationError ? (
+              <p className="md:col-span-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{operationError}</p>
             ) : null}
 
             <div className="md:col-span-2 flex justify-end">
               <button
                 type="submit"
-                disabled={saving || !classId || !studentId}
+                disabled={saving || !canRegister}
                 className="min-h-12 rounded-xl bg-[#0B7491] px-6 py-3 font-semibold text-white transition hover:bg-[#09657E] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving ? 'Registrando…' : 'Registrar ocorrência'}
@@ -393,9 +436,6 @@ export default function StudentOccurrencesPanel() {
         </section>
       ) : null}
 
-      {error ? (
-        <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">{error}</p>
-      ) : null}
       {success ? (
         <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">{success}</p>
       ) : null}
@@ -404,11 +444,31 @@ export default function StudentOccurrencesPanel() {
         <header className="border-b border-slate-200 px-6 py-5">
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0B7491]">Consulta</p>
           <h2 className="mt-1 text-xl font-bold text-[#071827]">Histórico de ocorrências</h2>
-          <p className="mt-1 text-sm text-slate-500">{visibleRows.length} registro(s) no contexto consultado.</p>
+          <p className="mt-1 text-sm text-slate-500">
+            {!classId
+              ? 'Selecione uma turma para consultar.'
+              : `${visibleRows.length} registro(s) no contexto consultado.`}
+          </p>
         </header>
 
-        {loading ? (
+        {historyError ? (
+          <div className="p-6">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              <p className="font-semibold">O histórico não pôde ser atualizado agora.</p>
+              <p className="mt-1 leading-6">O cadastro e a seleção do contexto continuam disponíveis. Tente atualizar novamente.</p>
+              <button
+                type="button"
+                onClick={() => void loadRows()}
+                className="mt-3 min-h-10 rounded-xl border border-amber-300 bg-white px-4 py-2 font-bold"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          </div>
+        ) : loading ? (
           <p className="p-6 text-sm text-slate-500">Carregando…</p>
+        ) : !classId ? (
+          <p className="p-6 text-sm text-slate-500">Nenhuma consulta iniciada.</p>
         ) : visibleRows.length === 0 ? (
           <p className="p-6 text-sm text-slate-500">Nenhuma ocorrência encontrada.</p>
         ) : (
