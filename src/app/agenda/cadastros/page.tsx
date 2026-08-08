@@ -9,8 +9,8 @@ const sections = [
     code: '01',
     title: 'Identidade e documentos',
     description: 'Dados do professor individual ou da instituição usados em cabeçalhos, rodapés e relatórios.',
-    href: '/agenda/cadastros/identidade',
-    status: 'Em estruturação',
+    href: '#',
+    status: 'Próxima etapa',
   },
   {
     code: '02',
