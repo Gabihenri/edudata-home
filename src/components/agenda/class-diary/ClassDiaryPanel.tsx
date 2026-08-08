@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 
 import { usePedagogicalContext } from '@/lib/agenda/hooks/usePedagogicalContext'
@@ -73,6 +74,7 @@ export default function ClassDiaryPanel() {
   const [roster, setRoster] = useState<RosterStudent[]>([])
   const [drafts, setDrafts] = useState<Record<string, RowDraft>>({})
   const [loading, setLoading] = useState(false)
+  const [hasLoadedDiary, setHasLoadedDiary] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const availablePlanning = useMemo(
@@ -89,13 +91,23 @@ export default function ClassDiaryPanel() {
     setPlanningId('')
     setRoster([])
     setDrafts({})
+    setHasLoadedDiary(false)
+    setError(null)
   }, [classId])
+
+  useEffect(() => {
+    setRoster([])
+    setDrafts({})
+    setHasLoadedDiary(false)
+    setError(null)
+  }, [planningId, lessonDate])
 
   async function loadDiary() {
     if (!classId) return setError('Selecione uma turma.')
     if (!planningId) return setError('Selecione um planejamento antes de abrir a chamada.')
 
     setLoading(true)
+    setHasLoadedDiary(false)
     setError(null)
 
     try {
@@ -128,7 +140,11 @@ export default function ClassDiaryPanel() {
 
       setRoster(body.roster ?? [])
       setDrafts(nextDrafts)
+      setHasLoadedDiary(true)
     } catch (loadError) {
+      setRoster([])
+      setDrafts({})
+      setHasLoadedDiary(false)
       setError(loadError instanceof Error ? loadError.message : 'Não foi possível abrir o Diário de Classe.')
     } finally {
       setLoading(false)
@@ -313,6 +329,7 @@ export default function ClassDiaryPanel() {
         {classId && availablePlanning.length === 0 && !planningLoading ? (
           <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
             Esta turma ainda não possui planejamento. Crie o planejamento antes de abrir a chamada.
+            <Link href="/agenda/planejamento" className="ml-2 underline">Ir para Planejamento</Link>
           </div>
         ) : null}
 
@@ -334,15 +351,37 @@ export default function ClassDiaryPanel() {
           </button>
         </div>
 
-        {(classesError || periodsError || error) ? (
-          <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">{error || classesError || periodsError}</p>
+        {(classesError || periodsError) ? (
+          <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">{classesError || periodsError}</p>
+        ) : null}
+
+        {error ? (
+          <div className="mt-4 flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-bold text-red-800">Não foi possível carregar ou atualizar o Diário.</p>
+              <p className="mt-1 text-sm leading-6 text-red-700">{error}</p>
+            </div>
+            {classId && planningId ? (
+              <button type="button" onClick={() => void loadDiary()} disabled={loading} className="min-h-11 shrink-0 rounded-xl border border-red-300 bg-white px-4 py-2 text-sm font-bold text-red-800 disabled:opacity-50">
+                Tentar novamente
+              </button>
+            ) : null}
+          </div>
         ) : null}
       </section>
 
-      {classId && planningId && roster.length === 0 && !loading ? (
+      {hasLoadedDiary && !error && roster.length === 0 ? (
         <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-[#071827]">Nenhum estudante vinculado a esta turma.</p>
-          <p className="mt-1 text-sm leading-6 text-slate-600">A chamada não cadastra estudantes. Cadastre ou importe a lista nominal na gestão da turma e retorne ao Diário.</p>
+          <p className="text-sm font-bold text-[#071827]">Esta turma ainda não possui estudantes vinculados.</p>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            A chamada não cadastra estudantes. Use o Cadastro de Estudantes para informar João, Maria, José ou importar a lista nominal e depois retorne ao Diário.
+          </p>
+          <Link
+            href={`/agenda/cadastros/estudantes?classId=${encodeURIComponent(classId)}`}
+            className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0B7491] px-5 py-2.5 text-sm font-bold text-white"
+          >
+            Gerenciar estudantes desta turma
+          </Link>
         </section>
       ) : null}
 
