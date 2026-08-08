@@ -118,12 +118,34 @@ export async function GET(request: NextRequest) {
     }
 
     const roster = await listClassRoster({ client, userId: user.id, classId })
+
+    // A lista nominal é a primeira dependência do Diário.
+    // Se a turma estiver vazia, não consultamos frequência: a tela deve
+    // orientar o usuário a cadastrar/importar estudantes, e não apresentar
+    // um erro técnico de uma etapa que ainda não pode ser utilizada.
+    if (roster.length === 0) {
+      return NextResponse.json(
+        {
+          success: true,
+          roster: [],
+          attendance: [],
+          state: 'empty_roster',
+        },
+        { status: 200, headers: NO_CACHE_HEADERS },
+      )
+    }
+
     const attendance = lessonDate
       ? await listAttendanceByDate({ client, userId: user.id, classId, lessonDate })
       : []
 
     return NextResponse.json(
-      { success: true, roster, attendance },
+      {
+        success: true,
+        roster,
+        attendance,
+        state: 'ready',
+      },
       { status: 200, headers: NO_CACHE_HEADERS },
     )
   } catch (error) {
