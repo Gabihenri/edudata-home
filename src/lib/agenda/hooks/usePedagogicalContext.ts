@@ -60,6 +60,25 @@ function todayIso() {
   return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 10)
 }
 
+function normalizeStudentContextError(message?: string | null) {
+  if (!message?.trim()) {
+    return 'Não foi possível carregar os estudantes da turma.'
+  }
+
+  const normalized = message.trim().toLocaleLowerCase('pt-BR')
+
+  if (
+    normalized.includes('diário de classe') ||
+    normalized.includes('diario de classe') ||
+    normalized.includes('processar o diário') ||
+    normalized.includes('processar o diario')
+  ) {
+    return 'Não foi possível carregar os estudantes da turma.'
+  }
+
+  return message.trim()
+}
+
 export function usePedagogicalContext(initialClassId = '') {
   const {
     classes,
@@ -135,14 +154,16 @@ export function usePedagogicalContext(initialClassId = '') {
       const body = await response.json() as ClassDiaryResponse
 
       if (!response.ok || !body.success) {
-        throw new Error(body.error || 'Não foi possível carregar os estudantes da turma.')
+        throw new Error(
+          normalizeStudentContextError(body.error),
+        )
       }
 
       setStudents((body.roster ?? []).filter(student => student.active))
     } catch (error) {
       setStudentsError(
         error instanceof Error
-          ? error.message
+          ? normalizeStudentContextError(error.message)
           : 'Não foi possível carregar os estudantes da turma.',
       )
     } finally {
