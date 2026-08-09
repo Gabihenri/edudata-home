@@ -90,11 +90,11 @@ export default function AgendaPage() {
   return (
     <main className="min-h-screen bg-[#EEF3F7]">
       <header className="border-b border-white/10 bg-[#071827] text-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:gap-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex min-h-[88px] max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:min-h-[96px] sm:gap-5 sm:px-6 lg:px-8">
           <Link
             href="/"
             aria-label="Voltar para a Home da EduData IA"
-            className="min-w-0 shrink"
+            className="flex min-w-0 shrink items-center self-stretch"
           >
             <Image
               src="/logo-agenda-inteligente-edi.png"
@@ -102,21 +102,21 @@ export default function AgendaPage() {
               width={270}
               height={100}
               priority
-              className="h-auto w-28 object-contain object-left sm:w-44"
+              className="h-12 w-auto max-w-[132px] object-contain object-left sm:h-14 sm:max-w-[180px]"
             />
           </Link>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2.5 sm:gap-3">
             <Link
               href="/login?redirectTo=%2Fagenda%2Fdashboard"
-              className="inline-flex min-h-10 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10 sm:px-4 sm:text-sm"
+              className="inline-flex min-h-12 min-w-[92px] items-center justify-center rounded-xl border border-white/25 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/50 sm:min-w-[104px] sm:px-5 sm:text-base"
             >
               Entrar
             </Link>
 
             <Link
               href="/cadastro"
-              className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#0B7491] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#09657E] sm:px-4 sm:text-sm"
+              className="inline-flex min-h-12 min-w-[118px] items-center justify-center rounded-xl bg-[#0B7491] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#09657E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/50 sm:min-w-[132px] sm:px-5 sm:text-base"
             >
               Criar conta
             </Link>
