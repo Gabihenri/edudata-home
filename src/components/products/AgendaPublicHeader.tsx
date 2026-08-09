@@ -30,7 +30,7 @@ export default function AgendaPublicHeader() {
               width={270}
               height={100}
               priority
-              className="h-11 w-auto max-w-[132px] object-contain object-left sm:h-13 sm:max-w-[176px]"
+              className="h-14 w-auto max-w-[160px] object-contain object-left sm:h-16 sm:max-w-[190px]"
             />
           </Link>
 
