@@ -18,19 +18,19 @@ export default function AgendaPublicHeader() {
   return (
     <header className="relative z-50 border-b border-white/10 bg-[#071827] text-white">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex min-h-[88px] items-center justify-between gap-3 sm:min-h-[96px]">
+        <div className="flex min-h-[100px] items-center justify-between gap-3 sm:min-h-[108px]">
           <Link
             href="/"
             aria-label="Voltar para a Home da EduData IA"
-            className="flex min-w-0 shrink items-center"
+            className="flex min-w-0 flex-1 items-center"
           >
             <Image
-              src="/logo-agenda-inteligente-edi.png"
-              alt="Agenda Inteligente EDI"
-              width={270}
-              height={100}
+              src="/logo-edudata-ia-header.png"
+              alt="EduData IA — Inteligência Educacional"
+              width={260}
+              height={104}
               priority
-              className="h-14 w-auto max-w-[160px] object-contain object-left sm:h-16 sm:max-w-[190px]"
+              className="h-auto w-[190px] max-w-full object-contain object-left sm:w-[225px]"
             />
           </Link>
 
@@ -59,7 +59,7 @@ export default function AgendaPublicHeader() {
 
             <Link
               href="/cadastro"
-              className="hidden min-h-12 min-w-[118px] items-center justify-center rounded-xl bg-[#0B7491] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#09657E] sm:inline-flex sm:min-w-[132px] sm:px-5 sm:text-base"
+              className="inline-flex min-h-12 min-w-[118px] items-center justify-center rounded-xl bg-[#0B7491] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#09657E] sm:min-w-[132px] sm:px-5 sm:text-base"
             >
               Criar conta
             </Link>
@@ -69,7 +69,7 @@ export default function AgendaPublicHeader() {
               aria-expanded={open}
               aria-controls="agenda-public-menu"
               onClick={() => setOpen(current => !current)}
-              className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/25 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10 lg:hidden"
+              className="hidden min-h-12 items-center justify-center rounded-xl border border-white/25 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10 lg:hidden"
             >
               {open ? 'Fechar' : 'Menu'}
             </button>
@@ -91,14 +91,6 @@ export default function AgendaPublicHeader() {
                 </Link>
               ))}
             </nav>
-
-            <Link
-              href="/cadastro"
-              onClick={() => setOpen(false)}
-              className="mt-3 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#0B7491] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#09657E] sm:hidden"
-            >
-              Criar conta
-            </Link>
           </div>
         ) : null}
       </div>
