@@ -91,7 +91,7 @@ function dependencyResponse({
       success: false,
       dependency: true,
       code,
-      error,
+      error: `${error} ${guidance}`,
       guidance,
       action,
     },
@@ -158,8 +158,8 @@ function planningDependencyResponse(error: unknown) {
       ? message
       : 'O contexto do planejamento não pôde ser validado agora.',
     guidance: configurationIssue
-      ? 'Revise o planejamento vinculado à turma antes de abrir a chamada.'
-      : 'A chamada depende de um planejamento válido. Tente atualizar o planejamento; se ele já estiver correto, a estrutura de Planejamento precisa ser revisada pelo administrador.',
+      ? 'Revise o planejamento vinculado à turma em Planejar antes de abrir a chamada.'
+      : 'A chamada depende de um planejamento válido. Acesse Planejar e atualize o planejamento; se ele já estiver correto, a estrutura de Planejamento precisa ser revisada pelo administrador.',
     action: {
       label: 'Ir para Planejamento',
       href: '/agenda/planejamento',
@@ -177,7 +177,7 @@ function rosterDependencyResponse({
     code: 'ROSTER_UNAVAILABLE',
     error: 'A lista nominal desta turma não pôde ser carregada.',
     guidance:
-      'A chamada depende da lista de estudantes vinculados à turma. Verifique o Cadastro de Estudantes. Se a turma já possui estudantes cadastrados, a estrutura da lista nominal precisa ser revisada pelo administrador.',
+      'A chamada depende da lista de estudantes vinculados à turma. Acesse Menu > Cadastro de Estudantes e verifique a turma. Se os estudantes já estiverem cadastrados, a estrutura da lista nominal precisa ser revisada pelo administrador.',
     action: {
       label: 'Gerenciar estudantes desta turma',
       href: `/agenda/cadastros/estudantes?classId=${encodeURIComponent(classId)}`,
@@ -216,10 +216,6 @@ export async function GET(request: NextRequest) {
       return rosterDependencyResponse({ classId })
     }
 
-    // A lista nominal é a primeira dependência do Diário.
-    // Se a turma estiver vazia, não consultamos frequência: a tela deve
-    // orientar o usuário a cadastrar/importar estudantes, e não apresentar
-    // um erro técnico de uma etapa que ainda não pode ser utilizada.
     if (roster.length === 0) {
       return NextResponse.json(
         {
@@ -245,10 +241,6 @@ export async function GET(request: NextRequest) {
         })
       } catch (attendanceError) {
         console.error('[AGENDA_DIARY_ATTENDANCE_DEGRADED]', attendanceError)
-
-        // Frequência é uma fonte operacional complementar à lista nominal.
-        // Uma falha nessa leitura não deve impedir o professor de abrir a
-        // turma e continuar a operação. O salvamento permanece validado no POST.
         attendance = []
         attendanceWarning =
           'A lista da turma foi carregada, mas a frequência anterior não pôde ser consultada agora.'
