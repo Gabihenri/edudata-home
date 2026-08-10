@@ -135,16 +135,34 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const attendance = lessonDate
-      ? await listAttendanceByDate({ client, userId: user.id, classId, lessonDate })
-      : []
+    let attendance: Awaited<ReturnType<typeof listAttendanceByDate>> = []
+    let attendanceWarning: string | null = null
+
+    if (lessonDate) {
+      try {
+        attendance = await listAttendanceByDate({
+          client,
+          userId: user.id,
+          classId,
+          lessonDate,
+        })
+      } catch {
+        // Frequência é uma fonte operacional complementar à lista nominal.
+        // Uma falha nessa leitura não deve impedir o professor de abrir a
+        // turma e continuar a operação. O salvamento permanece validado no POST.
+        attendance = []
+        attendanceWarning =
+          'A lista da turma foi carregada, mas a frequência anterior não pôde ser consultada agora.'
+      }
+    }
 
     return NextResponse.json(
       {
         success: true,
         roster,
         attendance,
-        state: 'ready',
+        state: attendanceWarning ? 'attendance_degraded' : 'ready',
+        warning: attendanceWarning,
       },
       { status: 200, headers: NO_CACHE_HEADERS },
     )
