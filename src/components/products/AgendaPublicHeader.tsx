@@ -15,7 +15,10 @@ export default function AgendaPublicHeader() {
   const [open, setOpen] = useState(false)
 
   return (
-    <header className="relative z-50 border-b border-white/10 bg-[#071827] text-white">
+    <header
+      className="relative z-50 border-b border-white/10 bg-[#071827] text-white"
+      style={{ paddingTop: 'max(8px, env(safe-area-inset-top))' }}
+    >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex min-h-[84px] items-center justify-between gap-3 sm:min-h-[92px] sm:gap-4">
           <Link
