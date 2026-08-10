@@ -17,6 +17,15 @@ const NO_CACHE_HEADERS = {
   'Cache-Control': 'no-store, no-cache, must-revalidate',
 }
 
+type DiaryDependencyCode =
+  | 'PLANNING_CONTEXT_UNAVAILABLE'
+  | 'ROSTER_UNAVAILABLE'
+
+type DiaryDependencyAction = {
+  label: string
+  href: string
+}
+
 function getAccessToken(request: NextRequest): string {
   const token =
     request.cookies.get('sb-access-token')?.value ??
@@ -64,6 +73,35 @@ function errorResponse(error: unknown) {
   )
 }
 
+function dependencyResponse({
+  code,
+  error,
+  guidance,
+  action,
+  status = 409,
+}: {
+  code: DiaryDependencyCode
+  error: string
+  guidance: string
+  action: DiaryDependencyAction
+  status?: number
+}) {
+  return NextResponse.json(
+    {
+      success: false,
+      dependency: true,
+      code,
+      error,
+      guidance,
+      action,
+    },
+    {
+      status,
+      headers: NO_CACHE_HEADERS,
+    },
+  )
+}
+
 async function requirePlanningContext({
   client,
   userId,
@@ -102,6 +140,52 @@ async function requirePlanningContext({
   return data
 }
 
+function planningDependencyResponse(error: unknown) {
+  const message =
+    error instanceof Error
+      ? error.message
+      : 'Não foi possível validar o planejamento selecionado.'
+
+  const normalized = message.toLowerCase()
+  const configurationIssue =
+    normalized.includes('não encontrado') ||
+    normalized.includes('não corresponde') ||
+    normalized.includes('arquivado')
+
+  return dependencyResponse({
+    code: 'PLANNING_CONTEXT_UNAVAILABLE',
+    error: configurationIssue
+      ? message
+      : 'O contexto do planejamento não pôde ser validado agora.',
+    guidance: configurationIssue
+      ? 'Revise o planejamento vinculado à turma antes de abrir a chamada.'
+      : 'A chamada depende de um planejamento válido. Tente atualizar o planejamento; se ele já estiver correto, a estrutura de Planejamento precisa ser revisada pelo administrador.',
+    action: {
+      label: 'Ir para Planejamento',
+      href: '/agenda/planejamento',
+    },
+    status: configurationIssue ? 409 : 503,
+  })
+}
+
+function rosterDependencyResponse({
+  classId,
+}: {
+  classId: string
+}) {
+  return dependencyResponse({
+    code: 'ROSTER_UNAVAILABLE',
+    error: 'A lista nominal desta turma não pôde ser carregada.',
+    guidance:
+      'A chamada depende da lista de estudantes vinculados à turma. Verifique o Cadastro de Estudantes. Se a turma já possui estudantes cadastrados, a estrutura da lista nominal precisa ser revisada pelo administrador.',
+    action: {
+      label: 'Gerenciar estudantes desta turma',
+      href: `/agenda/cadastros/estudantes?classId=${encodeURIComponent(classId)}`,
+    },
+    status: 503,
+  })
+}
+
 export async function GET(request: NextRequest) {
   try {
     const user = await requireSessionUser()
@@ -114,10 +198,23 @@ export async function GET(request: NextRequest) {
 
     if (lessonDate) {
       if (!planningId) throw new Error('planningId é obrigatório para abrir o Diário de Classe.')
-      await requirePlanningContext({ client, userId: user.id, classId, planningId })
+
+      try {
+        await requirePlanningContext({ client, userId: user.id, classId, planningId })
+      } catch (planningError) {
+        console.error('[AGENDA_DIARY_PLANNING_DEPENDENCY]', planningError)
+        return planningDependencyResponse(planningError)
+      }
     }
 
-    const roster = await listClassRoster({ client, userId: user.id, classId })
+    let roster: Awaited<ReturnType<typeof listClassRoster>>
+
+    try {
+      roster = await listClassRoster({ client, userId: user.id, classId })
+    } catch (rosterError) {
+      console.error('[AGENDA_DIARY_ROSTER_DEPENDENCY]', rosterError)
+      return rosterDependencyResponse({ classId })
+    }
 
     // A lista nominal é a primeira dependência do Diário.
     // Se a turma estiver vazia, não consultamos frequência: a tela deve
@@ -146,7 +243,9 @@ export async function GET(request: NextRequest) {
           classId,
           lessonDate,
         })
-      } catch {
+      } catch (attendanceError) {
+        console.error('[AGENDA_DIARY_ATTENDANCE_DEGRADED]', attendanceError)
+
         // Frequência é uma fonte operacional complementar à lista nominal.
         // Uma falha nessa leitura não deve impedir o professor de abrir a
         // turma e continuar a operação. O salvamento permanece validado no POST.
@@ -212,12 +311,17 @@ export async function POST(request: NextRequest) {
       if (!body.lessonDate?.trim()) throw new Error('lessonDate é obrigatório.')
       if (!body.status) throw new Error('status é obrigatório.')
 
-      await requirePlanningContext({
-        client,
-        userId: user.id,
-        classId: body.classId,
-        planningId: body.planningId,
-      })
+      try {
+        await requirePlanningContext({
+          client,
+          userId: user.id,
+          classId: body.classId,
+          planningId: body.planningId,
+        })
+      } catch (planningError) {
+        console.error('[AGENDA_DIARY_ATTENDANCE_PLANNING_DEPENDENCY]', planningError)
+        return planningDependencyResponse(planningError)
+      }
 
       const attendance = await upsertAttendance({
         client,
