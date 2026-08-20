@@ -12,8 +12,11 @@ export const metadata: Metadata = {
     'Entre em contato com a EduData IA para conhecer produtos, soluções institucionais e projetos especiais.',
 }
 
-const WHATSAPP_HREF = 'https://wa.me/5511999999999?text=Olá%2C%20quero%20conhecer%20a%20EduData%20IA.'
-const MAILTO_HREF = 'mailto:sabinohc@gmail.com?subject=Contato%20EduData%20IA'
+const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/\D/g, '')
+const whatsappHref = whatsappNumber
+  ? `https://wa.me/${whatsappNumber}?text=Ol%C3%A1%2C%20quero%20conhecer%20a%20EduData%20IA.`
+  : null
+const mailtoHref = 'mailto:sabinohc@gmail.com?subject=Contato%20EduData%20IA'
 
 export default function ContatoPage() {
   return (
@@ -43,23 +46,25 @@ export default function ContatoPage() {
           </div>
 
           <aside className="space-y-4">
-            <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-6">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#075F78]">
-                WhatsApp
-              </p>
-              <h2 className="mt-2 text-xl font-bold">Prefere falar diretamente?</h2>
-              <p className="mt-3 text-sm leading-6 text-slate-600">
-                Use o canal direto para uma conversa inicial.
-              </p>
-              <a
-                href={WHATSAPP_HREF}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#071827] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#102B3D] focus:outline-none focus:ring-2 focus:ring-[#0B7491]"
-              >
-                Falar pelo WhatsApp
-              </a>
-            </div>
+            {whatsappHref ? (
+              <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-6">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#075F78]">
+                  WhatsApp
+                </p>
+                <h2 className="mt-2 text-xl font-bold">Prefere falar diretamente?</h2>
+                <p className="mt-3 text-sm leading-6 text-slate-600">
+                  Use o canal direto para uma conversa inicial.
+                </p>
+                <a
+                  href={whatsappHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#071827] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#102B3D] focus:outline-none focus:ring-2 focus:ring-[#0B7491]"
+                >
+                  Falar pelo WhatsApp
+                </a>
+              </div>
+            ) : null}
 
             <div className="rounded-2xl border border-slate-200 bg-white p-6">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
@@ -69,7 +74,7 @@ export default function ContatoPage() {
                 Se preferir, o contato por e-mail continua disponível como alternativa.
               </p>
               <a
-                href={MAILTO_HREF}
+                href={mailtoHref}
                 className="mt-4 inline-flex text-sm font-bold text-[#075F78] hover:text-[#0B7491]"
               >
                 Enviar e-mail →
