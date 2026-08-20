@@ -12,10 +12,6 @@ type NavigationItem = {
 
 const primaryNavigation: NavigationItem[] = [
   {
-    label: 'Framework EDI',
-    href: '/#framework',
-  },
-  {
     label: 'Ecossistema',
     href: '/#ecossistema',
   },
@@ -31,13 +27,13 @@ const primaryNavigation: NavigationItem[] = [
     label: 'Academy',
     href: '/academy',
   },
+  {
+    label: 'Escolas',
+    href: '/solucoes-escolas',
+  },
 ]
 
-function isCurrentRoute(
-  pathname: string,
-  currentHash: string,
-  href: string,
-): boolean {
+function isCurrentRoute(pathname: string, currentHash: string, href: string): boolean {
   if (href.startsWith('/#')) {
     return pathname === '/' && currentHash === href.slice(1)
   }
@@ -47,7 +43,6 @@ function isCurrentRoute(
 
 export default function Header() {
   const pathname = usePathname()
-
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [currentHash, setCurrentHash] = useState('')
 
@@ -63,10 +58,7 @@ export default function Header() {
     }
 
     window.addEventListener('hashchange', handleHashChange)
-
-    return () => {
-      window.removeEventListener('hashchange', handleHashChange)
-    }
+    return () => window.removeEventListener('hashchange', handleHashChange)
   }, [])
 
   function closeMobileMenu(): void {
@@ -93,28 +85,15 @@ export default function Header() {
             />
           </Link>
 
-          <nav
-            aria-label="Navegação principal"
-            className="hidden items-center gap-5 text-sm font-semibold text-slate-700 lg:flex"
-          >
+          <nav aria-label="Navegação principal" className="hidden items-center gap-5 text-sm font-semibold text-slate-700 lg:flex">
             {primaryNavigation.map((item) => {
-              const current = isCurrentRoute(
-                pathname,
-                currentHash,
-                item.href,
-              )
+              const current = isCurrentRoute(pathname, currentHash, item.href)
 
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  aria-current={
-                    current
-                      ? item.href.startsWith('/#')
-                        ? 'location'
-                        : 'page'
-                      : undefined
-                  }
+                  aria-current={current ? (item.href.startsWith('/#') ? 'location' : 'page') : undefined}
                   className={`border-b-2 py-2 transition focus:outline-none focus:ring-2 focus:ring-[#0B7491] ${
                     current
                       ? 'border-[#0B7491] text-[#071827]'
@@ -134,7 +113,6 @@ export default function Header() {
             >
               Entrar
             </Link>
-
             <Link
               href="/agenda"
               className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0B7491] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#09657E] focus:outline-none focus:ring-2 focus:ring-[#071827]"
@@ -147,11 +125,7 @@ export default function Header() {
             type="button"
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-navigation"
-            aria-label={
-              mobileMenuOpen
-                ? 'Fechar menu principal'
-                : 'Abrir menu principal'
-            }
+            aria-label={mobileMenuOpen ? 'Fechar menu principal' : 'Abrir menu principal'}
             onClick={() => setMobileMenuOpen((current) => !current)}
             className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl border border-[#071827] bg-[#071827] px-5 py-3 text-base font-semibold text-white transition hover:bg-[#0B2940] focus:outline-none focus:ring-2 focus:ring-[#0B7491] lg:hidden"
           >
@@ -160,32 +134,16 @@ export default function Header() {
         </div>
 
         {mobileMenuOpen ? (
-          <div
-            id="mobile-navigation"
-            className="border-t border-slate-100 pb-5 pt-4 lg:hidden"
-          >
-            <nav
-              aria-label="Navegação mobile"
-              className="grid gap-2"
-            >
+          <div id="mobile-navigation" className="border-t border-slate-100 pb-5 pt-4 lg:hidden">
+            <nav aria-label="Navegação mobile" className="grid gap-2">
               {primaryNavigation.map((item) => {
-                const current = isCurrentRoute(
-                  pathname,
-                  currentHash,
-                  item.href,
-                )
+                const current = isCurrentRoute(pathname, currentHash, item.href)
 
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    aria-current={
-                      current
-                        ? item.href.startsWith('/#')
-                          ? 'location'
-                          : 'page'
-                        : undefined
-                    }
+                    aria-current={current ? (item.href.startsWith('/#') ? 'location' : 'page') : undefined}
                     onClick={closeMobileMenu}
                     className={`flex min-h-12 items-center justify-between rounded-xl border px-4 py-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-[#0B7491] ${
                       current
@@ -194,13 +152,7 @@ export default function Header() {
                     }`}
                   >
                     <span>{item.label}</span>
-
-                    <span
-                      aria-hidden="true"
-                      className={
-                        current ? 'text-[#0B7491]' : 'text-slate-400'
-                      }
-                    >
+                    <span aria-hidden="true" className={current ? 'text-[#0B7491]' : 'text-slate-400'}>
                       →
                     </span>
                   </Link>
@@ -210,36 +162,31 @@ export default function Header() {
 
             <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
               <Link
-                href="/login"
+                href="/arquitetura"
                 onClick={closeMobileMenu}
                 className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-[#071827] transition hover:border-cyan-300 hover:bg-cyan-50 focus:outline-none focus:ring-2 focus:ring-[#0B7491]"
               >
-                Entrar
+                Arquitetura
               </Link>
-
               <Link
-                href="/agenda"
+                href="/contato"
                 onClick={closeMobileMenu}
-                className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0B7491] px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#09657E] focus:outline-none focus:ring-2 focus:ring-[#071827]"
+                className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#071827] px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#0B2940] focus:outline-none focus:ring-2 focus:ring-[#0B7491]"
               >
-                Conhecer a Agenda
+                Fale conosco
               </Link>
             </div>
 
-            <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-xl border border-slate-200 bg-[#F5F8FB] px-4 py-3">
+            <div className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-[#F5F8FB] px-4 py-3">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0B7491]">
-                  Arquitetura
+                  Framework EDI
                 </p>
-
                 <p className="mt-1 text-xs leading-5 text-slate-600">
-                  Plataforma Operacional de Inteligência Educacional
+                  Evidências, Inclusão e Inteligência
                 </p>
               </div>
-
-              <span className="font-mono text-xs font-bold text-[#0B7491]">
-                EDI
-              </span>
+              <span className="font-mono text-xs font-bold text-[#0B7491]">EDI</span>
             </div>
           </div>
         ) : null}
