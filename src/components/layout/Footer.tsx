@@ -52,7 +52,7 @@ export default function Footer() {
                 className="block w-[190px] shrink-0 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#081C2E]"
               >
                 <img
-                  src="/logo-edudata-ia-footer.png"
+                  src="/logo-edudata-ia-footer.svg"
                   alt="EduData IA"
                   className="h-auto w-full object-contain"
                 />
