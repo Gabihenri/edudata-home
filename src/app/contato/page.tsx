@@ -4,7 +4,7 @@ import Link from 'next/link'
 import AccessibilityBar from '@/components/layout/AccessibilityBar'
 import Footer from '@/components/layout/Footer'
 import Header from '@/components/layout/Header'
-import ContactForm from './ContactForm'
+import ContactForm from '@/components/contact/ContactForm'
 
 export const metadata: Metadata = {
   title: 'Contato | EduData IA',
