@@ -1,3 +1,5 @@
+'use client'
+
 import Consultorias from '@/components/home/Consultorias'
 
 /**
