@@ -19,11 +19,9 @@ const governanceLinks: FooterLink[] = [
   { label: 'Acessibilidade', href: '/governanca#acessibilidade' },
 ]
 
-const upcomingProducts = [
-  'EduData Analytics',
-  'SGPA',
-  'Observatório da Educação',
-]
+const upcomingProducts = ['EduData Analytics', 'SGPA', 'Observatório da Educação']
+
+const linkedinUrl = 'https://www.linkedin.com/company/edudata-ia/'
 
 const linkClassName =
   'flex w-fit items-start gap-2 text-slate-300 transition hover:translate-x-1 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#081C2E]'
@@ -45,7 +43,6 @@ export default function Footer() {
       />
 
       <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
-        {/* Identidade institucional compacta: mantém o logo forte sem transformar o Footer em uma segunda Home. */}
         <div className="border-b border-white/10 pb-9">
           <div className="flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-5">
@@ -75,12 +72,13 @@ export default function Footer() {
 
             <div className="flex flex-wrap gap-3 lg:justify-end">
               <a
-                href="https://www.linkedin.com/company/edudata-ia/"
+                href={linkedinUrl}
                 target="_blank"
-                rel="noreferrer"
-                className="inline-flex min-h-10 items-center rounded-full border border-cyan-300/25 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-cyan-200 transition hover:border-cyan-300/50 hover:bg-cyan-300/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                rel="noopener noreferrer"
+                aria-label="Abrir LinkedIn oficial da EduData IA em nova aba"
+                className="inline-flex min-h-10 items-center rounded-full border border-cyan-300/40 bg-cyan-300/10 px-4 py-2 text-sm font-bold text-cyan-100 transition hover:border-cyan-300 hover:bg-cyan-300/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
-                LinkedIn oficial
+                LinkedIn oficial →
               </a>
               <Link
                 href="/contato"
@@ -95,7 +93,6 @@ export default function Footer() {
         <div className="grid gap-10 py-10 sm:grid-cols-2 lg:grid-cols-3 lg:gap-14 lg:py-12">
           <div>
             <h2 className="text-lg font-bold text-white">Ecossistema</h2>
-
             <ul className="mt-5 space-y-4">
               {ecosystemLinks.map((link) => (
                 <li key={link.href}>
@@ -108,16 +105,10 @@ export default function Footer() {
             </ul>
 
             <div className="mt-7 border-t border-white/10 pt-6">
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
-                Em desenvolvimento
-              </p>
-
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Em desenvolvimento</p>
               <ul className="mt-4 space-y-3">
                 {upcomingProducts.map((product) => (
-                  <li
-                    key={product}
-                    className="flex flex-wrap items-center gap-2 text-sm text-slate-400"
-                  >
+                  <li key={product} className="flex flex-wrap items-center gap-2 text-sm text-slate-400">
                     <span>{product}</span>
                     <span className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">
                       Em breve
@@ -130,7 +121,6 @@ export default function Footer() {
 
           <div>
             <h2 className="text-lg font-bold text-white">Governança</h2>
-
             <ul className="mt-5 space-y-4">
               {governanceLinks.map((link) => (
                 <li key={link.href}>
@@ -143,9 +133,7 @@ export default function Footer() {
             </ul>
 
             <div className="mt-7 border-l-2 border-cyan-300/40 pl-4">
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-300">
-                Compromisso institucional
-              </p>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-300">Compromisso institucional</p>
               <p className="mt-2 text-sm leading-6 text-slate-400">
                 Privacidade, segurança, acessibilidade e proteção dos dados educacionais fazem parte da evolução da plataforma.
               </p>
@@ -154,7 +142,6 @@ export default function Footer() {
 
           <div>
             <h2 className="text-lg font-bold text-white">Conecte-se</h2>
-
             <div className="mt-5 space-y-4">
               <Link href="/contato" className={linkClassName}>
                 <LinkArrow />
@@ -175,10 +162,11 @@ export default function Footer() {
             </div>
 
             <a
-              href="https://www.linkedin.com/company/edudata-ia/"
+              href={linkedinUrl}
               target="_blank"
-              rel="noreferrer"
-              className="mt-7 inline-flex font-semibold text-cyan-200 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+              rel="noopener noreferrer"
+              aria-label="Abrir LinkedIn oficial da EduData IA em nova aba"
+              className="mt-7 inline-flex min-h-10 items-center rounded-lg border border-cyan-300/30 bg-cyan-300/[0.06] px-4 py-2 font-semibold text-cyan-200 transition hover:border-cyan-300 hover:bg-cyan-300/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
             >
               Acompanhe a EduData IA no LinkedIn →
             </a>
@@ -186,25 +174,12 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-white/10 pt-7">
-          <nav
-            aria-label="Links institucionais do rodapé"
-            className="flex flex-wrap justify-center gap-x-5 gap-y-3 text-sm text-slate-400"
-          >
-            <Link href="/" className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
-              Página inicial
-            </Link>
-            <Link href="/professor-digital" className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
-              Professor Digital
-            </Link>
-            <Link href="/agenda" className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
-              Agenda Inteligente EDI
-            </Link>
-            <Link href="/academy" className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
-              EduData Academy
-            </Link>
-            <Link href="/governanca" className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
-              Governança
-            </Link>
+          <nav aria-label="Links institucionais do rodapé" className="flex flex-wrap justify-center gap-x-5 gap-y-3 text-sm text-slate-400">
+            <Link href="/" className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">Página inicial</Link>
+            <Link href="/professor-digital" className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">Professor Digital</Link>
+            <Link href="/agenda" className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">Agenda Inteligente EDI</Link>
+            <Link href="/academy" className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">EduData Academy</Link>
+            <Link href="/governanca" className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">Governança</Link>
           </nav>
 
           <div className="mt-7 flex flex-col items-center gap-4 text-center">
@@ -219,12 +194,8 @@ export default function Footer() {
             </div>
 
             <div>
-              <p className="text-xs text-slate-500">
-                © 2026 EduData IA — Todos os direitos reservados.
-              </p>
-              <p className="mt-1 text-[11px] text-slate-600">
-                Plataforma Operacional de Inteligência Educacional.
-              </p>
+              <p className="text-xs text-slate-500">© 2026 EduData IA — Todos os direitos reservados.</p>
+              <p className="mt-1 text-[11px] text-slate-600">Plataforma Operacional de Inteligência Educacional.</p>
             </div>
           </div>
         </div>
