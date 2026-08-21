@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import AccessibilityBar from '@/components/layout/AccessibilityBar'
 import Footer from '@/components/layout/Footer'
 import Header from '@/components/layout/Header'
-import Consultorias from '@/components/home/Consultorias'
+import ConsultoriasContato from '@/components/home/ConsultoriasContato'
 
 export const metadata: Metadata = {
   title: 'Consultorias | EduData IA',
@@ -17,7 +17,7 @@ export default function ConsultoriasPage() {
       <AccessibilityBar />
       <Header />
       <main>
-        <Consultorias />
+        <ConsultoriasContato />
       </main>
       <Footer />
     </>
