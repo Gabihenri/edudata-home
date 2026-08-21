@@ -50,7 +50,7 @@ const upcomingProducts = [
 ]
 
 const linkClassName =
-  'inline-flex items-start gap-2 text-slate-300 transition hover:translate-x-1 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#081C2E]'
+  'flex w-fit items-start gap-2 text-slate-300 transition hover:translate-x-1 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#081C2E]'
 
 function LinkArrow() {
   return (
@@ -128,7 +128,6 @@ export default function Footer() {
                       className={linkClassName}
                     >
                       <LinkArrow />
-
                       <span>{link.label}</span>
                     </Link>
                   </li>
@@ -147,7 +146,6 @@ export default function Footer() {
                       className="flex flex-wrap items-center gap-2 text-sm text-slate-400"
                     >
                       <span>{product}</span>
-
                       <span className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">
                         Em breve
                       </span>
@@ -170,7 +168,6 @@ export default function Footer() {
                       className={linkClassName}
                     >
                       <LinkArrow />
-
                       <span>{link.label}</span>
                     </Link>
                   </li>
@@ -196,21 +193,13 @@ export default function Footer() {
               </h2>
 
               <div className="mt-5 space-y-4">
-                <Link
-                  href="/contato"
-                  className={linkClassName}
-                >
+                <Link href="/contato" className={linkClassName}>
                   <LinkArrow />
-
                   <span>Contato</span>
                 </Link>
 
-                <Link
-                  href="/academy"
-                  className={linkClassName}
-                >
+                <Link href="/academy" className={linkClassName}>
                   <LinkArrow />
-
                   <span>Cursos e formações</span>
                 </Link>
 
@@ -219,7 +208,6 @@ export default function Footer() {
                   className={linkClassName}
                 >
                   <LinkArrow />
-
                   <span>Parcerias institucionais</span>
                 </Link>
 
@@ -228,7 +216,6 @@ export default function Footer() {
                   className={linkClassName}
                 >
                   <LinkArrow />
-
                   <span>Comunidade EduData IA</span>
                 </Link>
               </div>
@@ -238,7 +225,6 @@ export default function Footer() {
                   <span className="font-semibold text-slate-300">
                     LinkedIn
                   </span>
-
                   <span className="rounded-md border border-white/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">
                     Canal em atualização
                   </span>
@@ -264,28 +250,24 @@ export default function Footer() {
             >
               Página inicial
             </Link>
-
             <Link
               href="/professor-digital"
               className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
             >
               Professor Digital
             </Link>
-
             <Link
               href="/agenda"
               className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
             >
               Agenda Inteligente EDI
             </Link>
-
             <Link
               href="/academy"
               className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
             >
               EduData Academy
             </Link>
-
             <Link
               href="/governanca"
               className="transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
@@ -298,7 +280,6 @@ export default function Footer() {
             <p className="text-sm text-slate-500">
               © 2026 EduData IA — Todos os direitos reservados.
             </p>
-
             <p className="mt-2 text-xs text-slate-600">
               Plataforma Operacional de Inteligência Educacional.
             </p>
