@@ -8,7 +8,7 @@ type FooterLink = {
 const ecosystemLinks: FooterLink[] = [
   {
     label: 'Framework EDI',
-    href: '/#framework',
+    href: '/arquitetura',
   },
   {
     label: 'Professor Digital',
@@ -105,12 +105,12 @@ export default function Footer() {
                 formações e conheça os novos produtos da plataforma.
               </p>
 
-              <a
-                href="mailto:sabinohc@gmail.com?subject=Comunidade%20EduData%20IA&body=Ol%C3%A1%2C%20gostaria%20de%20receber%20informa%C3%A7%C3%B5es%20e%20participar%20da%20Comunidade%20EduData%20IA."
+              <Link
+                href="/contato?context=comunidade"
                 className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0B7491] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#09657E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#081C2E]"
               >
                 Participar da comunidade
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -196,14 +196,14 @@ export default function Footer() {
               </h2>
 
               <div className="mt-5 space-y-4">
-                <a
-                  href="mailto:sabinohc@gmail.com?subject=Contato%20-%20EduData%20IA"
+                <Link
+                  href="/contato"
                   className={linkClassName}
                 >
                   <LinkArrow />
 
                   <span>Contato</span>
-                </a>
+                </Link>
 
                 <Link
                   href="/academy"
@@ -214,23 +214,23 @@ export default function Footer() {
                   <span>Cursos e formações</span>
                 </Link>
 
-                <a
-                  href="mailto:sabinohc@gmail.com?subject=Parceria%20institucional%20-%20EduData%20IA&body=Ol%C3%A1%2C%20gostaria%20de%20conversar%20sobre%20uma%20poss%C3%ADvel%20parceria%20com%20a%20EduData%20IA."
+                <Link
+                  href="/contato?context=parceria"
                   className={linkClassName}
                 >
                   <LinkArrow />
 
                   <span>Parcerias institucionais</span>
-                </a>
+                </Link>
 
-                <a
-                  href="mailto:sabinohc@gmail.com?subject=Comunidade%20EduData%20IA"
+                <Link
+                  href="/contato?context=comunidade"
                   className={linkClassName}
                 >
                   <LinkArrow />
 
                   <span>Comunidade EduData IA</span>
-                </a>
+                </Link>
               </div>
 
               <div className="mt-7 rounded-xl border border-white/10 bg-white/[0.03] p-4">
