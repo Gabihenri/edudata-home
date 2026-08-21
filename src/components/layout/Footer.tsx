@@ -222,17 +222,22 @@ export default function Footer() {
 
               <div className="mt-7 rounded-xl border border-white/10 bg-white/[0.03] p-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold text-slate-300">
+                  <a
+                    href="https://www.linkedin.com/company/edudata-ia/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-semibold text-slate-300 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                  >
                     LinkedIn
-                  </span>
-                  <span className="rounded-md border border-white/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">
-                    Canal em atualização
+                  </a>
+
+                  <span className="rounded-md border border-cyan-300/20 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-cyan-300">
+                    Canal oficial
                   </span>
                 </div>
 
-                <p className="mt-2 text-xs leading-5 text-slate-500">
-                  O endereço oficial será disponibilizado após a
-                  finalização da página institucional.
+                <p className="mt-2 text-xs leading-5 text-slate-400">
+                  Acompanhe as novidades, produtos e conteúdos da EduData IA.
                 </p>
               </div>
             </div>
