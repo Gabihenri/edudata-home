@@ -38,6 +38,9 @@ const ediPillars = [
 const PROFESSOR_PRO_UPGRADE_HREF =
   '/upgrade?requestedPlan=edi_professor_pro&product=agenda_edi&source=%2F&returnTo=%2F'
 
+const heroSecondaryButtonClassName =
+  'inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-white/20 bg-white/[0.04] px-6 py-3.5 text-base font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-cyan-300 sm:w-auto'
+
 export default function Page() {
   return (
     <>
@@ -80,22 +83,22 @@ export default function Page() {
                 para professores, equipes, escolas e redes de ensino.
               </p>
 
-              <div className="mt-8 flex flex-wrap gap-3">
+              <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap">
                 <Link
                   href="/agenda"
-                  className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0B7491] px-7 py-4 font-bold text-white transition hover:bg-[#09657E] focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                  className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#0B7491] px-7 py-3.5 text-base font-bold text-white transition hover:bg-[#09657E] focus:outline-none focus:ring-2 focus:ring-cyan-300 sm:w-auto"
                 >
                   Conhecer a Agenda EDI
                 </Link>
                 <Link
                   href="/professor-digital"
-                  className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-7 py-4 font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                  className={heroSecondaryButtonClassName}
                 >
                   Professor Digital
                 </Link>
                 <Link
                   href="/solucoes-escolas"
-                  className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/20 bg-transparent px-7 py-4 font-semibold text-slate-200 transition hover:bg-white/5 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                  className={heroSecondaryButtonClassName}
                 >
                   Soluções para escolas
                 </Link>
