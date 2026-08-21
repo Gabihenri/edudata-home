@@ -24,6 +24,9 @@ export default function ContactForm() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (status === 'sending' || status === 'success') return
+
     setStatus('sending')
     setMessage('')
 
@@ -99,8 +102,16 @@ export default function ContactForm() {
           {message}
         </p>
       )}
-      <button type="submit" disabled={status === 'sending'} className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#071827] px-6 py-3 font-bold text-white transition hover:bg-[#102B3D] disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-[#0B7491] sm:w-auto">
-        {status === 'sending' ? 'Enviando…' : 'Enviar mensagem'}
+      <button
+        type="submit"
+        disabled={status === 'sending' || status === 'success'}
+        className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#071827] px-6 py-3 font-bold text-white transition hover:bg-[#102B3D] disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-[#0B7491] sm:w-auto"
+      >
+        {status === 'sending'
+          ? 'Enviando…'
+          : status === 'success'
+            ? 'Mensagem enviada ✓'
+            : 'Enviar mensagem'}
       </button>
     </form>
   )
