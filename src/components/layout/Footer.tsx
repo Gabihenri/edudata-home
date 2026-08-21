@@ -41,53 +41,58 @@ export default function Footer() {
     <footer className="relative overflow-hidden bg-[#081C2E] text-white">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-[radial-gradient(circle_at_50%_0%,rgba(0,207,232,0.12),transparent_58%)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_50%_0%,rgba(0,207,232,0.08),transparent_62%)]"
       />
 
-      <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-        {/* Institutional brand block */}
-        <div className="border-b border-cyan-300/15 pb-12 text-center sm:pb-14">
-          <Link
-            href="/"
-            aria-label="Ir para a página inicial da EduData IA"
-            className="mx-auto inline-flex max-w-[340px] rounded-2xl p-2 transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#081C2E]"
-          >
-            <img
-              src="/logo-edudata-ia-footer.png"
-              alt="EduData IA — Tecnologia, dados e inteligência para transformar a educação"
-              className="h-auto w-full object-contain"
-            />
-          </Link>
+      <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
+        {/* Identidade institucional compacta: mantém o logo forte sem transformar o Footer em uma segunda Home. */}
+        <div className="border-b border-white/10 pb-9">
+          <div className="flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-5">
+              <Link
+                href="/"
+                aria-label="Ir para a página inicial da EduData IA"
+                className="block w-[190px] shrink-0 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#081C2E]"
+              >
+                <img
+                  src="/logo-edudata-ia-footer.png"
+                  alt="EduData IA"
+                  className="h-auto w-full object-contain"
+                />
+              </Link>
 
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
-            Plataforma Operacional de Inteligência Educacional baseada em
-            Evidências, Inclusão e Inteligência.
-          </p>
+              <div className="hidden h-12 w-px bg-white/10 sm:block" aria-hidden="true" />
 
-          <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-            Um único ecossistema, um único motor de inteligência e múltiplos
-            produtos especializados.
-          </p>
+              <div>
+                <p className="max-w-xl text-sm leading-6 text-slate-300 sm:text-base">
+                  Plataforma Operacional de Inteligência Educacional.
+                </p>
+                <p className="mt-1 max-w-xl text-xs leading-5 text-slate-500 sm:text-sm">
+                  Tecnologia, dados e inteligência para transformar a educação.
+                </p>
+              </div>
+            </div>
 
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-            <a
-              href="https://www.linkedin.com/company/edudata-ia/"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex min-h-10 items-center rounded-full border border-cyan-300/30 bg-white/[0.03] px-5 py-2 text-sm font-semibold text-cyan-200 transition hover:border-cyan-300 hover:bg-cyan-300/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-            >
-              LinkedIn · Canal oficial
-            </a>
-            <Link
-              href="/contato"
-              className="inline-flex min-h-10 items-center rounded-full border border-white/15 bg-white/[0.03] px-5 py-2 text-sm font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-            >
-              Fale com a EduData IA
-            </Link>
+            <div className="flex flex-wrap gap-3 lg:justify-end">
+              <a
+                href="https://www.linkedin.com/company/edudata-ia/"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-10 items-center rounded-full border border-cyan-300/25 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-cyan-200 transition hover:border-cyan-300/50 hover:bg-cyan-300/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+              >
+                LinkedIn oficial
+              </a>
+              <Link
+                href="/contato"
+                className="inline-flex min-h-10 items-center rounded-full border border-white/15 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+              >
+                Fale com a EduData IA
+              </Link>
+            </div>
           </div>
         </div>
 
-        <div className="grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-3 lg:gap-14 lg:py-14">
+        <div className="grid gap-10 py-10 sm:grid-cols-2 lg:grid-cols-3 lg:gap-14 lg:py-12">
           <div>
             <h2 className="text-lg font-bold text-white">Ecossistema</h2>
 
@@ -137,13 +142,12 @@ export default function Footer() {
               ))}
             </ul>
 
-            <div className="mt-7 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="mt-7 border-l-2 border-cyan-300/40 pl-4">
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-300">
                 Compromisso institucional
               </p>
               <p className="mt-2 text-sm leading-6 text-slate-400">
-                Privacidade, segurança, acessibilidade e proteção dos dados
-                educacionais fazem parte da evolução da plataforma.
+                Privacidade, segurança, acessibilidade e proteção dos dados educacionais fazem parte da evolução da plataforma.
               </p>
             </div>
           </div>
@@ -170,26 +174,18 @@ export default function Footer() {
               </Link>
             </div>
 
-            <div className="mt-7 rounded-xl border border-white/10 bg-white/[0.03] p-4">
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-300">
-                Canal oficial
-              </p>
-              <p className="mt-2 text-sm leading-6 text-slate-400">
-                Acompanhe as novidades, produtos e conteúdos da EduData IA.
-              </p>
-              <a
-                href="https://www.linkedin.com/company/edudata-ia/"
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-flex font-semibold text-cyan-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-              >
-                LinkedIn →
-              </a>
-            </div>
+            <a
+              href="https://www.linkedin.com/company/edudata-ia/"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-7 inline-flex font-semibold text-cyan-200 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+            >
+              Acompanhe a EduData IA no LinkedIn →
+            </a>
           </div>
         </div>
 
-        <div className="border-t border-cyan-300/15 pt-8">
+        <div className="border-t border-white/10 pt-7">
           <nav
             aria-label="Links institucionais do rodapé"
             className="flex flex-wrap justify-center gap-x-5 gap-y-3 text-sm text-slate-400"
@@ -211,24 +207,24 @@ export default function Footer() {
             </Link>
           </nav>
 
-          <div className="mt-7 text-center">
-            <p className="text-sm text-slate-500">
-              © 2026 EduData IA — Todos os direitos reservados.
-            </p>
-            <p className="mt-2 text-xs text-slate-600">
-              Plataforma Operacional de Inteligência Educacional.
-            </p>
-          </div>
-
-          <div className="mt-7 flex justify-center">
-            <div className="inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-full border border-cyan-300/50 bg-cyan-300/[0.04] px-5 py-3 text-sm text-slate-300">
-              <span className="font-bold text-cyan-300">Framework EDI</span>
+          <div className="mt-7 flex flex-col items-center gap-4 text-center">
+            <div className="inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-slate-500">
+              <span className="font-semibold text-cyan-300">Framework EDI</span>
               <span aria-hidden="true">•</span>
               <span>Evidências</span>
               <span aria-hidden="true">•</span>
               <span>Inclusão</span>
               <span aria-hidden="true">•</span>
               <span>Inteligência</span>
+            </div>
+
+            <div>
+              <p className="text-xs text-slate-500">
+                © 2026 EduData IA — Todos os direitos reservados.
+              </p>
+              <p className="mt-1 text-[11px] text-slate-600">
+                Plataforma Operacional de Inteligência Educacional.
+              </p>
             </div>
           </div>
         </div>
