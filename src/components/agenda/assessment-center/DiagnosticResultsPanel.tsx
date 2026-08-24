@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 
 import { usePedagogicalContext } from '@/lib/agenda/hooks/usePedagogicalContext'
 
@@ -34,6 +35,7 @@ const LABELS: Record<string, string> = {
 }
 
 export default function DiagnosticResultsPanel() {
+  const searchParams = useSearchParams()
   const {
     classes,
     classesLoading,
@@ -60,6 +62,19 @@ export default function DiagnosticResultsPanel() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState<SavedResult | null>(null)
+
+  useEffect(() => {
+    const requestedClassId = searchParams.get('classId')?.trim() ?? ''
+    const requestedPeriodId = searchParams.get('academicPeriodId')?.trim() ?? ''
+
+    if (requestedClassId && classes.some(item => item.id === requestedClassId) && classId !== requestedClassId) {
+      changeClass(requestedClassId)
+    }
+
+    if (requestedPeriodId && academicPeriods.some(period => period.id === requestedPeriodId) && academicPeriodId !== requestedPeriodId) {
+      setAcademicPeriodId(requestedPeriodId)
+    }
+  }, [academicPeriodId, academicPeriods, changeClass, classId, classes, searchParams, setAcademicPeriodId])
 
   useEffect(() => {
     async function loadAssessments() {
