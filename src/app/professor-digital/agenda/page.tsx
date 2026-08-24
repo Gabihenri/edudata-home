@@ -1,12 +1,22 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { useEvidences } from '@/lib/agenda/hooks/useEvidences'
 import { useLessons } from '@/lib/agenda/hooks/useLessons'
 import { useObjectives } from '@/lib/agenda/hooks/useObjectives'
 import { usePlanning } from '@/lib/agenda/hooks/usePlanning'
+
+type ProfileContext = {
+  area: string
+  stage: string
+  experience: string
+  interests: string[]
+  developmentGoal: string
+}
+
+const profileContextKey = 'edudata-professor-digital-profile-context'
 
 const nuclei = [
   {
@@ -62,6 +72,33 @@ export default function ProfessorDigitalWorkspacePage() {
   const { objectives, loading: objectivesLoading, error: objectivesError } = useObjectives()
   const { lessons, loading: lessonsLoading, error: lessonsError } = useLessons()
   const { evidences, loading: evidencesLoading, error: evidencesError } = useEvidences()
+  const [profileContext, setProfileContext] = useState<ProfileContext | null>(null)
+
+  useEffect(() => {
+    try {
+      const storedProfile = window.sessionStorage.getItem(profileContextKey)
+
+      if (!storedProfile) {
+        return
+      }
+
+      const parsedProfile = JSON.parse(storedProfile) as Partial<ProfileContext>
+      setProfileContext({
+        area: typeof parsedProfile.area === 'string' ? parsedProfile.area : '',
+        stage: typeof parsedProfile.stage === 'string' ? parsedProfile.stage : '',
+        experience: typeof parsedProfile.experience === 'string' ? parsedProfile.experience : '',
+        interests: Array.isArray(parsedProfile.interests)
+          ? parsedProfile.interests.filter(item => typeof item === 'string')
+          : [],
+        developmentGoal:
+          typeof parsedProfile.developmentGoal === 'string'
+            ? parsedProfile.developmentGoal
+            : '',
+      })
+    } catch {
+      window.sessionStorage.removeItem(profileContextKey)
+    }
+  }, [])
 
   const loading = planningLoading || objectivesLoading || lessonsLoading || evidencesLoading
   const hasError = Boolean(planningError || objectivesError || lessonsError || evidencesError)
@@ -84,7 +121,31 @@ export default function ProfessorDigitalWorkspacePage() {
   }, [evidences.length, lessons, objectives, planning.length])
 
   const reflection = useMemo(() => {
-    if (summary.planning === 0 && summary.completedLessons === 0) {
+    const hasAgendaData = summary.planning > 0 || summary.completedLessons > 0
+    const selectedInterests = profileContext?.interests ?? []
+    const developmentGoal = profileContext?.developmentGoal.trim() ?? ''
+
+    if (developmentGoal && hasAgendaData) {
+      return {
+        title: 'Seu objetivo declarado agora pode orientar uma leitura mais intencional da sua trajetória.',
+        description: `Você indicou que deseja desenvolver: “${developmentGoal}”. Os registros autorizados não respondem automaticamente a essa questão, mas podem oferecer experiências, continuidades e pontos de partida para você refletir sobre ela.`,
+        actionLabel: 'Explorar possibilidades de desenvolvimento',
+        href: '/professor-digital/plano',
+      }
+    }
+
+    if (selectedInterests.length > 0 && hasAgendaData) {
+      const interestsText = selectedInterests.slice(0, 3).join(', ')
+
+      return {
+        title: 'Seus interesses podem funcionar como uma lente para observar os registros da sua prática.',
+        description: `Você escolheu aprofundar ${interestsText}. Ao observar planejamentos, aulas, objetivos e evidências, experimente perguntar onde esses temas aparecem, o que ainda está ausente e quais conexões você gostaria de construir.`,
+        actionLabel: 'Explorar recomendações contextuais',
+        href: '/professor-digital/recomendacoes',
+      }
+    }
+
+    if (!hasAgendaData) {
       return {
         title: 'Sua trajetória profissional ainda está começando a ganhar registros.',
         description:
@@ -121,7 +182,7 @@ export default function ProfessorDigitalWorkspacePage() {
       actionLabel: 'Ver recomendações contextuais',
       href: '/professor-digital/recomendacoes',
     }
-  }, [summary])
+  }, [profileContext, summary])
 
   return (
     <main className="min-h-screen bg-[#EEF3F7] text-[#071827]">
@@ -132,17 +193,87 @@ export default function ProfessorDigitalWorkspacePage() {
         <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-cyan-300">Professor Digital · Beta</p>
           <h1 className="mt-4 max-w-4xl text-4xl font-bold tracking-tight sm:text-5xl">
-            Seu espaço de autoanálise e inteligência profissional.
+            Minha Atuação: uma leitura da sua prática a partir do contexto que você escolhe compartilhar.
           </h1>
           <p className="mt-5 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
-            Aqui, a EduData IA não organiza sua agenda. Ela ajuda você a observar o que a sua própria trajetória pode revelar sobre atuação, produção, conhecimento e possibilidades de desenvolvimento.
+            Aqui, a EduData IA não organiza sua agenda. Ela ajuda você a observar como os
+            registros autorizados da sua trajetória podem dialogar com seus interesses,
+            objetivos e questões profissionais.
           </p>
         </div>
       </section>
 
       <section className="px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          {profileContext ? (
+            <section className="rounded-3xl border border-cyan-200 bg-white p-6 shadow-sm sm:p-8">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                <div className="max-w-3xl">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
+                    Contexto que você organizou nesta sessão
+                  </p>
+                  <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
+                    Sua trajetória ganha contexto antes de ganhar interpretação.
+                  </h2>
+                  <p className="mt-3 text-base leading-7 text-slate-600">
+                    Esta leitura considera apenas as escolhas que você registrou e os dados
+                    disponíveis nos fluxos autorizados. O contexto não é um diagnóstico e não
+                    transforma contadores em avaliação de desempenho.
+                  </p>
+                </div>
+                <Link
+                  href="/professor-digital/perfil"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50"
+                >
+                  Revisar meu contexto
+                </Link>
+              </div>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl bg-[#F8FAFC] p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Atuação</p>
+                  <p className="mt-2 font-semibold text-[#071827]">{profileContext.area || 'Ainda não informado'}</p>
+                </div>
+                <div className="rounded-2xl bg-[#F8FAFC] p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Momento profissional</p>
+                  <p className="mt-2 font-semibold text-[#071827]">{profileContext.stage || 'Ainda não informado'}</p>
+                </div>
+                <div className="rounded-2xl bg-[#F8FAFC] p-4 md:col-span-2">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Temas escolhidos</p>
+                  <p className="mt-2 font-semibold text-[#071827]">
+                    {profileContext.interests.length > 0
+                      ? profileContext.interests.join(' · ')
+                      : 'Nenhum tema selecionado nesta sessão'}
+                  </p>
+                </div>
+              </div>
+
+              {profileContext.developmentGoal ? (
+                <div className="mt-5 rounded-2xl border border-cyan-100 bg-cyan-50/60 p-5">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0B7491]">Questão de desenvolvimento</p>
+                  <p className="mt-2 text-base leading-7 text-slate-700">“{profileContext.developmentGoal}”</p>
+                </div>
+              ) : null}
+            </section>
+          ) : (
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">Comece pelo seu contexto</p>
+              <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
+                Os mesmos registros podem significar coisas diferentes para trajetórias diferentes.
+              </h2>
+              <p className="mt-3 max-w-3xl leading-7 text-slate-600">
+                Antes de aprofundar uma reflexão, conte ao Professor Digital quais temas e objetivos fazem sentido para você. Isso ajuda a evitar interpretações genéricas e mantém o profissional no centro da leitura.
+              </p>
+              <Link
+                href="/professor-digital/perfil"
+                className="mt-6 inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0B7491] px-6 py-3 font-semibold text-white transition hover:bg-[#09657E]"
+              >
+                Organizar meu contexto profissional
+              </Link>
+            </section>
+          )}
+
+          <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">Minha trajetória agora</p>
               <h2 className="mt-2 text-3xl font-bold tracking-tight">Um retrato inicial a partir dos dados disponíveis.</h2>
