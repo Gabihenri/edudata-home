@@ -10,17 +10,6 @@ type ParticipationPath = {
   featured?: boolean
 }
 
-function createMailto(
-  subject: string,
-  body: string,
-): string {
-  return `mailto:sabinohc@gmail.com?subject=${encodeURIComponent(
-    subject,
-  )}&body=${encodeURIComponent(
-    body,
-  )}`
-}
-
 const participationPaths:
   ParticipationPath[] = [
     {
@@ -67,10 +56,7 @@ const participationPaths:
       description:
         'Converse sobre diagnóstico, formação, organização de processos, indicadores, automação ou projetos educacionais.',
       action: 'Solicitar conversa',
-      href: createMailto(
-        'Conversa institucional — EduData IA',
-        'Olá, gostaria de apresentar um desafio institucional para a EduData IA.\n\nNome:\nInstituição:\nMunicípio/UF:\nDesafio ou necessidade:\nTelefone para contato:',
-      ),
+      href: '/contato',
       status: 'Atendimento sob consulta',
       statusClassName:
         'border-white/20 bg-white/5 text-slate-200',
@@ -98,11 +84,7 @@ const ecosystemPrinciples = [
   },
 ]
 
-const PARTNERSHIP_HREF =
-  createMailto(
-    'Parceria e colaboração — EduData IA',
-    'Olá, gostaria de conversar sobre uma possibilidade de parceria ou colaboração com a EduData IA.\n\nNome:\nInstituição ou projeto:\nMunicípio/UF:\nProposta ou área de interesse:\nTelefone para contato:',
-  )
+const PARTNERSHIP_HREF = '/contato'
 
 export default function Participacao() {
   return (
