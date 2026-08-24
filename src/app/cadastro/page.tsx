@@ -3,11 +3,35 @@
 import Link from 'next/link'
 import { FormEvent, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 type SignUpApiResponse = {
   success: boolean
   error?: string
   requiresEmailConfirmation?: boolean
+}
+
+let browserSupabaseClient: SupabaseClient | null = null
+
+function getBrowserSupabaseClient(): SupabaseClient {
+  if (browserSupabaseClient) return browserSupabaseClient
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!url || !anonKey) {
+    throw new Error('A conexão com o serviço de acesso não está configurada.')
+  }
+
+  browserSupabaseClient = createClient(url, anonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+  })
+
+  return browserSupabaseClient
 }
 
 export default function CadastroPage() {
@@ -18,8 +42,42 @@ export default function CadastroPage() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  async function handleGoogleSignUp() {
+    setError('')
+    setSuccess('')
+    setGoogleLoading(true)
+
+    try {
+      const supabase = getBrowserSupabaseClient()
+      const callbackUrl = new URL('/auth/callback', window.location.origin)
+      callbackUrl.searchParams.set('redirectTo', '/agenda/dashboard')
+
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: callbackUrl.toString(),
+          queryParams: {
+            prompt: 'select_account',
+          },
+        },
+      })
+
+      if (oauthError) {
+        throw new Error('Não foi possível iniciar o acesso com o Google.')
+      }
+    } catch (googleError) {
+      setError(
+        googleError instanceof Error
+          ? googleError.message
+          : 'Não foi possível conectar ao Google.',
+      )
+      setGoogleLoading(false)
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -125,11 +183,35 @@ export default function CadastroPage() {
               Criar conta
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Use seu e-mail e uma senha segura. Se preferir Google, entre pela tela de acesso.
+              Escolha o método de acesso que preferir. Você pode continuar com Google ou criar uma conta com e-mail e senha.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={handleGoogleSignUp}
+              disabled={loading || googleLoading}
+              className="inline-flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
+                <path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.4-.18-2.07H12v3.92h5.38a4.6 4.6 0 0 1-1.99 3.02v2.54h3.23c1.89-1.74 2.98-4.3 2.98-7.41Z" />
+                <path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.36l-3.23-2.54c-.9.6-2.04.96-3.39.96-2.6 0-4.81-1.76-5.6-4.13H3.06v2.62A10 10 0 0 0 12 22Z" />
+                <path fill="#FBBC05" d="M6.4 13.93A6.02 6.02 0 0 1 6.08 12c0-.67.12-1.32.32-1.93V7.45H3.06A10 10 0 0 0 2 12c0 1.61.39 3.14 1.06 4.55l3.34-2.62Z" />
+                <path fill="#EA4335" d="M12 5.94c1.47 0 2.78.5 3.82 1.49l2.87-2.87A9.64 9.64 0 0 0 12 2a10 10 0 0 0-8.94 5.45l3.34 2.62C7.19 7.7 9.4 5.94 12 5.94Z" />
+              </svg>
+              {googleLoading ? 'Conectando ao Google...' : 'Continuar com Google'}
+            </button>
+            <div className="my-6 flex items-center gap-4">
+              <div className="h-px flex-1 bg-slate-200" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                ou crie com e-mail
+              </span>
+              <div className="h-px flex-1 bg-slate-200" />
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
             <label className="block text-sm font-semibold text-slate-700">
               Nome
               <input
