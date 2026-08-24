@@ -69,21 +69,28 @@ const resources = [
   },
 ]
 
-const ediPillars = [
+const pilotOffer = {
+  price: 'R$ 15,00',
+  duration: '30 dias',
+  payment: 'Pagamento único',
+  renewal: 'Sem renovação automática',
+}
+
+const faqs = [
   {
-    label: 'Evidências',
-    description:
-      'Registros contextualizados e verificáveis.',
+    question: 'O que acontece depois dos 30 dias?',
+    answer:
+      'O piloto termina ao final do período contratado. Nenhuma renovação automática é realizada. As próximas condições de continuidade são apresentadas antes de qualquer nova cobrança.',
   },
   {
-    label: 'Inclusão',
-    description:
-      'Organização acessível e proteção das pessoas.',
+    question: 'Posso cancelar ou pedir reembolso?',
+    answer:
+      'Como o piloto é uma contratação pontual, não há renovação automática para cancelar. As solicitações relacionadas ao pagamento são avaliadas pelo canal de suporte conforme a política aplicável à compra.',
   },
   {
-    label: 'Inteligência',
-    description:
-      'Dados transformados em apoio à decisão.',
+    question: 'Há suporte durante o piloto?',
+    answer:
+      'Sim. Durante o período do piloto, o usuário conta com os canais de suporte disponíveis para esclarecer dúvidas de acesso e uso da Agenda.',
   },
 ]
 
@@ -145,6 +152,29 @@ export default function AgendaPage() {
               </Link>
             </div>
 
+            <div className="mt-6 rounded-2xl border border-cyan-300/25 bg-cyan-300/10 p-5 sm:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-200">
+                    Piloto de acesso
+                  </p>
+                  <p className="mt-2 text-3xl font-bold text-white">
+                    {pilotOffer.price}
+                  </p>
+                </div>
+                <span className="rounded-lg bg-white/10 px-3 py-2 text-xs font-bold text-cyan-100">
+                  {pilotOffer.duration}
+                </span>
+              </div>
+              <div className="mt-4 grid gap-2 text-sm text-slate-200 sm:grid-cols-2">
+                <p>• {pilotOffer.payment}</p>
+                <p>• {pilotOffer.renewal}</p>
+              </div>
+              <p className="mt-4 text-sm leading-6 text-slate-300">
+                O cadastro cria sua conta. A ativação do piloto pago acontece na etapa de contratação, antes de qualquer cobrança.
+              </p>
+            </div>
+
             <p className="mt-4 text-sm text-slate-400">
               Já possui conta?{' '}
               <Link
@@ -201,34 +231,6 @@ export default function AgendaPage() {
         </div>
       </section>
 
-      <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto grid max-w-7xl sm:grid-cols-3">
-          {ediPillars.map(
-            (
-              pillar,
-              index,
-            ) => (
-              <article
-                key={pillar.label}
-                className={`px-5 py-6 sm:px-7 ${
-                  index < 2
-                    ? 'border-b border-slate-200 sm:border-b-0 sm:border-r'
-                    : ''
-                }`}
-              >
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0B7491]">
-                  {pillar.label}
-                </p>
-
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  {pillar.description}
-                </p>
-              </article>
-            ),
-          )}
-        </div>
-      </section>
-
       <section
         id="recursos-agenda"
         tabIndex={-1}
@@ -250,6 +252,57 @@ export default function AgendaPage() {
               EIOS.
             </p>
           </div>
+
+          <div className="mt-10 grid gap-5 lg:grid-cols-3">
+            {[
+              {
+                title: 'Calendário',
+                subtitle: 'Visualização da rotina',
+                lines: ['Reunião pedagógica · 14h', 'Aula · 2º Ano A · 16h', 'Entrega de evidência · sexta'],
+              },
+              {
+                title: 'Planejamento',
+                subtitle: 'Objetivos e ações',
+                lines: ['Objetivo de aprendizagem definido', 'Estratégia e recursos organizados', 'Próxima aula vinculada ao planejamento'],
+              },
+              {
+                title: 'Evidências',
+                subtitle: 'Registros com contexto',
+                lines: ['Registro vinculado à ação', 'Arquivo e descrição organizados', 'Histórico disponível para acompanhamento'],
+              },
+            ].map((preview) => (
+              <article
+                key={preview.title}
+                className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+              >
+                <div className="border-b border-slate-200 bg-[#071827] px-5 py-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-300">
+                    Ambiente operacional
+                  </p>
+                  <h3 className="mt-2 text-lg font-bold text-white">
+                    {preview.title}
+                  </h3>
+                </div>
+                <div className="space-y-3 p-5">
+                  <p className="text-sm font-semibold text-slate-500">
+                    {preview.subtitle}
+                  </p>
+                  {preview.lines.map((line) => (
+                    <div
+                      key={line}
+                      className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700"
+                    >
+                      {line}
+                    </div>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <p className="mt-5 text-sm leading-6 text-slate-500">
+            Prévia ilustrativa do ambiente operacional. A interface continua evoluindo com os recursos disponíveis na sua conta.
+          </p>
 
           <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {resources.map(
@@ -357,6 +410,25 @@ export default function AgendaPage() {
             >
               Entrar
             </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-slate-200 bg-[#F8FAFB] px-4 py-14 sm:px-6 sm:py-16 lg:px-8">
+        <div className="mx-auto max-w-5xl">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0B7491]">
+            Dúvidas sobre o piloto
+          </p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#071827] sm:text-4xl">
+            Informações claras antes de começar.
+          </h2>
+          <div className="mt-8 divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            {faqs.map((faq) => (
+              <article key={faq.question} className="p-5 sm:p-6">
+                <h3 className="font-bold text-[#071827]">{faq.question}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{faq.answer}</p>
+              </article>
+            ))}
           </div>
         </div>
       </section>
