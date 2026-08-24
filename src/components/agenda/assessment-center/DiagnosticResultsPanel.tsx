@@ -225,10 +225,17 @@ export default function DiagnosticResultsPanel() {
                   O resultado precisa ficar vinculado a uma avaliação. Crie o instrumento para esta turma e período e depois volte para continuar o registro.
                 </p>
                 <Link
-                  href="/agenda/avaliacoes"
+                  href={{
+                    pathname: '/agenda/avaliacoes',
+                    query: {
+                      classId,
+                      academicPeriodId,
+                      returnTo: '/agenda/avaliacoes/resultados',
+                    },
+                  }}
                   className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-[#071827] px-4 py-2 text-sm font-bold text-white"
                 >
-                  Criar avaliação
+                  Criar avaliação para este contexto
                 </Link>
               </div>
             ) : null}
