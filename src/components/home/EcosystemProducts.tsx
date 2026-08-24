@@ -179,9 +179,11 @@ export default function EcosystemProducts() {
                 </p>
                 {product.id === 'professor-digital' && (
                   <p className="mt-3 text-sm leading-6 text-slate-500">
-                    Um copiloto pedagógico para apoiar planejamento, análise,
-                    reflexão e tomada de decisão — diferente da Agenda, que
-                    organiza e registra a rotina pedagógica.
+                    Um ambiente de autoanálise e inteligência profissional para
+                    compreender a própria trajetória, visualizar padrões de atuação
+                    e identificar possibilidades de desenvolvimento. A Agenda
+                    Inteligente EDI organiza e registra a rotina; o Professor Digital
+                    interpreta a trajetória e apoia reflexão e desenvolvimento.
                   </p>
                 )}
                 <span className="mt-4 inline-block text-sm font-bold text-[#075F78]">
