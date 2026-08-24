@@ -1,6 +1,7 @@
 'use client'
 
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 
 import { usePedagogicalContext } from '@/lib/agenda/hooks/usePedagogicalContext'
 
@@ -215,6 +216,23 @@ export default function DiagnosticResultsPanel() {
               </select>
             </label>
 
+            {classId && academicPeriodId && !assessmentLoading && assessments.length === 0 ? (
+              <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-4">
+                <p className="font-semibold text-[#071827]">
+                  Falta apenas criar a avaliação para registrar o resultado.
+                </p>
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  O resultado precisa ficar vinculado a uma avaliação. Crie o instrumento para esta turma e período e depois volte para continuar o registro.
+                </p>
+                <Link
+                  href="/agenda/avaliacoes"
+                  className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-[#071827] px-4 py-2 text-sm font-bold text-white"
+                >
+                  Criar avaliação
+                </Link>
+              </div>
+            ) : null}
+
             <label className="block text-sm font-semibold text-slate-700">
               Estudante
               <select value={studentId} onChange={event => setStudentId(event.target.value)} disabled={!classId || studentsLoading} required className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 font-normal">
@@ -238,8 +256,13 @@ export default function DiagnosticResultsPanel() {
 
           {error ? <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{error}</p> : null}
 
-          <button type="submit" disabled={saving || !assessmentId || !studentId} className="mt-5 w-full rounded-xl bg-[#071827] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">
-            {saving ? 'Registrando...' : 'Registrar e classificar'}
+          <button
+            type="submit"
+            disabled={saving || !assessmentId || !studentId}
+            title={!assessmentId ? 'Selecione ou crie uma avaliação para continuar.' : !studentId ? 'Selecione um estudante para continuar.' : undefined}
+            className="mt-5 w-full rounded-xl bg-[#071827] px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {saving ? 'Registrando...' : !assessmentId ? 'Selecione ou crie uma avaliação' : !studentId ? 'Selecione um estudante' : 'Registrar e classificar'}
           </button>
         </form>
 
