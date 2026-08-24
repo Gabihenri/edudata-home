@@ -247,10 +247,7 @@ export default function SolucoesEscolas() {
 
             <div className="mt-8 grid gap-3 sm:flex sm:flex-wrap">
               <a
-                href={createMailto(
-                  'Conversa institucional — EduData IA',
-                  'Olá, gostaria de conversar sobre as soluções da EduData IA para escolas e redes de ensino.\n\nEscola ou rede:\nMunicípio/UF:\nPrincipal necessidade:\nNome do responsável:\nTelefone para contato:',
-                )}
+                href="/contato"
                 className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#071827] px-7 py-4 text-center font-semibold text-white transition hover:bg-[#0B2940] focus:outline-none focus:ring-2 focus:ring-[#0B7491]"
               >
                 Agendar conversa institucional
