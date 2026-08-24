@@ -5,9 +5,11 @@ from app.services.capabilities import (
     CapabilityDataRequirement,
     CapabilityExecutionMode,
     CapabilityOutputType,
+    CapabilityRegistry,
     CapabilityRiskLevel,
     CapabilityScope,
     CapabilityStatus,
+    capability_registry,
 )
 
 
@@ -79,3 +81,26 @@ def build_professional_trajectory_intelligence_capability() -> Capability:
             ),
         },
     )
+
+
+def register_professor_digital_capabilities(
+    registry: CapabilityRegistry | None = None,
+) -> tuple[Capability, ...]:
+    """Registra as capacidades oficiais do Professor Digital no EIOS.
+
+    O registro é idempotente para permitir reinicializações seguras do
+    Educational Capability Platform.
+    """
+    target_registry = registry or capability_registry
+    capability = build_professional_trajectory_intelligence_capability()
+
+    existing_capability = target_registry.find(capability.capability_id)
+    if existing_capability is not None:
+        return (existing_capability,)
+
+    registered_capability = target_registry.register(
+        capability,
+        validate_dependencies=True,
+    )
+
+    return (registered_capability,)
