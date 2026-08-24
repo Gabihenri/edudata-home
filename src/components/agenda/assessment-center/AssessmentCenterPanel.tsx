@@ -8,9 +8,9 @@ import {
   useState,
 } from 'react'
 
-import {
-  useClasses,
-} from '@/lib/agenda/hooks/useClasses'
+import { useSearchParams } from 'next/navigation'
+
+import { usePedagogicalContext } from '@/lib/agenda/hooks/usePedagogicalContext'
 
 type AssessmentRow = {
   id: string
@@ -36,12 +36,6 @@ type OverviewResponse = {
   error?: string
 }
 
-const academicPeriods = [
-  '1º Bimestre',
-  '2º Bimestre',
-  '3º Bimestre',
-  '4º Bimestre',
-]
 
 function formatDate(
   value: string | null,
@@ -68,10 +62,15 @@ function formatDate(
 }
 
 export default function AssessmentCenterPanel() {
+  const searchParams = useSearchParams()
   const {
     classes,
-    loading: loadingClasses,
-  } = useClasses()
+    classesLoading: loadingClasses,
+    academicPeriods,
+    periodsLoading,
+    academicPeriodId,
+    setAcademicPeriodId,
+  } = usePedagogicalContext()
 
   const [data, setData] =
     useState<OverviewResponse | null>(null)
@@ -84,6 +83,20 @@ export default function AssessmentCenterPanel() {
   const [title, setTitle] = useState('Avaliação Diagnóstica')
   const [classId, setClassId] = useState('')
   const [academicPeriod, setAcademicPeriod] = useState('')
+
+  useEffect(() => {
+    const requestedClassId = searchParams.get('classId')?.trim() ?? ''
+    const requestedPeriodId = searchParams.get('academicPeriodId')?.trim() ?? ''
+
+    if (requestedClassId && classes.some(item => item.id === requestedClassId)) {
+      setClassId(current => current || requestedClassId)
+    }
+
+    if (requestedPeriodId && academicPeriods.some(item => item.id === requestedPeriodId)) {
+      setAcademicPeriod(current => current || requestedPeriodId)
+      setAcademicPeriodId(requestedPeriodId)
+    }
+  }, [academicPeriods, classes, searchParams, setAcademicPeriodId])
   const [scheduledAt, setScheduledAt] = useState('')
 
   const selectedClass = useMemo(
@@ -192,7 +205,7 @@ export default function AssessmentCenterPanel() {
                 source: 'agenda_assessment_center',
                 className: selectedClass.name,
                 componentName: component,
-                academicPeriodName: academicPeriod.trim(),
+                academicPeriodName: academicPeriods.find(period => period.id === academicPeriod)?.name ?? academicPeriod.trim(),
               },
             },
           }),
@@ -214,6 +227,7 @@ export default function AssessmentCenterPanel() {
       setTitle('Avaliação Diagnóstica')
       setClassId('')
       setAcademicPeriod('')
+      setAcademicPeriodId('')
       setScheduledAt('')
       setShowCreateForm(false)
       await load()
@@ -362,14 +376,18 @@ export default function AssessmentCenterPanel() {
               Período letivo
               <select
                 value={academicPeriod}
-                onChange={event => setAcademicPeriod(event.target.value)}
+                onChange={event => {
+                  setAcademicPeriod(event.target.value)
+                  setAcademicPeriodId(event.target.value)
+                }}
                 required
+                disabled={periodsLoading || academicPeriods.length === 0}
                 className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 font-normal outline-none focus:border-cyan-500"
               >
-                <option value="">Selecione o bimestre</option>
+                <option value="">Selecione o período</option>
                 {academicPeriods.map(period => (
-                  <option key={period} value={period}>
-                    {period}
+                  <option key={period.id} value={period.id}>
+                    {period.name}
                   </option>
                 ))}
               </select>
