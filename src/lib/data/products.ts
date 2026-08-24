@@ -17,17 +17,17 @@ export const products: Product[] = [
     id: 'professor-digital',
     name: 'Professor Digital',
     description:
-      'Objetivo: apoiar o professor a planejar, criar, analisar e decidir melhor com um copiloto pedagógico.',
+      'Um ambiente de autoanálise e inteligência profissional para compreender a própria trajetória, reconhecer padrões e identificar possibilidades de desenvolvimento.',
     href: '/professor-digital',
     order: 1,
     featured: true,
     eios: true,
-    category: 'Copiloto Pedagógico',
+    category: 'Inteligência Profissional',
     audience: 'Professor individual e equipes docentes',
     objective:
-      'Apoiar o professor a planejar, criar, analisar e decidir melhor com assistência pedagógica do EIOS.',
+      'Apoiar o educador a interpretar sua trajetória, produção e conhecimentos a partir de dados e objetivos que ele próprio autoriza.',
     outcome:
-      'Planejamentos, avaliações, relatórios, recomendações e apoio à recomposição com revisão humana.',
+      'Autoanálises, sínteses de produção, mapa de conhecimento e possibilidades de desenvolvimento, sempre com revisão e decisão humana.',
   },
   {
     id: 'agenda-edi',
