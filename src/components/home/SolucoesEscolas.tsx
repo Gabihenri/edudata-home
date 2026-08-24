@@ -454,11 +454,7 @@ export default function SolucoesEscolas() {
             </div>
 
             <a
-              href={createMailto(
-                'Necessidade específica da escola — EduData IA',
-                'Olá, gostaria de apresentar uma necessidade específica da escola para análise da EduData IA.\n\nEscola ou rede:\nMunicípio/UF:\nNecessidade ou problema identificado:\nNome do responsável:\nTelefone para contato:',
-              )}
-              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0B7491] px-7 py-4 text-center font-semibold text-white transition hover:bg-[#09657E] focus:outline-none focus:ring-2 focus:ring-[#071827]"
+              href="/contato"              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0B7491] px-7 py-4 text-center font-semibold text-white transition hover:bg-[#09657E] focus:outline-none focus:ring-2 focus:ring-[#071827]"
             >
               Apresentar uma necessidade
             </a>
