@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react'
 
+import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 
 import { usePedagogicalContext } from '@/lib/agenda/hooks/usePedagogicalContext'
@@ -431,9 +432,23 @@ export default function AssessmentCenterPanel() {
       ) : null}
 
       {success ? (
-        <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-          {success}
-        </p>
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+          <p className="font-semibold">{success}</p>
+          {searchParams.get('returnTo') === '/agenda/avaliacoes/resultados' ? (
+            <Link
+              href={{
+                pathname: '/agenda/avaliacoes/resultados',
+                query: {
+                  classId: searchParams.get('classId') ?? undefined,
+                  academicPeriodId: searchParams.get('academicPeriodId') ?? undefined,
+                },
+              }}
+              className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-[#071827] px-4 py-2 font-bold text-white"
+            >
+              Voltar para registrar resultados
+            </Link>
+          ) : null}
+        </div>
       ) : null}
 
       {!showCreateForm && error ? (
