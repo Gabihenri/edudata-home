@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 type ProfileContext = {
   area: string
@@ -9,6 +9,16 @@ type ProfileContext = {
   experience: string
   interests: string[]
   developmentGoal: string
+}
+
+const profileContextKey = 'edudata-professor-digital-profile-context'
+
+const initialProfile: ProfileContext = {
+  area: '',
+  stage: '',
+  experience: '',
+  interests: [],
+  developmentGoal: '',
 }
 
 const interestOptions = [
@@ -21,15 +31,35 @@ const interestOptions = [
 ]
 
 export default function PerfilPage() {
-  const [profile, setProfile] = useState<ProfileContext>({
-    area: '',
-    stage: '',
-    experience: '',
-    interests: [],
-    developmentGoal: '',
-  })
-
+  const [profile, setProfile] = useState<ProfileContext>(initialProfile)
   const [saved, setSaved] = useState(false)
+  const [restored, setRestored] = useState(false)
+
+  useEffect(() => {
+    try {
+      const storedProfile = window.sessionStorage.getItem(profileContextKey)
+
+      if (storedProfile) {
+        const parsedProfile = JSON.parse(storedProfile) as Partial<ProfileContext>
+
+        setProfile({
+          area: typeof parsedProfile.area === 'string' ? parsedProfile.area : '',
+          stage: typeof parsedProfile.stage === 'string' ? parsedProfile.stage : '',
+          experience: typeof parsedProfile.experience === 'string' ? parsedProfile.experience : '',
+          interests: Array.isArray(parsedProfile.interests)
+            ? parsedProfile.interests.filter(item => typeof item === 'string')
+            : [],
+          developmentGoal:
+            typeof parsedProfile.developmentGoal === 'string'
+              ? parsedProfile.developmentGoal
+              : '',
+        })
+        setRestored(true)
+      }
+    } catch {
+      window.sessionStorage.removeItem(profileContextKey)
+    }
+  }, [])
 
   function updateInterest(interest: string) {
     setSaved(false)
@@ -43,7 +73,12 @@ export default function PerfilPage() {
   }
 
   function handleSave() {
-    setSaved(true)
+    try {
+      window.sessionStorage.setItem(profileContextKey, JSON.stringify(profile))
+      setSaved(true)
+    } catch {
+      setSaved(false)
+    }
   }
 
   return (
@@ -78,6 +113,12 @@ export default function PerfilPage() {
                 EIOS a apresentar possibilidades de desenvolvimento que você pode aceitar,
                 adaptar ou ignorar.
               </p>
+              {restored ? (
+                <p className="mt-4 text-sm font-medium text-cyan-800">
+                  Recuperamos o contexto que você havia organizado nesta sessão para que possa
+                  revisar ou atualizar suas escolhas.
+                </p>
+              ) : null}
             </div>
 
             <form
@@ -210,10 +251,10 @@ export default function PerfilPage() {
                   Você continua no controle
                 </h3>
                 <p className="mt-2 leading-7 text-slate-600">
-                  Esta etapa beta organiza o seu contexto para validação da experiência.
-                  Nenhuma informação desta tela gera avaliação institucional automática.
-                  A persistência e o compartilhamento de dados serão ativados apenas nos fluxos
-                  autorizados e transparentes do produto.
+                  Esta etapa beta organiza o seu contexto nesta sessão para validação da
+                  experiência. Nenhuma informação desta tela gera avaliação institucional
+                  automática. A persistência e o compartilhamento de dados serão ativados
+                  apenas nos fluxos autorizados e transparentes do produto.
                 </p>
               </div>
 
@@ -236,9 +277,16 @@ export default function PerfilPage() {
                 <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900">
                   <p className="font-semibold">Contexto organizado para esta sessão.</p>
                   <p className="mt-1 text-sm leading-6">
-                    Na próxima etapa de implementação, este contexto poderá compor, com sua
-                    autorização, a memória profissional e as sugestões de desenvolvimento.
+                    Agora você pode levar esse contexto para Minha Atuação e observar como
+                    suas escolhas dialogam com os registros autorizados da Agenda Inteligente
+                    EDI.
                   </p>
+                  <Link
+                    href="/professor-digital/agenda"
+                    className="mt-4 inline-flex font-semibold text-emerald-900 underline underline-offset-4"
+                  >
+                    Ir para Minha Atuação →
+                  </Link>
                 </div>
               ) : null}
             </form>
