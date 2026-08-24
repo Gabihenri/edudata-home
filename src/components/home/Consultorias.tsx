@@ -12,17 +12,6 @@ type ConsultingStep = {
   description: string
 }
 
-function createMailto(
-  subject: string,
-  body: string,
-): string {
-  return `mailto:sabinohc@gmail.com?subject=${encodeURIComponent(
-    subject,
-  )}&body=${encodeURIComponent(
-    body,
-  )}`
-}
-
 const consultingAreas:
   ConsultingArea[] = [
     {
@@ -157,11 +146,7 @@ const consultingJourney:
     },
   ]
 
-const CONSULTING_CONTACT_HREF =
-  createMailto(
-    'Consultoria EduData IA',
-    'Olá, gostaria de conversar sobre uma consultoria da EduData IA.\n\nNome:\nInstituição:\nMunicípio/UF:\nÁrea de interesse:\nDesafio ou necessidade:\nTelefone para contato:',
-  )
+const CONSULTING_CONTACT_HREF = '/contato'
 
 export default function Consultorias() {
   return (
