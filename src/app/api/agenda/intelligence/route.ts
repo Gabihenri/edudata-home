@@ -227,7 +227,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return buildSuccessResponse(backendResponse)
   } catch (error) {
     const status = getErrorStatus(error)
-    if (isAccessDeniedError(error)) return serializeAccessDeniedError(error)
+    if (isAccessDeniedError(error)) {
+      return NextResponse.json(
+        serializeAccessDeniedError(error),
+        { status, headers: NO_CACHE_HEADERS },
+      )
+    }
     return NextResponse.json({ success: false, error: status >= 500 ? 'Não foi possível gerar as orientações da Agenda neste momento.' : getErrorMessage(error) }, { status, headers: NO_CACHE_HEADERS })
   }
 }
