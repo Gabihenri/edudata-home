@@ -57,15 +57,13 @@ export default function ProductDevelopmentPage({
     produto?: string | string[]
   }
 }) {
-  const product =
-    normalizeProduct(
-      searchParams?.produto,
-    )
+  const product = normalizeProduct(searchParams?.produto)
+  const isProfessorDigital = product.name === 'Professor Digital'
 
   return (
-    <main className="min-h-screen bg-[#EEF3F7] px-4 py-10 sm:px-6 lg:px-8">
-      <section className="mx-auto max-w-3xl overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
-        <header className="border-b border-slate-200 bg-[#071827] px-6 py-7 text-white sm:px-8">
+    <main className="min-h-screen bg-[#EEF3F7] px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
+      <section className="mx-auto max-w-3xl overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm sm:rounded-[1.75rem]">
+        <header className="border-b border-slate-200 bg-[#071827] px-6 py-7 text-white sm:px-8 sm:py-8">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">
             EduData IA
           </p>
@@ -74,28 +72,43 @@ export default function ProductDevelopmentPage({
             {product.name}
           </h1>
 
-          <p className="mt-3 text-sm font-semibold uppercase tracking-[0.12em] text-slate-300">
+          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-300 sm:text-sm">
             Produto em desenvolvimento
           </p>
         </header>
 
-        <div className="px-6 py-8 sm:px-8 sm:py-10">
-          <p className="text-lg leading-8 text-slate-700">
+        <div className="px-6 py-7 sm:px-8 sm:py-9">
+          <p className="text-lg leading-8 text-slate-700 sm:text-xl">
             {product.description}
           </p>
 
-          <div className="mt-7 rounded-2xl border border-cyan-200 bg-cyan-50 px-5 py-5">
+          {isProfessorDigital && (
+            <section className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0B7491]">
+                Função do produto
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-700">
+                Um copiloto pedagógico para interpretar contextos, apoiar
+                decisões e contribuir para o desenvolvimento profissional.
+              </p>
+            </section>
+          )}
+
+          <div className="mt-6 rounded-2xl border border-cyan-200 bg-cyan-50 px-5 py-5">
             <p className="font-bold text-[#071827]">
               Por que o acesso está temporariamente indisponível?
             </p>
 
             <p className="mt-2 text-sm leading-6 text-slate-700">
-              A EduData IA libera produtos somente quando os fluxos essenciais, a segurança, a governança e a experiência de uso atingem o padrão necessário para utilização externa. Esta trava evita apresentar como concluído um recurso que ainda está em validação.
+              A liberação acontece somente depois da validação dos fluxos
+              essenciais, da segurança, da governança e da experiência de uso.
+              Assim, a plataforma não apresenta como concluído um recurso que
+              ainda está em evolução.
             </p>
           </div>
 
-          <div className="mt-8 border-t border-slate-200 pt-7">
-            <p className="text-sm font-bold uppercase tracking-[0.14em] text-[#0B7491]">
+          <div className="mt-7 border-t border-slate-200 pt-6">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#0B7491]">
               Produto disponível no MVP atual
             </p>
 
@@ -104,10 +117,12 @@ export default function ProductDevelopmentPage({
             </h2>
 
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              O foco atual da plataforma é consolidar e liberar a Agenda Inteligente EDI como experiência operacional do MVP.
+              A Agenda Inteligente EDI organiza a rotina e os registros do
+              trabalho pedagógico. O Professor Digital terá outra função:
+              interpretar contextos e apoiar reflexão, decisão e desenvolvimento.
             </p>
 
-            <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap">
+            <div className="mt-5 grid gap-3 sm:flex sm:flex-wrap">
               <Link
                 href="/agenda"
                 className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0B7491] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#09657E] focus:outline-none focus:ring-2 focus:ring-cyan-300"
