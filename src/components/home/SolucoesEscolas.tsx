@@ -20,17 +20,6 @@ type InstitutionalStep = {
   description: string
 }
 
-function createMailto(
-  subject: string,
-  body: string,
-): string {
-  return `mailto:sabinohc@gmail.com?subject=${encodeURIComponent(
-    subject,
-  )}&body=${encodeURIComponent(
-    body,
-  )}`
-}
-
 const solutions:
   SchoolSolution[] = [
     {
@@ -49,11 +38,7 @@ const solutions:
       ],
       action:
         'Solicitar diagnóstico',
-      href: createMailto(
-        'Diagnóstico EDI da Escola',
-        'Olá, gostaria de solicitar informações sobre o Diagnóstico EDI da Escola.\n\nEscola ou rede:\nMunicípio/UF:\nNome do responsável:\nTelefone para contato:',
-      ),
-      status: {
+      href: '/contato',      status: {
         label:
           'Disponível sob consulta',
         className:
@@ -148,11 +133,7 @@ const solutions:
       ],
       action:
         'Solicitar análise',
-      href: createMailto(
-        'Análise de Automação e Organização Institucional',
-        'Olá, gostaria de solicitar uma análise de automação e organização institucional.\n\nEscola ou rede:\nMunicípio/UF:\nProcesso que precisa ser analisado:\nNome do responsável:\nTelefone para contato:',
-      ),
-      status: {
+      href: '/contato',      status: {
         label:
           'Disponível sob consulta',
         className:
@@ -175,11 +156,7 @@ const solutions:
       ],
       action:
         'Agendar conversa',
-      href: createMailto(
-        'Plano EDI de Transformação Escolar',
-        'Olá, gostaria de agendar uma conversa sobre o Plano EDI de Transformação Escolar.\n\nEscola ou rede:\nMunicípio/UF:\nPrincipal necessidade institucional:\nNome do responsável:\nTelefone para contato:',
-      ),
-      status: {
+      href: '/contato',      status: {
         label:
           'Disponível sob consulta',
         className:
