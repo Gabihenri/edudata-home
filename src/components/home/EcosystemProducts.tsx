@@ -2,14 +2,14 @@ import Link from 'next/link'
 
 import { products } from '@/lib/data/products'
 
-const availableNowIds = ['professor-digital', 'agenda-edi', 'academy']
-const activeExpansionIds = ['analytics', 'sgpa']
+const availableNowIds = ['agenda-edi', 'academy']
+const activeExpansionIds = ['professor-digital', 'analytics', 'sgpa']
 const roadmapIds = ['observatorio', 'comunidade']
 
 const statusById: Record<string, { label: string; className: string }> = {
   'professor-digital': {
-    label: 'Prioridade comercial',
-    className: 'border-cyan-200 bg-cyan-50 text-[#075F78]',
+    label: 'Em validação',
+    className: 'border-sky-200 bg-sky-50 text-sky-800',
   },
   'agenda-edi': {
     label: 'Piloto',
@@ -54,7 +54,7 @@ function status(productId: string) {
 
 function action(productId: string) {
   const actions: Record<string, string> = {
-    'professor-digital': 'Conhecer o programa',
+    'professor-digital': 'Conhecer o produto',
     'agenda-edi': 'Conhecer a Agenda',
     academy: 'Acessar a Academy',
     analytics: 'Saiba mais',
@@ -85,8 +85,8 @@ export default function EcosystemProducts() {
             Produtos especializados, uma única base de inteligência educacional.
           </h2>
           <p className="mt-5 max-w-3xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
-            Comece pelas experiências que já estão disponíveis e acompanhe a
-            evolução das próximas camadas da plataforma.
+            Conheça as experiências já disponíveis e acompanhe a evolução dos
+            próximos produtos e camadas da plataforma.
           </p>
         </div>
 
@@ -151,7 +151,7 @@ export default function EcosystemProducts() {
             Em desenvolvimento e expansão
           </p>
           <h3 className="mt-2 text-2xl font-bold text-[#071827] sm:text-3xl">
-            Próximas camadas do ecossistema.
+            Produtos em evolução e próximas camadas do ecossistema.
           </h3>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -177,8 +177,15 @@ export default function EcosystemProducts() {
                 <p className="mt-3 text-sm leading-6 text-slate-600">
                   {product.description}
                 </p>
+                {product.id === 'professor-digital' && (
+                  <p className="mt-3 text-sm leading-6 text-slate-500">
+                    Um copiloto pedagógico para apoiar planejamento, análise,
+                    reflexão e tomada de decisão — diferente da Agenda, que
+                    organiza e registra a rotina pedagógica.
+                  </p>
+                )}
                 <span className="mt-4 inline-block text-sm font-bold text-[#075F78]">
-                  Saiba mais →
+                  {action(product.id)} →
                 </span>
               </Link>
             ))}
