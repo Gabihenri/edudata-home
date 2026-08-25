@@ -1,7 +1,16 @@
+import type { ReactNode } from 'react'
+
+import { ProfessorDigitalJourney } from '@/components/professor-digital/ProfessorDigitalJourney'
+
 export default function ProfessorDigitalLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: ReactNode
 }) {
-  return children
+  return (
+    <>
+      <ProfessorDigitalJourney />
+      {children}
+    </>
+  )
 }
