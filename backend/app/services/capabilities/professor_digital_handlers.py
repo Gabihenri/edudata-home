@@ -165,8 +165,9 @@ def register_professor_digital_handlers(
     dispatcher: CapabilityDispatcher | None = None,
 ) -> tuple[str, ...]:
     target_dispatcher = dispatcher or capability_dispatcher
-    target_dispatcher.register(
+    target_dispatcher.register_handler(
         PROFESSIONAL_TRAJECTORY_INTELLIGENCE_ID,
         professional_trajectory_intelligence_handler,
+        replace=True,
     )
     return (PROFESSIONAL_TRAJECTORY_INTELLIGENCE_ID,)
