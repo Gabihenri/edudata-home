@@ -14,10 +14,6 @@ const TOKEN_RENEWAL_MARGIN_SECONDS =
 
 const BLOCKED_PRODUCT_ROUTES = [
   {
-    prefix: '/professor-digital',
-    code: 'professor-digital',
-  },
-  {
     prefix: '/analytics',
     code: 'analytics',
   },
@@ -57,601 +53,170 @@ type RefreshedSession = {
   expiresIn: number
 }
 
-function getBlockedProductCode(
-  pathname: string,
-): string | null {
-  const blockedProduct =
-    BLOCKED_PRODUCT_ROUTES.find(
-      product =>
-        pathname === product.prefix ||
-        pathname.startsWith(
-          `${product.prefix}/`,
-        ),
-    )
+function getBlockedProductCode(pathname: string): string | null {
+  const blockedProduct = BLOCKED_PRODUCT_ROUTES.find(
+    product => pathname === product.prefix || pathname.startsWith(`${product.prefix}/`),
+  )
 
   return blockedProduct?.code ?? null
 }
 
-function isPublicRoute(
-  pathname: string,
-): boolean {
-  if (
-    EXACT_PUBLIC_ROUTES.includes(
-      pathname,
-    )
-  ) {
-    return true
-  }
+function isPublicRoute(pathname: string): boolean {
+  if (EXACT_PUBLIC_ROUTES.includes(pathname)) return true
 
   return PUBLIC_ROUTE_PREFIXES.some(
-    route =>
-      pathname === route ||
-      pathname.startsWith(
-        `${route}/`,
-      ),
+    route => pathname === route || pathname.startsWith(`${route}/`),
   )
 }
 
-function isApiRoute(
-  pathname: string,
-): boolean {
-  return pathname.startsWith(
-    '/api/',
-  )
+function isApiRoute(pathname: string): boolean {
+  return pathname.startsWith('/api/')
 }
 
-function getAccessToken(
-  request: NextRequest,
-): string | null {
-  return (
-    request.cookies.get(
-      ACCESS_TOKEN_COOKIE,
-    )?.value ??
-    request.cookies.get(
-      'access_token',
-    )?.value ??
-    null
-  )
+function getAccessToken(request: NextRequest): string | null {
+  return request.cookies.get(ACCESS_TOKEN_COOKIE)?.value ?? request.cookies.get('access_token')?.value ?? null
 }
 
-function getRefreshToken(
-  request: NextRequest,
-): string | null {
-  return (
-    request.cookies.get(
-      REFRESH_TOKEN_COOKIE,
-    )?.value ??
-    null
-  )
+function getRefreshToken(request: NextRequest): string | null {
+  return request.cookies.get(REFRESH_TOKEN_COOKIE)?.value ?? null
 }
 
-function decodeBase64Url(
-  value: string,
-): string {
-  const normalizedValue =
-    value
-      .replace(/-/g, '+')
-      .replace(/_/g, '/')
-
-  const paddingLength =
-    (4 -
-      (normalizedValue.length %
-        4)) %
-    4
-
-  const paddedValue =
-    normalizedValue +
-    '='.repeat(
-      paddingLength,
-    )
-
-  return atob(
-    paddedValue,
-  )
+function decodeBase64Url(value: string): string {
+  const normalizedValue = value.replace(/-/g, '+').replace(/_/g, '/')
+  const paddingLength = (4 - (normalizedValue.length % 4)) % 4
+  return atob(normalizedValue + '='.repeat(paddingLength))
 }
 
-function getTokenExpiration(
-  accessToken: string,
-): number | null {
+function getTokenExpiration(accessToken: string): number | null {
   try {
-    const tokenParts =
-      accessToken.split('.')
-
-    if (
-      tokenParts.length <
-      2
-    ) {
-      return null
-    }
-
-    const payload =
-      JSON.parse(
-        decodeBase64Url(
-          tokenParts[1],
-        ),
-      ) as {
-        exp?: unknown
-      }
-
-    if (
-      typeof payload.exp !==
-        'number' ||
-      !Number.isFinite(
-        payload.exp,
-      )
-    ) {
-      return null
-    }
-
-    return payload.exp
+    const tokenParts = accessToken.split('.')
+    if (tokenParts.length < 2) return null
+    const payload = JSON.parse(decodeBase64Url(tokenParts[1])) as { exp?: unknown }
+    return typeof payload.exp === 'number' && Number.isFinite(payload.exp) ? payload.exp : null
   } catch {
     return null
   }
 }
 
-function isAccessTokenFresh(
-  accessToken: string,
-): boolean {
-  const expiration =
-    getTokenExpiration(
-      accessToken,
-    )
-
-  if (!expiration) {
-    return false
-  }
-
-  const currentTime =
-    Math.floor(
-      Date.now() / 1000,
-    )
-
-  return (
-    expiration >
-    currentTime +
-      TOKEN_RENEWAL_MARGIN_SECONDS
-  )
+function isAccessTokenFresh(accessToken: string): boolean {
+  const expiration = getTokenExpiration(accessToken)
+  if (!expiration) return false
+  return expiration > Math.floor(Date.now() / 1000) + TOKEN_RENEWAL_MARGIN_SECONDS
 }
 
-function normalizeExpiresIn(
-  value: unknown,
-): number {
-  if (
-    typeof value ===
-      'number' &&
-    Number.isFinite(value) &&
-    value > 0
-  ) {
-    return Math.floor(
-      value,
-    )
-  }
-
-  return 60 * 60
+function normalizeExpiresIn(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? Math.floor(value)
+    : 60 * 60
 }
 
-async function refreshSession(
-  refreshToken: string,
-): Promise<RefreshedSession | null> {
-  const supabaseUrl =
-    process.env
-      .NEXT_PUBLIC_SUPABASE_URL
+async function refreshSession(refreshToken: string): Promise<RefreshedSession | null> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  const anonKey =
-    process.env
-      .NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (
-    !supabaseUrl ||
-    !anonKey
-  ) {
-    console.error(
-      '[AUTH_REFRESH_CONFIGURATION_ERROR]',
-      'Variáveis públicas do Supabase não configuradas.',
-    )
-
+  if (!supabaseUrl || !anonKey) {
+    console.error('[AUTH_REFRESH_CONFIGURATION_ERROR]', 'Variáveis públicas do Supabase não configuradas.')
     return null
   }
 
   try {
-    const response =
-      await fetch(
-        `${supabaseUrl}/auth/v1/token?grant_type=refresh_token`,
-        {
-          method:
-            'POST',
+    const response = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+      cache: 'no-store',
+    })
 
-          headers: {
-            apikey:
-              anonKey,
+    if (!response.ok) return null
 
-            Authorization:
-              `Bearer ${anonKey}`,
-
-            'Content-Type':
-              'application/json',
-          },
-
-          body:
-            JSON.stringify({
-              refresh_token:
-                refreshToken,
-            }),
-
-          cache:
-            'no-store',
-        },
-      )
-
-    if (!response.ok) {
-      console.warn(
-        '[AUTH_REFRESH_REJECTED]',
-        response.status,
-      )
-
-      return null
-    }
-
-    const data =
-      (await response.json()) as
-        RefreshSessionResponse
-
-    if (
-      typeof data.access_token !==
-        'string' ||
-      !data.access_token.trim() ||
-      typeof data.refresh_token !==
-        'string' ||
-      !data.refresh_token.trim()
-    ) {
-      console.error(
-        '[AUTH_REFRESH_INVALID_RESPONSE]',
-      )
-
+    const data = (await response.json()) as RefreshSessionResponse
+    if (typeof data.access_token !== 'string' || !data.access_token.trim() || typeof data.refresh_token !== 'string' || !data.refresh_token.trim()) {
       return null
     }
 
     return {
-      accessToken:
-        data.access_token,
-
-      refreshToken:
-        data.refresh_token,
-
-      expiresIn:
-        normalizeExpiresIn(
-          data.expires_in,
-        ),
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      expiresIn: normalizeExpiresIn(data.expires_in),
     }
   } catch (error) {
-    console.error(
-      '[AUTH_REFRESH_ERROR]',
-      error,
-    )
-
+    console.error('[AUTH_REFRESH_ERROR]', error)
     return null
   }
 }
 
-function setSessionCookies(
-  response: NextResponse,
-  session: RefreshedSession,
-) {
-  const isProduction =
-    process.env.NODE_ENV ===
-    'production'
+function setSessionCookies(response: NextResponse, session: RefreshedSession) {
+  const isProduction = process.env.NODE_ENV === 'production'
 
-  response.cookies.set({
-    name:
-      ACCESS_TOKEN_COOKIE,
-
-    value:
-      session.accessToken,
-
-    httpOnly:
-      true,
-
-    secure:
-      isProduction,
-
-    sameSite:
-      'lax',
-
-    path:
-      '/',
-
-    maxAge:
-      session.expiresIn,
-  })
-
-  response.cookies.set({
-    name:
-      REFRESH_TOKEN_COOKIE,
-
-    value:
-      session.refreshToken,
-
-    httpOnly:
-      true,
-
-    secure:
-      isProduction,
-
-    sameSite:
-      'lax',
-
-    path:
-      '/',
-
-    maxAge:
-      60 * 60 * 24 * 30,
-  })
+  response.cookies.set({ name: ACCESS_TOKEN_COOKIE, value: session.accessToken, httpOnly: true, secure: isProduction, sameSite: 'lax', path: '/', maxAge: session.expiresIn })
+  response.cookies.set({ name: REFRESH_TOKEN_COOKIE, value: session.refreshToken, httpOnly: true, secure: isProduction, sameSite: 'lax', path: '/', maxAge: 60 * 60 * 24 * 30 })
 }
 
-function clearSessionCookies(
-  response: NextResponse,
-) {
-  const isProduction =
-    process.env.NODE_ENV ===
-    'production'
+function clearSessionCookies(response: NextResponse) {
+  const isProduction = process.env.NODE_ENV === 'production'
 
-  response.cookies.set({
-    name:
-      ACCESS_TOKEN_COOKIE,
-
-    value:
-      '',
-
-    httpOnly:
-      true,
-
-    secure:
-      isProduction,
-
-    sameSite:
-      'lax',
-
-    path:
-      '/',
-
-    maxAge:
-      0,
-  })
-
-  response.cookies.set({
-    name:
-      REFRESH_TOKEN_COOKIE,
-
-    value:
-      '',
-
-    httpOnly:
-      true,
-
-    secure:
-      isProduction,
-
-    sameSite:
-      'lax',
-
-    path:
-      '/',
-
-    maxAge:
-      0,
-  })
-
-  response.cookies.set({
-    name:
-      'access_token',
-
-    value:
-      '',
-
-    httpOnly:
-      true,
-
-    secure:
-      isProduction,
-
-    sameSite:
-      'lax',
-
-    path:
-      '/',
-
-    maxAge:
-      0,
-  })
+  for (const name of [ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE, 'access_token']) {
+    response.cookies.set({ name, value: '', httpOnly: true, secure: isProduction, sameSite: 'lax', path: '/', maxAge: 0 })
+  }
 }
 
-function createUnauthenticatedResponse(
-  request: NextRequest,
-): NextResponse {
-  const {
-    pathname,
-    search,
-  } = request.nextUrl
+function createUnauthenticatedResponse(request: NextRequest): NextResponse {
+  const { pathname, search } = request.nextUrl
 
   if (isApiRoute(pathname)) {
-    const response =
-      NextResponse.json(
-        {
-          success:
-            false,
-
-          error:
-            'Usuário não autenticado.',
-        },
-        {
-          status:
-            401,
-
-          headers: {
-            'Cache-Control':
-              'no-store, no-cache, must-revalidate',
-          },
-        },
-      )
-
-    clearSessionCookies(
-      response,
-    )
-
+    const response = NextResponse.json({ success: false, error: 'Usuário não autenticado.' }, {
+      status: 401,
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+    })
+    clearSessionCookies(response)
     return response
   }
 
-  const loginUrl =
-    new URL(
-      '/login',
-      request.url,
-    )
-
-  loginUrl.searchParams.set(
-    'redirectTo',
-    `${pathname}${search}`,
-  )
-
-  const response =
-    NextResponse.redirect(
-      loginUrl,
-    )
-
-  clearSessionCookies(
-    response,
-  )
-
+  const loginUrl = new URL('/login', request.url)
+  loginUrl.searchParams.set('redirectTo', `${pathname}${search}`)
+  const response = NextResponse.redirect(loginUrl)
+  clearSessionCookies(response)
   return response
 }
 
-function createRefreshedResponse(
-  request: NextRequest,
-  session: RefreshedSession,
-): NextResponse {
-  /*
-   * Atualiza os cookies da requisição atual para que
-   * Route Handlers e Server Components recebam o novo
-   * access token sem precisar de uma segunda navegação.
-   */
+function createRefreshedResponse(request: NextRequest, session: RefreshedSession): NextResponse {
+  request.cookies.set(ACCESS_TOKEN_COOKIE, session.accessToken)
+  request.cookies.set(REFRESH_TOKEN_COOKIE, session.refreshToken)
 
-  request.cookies.set(
-    ACCESS_TOKEN_COOKIE,
-    session.accessToken,
-  )
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('cookie', request.cookies.getAll().map(cookie => `${cookie.name}=${cookie.value}`).join('; '))
 
-  request.cookies.set(
-    REFRESH_TOKEN_COOKIE,
-    session.refreshToken,
-  )
-
-  const requestHeaders =
-    new Headers(
-      request.headers,
-    )
-
-  const forwardedCookieHeader =
-    request.cookies
-      .getAll()
-      .map(
-        cookie =>
-          `${cookie.name}=${cookie.value}`,
-      )
-      .join('; ')
-
-  requestHeaders.set(
-    'cookie',
-    forwardedCookieHeader,
-  )
-
-  const response =
-    NextResponse.next({
-      request: {
-        headers:
-          requestHeaders,
-      },
-    })
-
-  setSessionCookies(
-    response,
-    session,
-  )
-
+  const response = NextResponse.next({ request: { headers: requestHeaders } })
+  setSessionCookies(response, session)
   return response
 }
 
-export async function middleware(
-  request: NextRequest,
-) {
-  const {
-    pathname,
-  } = request.nextUrl
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
 
-  const blockedProductCode =
-    getBlockedProductCode(
-      pathname,
-    )
-
+  const blockedProductCode = getBlockedProductCode(pathname)
   if (blockedProductCode) {
-    const statusUrl =
-      new URL(
-        '/produto-em-desenvolvimento',
-        request.url,
-      )
-
-    statusUrl.searchParams.set(
-      'produto',
-      blockedProductCode,
-    )
-
-    return NextResponse.redirect(
-      statusUrl,
-    )
+    const statusUrl = new URL('/produto-em-desenvolvimento', request.url)
+    statusUrl.searchParams.set('produto', blockedProductCode)
+    return NextResponse.redirect(statusUrl)
   }
 
-  if (isPublicRoute(pathname)) {
-    return NextResponse.next()
-  }
+  if (isPublicRoute(pathname)) return NextResponse.next()
 
-  const accessToken =
-    getAccessToken(
-      request,
-    )
+  const accessToken = getAccessToken(request)
+  if (accessToken && isAccessTokenFresh(accessToken)) return NextResponse.next()
 
-  if (
-    accessToken &&
-    isAccessTokenFresh(
-      accessToken,
-    )
-  ) {
-    return NextResponse.next()
-  }
+  const refreshToken = getRefreshToken(request)
+  if (!refreshToken) return createUnauthenticatedResponse(request)
 
-  const refreshToken =
-    getRefreshToken(
-      request,
-    )
+  const refreshedSession = await refreshSession(refreshToken)
+  if (!refreshedSession) return createUnauthenticatedResponse(request)
 
-  if (!refreshToken) {
-    return createUnauthenticatedResponse(
-      request,
-    )
-  }
-
-  const refreshedSession =
-    await refreshSession(
-      refreshToken,
-    )
-
-  if (!refreshedSession) {
-    return createUnauthenticatedResponse(
-      request,
-    )
-  }
-
-  return createRefreshedResponse(
-    request,
-    refreshedSession,
-  )
+  return createRefreshedResponse(request, refreshedSession)
 }
 
 export const config = {
@@ -670,11 +235,11 @@ export const config = {
     '/admin/:path*',
     '/backoffice/:path*',
     '/experience-manager/:path*',
-
     '/api/admin/:path*',
     '/api/portal/:path*',
     '/api/profile/:path*',
     '/api/support/:path*',
     '/api/agenda/:path*',
+    '/api/professor-digital/:path*',
   ],
 }
