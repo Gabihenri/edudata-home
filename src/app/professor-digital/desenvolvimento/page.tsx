@@ -2,11 +2,10 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-
-type ProfileContext = {
-  interests: string[]
-  developmentGoal: string
-}
+import {
+  readProfessionalProfileContext,
+  type ProfessionalProfileContext,
+} from '@/lib/professor-digital/profile-context'
 
 type KnowledgeEntry = {
   theme: string
@@ -33,13 +32,12 @@ type DevelopmentChoice = {
   nextAction: string
 }
 
-const profileContextKey = 'edudata-professor-digital-profile-context'
 const knowledgeMapKey = 'edudata-professor-digital-knowledge-map'
 const productionKey = 'edudata-professor-digital-production-memory'
 const developmentKey = 'edudata-professor-digital-development-choices'
 
 function buildSuggestions(
-  profile: ProfileContext,
+  profile: ProfessionalProfileContext,
   knowledge: KnowledgeEntry[],
   production: ProductionEntry[],
 ): DevelopmentChoice[] {
@@ -85,8 +83,8 @@ function buildSuggestions(
     suggestions.push({
       id: 'start',
       title: 'Construir uma primeira direção de desenvolvimento',
-      reason: 'Ainda há poucas informações organizadas nesta sessão para relacionar conhecimento, produção e objetivos.',
-      source: ['Contexto da sessão'],
+      reason: 'Ainda há poucas informações organizadas no seu percurso para relacionar conhecimento, produção e objetivos.',
+      source: ['Meu percurso'],
       nextAction: 'Organizar um interesse, uma produção recente ou uma pergunta profissional que você gostaria de investigar.',
     })
   }
@@ -94,61 +92,64 @@ function buildSuggestions(
   return suggestions.slice(0, 6)
 }
 
+function readArray<T>(key: string, predicate: (value: unknown) => value is T): T[] {
+  try {
+    const stored = window.localStorage.getItem(key)
+    if (!stored) return []
+    const parsed = JSON.parse(stored)
+    return Array.isArray(parsed) ? parsed.filter(predicate) : []
+  } catch {
+    window.localStorage.removeItem(key)
+    return []
+  }
+}
+
 export default function DesenvolvimentoPage() {
-  const [profile, setProfile] = useState<ProfileContext>({ interests: [], developmentGoal: '' })
+  const [profile, setProfile] = useState<ProfessionalProfileContext>({
+    area: '',
+    stage: '',
+    experience: '',
+    interests: [],
+    developmentGoal: '',
+  })
   const [knowledge, setKnowledge] = useState<KnowledgeEntry[]>([])
   const [production, setProduction] = useState<ProductionEntry[]>([])
   const [choices, setChoices] = useState<string[]>([])
   const [saved, setSaved] = useState(false)
+  const [restored, setRestored] = useState(false)
 
   useEffect(() => {
-    try {
-      const storedProfile = window.sessionStorage.getItem(profileContextKey)
-      const storedKnowledge = window.sessionStorage.getItem(knowledgeMapKey)
-      const storedProduction = window.sessionStorage.getItem(productionKey)
-      const storedChoices = window.sessionStorage.getItem(developmentKey)
+    const storedProfile = readProfessionalProfileContext()
+    if (storedProfile) setProfile(storedProfile)
 
-      if (storedProfile) {
-        const parsed = JSON.parse(storedProfile) as Partial<ProfileContext>
-        setProfile({
-          interests: Array.isArray(parsed.interests)
-            ? parsed.interests.filter(item => typeof item === 'string')
-            : [],
-          developmentGoal: typeof parsed.developmentGoal === 'string' ? parsed.developmentGoal : '',
-        })
-      }
+    const storedKnowledge = readArray<KnowledgeEntry>(
+      knowledgeMapKey,
+      entry =>
+        Boolean(entry) &&
+        typeof (entry as KnowledgeEntry).theme === 'string' &&
+        typeof (entry as KnowledgeEntry).relationship === 'string' &&
+        typeof (entry as KnowledgeEntry).question === 'string',
+    )
+    setKnowledge(storedKnowledge)
 
-      if (storedKnowledge) {
-        const parsed = JSON.parse(storedKnowledge) as KnowledgeEntry[]
-        if (Array.isArray(parsed)) {
-          setKnowledge(
-            parsed.filter(
-              entry => entry && typeof entry.theme === 'string' && typeof entry.relationship === 'string',
-            ),
-          )
-        }
-      }
+    const storedProduction = readArray<ProductionEntry>(
+      productionKey,
+      entry =>
+        Boolean(entry) &&
+        typeof (entry as ProductionEntry).id === 'string' &&
+        typeof (entry as ProductionEntry).title === 'string' &&
+        typeof (entry as ProductionEntry).nextStep === 'string',
+    )
+    setProduction(storedProduction)
 
-      if (storedProduction) {
-        const parsed = JSON.parse(storedProduction) as ProductionEntry[]
-        if (Array.isArray(parsed)) {
-          setProduction(
-            parsed.filter(
-              entry => entry && typeof entry.id === 'string' && typeof entry.title === 'string',
-            ),
-          )
-        }
-      }
-
-      if (storedChoices) {
-        const parsed = JSON.parse(storedChoices)
-        if (Array.isArray(parsed)) {
-          setChoices(parsed.filter(item => typeof item === 'string'))
-        }
-      }
-    } catch {
-      window.sessionStorage.removeItem(developmentKey)
-    }
+    const storedChoices = readArray<string>(developmentKey, item => typeof item === 'string')
+    setChoices(storedChoices)
+    setRestored(
+      Boolean(storedProfile) ||
+        storedKnowledge.length > 0 ||
+        storedProduction.length > 0 ||
+        storedChoices.length > 0,
+    )
   }, [])
 
   const suggestions = useMemo(
@@ -165,7 +166,7 @@ export default function DesenvolvimentoPage() {
 
   function saveChoices() {
     try {
-      window.sessionStorage.setItem(developmentKey, JSON.stringify(choices))
+      window.localStorage.setItem(developmentKey, JSON.stringify(choices))
       setSaved(true)
     } catch {
       setSaved(false)
@@ -199,10 +200,16 @@ export default function DesenvolvimentoPage() {
               </h2>
               <p className="mt-4 text-lg leading-8 text-slate-600">
                 Nesta versão beta, as possibilidades abaixo são construídas a partir das
-                informações que você organizou nesta sessão. Cada sugestão mostra de onde vem;
-                não há recomendação oculta, diagnóstico automático ou determinação sobre sua
-                carreira profissional.
+                informações que você organizou no seu próprio percurso. Cada sugestão mostra de
+                onde vem; não há recomendação oculta, diagnóstico automático ou determinação
+                sobre sua carreira profissional.
               </p>
+              {restored ? (
+                <p className="mt-4 text-sm font-medium text-cyan-800">
+                  O EIOS recuperou os elementos que você já organizou neste dispositivo para
+                  continuar a leitura da sua trajetória.
+                </p>
+              ) : null}
             </div>
 
             <section className="mt-10 grid gap-4 md:grid-cols-3">
@@ -303,7 +310,7 @@ export default function DesenvolvimentoPage() {
 
             <section className="mt-10 rounded-3xl border border-slate-200 bg-[#F8FAFC] p-6 sm:p-8">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
-                Minha escolha nesta sessão
+                Minhas escolhas
               </p>
               <h2 className="mt-3 text-2xl font-bold text-[#081C2E]">
                 {choices.length > 0
@@ -322,7 +329,7 @@ export default function DesenvolvimentoPage() {
                 onClick={saveChoices}
                 className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-[#081C2E] px-6 font-semibold text-white transition hover:bg-[#102B43]"
               >
-                Guardar minhas escolhas nesta sessão
+                Salvar minhas escolhas
               </button>
               <Link
                 href="/professor-digital"
@@ -334,7 +341,7 @@ export default function DesenvolvimentoPage() {
 
             {saved ? (
               <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900">
-                <p className="font-semibold">Suas escolhas foram organizadas para esta sessão.</p>
+                <p className="font-semibold">Suas escolhas foram salvas neste dispositivo.</p>
                 <p className="mt-1 text-sm leading-6">
                   Na próxima etapa técnica, esse núcleo poderá evoluir para uma conexão segura e
                   transparente com a EduData Academy e com as demais experiências autorizadas do EIOS.
