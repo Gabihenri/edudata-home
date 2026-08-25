@@ -8,7 +8,7 @@
  */
 
 import {
-  calculateCorrelations,
+  runCorrelationEngine,
   type CorrelationEngineResult,
 } from './correlation.engine'
 import type {
@@ -73,9 +73,9 @@ function priorityScore(
   const coefficient = result.absoluteCoefficient ?? 0
   const sampleFactor = Math.min(result.sampleSize / 50, 1)
   const significanceFactor =
-    result.statisticalSignificance.pValue === null
+    result.significance.pValue === null
       ? 0.5
-      : Math.max(0, 1 - result.statisticalSignificance.pValue)
+      : Math.max(0, 1 - result.significance.pValue)
 
   return Number(
     (
@@ -87,7 +87,8 @@ function priorityScore(
 }
 
 function priorityFromScore(
-  score: number): DiscoveredCorrelation['priority'] {
+  score: number,
+): DiscoveredCorrelation['priority'] {
   if (score >= 0.7) return 'high'
   if (score >= 0.45) return 'medium'
   return 'low'
@@ -98,11 +99,12 @@ function reasonFor(
   score: number,
 ): string {
   const strength = result.strength.replace('_', ' ')
-  const direction = result.direction === 'positive'
-    ? 'positiva'
-    : result.direction === 'negative'
-      ? 'negativa'
-      : 'indeterminada'
+  const direction =
+    result.direction === 'positive'
+      ? 'positiva'
+      : result.direction === 'negative'
+        ? 'negativa'
+        : 'indeterminada'
 
   return `Associação ${direction}, de força ${strength}, priorizada por magnitude, tamanho da amostra e evidência estatística (score ${score}). Correlação não implica causalidade.`
 }
@@ -123,14 +125,16 @@ export function discoverCorrelations(
       success: true,
       discovered: [],
       scannedVariablePairs: 0,
-      warnings: ['Não há pares suficientes de variáveis numéricas para análise de correlação.'],
+      warnings: [
+        'Não há pares suficientes de variáveis numéricas para análise de correlação.',
+      ],
       errors: [],
       generatedAt: new Date().toISOString(),
       metadata: input.metadata ?? {},
     }
   }
 
-  const engineResult: CorrelationEngineResult = calculateCorrelations({
+  const engineResult: CorrelationEngineResult = runCorrelationEngine({
     observations: input.observations,
     variableDefinitions: numericVariables,
     variablePairs,
@@ -144,12 +148,17 @@ export function discoverCorrelations(
     },
   })
 
-  const minimumCoefficient = input.minimumAbsoluteCoefficient ?? DEFAULT_MINIMUM_COEFFICIENT
+  const minimumCoefficient =
+    input.minimumAbsoluteCoefficient ?? DEFAULT_MINIMUM_COEFFICIENT
 
   const discovered = engineResult.correlations
-    .filter(result => (result.absoluteCoefficient ?? 0) >= minimumCoefficient)
+    .filter(
+      result =>
+        (result.absoluteCoefficient ?? 0) >= minimumCoefficient,
+    )
     .map(result => {
       const score = priorityScore(result)
+
       return {
         result,
         priorityScore: score,
@@ -157,7 +166,10 @@ export function discoverCorrelations(
         reason: reasonFor(result, score),
       }
     })
-    .sort((first, second) => second.priorityScore - first.priorityScore)
+    .sort(
+      (first, second) =>
+        second.priorityScore - first.priorityScore,
+    )
 
   return {
     success: engineResult.success,
@@ -165,7 +177,7 @@ export function discoverCorrelations(
     scannedVariablePairs: variablePairs.length,
     warnings: engineResult.warnings,
     errors: engineResult.errors,
-    generatedAt: new Date().toISOString(),
+    generatedAt: engineResult.generatedAt,
     metadata: {
       ...(input.metadata ?? {}),
       engine: 'eios-correlation-discovery-engine',
