@@ -33,6 +33,34 @@ const productionTypes = [
   'Outra produção profissional',
 ]
 
+function normalizeKnowledgeEntries(value: unknown): KnowledgeEntry[] {
+  if (!Array.isArray(value)) return []
+  return value.filter(
+    (entry): entry is KnowledgeEntry =>
+      Boolean(entry) &&
+      typeof entry.theme === 'string' &&
+      entry.theme.trim().length > 0 &&
+      typeof entry.relationship === 'string' &&
+      typeof entry.question === 'string',
+  )
+}
+
+function normalizeProductionEntries(value: unknown): ProductionEntry[] {
+  if (!Array.isArray(value)) return []
+  return value.filter(
+    (entry): entry is ProductionEntry =>
+      Boolean(entry) &&
+      typeof entry.id === 'string' &&
+      typeof entry.title === 'string' &&
+      typeof entry.type === 'string' &&
+      typeof entry.period === 'string' &&
+      typeof entry.description === 'string' &&
+      typeof entry.learning === 'string' &&
+      typeof entry.nextStep === 'string' &&
+      Array.isArray(entry.themes),
+  )
+}
+
 export default function ProducaoPage() {
   const [knowledge, setKnowledge] = useState<KnowledgeEntry[]>([])
   const [entries, setEntries] = useState<ProductionEntry[]>([])
@@ -48,42 +76,20 @@ export default function ProducaoPage() {
 
   useEffect(() => {
     try {
-      const storedKnowledge = window.sessionStorage.getItem(knowledgeMapKey)
-      const storedProduction = window.sessionStorage.getItem(productionKey)
+      const storedKnowledge = window.localStorage.getItem(knowledgeMapKey)
+      const storedProduction = window.localStorage.getItem(productionKey)
 
       if (storedKnowledge) {
-        const parsedKnowledge = JSON.parse(storedKnowledge) as KnowledgeEntry[]
-        if (Array.isArray(parsedKnowledge)) {
-          setKnowledge(
-            parsedKnowledge.filter(
-              entry => entry && typeof entry.theme === 'string' && entry.theme.trim(),
-            ),
-          )
-        }
+        setKnowledge(normalizeKnowledgeEntries(JSON.parse(storedKnowledge)))
       }
 
       if (storedProduction) {
-        const parsedEntries = JSON.parse(storedProduction) as ProductionEntry[]
-        if (Array.isArray(parsedEntries)) {
-          setEntries(
-            parsedEntries.filter(
-              entry =>
-                entry &&
-                typeof entry.id === 'string' &&
-                typeof entry.title === 'string' &&
-                typeof entry.type === 'string' &&
-                typeof entry.period === 'string' &&
-                typeof entry.description === 'string' &&
-                typeof entry.learning === 'string' &&
-                typeof entry.nextStep === 'string' &&
-                Array.isArray(entry.themes),
-            ),
-          )
-          setRestored(true)
-        }
+        const parsedEntries = normalizeProductionEntries(JSON.parse(storedProduction))
+        setEntries(parsedEntries)
+        setRestored(parsedEntries.length > 0)
       }
     } catch {
-      window.sessionStorage.removeItem(productionKey)
+      window.localStorage.removeItem(productionKey)
     }
   }, [])
 
@@ -133,7 +139,7 @@ export default function ProducaoPage() {
 
   function saveMemory() {
     try {
-      window.sessionStorage.setItem(productionKey, JSON.stringify(entries))
+      window.localStorage.setItem(productionKey, JSON.stringify(entries))
       setSaved(true)
     } catch {
       setSaved(false)
@@ -172,7 +178,7 @@ export default function ProducaoPage() {
               </p>
               {restored ? (
                 <p className="mt-4 text-sm font-medium text-cyan-800">
-                  Recuperamos as produções organizadas nesta sessão para que você possa revisar
+                  Recuperamos suas produções salvas neste dispositivo para que você possa revisar
                   e ampliar sua memória profissional.
                 </p>
               ) : null}
@@ -463,7 +469,7 @@ export default function ProducaoPage() {
                 onClick={saveMemory}
                 className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-[#081C2E] px-6 font-semibold text-[#081C2E] transition hover:bg-slate-100"
               >
-                Salvar memória nesta sessão
+                Salvar memória
               </button>
               <Link
                 href="/professor-digital"
@@ -475,7 +481,7 @@ export default function ProducaoPage() {
 
             {saved ? (
               <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900">
-                <p className="font-semibold">Memória profissional organizada para esta sessão.</p>
+                <p className="font-semibold">Memória profissional salva neste dispositivo.</p>
                 <p className="mt-1 text-sm leading-6">
                   O próximo passo é escolher quais objetivos e possibilidades de desenvolvimento
                   fazem sentido para você a partir dessa trajetória.
