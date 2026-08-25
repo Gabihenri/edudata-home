@@ -2,11 +2,10 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-
-type ProfileContext = {
-  interests: string[]
-  developmentGoal: string
-}
+import {
+  readProfessionalProfileContext,
+  type ProfessionalProfileContext,
+} from '@/lib/professor-digital/profile-context'
 
 type KnowledgeEntry = {
   theme: string
@@ -14,7 +13,6 @@ type KnowledgeEntry = {
   question: string
 }
 
-const profileContextKey = 'edudata-professor-digital-profile-context'
 const knowledgeMapKey = 'edudata-professor-digital-knowledge-map'
 
 const relationshipLabels: Record<KnowledgeEntry['relationship'], string> = {
@@ -29,8 +27,23 @@ const relationshipOptions: KnowledgeEntry['relationship'][] = [
   'aprofundar',
 ]
 
+function normalizeKnowledgeEntries(value: unknown): KnowledgeEntry[] {
+  if (!Array.isArray(value)) return []
+
+  return value.filter(
+    (entry): entry is KnowledgeEntry =>
+      Boolean(entry) &&
+      typeof entry.theme === 'string' &&
+      typeof entry.question === 'string' &&
+      relationshipOptions.includes((entry as KnowledgeEntry).relationship),
+  )
+}
+
 export default function ConhecimentoPage() {
-  const [profile, setProfile] = useState<ProfileContext>({
+  const [profile, setProfile] = useState<ProfessionalProfileContext>({
+    area: '',
+    stage: '',
+    experience: '',
     interests: [],
     developmentGoal: '',
   })
@@ -43,40 +56,21 @@ export default function ConhecimentoPage() {
   const [restored, setRestored] = useState(false)
 
   useEffect(() => {
+    const storedProfile = readProfessionalProfileContext()
+
+    if (storedProfile) {
+      setProfile(storedProfile)
+    }
+
     try {
-      const storedProfile = window.sessionStorage.getItem(profileContextKey)
-      const storedKnowledge = window.sessionStorage.getItem(knowledgeMapKey)
+      const storedKnowledge = window.localStorage.getItem(knowledgeMapKey)
+      if (!storedKnowledge) return
 
-      if (storedProfile) {
-        const parsedProfile = JSON.parse(storedProfile) as Partial<ProfileContext>
-        setProfile({
-          interests: Array.isArray(parsedProfile.interests)
-            ? parsedProfile.interests.filter(item => typeof item === 'string')
-            : [],
-          developmentGoal:
-            typeof parsedProfile.developmentGoal === 'string'
-              ? parsedProfile.developmentGoal
-              : '',
-        })
-      }
-
-      if (storedKnowledge) {
-        const parsedEntries = JSON.parse(storedKnowledge) as KnowledgeEntry[]
-        if (Array.isArray(parsedEntries)) {
-          setEntries(
-            parsedEntries.filter(
-              entry =>
-                entry &&
-                typeof entry.theme === 'string' &&
-                typeof entry.question === 'string' &&
-                relationshipOptions.includes(entry.relationship),
-            ),
-          )
-          setRestored(true)
-        }
-      }
+      const parsedEntries = normalizeKnowledgeEntries(JSON.parse(storedKnowledge))
+      setEntries(parsedEntries)
+      setRestored(parsedEntries.length > 0)
     } catch {
-      window.sessionStorage.removeItem(knowledgeMapKey)
+      window.localStorage.removeItem(knowledgeMapKey)
     }
   }, [])
 
@@ -124,7 +118,7 @@ export default function ConhecimentoPage() {
 
   function saveMap() {
     try {
-      window.sessionStorage.setItem(knowledgeMapKey, JSON.stringify(entries))
+      window.localStorage.setItem(knowledgeMapKey, JSON.stringify(entries))
       setSaved(true)
     } catch {
       setSaved(false)
@@ -164,8 +158,8 @@ export default function ConhecimentoPage() {
               </p>
               {restored ? (
                 <p className="mt-4 text-sm font-medium text-cyan-800">
-                  Recuperamos o mapa que você organizou nesta sessão para que possa continuar
-                  revisando suas escolhas.
+                  Recuperamos o mapa que você organizou anteriormente neste dispositivo para que
+                  possa continuar sua trajetória.
                 </p>
               ) : null}
             </div>
@@ -173,7 +167,7 @@ export default function ConhecimentoPage() {
             {profile.interests.length > 0 || profile.developmentGoal ? (
               <section className="mt-10 rounded-3xl border border-cyan-100 bg-cyan-50/70 p-6 sm:p-8">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-800">
-                  Contexto autorizado para esta sessão
+                  Contexto profissional compartilhado
                 </p>
                 {profile.interests.length > 0 ? (
                   <div className="mt-4 flex flex-wrap gap-2">
@@ -385,7 +379,7 @@ export default function ConhecimentoPage() {
                 onClick={saveMap}
                 className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-[#081C2E] px-6 font-semibold text-white transition hover:bg-[#102B43]"
               >
-                Registrar mapa nesta sessão
+                Salvar meu mapa
               </button>
               <Link
                 href="/professor-digital/plano"
@@ -403,7 +397,7 @@ export default function ConhecimentoPage() {
 
             {saved ? (
               <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900">
-                <p className="font-semibold">Mapa de conhecimento organizado para esta sessão.</p>
+                <p className="font-semibold">Mapa de conhecimento salvo neste dispositivo.</p>
                 <p className="mt-1 text-sm leading-6">
                   Você pode revisar esses territórios a qualquer momento e levá-los para Meu
                   Desenvolvimento quando quiser escolher um próximo passo.
