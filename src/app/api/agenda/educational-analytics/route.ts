@@ -1,4 +1,9 @@
 import {
+  createClient,
+  type SupabaseClient,
+} from '@supabase/supabase-js'
+
+import {
   NextRequest,
   NextResponse,
 } from 'next/server'
@@ -12,6 +17,10 @@ import {
 import {
   requireSessionUser,
 } from '@/lib/auth/session'
+
+import {
+  loadAgendaAnalyticsDataset,
+} from '@/lib/agenda/educational-analytics/agenda-analytics-dataset.service'
 
 import {
   runEducationalAnalyticsWithReport,
@@ -52,6 +61,62 @@ function isRecord(
   )
 }
 
+function getAccessToken(
+  request: NextRequest,
+): string {
+  const accessToken =
+    request.cookies.get(
+      'sb-access-token',
+    )?.value ??
+    request.cookies.get(
+      'access_token',
+    )?.value
+
+  if (!accessToken) {
+    throw new Error(
+      'Usuário não autenticado.',
+    )
+  }
+
+  return accessToken
+}
+
+function createAuthenticatedClient(
+  accessToken: string,
+): SupabaseClient {
+  const url =
+    process.env
+      .NEXT_PUBLIC_SUPABASE_URL
+
+  const anonKey =
+    process.env
+      .NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!url || !anonKey) {
+    throw new Error(
+      'Variáveis públicas do Supabase não configuradas.',
+    )
+  }
+
+  return createClient(
+    url,
+    anonKey,
+    {
+      global: {
+        headers: {
+          Authorization:
+            `Bearer ${accessToken}`,
+        },
+      },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    },
+  )
+}
+
 function normalizeBody(
   value: unknown,
 ): RunEducationalAnalyticsInput {
@@ -84,8 +149,7 @@ function getErrorStatus(
     return 500
   }
 
-  const message =
-    error.message.toLowerCase()
+  const message = error.message.toLowerCase()
 
   if (
     message.includes('não autenticado') ||
@@ -105,6 +169,13 @@ function getErrorStatus(
     return 400
   }
 
+  if (
+    message.includes('não configurada') ||
+    message.includes('não configuradas')
+  ) {
+    return 503
+  }
+
   return 500
 }
 
@@ -121,8 +192,7 @@ function createErrorResponse(
     )
   }
 
-  const status =
-    getErrorStatus(error)
+  const status = getErrorStatus(error)
 
   return NextResponse.json(
     {
@@ -134,8 +204,7 @@ function createErrorResponse(
             ? error.message
             : 'Solicitação inválida.',
       meta: {
-        generatedAt:
-          new Date().toISOString(),
+        generatedAt: new Date().toISOString(),
       },
     },
     {
@@ -145,60 +214,103 @@ function createErrorResponse(
   )
 }
 
+async function requireAnalyticsAccess(
+  userId: string,
+): Promise<void> {
+  await requireFeatureAccess({
+    userId,
+    featureCode: FEATURE_CODE,
+    options: {
+      includeUsage: false,
+    },
+  })
+}
+
+export async function GET(
+  request: NextRequest,
+): Promise<NextResponse> {
+  try {
+    const user = await requireSessionUser()
+
+    await requireAnalyticsAccess(user.id)
+
+    const client = createAuthenticatedClient(
+      getAccessToken(request),
+    )
+
+    const dataset = await loadAgendaAnalyticsDataset({
+      client,
+      userId: user.id,
+    })
+
+    return NextResponse.json(
+      {
+        success: true,
+        generatedAt: dataset.generatedAt,
+        data: dataset.input,
+        quality: dataset.quality,
+        operationalSummary:
+          dataset.operationalSummary,
+      },
+      {
+        status: 200,
+        headers: NO_CACHE_HEADERS,
+      },
+    )
+  } catch (error) {
+    console.error(
+      '[EDUCATIONAL_ANALYTICS_DATASET_GET_ERROR]',
+      {
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Erro desconhecido.',
+        occurredAt: new Date().toISOString(),
+      },
+    )
+
+    return createErrorResponse(error)
+  }
+}
+
 export async function POST(
   request: NextRequest,
 ) {
   try {
-    const user =
-      await requireSessionUser()
+    const user = await requireSessionUser()
 
-    await requireFeatureAccess({
-      userId: user.id,
-      featureCode: FEATURE_CODE,
-      options: {
-        includeUsage: false,
-      },
-    })
+    await requireAnalyticsAccess(user.id)
 
-    const body =
-      normalizeBody(
-        await request.json(),
-      )
+    const body = normalizeBody(
+      await request.json(),
+    )
 
-    const input:
-      BuildEducationalAnalyticsInput = {
+    const input: BuildEducationalAnalyticsInput = {
       ...body.input,
-      requestedByUserId:
-        user.id,
+      requestedByUserId: user.id,
       correlationId:
-        body.input
-          .correlationId
-          ?.trim() ||
+        body.input.correlationId?.trim() ||
         `analytics-${crypto.randomUUID()}`,
     }
 
-    const result =
-      runEducationalAnalyticsWithReport({
-        ...body,
-        input,
-        metadata: {
-          ...(body.metadata ?? {}),
-          apiRoute:
-            '/api/agenda/educational-analytics',
-          authenticatedUserId:
-            user.id,
-        },
-      })
+    const result = runEducationalAnalyticsWithReport({
+      ...body,
+      input,
+      metadata: {
+        ...(body.metadata ?? {}),
+        apiRoute:
+          '/api/agenda/educational-analytics',
+        authenticatedUserId: user.id,
+      },
+    })
 
     return NextResponse.json(
       result,
       {
-        status:
-          result.success
-            ? 200
-            : 422,
-        headers:
-          NO_CACHE_HEADERS,
+        status: result.success
+          ? 200
+          : 422,
+        headers: NO_CACHE_HEADERS,
       },
     )
   } catch (error) {
@@ -209,8 +321,7 @@ export async function POST(
           error instanceof Error
             ? error.message
             : 'Erro desconhecido.',
-        occurredAt:
-          new Date().toISOString(),
+        occurredAt: new Date().toISOString(),
       },
     )
 
