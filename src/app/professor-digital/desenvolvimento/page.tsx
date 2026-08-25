@@ -36,6 +36,34 @@ const knowledgeMapKey = 'edudata-professor-digital-knowledge-map'
 const productionKey = 'edudata-professor-digital-production-memory'
 const developmentKey = 'edudata-professor-digital-development-choices'
 
+function isKnowledgeEntry(value: unknown): value is KnowledgeEntry {
+  if (!value || typeof value !== 'object') return false
+  const entry = value as Partial<KnowledgeEntry>
+  return (
+    typeof entry.theme === 'string' &&
+    (entry.relationship === 'explorar' ||
+      entry.relationship === 'desenvolver' ||
+      entry.relationship === 'aprofundar') &&
+    typeof entry.question === 'string'
+  )
+}
+
+function isProductionEntry(value: unknown): value is ProductionEntry {
+  if (!value || typeof value !== 'object') return false
+  const entry = value as Partial<ProductionEntry>
+  return (
+    typeof entry.id === 'string' &&
+    typeof entry.title === 'string' &&
+    typeof entry.type === 'string' &&
+    typeof entry.period === 'string' &&
+    typeof entry.description === 'string' &&
+    typeof entry.learning === 'string' &&
+    typeof entry.nextStep === 'string' &&
+    Array.isArray(entry.themes) &&
+    entry.themes.every(theme => typeof theme === 'string')
+  )
+}
+
 function buildSuggestions(
   profile: ProfessionalProfileContext,
   knowledge: KnowledgeEntry[],
@@ -122,27 +150,13 @@ export default function DesenvolvimentoPage() {
     const storedProfile = readProfessionalProfileContext()
     if (storedProfile) setProfile(storedProfile)
 
-    const storedKnowledge = readArray<KnowledgeEntry>(
-      knowledgeMapKey,
-      entry =>
-        Boolean(entry) &&
-        typeof (entry as KnowledgeEntry).theme === 'string' &&
-        typeof (entry as KnowledgeEntry).relationship === 'string' &&
-        typeof (entry as KnowledgeEntry).question === 'string',
-    )
+    const storedKnowledge = readArray<KnowledgeEntry>(knowledgeMapKey, isKnowledgeEntry)
     setKnowledge(storedKnowledge)
 
-    const storedProduction = readArray<ProductionEntry>(
-      productionKey,
-      entry =>
-        Boolean(entry) &&
-        typeof (entry as ProductionEntry).id === 'string' &&
-        typeof (entry as ProductionEntry).title === 'string' &&
-        typeof (entry as ProductionEntry).nextStep === 'string',
-    )
+    const storedProduction = readArray<ProductionEntry>(productionKey, isProductionEntry)
     setProduction(storedProduction)
 
-    const storedChoices = readArray<string>(developmentKey, item => typeof item === 'string')
+    const storedChoices = readArray<string>(developmentKey, (item): item is string => typeof item === 'string')
     setChoices(storedChoices)
     setRestored(
       Boolean(storedProfile) ||
@@ -295,16 +309,16 @@ export default function DesenvolvimentoPage() {
 
             <section className="mt-10 rounded-3xl border border-cyan-100 bg-cyan-50/60 p-6 sm:p-8">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-800">
-                Conexão futura com a EduData Academy
+                Conexão com a EduData Academy
               </p>
               <h2 className="mt-3 text-2xl font-bold text-[#081C2E]">
                 Desenvolvimento não precisa ser prescrito para ser apoiado.
               </h2>
               <p className="mt-4 leading-7 text-slate-600">
-                A próxima evolução deste núcleo será conectar as possibilidades escolhidas pelo
-                profissional a experiências, formações e percursos da EduData Academy. O EIOS
-                deverá explicar por que uma conexão foi apresentada e permitir que o professor
-                aceite, adapte ou simplesmente ignore a sugestão.
+                As possibilidades escolhidas aqui poderão orientar conexões com experiências,
+                formações e percursos da EduData Academy. O EIOS deve explicar por que uma
+                conexão foi apresentada e permitir que você aceite, adapte ou simplesmente ignore
+                qualquer sugestão.
               </p>
             </section>
 
@@ -343,8 +357,9 @@ export default function DesenvolvimentoPage() {
               <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900">
                 <p className="font-semibold">Suas escolhas foram salvas neste dispositivo.</p>
                 <p className="mt-1 text-sm leading-6">
-                  Na próxima etapa técnica, esse núcleo poderá evoluir para uma conexão segura e
-                  transparente com a EduData Academy e com as demais experiências autorizadas do EIOS.
+                  Você poderá retomar essas escolhas para continuar refletindo sobre seus próximos
+                  passos e, conforme as conexões autorizadas evoluírem, explorar oportunidades
+                  relacionadas na EduData Academy.
                 </p>
               </div>
             ) : null}
