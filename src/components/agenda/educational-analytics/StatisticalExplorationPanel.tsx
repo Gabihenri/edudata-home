@@ -40,12 +40,13 @@ const DISTRIBUTION = [
   { range: '81–100', students: 9 },
 ]
 
-const SCATTER = [
-  { x: 42, y: 39, z: 7 }, { x: 48, y: 45, z: 8 }, { x: 53, y: 49, z: 9 },
-  { x: 58, y: 60, z: 10 }, { x: 63, y: 57, z: 8 }, { x: 68, y: 70, z: 12 },
-  { x: 72, y: 74, z: 11 }, { x: 77, y: 73, z: 9 }, { x: 81, y: 86, z: 13 },
-  { x: 88, y: 91, z: 10 }, { x: 93, y: 89, z: 8 },
-]
+const VARIABLE_META: Record<SeriesKey, { label: string; short: string }> = {
+  score: { label: 'Score educacional', short: 'Score' },
+  engagement: { label: 'Engajamento', short: 'Engaj.' },
+  evidence: { label: 'Evidências', short: 'Evid.' },
+}
+
+const VARIABLES = Object.keys(VARIABLE_META) as SeriesKey[]
 
 function movingAverage(values: number[], window: MovingAverageWindow) {
   return values.map((_, index) => {
@@ -71,26 +72,36 @@ function linearTrend(values: number[]) {
   const meanY = values.reduce((sum, value) => sum + value, 0) / values.length
   let numerator = 0
   let denominator = 0
+
   values.forEach((value, index) => {
     numerator += (index - meanX) * (value - meanY)
     denominator += (index - meanX) ** 2
   })
+
   return denominator === 0 ? 0 : numerator / denominator
 }
 
-function pearsonCorrelation(points: typeof SCATTER) {
-  const meanX = points.reduce((sum, point) => sum + point.x, 0) / points.length
-  const meanY = points.reduce((sum, point) => sum + point.y, 0) / points.length
+function pearsonCorrelation(xValues: number[], yValues: number[]) {
+  const size = Math.min(xValues.length, yValues.length)
+  if (size < 2) return 0
+
+  const x = xValues.slice(0, size)
+  const y = yValues.slice(0, size)
+  const meanX = x.reduce((sum, value) => sum + value, 0) / size
+  const meanY = y.reduce((sum, value) => sum + value, 0) / size
+
   let numerator = 0
   let xSum = 0
   let ySum = 0
-  points.forEach(point => {
-    const x = point.x - meanX
-    const y = point.y - meanY
-    numerator += x * y
-    xSum += x ** 2
-    ySum += y ** 2
+
+  x.forEach((value, index) => {
+    const xDeviation = value - meanX
+    const yDeviation = y[index] - meanY
+    numerator += xDeviation * yDeviation
+    xSum += xDeviation ** 2
+    ySum += yDeviation ** 2
   })
+
   const denominator = Math.sqrt(xSum * ySum)
   return denominator === 0 ? 0 : numerator / denominator
 }
@@ -100,10 +111,30 @@ function formatTrend(trend: number) {
   return trend > 0 ? 'Crescimento' : 'Queda'
 }
 
+function correlationLabel(correlation: number) {
+  const magnitude = Math.abs(correlation)
+  const direction = correlation >= 0 ? 'positiva' : 'negativa'
+  if (magnitude >= 0.8) return `Muito forte ${direction}`
+  if (magnitude >= 0.6) return `Forte ${direction}`
+  if (magnitude >= 0.4) return `Moderada ${direction}`
+  if (magnitude >= 0.2) return `Fraca ${direction}`
+  return 'Muito fraca'
+}
+
+function correlationTone(correlation: number) {
+  const intensity = Math.min(Math.abs(correlation), 1)
+  if (correlation >= 0) {
+    return { backgroundColor: `rgba(11, 116, 145, ${0.08 + intensity * 0.82})`, color: intensity > 0.55 ? '#ffffff' : '#0f172a' }
+  }
+  return { backgroundColor: `rgba(239, 68, 68, ${0.08 + intensity * 0.72})`, color: intensity > 0.55 ? '#ffffff' : '#0f172a' }
+}
+
 export default function StatisticalExplorationPanel() {
   const [period, setPeriod] = useState<Period>('90d')
   const [series, setSeries] = useState<SeriesKey>('score')
   const [window, setWindow] = useState<MovingAverageWindow>(3)
+  const [scatterX, setScatterX] = useState<SeriesKey>('engagement')
+  const [scatterY, setScatterY] = useState<SeriesKey>('score')
 
   const temporalData = useMemo(() => {
     const size = period === '7d' ? 4 : period === '30d' ? 6 : SERIES.length
@@ -126,10 +157,49 @@ export default function StatisticalExplorationPanel() {
   const firstValue = values[0]
   const lastValue = values[values.length - 1]
   const variationPercent = firstValue === 0 ? 0 : ((lastValue - firstValue) / firstValue) * 100
-  const correlation = pearsonCorrelation(SCATTER)
   const outlierLimit = thirdQuartile + interquartileRange * 1.5
   const lowerOutlierLimit = firstQuartile - interquartileRange * 1.5
   const outliers = values.filter(value => value > outlierLimit || value < lowerOutlierLimit)
+
+  const correlationData = useMemo(() => {
+    const size = period === '7d' ? 4 : period === '30d' ? 6 : SERIES.length
+    return SERIES.slice(-size)
+  }, [period])
+
+  const correlationMatrix = useMemo(() => VARIABLES.map(row => ({
+    variable: row,
+    values: VARIABLES.map(column => pearsonCorrelation(
+      correlationData.map(item => item[row]),
+      correlationData.map(item => item[column]),
+    )),
+  })), [correlationData])
+
+  const scatterData = correlationData.map(item => ({
+    x: item[scatterX],
+    y: item[scatterY],
+    z: item.evidence,
+    period: item.period,
+  }))
+
+  const scatterCorrelation = pearsonCorrelation(
+    correlationData.map(item => item[scatterX]),
+    correlationData.map(item => item[scatterY]),
+  )
+
+  const strongestRelationship = useMemo(() => {
+    const pairs = VARIABLES.flatMap((left, leftIndex) => VARIABLES
+      .slice(leftIndex + 1)
+      .map(right => ({
+        left,
+        right,
+        value: pearsonCorrelation(
+          correlationData.map(item => item[left]),
+          correlationData.map(item => item[right]),
+        ),
+      })))
+
+    return pairs.sort((a, b) => Math.abs(b.value) - Math.abs(a.value))[0]
+  }, [correlationData])
 
   return (
     <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -159,9 +229,7 @@ export default function StatisticalExplorationPanel() {
             </div>
             <div className="flex flex-wrap gap-2">
               <select value={series} onChange={event => setSeries(event.target.value as SeriesKey)} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[#0B7491]">
-                <option value="score">Score educacional</option>
-                <option value="engagement">Engajamento</option>
-                <option value="evidence">Evidências</option>
+                {VARIABLES.map(variable => <option key={variable} value={variable}>{VARIABLE_META[variable].label}</option>)}
               </select>
               <select value={window} onChange={event => setWindow(Number(event.target.value) as MovingAverageWindow)} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[#0B7491]" aria-label="Janela da média móvel">
                 <option value={2}>MM 2 períodos</option>
@@ -225,26 +293,81 @@ export default function StatisticalExplorationPanel() {
         </article>
 
         <article className="rounded-2xl border border-slate-200 p-5 xl:col-span-2">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <h3 className="font-bold text-slate-900">Relação entre variáveis</h3>
-              <p className="mt-1 text-sm text-slate-500">Dispersão para investigar associação entre participação e desempenho.</p>
+              <p className="mt-1 text-sm text-slate-500">Selecione as variáveis para investigar a associação no gráfico de dispersão.</p>
             </div>
-            <div className="rounded-xl bg-[#EEF6F8] px-3 py-2 text-right"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#0B7491]">Pearson exploratório</p><p className="mt-1 text-lg font-bold text-slate-900">r = {correlation.toFixed(2)}</p></div>
+            <div className="flex flex-wrap gap-2">
+              <select value={scatterX} onChange={event => setScatterX(event.target.value as SeriesKey)} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+                {VARIABLES.map(variable => <option key={variable} value={variable}>X: {VARIABLE_META[variable].label}</option>)}
+              </select>
+              <select value={scatterY} onChange={event => setScatterY(event.target.value as SeriesKey)} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+                {VARIABLES.map(variable => <option key={variable} value={variable}>Y: {VARIABLE_META[variable].label}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-[#EEF6F8] px-4 py-3">
+            <div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#0B7491]">Pearson exploratório</p><p className="mt-1 text-lg font-bold text-slate-900">r = {scatterCorrelation.toFixed(2)}</p></div>
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-700">{correlationLabel(scatterCorrelation)}</span>
           </div>
           <div className="mt-5 h-64">
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <CartesianGrid />
-                <XAxis type="number" dataKey="x" name="Participação" domain={[30, 100]} />
-                <YAxis type="number" dataKey="y" name="Desempenho" domain={[30, 100]} />
-                <ZAxis type="number" dataKey="z" range={[60, 180]} name="Volume" />
-                <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                <Scatter data={SCATTER} fill="#0B7491" />
+                <XAxis type="number" dataKey="x" name={VARIABLE_META[scatterX].label} domain={[30, 100]} />
+                <YAxis type="number" dataKey="y" name={VARIABLE_META[scatterY].label} domain={[30, 100]} />
+                <ZAxis type="number" dataKey="z" range={[60, 180]} name="Evidências" />
+                <Tooltip cursor={{ strokeDasharray: '3 3' }} labelFormatter={() => ''} />
+                <Scatter data={scatterData} fill="#0B7491" />
               </ScatterChart>
             </ResponsiveContainer>
           </div>
-          <p className="mt-3 text-xs leading-5 text-slate-500">O coeficiente mede associação linear neste conjunto exploratório. A interpretação deve considerar tamanho da amostra, qualidade dos dados e possíveis variáveis de confusão.</p>
+          <p className="mt-3 text-xs leading-5 text-slate-500">O coeficiente mede associação linear no conjunto exploratório. Correlação não demonstra causalidade e deve ser interpretada considerando tamanho da amostra, qualidade dos dados e variáveis de confusão.</p>
+        </article>
+
+        <article className="rounded-2xl border border-slate-200 p-5 xl:col-span-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0B7491]">Descoberta de relações</p>
+              <h3 className="mt-1 font-bold text-slate-900">Matriz de correlação</h3>
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">Visão simultânea das relações lineares entre as variáveis disponíveis. A intensidade e a direção são calculadas para o período selecionado.</p>
+            </div>
+            {strongestRelationship && (
+              <div className="rounded-xl border border-cyan-100 bg-[#F4FAFB] px-4 py-3 text-sm">
+                <p className="text-xs font-semibold text-slate-500">Relação mais intensa no período</p>
+                <p className="mt-1 font-bold text-slate-900">{VARIABLE_META[strongestRelationship.left].label} × {VARIABLE_META[strongestRelationship.right].label}</p>
+                <p className="mt-1 text-[#0B7491]">r = {strongestRelationship.value.toFixed(2)} · {correlationLabel(strongestRelationship.value)}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 overflow-x-auto">
+            <div className="min-w-[620px]">
+              <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                <div className="p-3" />
+                {VARIABLES.map(variable => <div key={variable} className="rounded-xl bg-slate-100 p-3 font-bold text-slate-700">{VARIABLE_META[variable].short}</div>)}
+                {correlationMatrix.map(row => (
+                  <div key={row.variable} className="contents">
+                    <div className="flex items-center rounded-xl bg-slate-100 p-3 font-bold text-slate-700">{VARIABLE_META[row.variable].short}</div>
+                    {row.values.map((value, index) => (
+                      <div key={`${row.variable}-${VARIABLES[index]}`} className="rounded-xl p-3 font-bold shadow-sm" style={correlationTone(value)} title={`${VARIABLE_META[row.variable].label} × ${VARIABLE_META[VARIABLES[index]].label}: r = ${value.toFixed(3)}`}>
+                        {value.toFixed(2)}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            <span className="font-semibold text-slate-700">Leitura:</span>
+            <span>+1 associação positiva forte</span>
+            <span>0 ausência de associação linear</span>
+            <span>−1 associação negativa forte</span>
+            <span className="ml-auto">A diagonal é sempre 1,00.</span>
+          </div>
         </article>
       </div>
     </section>
