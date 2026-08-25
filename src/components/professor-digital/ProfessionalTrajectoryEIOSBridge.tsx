@@ -7,52 +7,18 @@ import { useLessons } from '@/lib/agenda/hooks/useLessons'
 import { useObjectives } from '@/lib/agenda/hooks/useObjectives'
 import { usePlanning } from '@/lib/agenda/hooks/usePlanning'
 import { useProfessionalTrajectoryAnalysis } from '@/lib/professor-digital/hooks/useProfessionalTrajectoryAnalysis'
+import {
+  readProfessionalProfileContext,
+  type ProfessionalProfileContext,
+} from '@/lib/professor-digital/profile-context'
 import type { ProfessionalTrajectoryRecord } from '@/lib/professor-digital/services/professorDigitalIntelligence.service'
 
 import { ProfessionalTrajectoryAnalysisPanel } from './ProfessionalTrajectoryAnalysisPanel'
 
-type ProfileContext = {
-  area: string
-  stage: string
-  experience: string
-  interests: string[]
-  developmentGoal: string
-}
-
-const profileContextKey = 'edudata-professor-digital-profile-context'
-
-function readProfileContext(): ProfileContext | null {
-  try {
-    const stored = window.sessionStorage.getItem(profileContextKey)
-    if (!stored) return null
-
-    const parsed = JSON.parse(stored) as Partial<ProfileContext>
-    return {
-      area: typeof parsed.area === 'string' ? parsed.area : '',
-      stage: typeof parsed.stage === 'string' ? parsed.stage : '',
-      experience: typeof parsed.experience === 'string' ? parsed.experience : '',
-      interests: Array.isArray(parsed.interests)
-        ? parsed.interests.filter((item): item is string => typeof item === 'string')
-        : [],
-      developmentGoal: typeof parsed.developmentGoal === 'string' ? parsed.developmentGoal : '',
-    }
-  } catch {
-    window.sessionStorage.removeItem(profileContextKey)
-    return null
-  }
-}
-
 function toRecord(source: ProfessionalTrajectoryRecord['source'], item: unknown): ProfessionalTrajectoryRecord {
   const record = item as Record<string, unknown>
-  const title = typeof record.title === 'string'
-    ? record.title
-    : typeof record.name === 'string'
-      ? record.name
-      : source
-
-  const tags = Array.isArray(record.tags)
-    ? record.tags.filter((tag): tag is string => typeof tag === 'string')
-    : undefined
+  const title = typeof record.title === 'string' ? record.title : typeof record.name === 'string' ? record.name : source
+  const tags = Array.isArray(record.tags) ? record.tags.filter((tag): tag is string => typeof tag === 'string') : undefined
 
   return {
     source,
@@ -71,10 +37,10 @@ export function ProfessionalTrajectoryEIOSBridge() {
   const { lessons, loading: lessonsLoading } = useLessons()
   const { evidences, loading: evidencesLoading } = useEvidences()
   const { analysis, loading, error, runAnalysis } = useProfessionalTrajectoryAnalysis()
-  const [profileContext, setProfileContext] = useState<ProfileContext | null>(null)
+  const [profileContext, setProfileContext] = useState<ProfessionalProfileContext | null>(null)
 
   useEffect(() => {
-    setProfileContext(readProfileContext())
+    setProfileContext(readProfessionalProfileContext())
   }, [])
 
   const history = useMemo<ProfessionalTrajectoryRecord[]>(() => [
