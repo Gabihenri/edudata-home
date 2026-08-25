@@ -3,23 +3,12 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
-type ProfileContext = {
-  area: string
-  stage: string
-  experience: string
-  interests: string[]
-  developmentGoal: string
-}
-
-const profileContextKey = 'edudata-professor-digital-profile-context'
-
-const initialProfile: ProfileContext = {
-  area: '',
-  stage: '',
-  experience: '',
-  interests: [],
-  developmentGoal: '',
-}
+import {
+  emptyProfessionalProfileContext,
+  readProfessionalProfileContext,
+  type ProfessionalProfileContext,
+  writeProfessionalProfileContext,
+} from '@/lib/professor-digital/profile-context'
 
 const interestOptions = [
   'Prática pedagógica',
@@ -31,33 +20,18 @@ const interestOptions = [
 ]
 
 export default function PerfilPage() {
-  const [profile, setProfile] = useState<ProfileContext>(initialProfile)
+  const [profile, setProfile] = useState<ProfessionalProfileContext>(
+    emptyProfessionalProfileContext,
+  )
   const [saved, setSaved] = useState(false)
   const [restored, setRestored] = useState(false)
 
   useEffect(() => {
-    try {
-      const storedProfile = window.sessionStorage.getItem(profileContextKey)
+    const storedProfile = readProfessionalProfileContext()
 
-      if (storedProfile) {
-        const parsedProfile = JSON.parse(storedProfile) as Partial<ProfileContext>
-
-        setProfile({
-          area: typeof parsedProfile.area === 'string' ? parsedProfile.area : '',
-          stage: typeof parsedProfile.stage === 'string' ? parsedProfile.stage : '',
-          experience: typeof parsedProfile.experience === 'string' ? parsedProfile.experience : '',
-          interests: Array.isArray(parsedProfile.interests)
-            ? parsedProfile.interests.filter(item => typeof item === 'string')
-            : [],
-          developmentGoal:
-            typeof parsedProfile.developmentGoal === 'string'
-              ? parsedProfile.developmentGoal
-              : '',
-        })
-        setRestored(true)
-      }
-    } catch {
-      window.sessionStorage.removeItem(profileContextKey)
+    if (storedProfile) {
+      setProfile(storedProfile)
+      setRestored(true)
     }
   }, [])
 
@@ -73,12 +47,7 @@ export default function PerfilPage() {
   }
 
   function handleSave() {
-    try {
-      window.sessionStorage.setItem(profileContextKey, JSON.stringify(profile))
-      setSaved(true)
-    } catch {
-      setSaved(false)
-    }
+    setSaved(writeProfessionalProfileContext(profile))
   }
 
   return (
@@ -115,8 +84,8 @@ export default function PerfilPage() {
               </p>
               {restored ? (
                 <p className="mt-4 text-sm font-medium text-cyan-800">
-                  Recuperamos o contexto que você havia organizado nesta sessão para que possa
-                  revisar ou atualizar suas escolhas.
+                  Recuperamos o contexto que você já havia organizado neste dispositivo para que
+                  possa revisar ou atualizar suas escolhas.
                 </p>
               ) : null}
             </div>
@@ -138,10 +107,7 @@ export default function PerfilPage() {
                     value={profile.area}
                     onChange={event => {
                       setSaved(false)
-                      setProfile(current => ({
-                        ...current,
-                        area: event.target.value,
-                      }))
+                      setProfile(current => ({ ...current, area: event.target.value }))
                     }}
                   >
                     <option value="">Selecione uma opção</option>
@@ -164,10 +130,7 @@ export default function PerfilPage() {
                     value={profile.stage}
                     onChange={event => {
                       setSaved(false)
-                      setProfile(current => ({
-                        ...current,
-                        stage: event.target.value,
-                      }))
+                      setProfile(current => ({ ...current, stage: event.target.value }))
                     }}
                   >
                     <option value="">Selecione uma opção</option>
@@ -190,10 +153,7 @@ export default function PerfilPage() {
                   value={profile.experience}
                   onChange={event => {
                     setSaved(false)
-                    setProfile(current => ({
-                      ...current,
-                      experience: event.target.value,
-                    }))
+                    setProfile(current => ({ ...current, experience: event.target.value }))
                   }}
                 />
               </label>
@@ -238,23 +198,18 @@ export default function PerfilPage() {
                   value={profile.developmentGoal}
                   onChange={event => {
                     setSaved(false)
-                    setProfile(current => ({
-                      ...current,
-                      developmentGoal: event.target.value,
-                    }))
+                    setProfile(current => ({ ...current, developmentGoal: event.target.value }))
                   }}
                 />
               </label>
 
               <div className="rounded-2xl border border-cyan-100 bg-cyan-50/60 p-5">
-                <h3 className="font-semibold text-[#081C2E]">
-                  Você continua no controle
-                </h3>
+                <h3 className="font-semibold text-[#081C2E]">Você continua no controle</h3>
                 <p className="mt-2 leading-7 text-slate-600">
-                  Esta etapa beta organiza o seu contexto nesta sessão para validação da
-                  experiência. Nenhuma informação desta tela gera avaliação institucional
-                  automática. A persistência e o compartilhamento de dados serão ativados
-                  apenas nos fluxos autorizados e transparentes do produto.
+                  Nesta etapa beta, o contexto fica armazenado localmente neste dispositivo para
+                  dar continuidade à sua experiência. Ele não gera avaliação institucional
+                  automática e não é compartilhado com outros usuários. A sincronização entre
+                  dispositivos será ativada apenas em fluxos autenticados e transparentes.
                 </p>
               </div>
 
@@ -263,7 +218,7 @@ export default function PerfilPage() {
                   type="submit"
                   className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-[#081C2E] px-6 font-semibold text-white transition hover:bg-[#102B43]"
                 >
-                  Registrar contexto nesta sessão
+                  Salvar meu contexto neste dispositivo
                 </button>
                 <Link
                   href="/professor-digital"
@@ -275,11 +230,10 @@ export default function PerfilPage() {
 
               {saved ? (
                 <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900">
-                  <p className="font-semibold">Contexto organizado para esta sessão.</p>
+                  <p className="font-semibold">Contexto profissional salvo neste dispositivo.</p>
                   <p className="mt-1 text-sm leading-6">
-                    Agora você pode levar esse contexto para Minha Atuação e observar como
-                    suas escolhas dialogam com os registros autorizados da Agenda Inteligente
-                    EDI.
+                    Agora você pode levar esse contexto para Minha Atuação e observar como suas
+                    escolhas dialogam com os registros autorizados da Agenda Inteligente EDI.
                   </p>
                   <Link
                     href="/professor-digital/agenda"
