@@ -7,16 +7,10 @@ import { useEvidences } from '@/lib/agenda/hooks/useEvidences'
 import { useLessons } from '@/lib/agenda/hooks/useLessons'
 import { useObjectives } from '@/lib/agenda/hooks/useObjectives'
 import { usePlanning } from '@/lib/agenda/hooks/usePlanning'
-
-type ProfileContext = {
-  area: string
-  stage: string
-  experience: string
-  interests: string[]
-  developmentGoal: string
-}
-
-const profileContextKey = 'edudata-professor-digital-profile-context'
+import {
+  readProfessionalProfileContext,
+  type ProfessionalProfileContext,
+} from '@/lib/professor-digital/profile-context'
 
 const nuclei = [
   {
@@ -72,32 +66,10 @@ export default function ProfessorDigitalWorkspacePage() {
   const { objectives, loading: objectivesLoading, error: objectivesError } = useObjectives()
   const { lessons, loading: lessonsLoading, error: lessonsError } = useLessons()
   const { evidences, loading: evidencesLoading, error: evidencesError } = useEvidences()
-  const [profileContext, setProfileContext] = useState<ProfileContext | null>(null)
+  const [profileContext, setProfileContext] = useState<ProfessionalProfileContext | null>(null)
 
   useEffect(() => {
-    try {
-      const storedProfile = window.sessionStorage.getItem(profileContextKey)
-
-      if (!storedProfile) {
-        return
-      }
-
-      const parsedProfile = JSON.parse(storedProfile) as Partial<ProfileContext>
-      setProfileContext({
-        area: typeof parsedProfile.area === 'string' ? parsedProfile.area : '',
-        stage: typeof parsedProfile.stage === 'string' ? parsedProfile.stage : '',
-        experience: typeof parsedProfile.experience === 'string' ? parsedProfile.experience : '',
-        interests: Array.isArray(parsedProfile.interests)
-          ? parsedProfile.interests.filter(item => typeof item === 'string')
-          : [],
-        developmentGoal:
-          typeof parsedProfile.developmentGoal === 'string'
-            ? parsedProfile.developmentGoal
-            : '',
-      })
-    } catch {
-      window.sessionStorage.removeItem(profileContextKey)
-    }
+    setProfileContext(readProfessionalProfileContext())
   }, [])
 
   const loading = planningLoading || objectivesLoading || lessonsLoading || evidencesLoading
@@ -210,7 +182,7 @@ export default function ProfessorDigitalWorkspacePage() {
               <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                 <div className="max-w-3xl">
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">
-                    Contexto que você organizou nesta sessão
+                    Contexto que você organizou
                   </p>
                   <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
                     Sua trajetória ganha contexto antes de ganhar interpretação.
@@ -221,10 +193,7 @@ export default function ProfessorDigitalWorkspacePage() {
                     transforma contadores em avaliação de desempenho.
                   </p>
                 </div>
-                <Link
-                  href="/professor-digital/perfil"
-                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50"
-                >
+                <Link href="/professor-digital/perfil" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50">
                   Revisar meu contexto
                 </Link>
               </div>
@@ -243,7 +212,7 @@ export default function ProfessorDigitalWorkspacePage() {
                   <p className="mt-2 font-semibold text-[#071827]">
                     {profileContext.interests.length > 0
                       ? profileContext.interests.join(' · ')
-                      : 'Nenhum tema selecionado nesta sessão'}
+                      : 'Nenhum tema selecionado ainda'}
                   </p>
                 </div>
               </div>
@@ -264,10 +233,7 @@ export default function ProfessorDigitalWorkspacePage() {
               <p className="mt-3 max-w-3xl leading-7 text-slate-600">
                 Antes de aprofundar uma reflexão, conte ao Professor Digital quais temas e objetivos fazem sentido para você. Isso ajuda a evitar interpretações genéricas e mantém o profissional no centro da leitura.
               </p>
-              <Link
-                href="/professor-digital/perfil"
-                className="mt-6 inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0B7491] px-6 py-3 font-semibold text-white transition hover:bg-[#09657E]"
-              >
+              <Link href="/professor-digital/perfil" className="mt-6 inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0B7491] px-6 py-3 font-semibold text-white transition hover:bg-[#09657E]">
                 Organizar meu contexto profissional
               </Link>
             </section>
@@ -304,10 +270,7 @@ export default function ProfessorDigitalWorkspacePage() {
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">Uma leitura para começar</p>
             <h2 className="mt-3 max-w-3xl text-2xl font-bold tracking-tight sm:text-3xl">{reflection.title}</h2>
             <p className="mt-4 max-w-3xl text-base leading-7 text-slate-700">{reflection.description}</p>
-            <Link
-              href={reflection.href}
-              className="mt-6 inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0B7491] px-6 py-3 font-semibold text-white transition hover:bg-[#09657E] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2"
-            >
+            <Link href={reflection.href} className="mt-6 inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0B7491] px-6 py-3 font-semibold text-white transition hover:bg-[#09657E] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2">
               {reflection.actionLabel}
             </Link>
           </div>
