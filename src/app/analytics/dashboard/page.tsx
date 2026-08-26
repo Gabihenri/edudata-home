@@ -8,6 +8,7 @@ import EducationalAnalyticsHistoryPanel from '@/components/agenda/educational-an
 import EducationalAnalyticsLongitudinalPanel from '@/components/agenda/educational-analytics/EducationalAnalyticsLongitudinalPanel'
 import EducationalAnalyticsPanel from '@/components/agenda/educational-analytics/EducationalAnalyticsPanel'
 import ExperimentEvaluationPanel from '@/components/agenda/educational-analytics/ExperimentEvaluationPanel'
+import ExperimentExecutionHistoryPanel from '@/components/agenda/educational-analytics/ExperimentExecutionHistoryPanel'
 import ExperimentProvenancePanel from '@/components/agenda/educational-analytics/ExperimentProvenancePanel'
 import InstitutionalExportPanel from '@/components/agenda/educational-analytics/InstitutionalExportPanel'
 import LinearRegressionExperimentPanel from '@/components/agenda/educational-analytics/LinearRegressionExperimentPanel'
@@ -34,6 +35,7 @@ export default async function AnalyticsDashboardPage() {
       <ExperimentEvaluationPanel />
       <LinearRegressionExperimentPanel />
       <ExperimentProvenancePanel />
+      <ExperimentExecutionHistoryPanel />
       <EducationalAnalyticsHistoryPanel />
       <EducationalAnalyticsComparisonPanel />
       <EducationalAnalyticsEvolutionPanel />
