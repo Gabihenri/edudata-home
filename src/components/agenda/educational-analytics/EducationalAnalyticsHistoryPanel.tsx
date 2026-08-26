@@ -1,165 +1,27 @@
 'use client'
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
-type AnalyticsHistoryItem = {
-  id: string
-  analysisId: string
-  analysisKey: string
-  versionId: string
-  versionNumber: number
-  versionLabel: string
-  versionStatus: string
-  isCurrentVersion: boolean
-  status: string
-  scope: string
-  title: string
-  description: string | null
-  correlationCount: number
-  patternCount: number
-  anomalyCount: number
-  influenceCount: number
-  predictionCount: number
-  recommendationCount: number
-  researchResultCount: number
-  requiresHumanReview: boolean
-  humanReviewStatus: string
-  approved: boolean
-  generatedAt: string
-  completedAt: string | null
-  reviewedAt: string | null
-  createdAt: string
-  archivedAt: string | null
-  warningsCount: number
-  errorsCount: number
-  reportAvailable: boolean
-}
+type AnalyticsHistoryItem = { id: string; analysisId: string; analysisKey: string; versionId: string; versionNumber: number; versionLabel: string; versionStatus: string; isCurrentVersion: boolean; status: string; scope: string; title: string; description: string | null; correlationCount: number; patternCount: number; anomalyCount: number; influenceCount: number; predictionCount: number; recommendationCount: number; researchResultCount: number; requiresHumanReview: boolean; humanReviewStatus: string; approved: boolean; generatedAt: string; completedAt: string | null; reviewedAt: string | null; createdAt: string; archivedAt: string | null; warningsCount: number; errorsCount: number; reportAvailable: boolean }
+type AnalyticsHistoryResponse = { success: boolean; items: AnalyticsHistoryItem[]; summary: { total: number; current: number; pendingReview: number; approved: number }; meta: { generatedAt: string }; error?: string }
+type HistoryDetailResponse = { success: boolean; detail?: { row: Record<string, unknown>; analytics: unknown; report: unknown }; error?: string }
+type ComparisonResponse = { success: boolean; comparison?: { sameAnalysisKey: boolean; direction: 'forward' | 'backward' | 'same_version'; counts: Record<string, { base: number; target: number; delta: number }>; review: { baseStatus: string; targetStatus: string; baseApproved: boolean; targetApproved: boolean }; warnings: string[] }; error?: string }
+type ReviewStatus = 'pending' | 'in_review' | 'approved' | 'approved_with_changes' | 'rejected'
+type ReviewResponse = { success: boolean; review?: { id: string; status: ReviewStatus; approved: boolean; reviewedAt: string | null }; error?: string }
 
-type AnalyticsHistoryResponse = {
-  success: boolean
-  items: AnalyticsHistoryItem[]
-  summary: {
-    total: number
-    current: number
-    pendingReview: number
-    approved: number
-  }
-  meta: { generatedAt: string }
-  error?: string
-}
-
-type HistoryDetailResponse = {
-  success: boolean
-  detail?: {
-    row: Record<string, unknown>
-    analytics: unknown
-    report: unknown
-  }
-  error?: string
-}
-
-type ComparisonResponse = {
-  success: boolean
-  comparison?: {
-    sameAnalysisKey: boolean
-    direction: 'forward' | 'backward' | 'same_version'
-    counts: Record<string, { base: number; target: number; delta: number }>
-    review: { baseStatus: string; targetStatus: string; baseApproved: boolean; targetApproved: boolean }
-    warnings: string[]
-  }
-  error?: string
-}
-
-function formatDateTime(value: string | null): string {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
-  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(date)
-}
-
-function StatusBadge({ item }: { item: AnalyticsHistoryItem }) {
-  if (item.approved) return <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Revisado e aprovado</span>
-  if (item.requiresHumanReview && item.humanReviewStatus === 'pending') return <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">Revisão pendente</span>
-  return <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">{item.status}</span>
-}
-
-function SummaryMetric({ label, value }: { label: string; value: number }) {
-  return <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">{label}</p><p className="mt-2 text-2xl font-bold text-[#071827]">{value}</p></div>
-}
-
-function MetricDelta({ label, value }: { label: string; value: { base: number; target: number; delta: number } }) {
-  const signal = value.delta > 0 ? '+' : ''
-  return <div className="rounded-xl border border-slate-200 bg-slate-50 p-3"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 font-bold text-slate-800">{value.base} → {value.target} <span className="text-slate-500">({signal}{value.delta})</span></p></div>
-}
+function formatDateTime(value: string | null): string { if (!value) return '—'; const date = new Date(value); return Number.isNaN(date.getTime()) ? '—' : new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(date) }
+function StatusBadge({ item }: { item: AnalyticsHistoryItem }) { if (item.approved) return <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Revisado e aprovado</span>; if (item.humanReviewStatus === 'rejected') return <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700">Rejeitado</span>; if (item.requiresHumanReview && item.humanReviewStatus === 'pending') return <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">Revisão pendente</span>; return <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">{item.humanReviewStatus === 'in_review' ? 'Em revisão' : item.status}</span> }
+function SummaryMetric({ label, value }: { label: string; value: number }) { return <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">{label}</p><p className="mt-2 text-2xl font-bold text-[#071827]">{value}</p></div> }
+function MetricDelta({ label, value }: { label: string; value: { base: number; target: number; delta: number } }) { const signal = value.delta > 0 ? '+' : ''; return <div className="rounded-xl border border-slate-200 bg-slate-50 p-3"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 font-bold text-slate-800">{value.base} → {value.target} <span className="text-slate-500">({signal}{value.delta})</span></p></div> }
 
 export default function EducationalAnalyticsHistoryPanel() {
-  const [data, setData] = useState<AnalyticsHistoryResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [selected, setSelected] = useState<AnalyticsHistoryItem | null>(null)
-  const [detail, setDetail] = useState<HistoryDetailResponse['detail'] | null>(null)
-  const [detailLoading, setDetailLoading] = useState(false)
-  const [compareBaseId, setCompareBaseId] = useState<string | null>(null)
-  const [comparison, setComparison] = useState<ComparisonResponse['comparison'] | null>(null)
-  const [comparisonLoading, setComparisonLoading] = useState(false)
-  const [actionError, setActionError] = useState<string | null>(null)
-
-  const load = useCallback(async (): Promise<void> => {
-    setLoading(true); setError(null)
-    try {
-      const response = await fetch('/api/agenda/educational-analytics/history?limit=30', { method: 'GET', credentials: 'include', cache: 'no-store', headers: { Accept: 'application/json' } })
-      const body = await response.json() as AnalyticsHistoryResponse
-      if (!response.ok) throw new Error(body.error || 'Não foi possível carregar o histórico analítico.')
-      setData(body)
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Não foi possível carregar o histórico analítico.')
-    } finally { setLoading(false) }
-  }, [])
-
-  useEffect(() => { void load() }, [load])
-  const items = useMemo(() => data?.items ?? [], [data])
-
-  const openDetail = async (item: AnalyticsHistoryItem): Promise<void> => {
-    setSelected(item); setDetail(null); setActionError(null); setDetailLoading(true)
-    try {
-      const response = await fetch(`/api/agenda/educational-analytics/history/${encodeURIComponent(item.id)}`, { credentials: 'include', cache: 'no-store', headers: { Accept: 'application/json' } })
-      const body = await response.json() as HistoryDetailResponse
-      if (!response.ok || !body.detail) throw new Error(body.error || 'Não foi possível carregar o detalhe da execução.')
-      setDetail(body.detail)
-    } catch (detailError) { setActionError(detailError instanceof Error ? detailError.message : 'Não foi possível carregar o detalhe.') }
-    finally { setDetailLoading(false) }
-  }
-
-  const compareWith = async (target: AnalyticsHistoryItem): Promise<void> => {
-    if (!compareBaseId || compareBaseId === target.id) { setCompareBaseId(target.id); setComparison(null); return }
-    setComparisonLoading(true); setActionError(null)
-    try {
-      const params = new URLSearchParams({ baseRunId: compareBaseId, targetRunId: target.id })
-      const response = await fetch(`/api/agenda/educational-analytics/history/compare?${params.toString()}`, { credentials: 'include', cache: 'no-store', headers: { Accept: 'application/json' } })
-      const body = await response.json() as ComparisonResponse
-      if (!response.ok || !body.comparison) throw new Error(body.error || 'Não foi possível comparar as versões.')
-      setComparison(body.comparison)
-      setSelected(target)
-    } catch (compareError) { setActionError(compareError instanceof Error ? compareError.message : 'Não foi possível comparar as versões.') }
-    finally { setComparisonLoading(false) }
-  }
-
+  const [data, setData] = useState<AnalyticsHistoryResponse | null>(null); const [loading, setLoading] = useState(true); const [error, setError] = useState<string | null>(null); const [selected, setSelected] = useState<AnalyticsHistoryItem | null>(null); const [detail, setDetail] = useState<HistoryDetailResponse['detail'] | null>(null); const [detailLoading, setDetailLoading] = useState(false); const [compareBaseId, setCompareBaseId] = useState<string | null>(null); const [comparison, setComparison] = useState<ComparisonResponse['comparison'] | null>(null); const [comparisonLoading, setComparisonLoading] = useState(false); const [actionError, setActionError] = useState<string | null>(null); const [reviewStatus, setReviewStatus] = useState<ReviewStatus>('in_review'); const [reviewNote, setReviewNote] = useState(''); const [reviewLoading, setReviewLoading] = useState(false); const [reviewMessage, setReviewMessage] = useState<string | null>(null)
+  const load = useCallback(async (): Promise<void> => { setLoading(true); setError(null); try { const response = await fetch('/api/agenda/educational-analytics/history?limit=30', { credentials: 'include', cache: 'no-store', headers: { Accept: 'application/json' } }); const body = await response.json() as AnalyticsHistoryResponse; if (!response.ok) throw new Error(body.error || 'Não foi possível carregar o histórico analítico.'); setData(body) } catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível carregar o histórico analítico.') } finally { setLoading(false) } }, [])
+  useEffect(() => { void load() }, [load]); const items = useMemo(() => data?.items ?? [], [data])
+  const openDetail = async (item: AnalyticsHistoryItem): Promise<void> => { setSelected(item); setDetail(null); setActionError(null); setReviewMessage(null); setReviewStatus((item.humanReviewStatus as ReviewStatus) || 'in_review'); setDetailLoading(true); try { const response = await fetch(`/api/agenda/educational-analytics/history/${encodeURIComponent(item.id)}`, { credentials: 'include', cache: 'no-store', headers: { Accept: 'application/json' } }); const body = await response.json() as HistoryDetailResponse; if (!response.ok || !body.detail) throw new Error(body.error || 'Não foi possível carregar o detalhe da execução.'); setDetail(body.detail) } catch (e) { setActionError(e instanceof Error ? e.message : 'Não foi possível carregar o detalhe.') } finally { setDetailLoading(false) } }
+  const compareWith = async (target: AnalyticsHistoryItem): Promise<void> => { if (!compareBaseId || compareBaseId === target.id) { setCompareBaseId(target.id); setComparison(null); return }; setComparisonLoading(true); setActionError(null); try { const params = new URLSearchParams({ baseRunId: compareBaseId, targetRunId: target.id }); const response = await fetch(`/api/agenda/educational-analytics/history/compare?${params.toString()}`, { credentials: 'include', cache: 'no-store', headers: { Accept: 'application/json' } }); const body = await response.json() as ComparisonResponse; if (!response.ok || !body.comparison) throw new Error(body.error || 'Não foi possível comparar as versões.'); setComparison(body.comparison); setSelected(target) } catch (e) { setActionError(e instanceof Error ? e.message : 'Não foi possível comparar as versões.') } finally { setComparisonLoading(false) } }
+  const submitReview = async (): Promise<void> => { if (!selected) return; setReviewLoading(true); setActionError(null); setReviewMessage(null); try { const approved = reviewStatus === 'approved' || reviewStatus === 'approved_with_changes'; const response = await fetch(`/api/agenda/educational-analytics/history/${encodeURIComponent(selected.id)}/review`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ status: reviewStatus, approved, note: reviewNote }) }); const body = await response.json() as ReviewResponse; if (!response.ok || !body.review) throw new Error(body.error || 'Não foi possível registrar a revisão.'); setReviewMessage('Decisão humana registrada e vinculada à execução analítica.'); setReviewNote(''); await load(); setSelected(current => current ? { ...current, humanReviewStatus: body.review!.status, approved: body.review!.approved, reviewedAt: body.review!.reviewedAt } : current) } catch (e) { setActionError(e instanceof Error ? e.message : 'Não foi possível registrar a revisão.') } finally { setReviewLoading(false) } }
   if (loading) return <section className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm"><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">EIOS · Histórico longitudinal</p><h2 className="mt-2 text-xl font-bold text-[#071827]">Carregando versões analíticas</h2></section>
   if (error) return <section className="rounded-[1.75rem] border border-amber-200 bg-white p-6 shadow-sm"><p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">EIOS · Histórico longitudinal</p><h2 className="mt-2 text-xl font-bold text-[#071827]">Histórico indisponível</h2><p className="mt-2 text-sm text-slate-600">{error}</p><button type="button" onClick={() => void load()} className="mt-4 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Tentar novamente</button></section>
-
-  return <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
-    <header className="border-b border-slate-200 px-5 py-6 sm:px-7"><div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">EIOS · Histórico longitudinal</p><h2 className="mt-2 text-2xl font-bold text-[#071827]">Linha do tempo analítica</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Acompanhe versões persistidas, revisões humanas e compare a evolução dos sinais produzidos pelo Educational Analytics.</p></div><button type="button" onClick={() => void load()} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Atualizar histórico</button></div></header>
-    <div className="space-y-6 p-5 sm:p-7">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><SummaryMetric label="Execuções" value={data?.summary.total ?? 0}/><SummaryMetric label="Versões atuais" value={data?.summary.current ?? 0}/><SummaryMetric label="Revisões pendentes" value={data?.summary.pendingReview ?? 0}/><SummaryMetric label="Aprovadas" value={data?.summary.approved ?? 0}/></div>
-      {actionError ? <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{actionError}</div> : null}
-      {compareBaseId ? <div className="rounded-xl border border-[#0B7491]/20 bg-slate-50 p-4 text-sm text-slate-700">Base de comparação selecionada. Escolha outra execução para comparar ou <button type="button" onClick={() => { setCompareBaseId(null); setComparison(null) }} className="font-bold text-[#0B7491]">cancelar</button>.</div> : null}
-      {items.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">Ainda não há execuções persistidas para exibir.</div> : <div className="space-y-3">{items.map(item => <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div><div className="flex flex-wrap items-center gap-2"><span className="text-xs font-bold uppercase tracking-[0.12em] text-[#0B7491]">Versão {item.versionNumber}</span>{item.isCurrentVersion ? <span className="rounded-full bg-[#071827] px-2.5 py-1 text-[11px] font-bold text-white">Atual</span> : null}<StatusBadge item={item}/></div><h3 className="mt-2 font-bold text-[#071827]">{item.title}</h3><p className="mt-1 text-xs text-slate-500">Gerada em {formatDateTime(item.generatedAt)} · escopo {item.scope}</p></div><div className="grid grid-cols-2 gap-x-5 gap-y-2 text-xs sm:grid-cols-4"><div><p className="text-slate-500">Correlações</p><p className="mt-1 font-bold text-slate-800">{item.correlationCount}</p></div><div><p className="text-slate-500">Padrões</p><p className="mt-1 font-bold text-slate-800">{item.patternCount}</p></div><div><p className="text-slate-500">Anomalias</p><p className="mt-1 font-bold text-slate-800">{item.anomalyCount}</p></div><div><p className="text-slate-500">Recomendações</p><p className="mt-1 font-bold text-slate-800">{item.recommendationCount}</p></div></div></div><div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">{item.reportAvailable ? <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">Relatório disponível</span> : null}{item.warningsCount > 0 ? <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-700">{item.warningsCount} aviso(s)</span> : null}{item.errorsCount > 0 ? <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-rose-700">{item.errorsCount} erro(s)</span> : null}</div><div className="mt-4 flex flex-wrap gap-2"><button type="button" onClick={() => void openDetail(item)} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Ver detalhe</button><button type="button" onClick={() => void compareWith(item)} disabled={comparisonLoading} className="rounded-xl border border-[#0B7491] px-4 py-2 text-sm font-semibold text-[#0B7491] disabled:opacity-50">{compareBaseId === item.id ? 'Selecionada para comparar' : compareBaseId ? 'Comparar com esta versão' : 'Selecionar para comparação'}</button></div></article>)}</div>}
-      {(selected || detailLoading || comparison) ? <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.12em] text-[#0B7491]">EIOS · Inspeção histórica</p><h3 className="mt-1 text-lg font-bold text-[#071827]">{selected?.title ?? 'Carregando detalhe'}</h3></div><button type="button" onClick={() => { setSelected(null); setDetail(null); setComparison(null) }} className="text-sm font-semibold text-slate-500">Fechar</button></div>{detailLoading ? <p className="mt-4 text-sm text-slate-600">Carregando dados persistidos…</p> : null}{detail ? <div className="mt-4 grid gap-3 sm:grid-cols-2"><div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs font-bold uppercase text-slate-500">Execução</p><p className="mt-2 break-all font-mono text-xs text-slate-700">{selected?.id}</p></div><div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs font-bold uppercase text-slate-500">Proveniência disponível</p><p className="mt-2 text-sm text-slate-700">Payload analítico e relatório preservados para auditoria e interpretação humana.</p></div></div> : null}{comparison ? <div className="mt-5"><p className="text-sm font-bold text-[#071827]">Comparação entre versões {comparison.sameAnalysisKey ? 'da mesma análise' : 'de análises diferentes'}</p><div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{Object.entries(comparison.counts).map(([key, value]) => <MetricDelta key={key} label={key} value={value}/>)}</div>{comparison.warnings.length ? <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{comparison.warnings.map(warning => <p key={warning}>{warning}</p>)}</div> : null}</div> : null}</section> : null}
-    </div>
-  </section>
+  return <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm"><header className="border-b border-slate-200 px-5 py-6 sm:px-7"><div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0B7491]">EIOS · Histórico longitudinal</p><h2 className="mt-2 text-2xl font-bold text-[#071827]">Linha do tempo analítica</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Acompanhe versões persistidas, revisões humanas e compare a evolução dos sinais produzidos pelo Educational Analytics.</p></div><button type="button" onClick={() => void load()} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Atualizar histórico</button></div></header><div className="space-y-6 p-5 sm:p-7"><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><SummaryMetric label="Execuções" value={data?.summary.total ?? 0}/><SummaryMetric label="Versões atuais" value={data?.summary.current ?? 0}/><SummaryMetric label="Revisões pendentes" value={data?.summary.pendingReview ?? 0}/><SummaryMetric label="Aprovadas" value={data?.summary.approved ?? 0}/></div>{actionError ? <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{actionError}</div> : null}{compareBaseId ? <div className="rounded-xl border border-[#0B7491]/20 bg-slate-50 p-4 text-sm text-slate-700">Base de comparação selecionada. Escolha outra execução para comparar ou <button type="button" onClick={() => { setCompareBaseId(null); setComparison(null) }} className="font-bold text-[#0B7491]">cancelar</button>.</div> : null}{items.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">Ainda não há execuções persistidas para exibir.</div> : <div className="space-y-3">{items.map(item => <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div><div className="flex flex-wrap items-center gap-2"><span className="text-xs font-bold uppercase tracking-[0.12em] text-[#0B7491]">Versão {item.versionNumber}</span>{item.isCurrentVersion ? <span className="rounded-full bg-[#071827] px-2.5 py-1 text-[11px] font-bold text-white">Atual</span> : null}<StatusBadge item={item}/></div><h3 className="mt-2 font-bold text-[#071827]">{item.title}</h3><p className="mt-1 text-xs text-slate-500">Gerada em {formatDateTime(item.generatedAt)} · escopo {item.scope}</p></div><div className="grid grid-cols-2 gap-x-5 gap-y-2 text-xs sm:grid-cols-4"><div><p className="text-slate-500">Correlações</p><p className="mt-1 font-bold text-slate-800">{item.correlationCount}</p></div><div><p className="text-slate-500">Padrões</p><p className="mt-1 font-bold text-slate-800">{item.patternCount}</p></div><div><p className="text-slate-500">Anomalias</p><p className="mt-1 font-bold text-slate-800">{item.anomalyCount}</p></div><div><p className="text-slate-500">Recomendações</p><p className="mt-1 font-bold text-slate-800">{item.recommendationCount}</p></div></div></div><div className="mt-4 flex flex-wrap gap-2"><button type="button" onClick={() => void openDetail(item)} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Ver detalhe e revisar</button><button type="button" onClick={() => void compareWith(item)} disabled={comparisonLoading} className="rounded-xl border border-[#0B7491] px-4 py-2 text-sm font-semibold text-[#0B7491] disabled:opacity-50">{compareBaseId === item.id ? 'Selecionada para comparar' : compareBaseId ? 'Comparar com esta versão' : 'Selecionar para comparação'}</button></div></article>)}</div>}{(selected || detailLoading || comparison) ? <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.12em] text-[#0B7491]">EIOS · Inspeção e governança</p><h3 className="mt-1 text-lg font-bold text-[#071827]">{selected?.title ?? 'Carregando detalhe'}</h3></div><button type="button" onClick={() => { setSelected(null); setDetail(null); setComparison(null); setReviewMessage(null) }} className="text-sm font-semibold text-slate-500">Fechar</button></div>{detailLoading ? <p className="mt-4 text-sm text-slate-600">Carregando dados persistidos…</p> : null}{detail ? <div className="mt-4 grid gap-3 sm:grid-cols-2"><div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs font-bold uppercase text-slate-500">Execução</p><p className="mt-2 break-all font-mono text-xs text-slate-700">{selected?.id}</p></div><div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs font-bold uppercase text-slate-500">Proveniência disponível</p><p className="mt-2 text-sm text-slate-700">Payload analítico e relatório preservados para auditoria e interpretação humana.</p></div></div> : null}{selected ? <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5"><div><p className="text-xs font-bold uppercase tracking-[0.12em] text-[#0B7491]">Revisão humana</p><p className="mt-1 text-sm text-slate-600">A inteligência analítica não decide sozinha. Registre a interpretação e a decisão do responsável.</p></div><div className="mt-4 grid gap-3 md:grid-cols-2"><label className="text-sm font-semibold text-slate-700">Decisão<select value={reviewStatus} onChange={event => setReviewStatus(event.target.value as ReviewStatus)} className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="in_review">Em revisão</option><option value="approved">Aprovar</option><option value="approved_with_changes">Aprovar com ressalvas</option><option value="rejected">Rejeitar</option></select></label><label className="text-sm font-semibold text-slate-700">Justificativa<textarea value={reviewNote} onChange={event => setReviewNote(event.target.value)} maxLength={4000} rows={4} placeholder="Registre o fundamento da decisão, limites e próximos encaminhamentos." className="mt-2 block w-full resize-y rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal"/></label></div><div className="mt-4 flex flex-wrap items-center gap-3"><button type="button" onClick={() => void submitReview()} disabled={reviewLoading} className="rounded-xl bg-[#071827] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{reviewLoading ? 'Registrando decisão…' : 'Registrar decisão humana'}</button>{selected.reviewedAt ? <span className="text-xs text-slate-500">Última revisão: {formatDateTime(selected.reviewedAt)}</span> : null}</div>{reviewMessage ? <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{reviewMessage}</div> : null}</div> : null}{comparison ? <div className="mt-5"><p className="text-sm font-bold text-[#071827]">Comparação entre versões {comparison.sameAnalysisKey ? 'da mesma análise' : 'de análises diferentes'}</p><div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{Object.entries(comparison.counts).map(([key, value]) => <MetricDelta key={key} label={key} value={value}/>)}</div>{comparison.warnings.length ? <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{comparison.warnings.map(warning => <p key={warning}>{warning}</p>)}</div> : null}</div> : null}</section> : null}</div></section>
 }
