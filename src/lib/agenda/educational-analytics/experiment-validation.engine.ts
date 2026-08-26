@@ -1,6 +1,7 @@
 export type ExperimentGoal = 'regression' | 'classification' | 'forecasting'
 export type ValidationStrategy = 'random_holdout' | 'stratified_holdout' | 'temporal_holdout'
 export type ValidationSeverity = 'info' | 'warning' | 'blocker'
+export type ExperimentReadinessStatus = 'ready' | 'caution' | 'not_ready' | 'not-ready'
 
 export interface ExperimentValidationInput {
   goal: ExperimentGoal
@@ -8,7 +9,7 @@ export interface ExperimentValidationInput {
   targetKey: string | null
   featureKeys: string[]
   temporalCoverage: number
-  readinessStatus: 'ready' | 'caution' | 'not_ready'
+  readinessStatus: ExperimentReadinessStatus
 }
 
 export interface ValidationFinding {
@@ -43,7 +44,7 @@ export function validateExperiment(input: ExperimentValidationInput): Experiment
     findings.push({ code: 'target_leakage', severity: 'blocker', title: 'Possível vazamento direto', message: 'A variável-alvo não pode ser usada simultaneamente como feature do experimento.' })
   }
 
-  if (input.readinessStatus === 'not_ready') {
+  if (input.readinessStatus === 'not_ready' || input.readinessStatus === 'not-ready') {
     findings.push({ code: 'readiness_blocked', severity: 'blocker', title: 'Dados ainda não estão prontos', message: 'Revise qualidade, completude e variabilidade antes de configurar a validação.' })
   }
 
