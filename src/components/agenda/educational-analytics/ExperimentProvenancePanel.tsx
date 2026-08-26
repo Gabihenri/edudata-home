@@ -15,6 +15,16 @@ type Props = {
   metrics?: Record<string, number>
 }
 
+function formatDatasetVersion(value: unknown): string {
+  if (typeof value === 'string' || typeof value === 'number') return String(value)
+  if (value && typeof value === 'object') {
+    const candidate = value as Record<string, unknown>
+    const version = candidate.version ?? candidate.id ?? candidate.label
+    if (typeof version === 'string' || typeof version === 'number') return String(version)
+  }
+  return 'Dataset atual'
+}
+
 export default function ExperimentProvenancePanel({
   experimentType = 'Regressão linear',
   targetVariable = 'Não definido',
@@ -36,7 +46,7 @@ export default function ExperimentProvenancePanel({
     metrics,
   }), [experimentType, featureVariable, metrics, observationCount, targetVariable, testCount, trainCount])
 
-  const datasetVersion = data?.metadata?.generatedAt ?? 'Dataset atual'
+  const datasetVersion = formatDatasetVersion(data?.metadata?.generatedAt)
 
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
