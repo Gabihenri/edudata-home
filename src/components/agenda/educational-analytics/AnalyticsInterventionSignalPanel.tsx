@@ -43,12 +43,48 @@ export default function AnalyticsInterventionSignalPanel(props: AnalyticsInterve
   const [decision, setDecision] = useState<DecisionStatus>('under_review')
   const [justification, setJustification] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const selectedDecision = DECISIONS.find(item => item.value === decision) ?? DECISIONS[0]
-  const canDecide = usingRealData && (decision === 'under_review' || justification.trim().length >= 12)
+  const canDecide = usingRealData && !saving && (decision === 'under_review' || justification.trim().length >= 12)
+  const signalId = `analytics:${variableLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`
 
-  function registerDecision() {
+  async function registerDecision() {
     if (!canDecide) return
-    setSubmitted(true)
+    setSaving(true)
+    setSubmitted(false)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/agenda/educational-analytics/decisions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          signalId,
+          status: decision,
+          justification: justification.trim() || undefined,
+          evidenceSnapshot: {
+            variableLabel,
+            observations,
+            mean,
+            trend,
+            variationPercent,
+            outlierCount,
+            signalLabel: signal.label,
+            usingRealData,
+          },
+        }),
+      })
+
+      const payload = await response.json() as { success?: boolean; error?: string }
+      if (!response.ok || !payload.success) throw new Error(payload.error || 'Não foi possível registrar a decisão.')
+
+      setSubmitted(true)
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Não foi possível registrar a decisão.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -65,11 +101,12 @@ export default function AnalyticsInterventionSignalPanel(props: AnalyticsInterve
       <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5">
         <p className="text-sm font-bold text-slate-900">Decisão humana rastreável</p>
         <p className="mt-1 text-sm leading-6 text-slate-600">Selecione o desfecho para este sinal. Encaminhamentos e arquivamentos exigem uma justificativa para impedir decisões automáticas ou sem contexto.</p>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">{DECISIONS.map(item => <button key={item.value} type="button" onClick={() => { setDecision(item.value); setSubmitted(false) }} disabled={!usingRealData} className={`rounded-2xl border p-4 text-left transition ${decision === item.value ? 'border-[#0B7491] bg-cyan-50' : 'border-slate-200 hover:border-slate-300'} disabled:cursor-not-allowed disabled:opacity-50`}><p className="text-sm font-bold text-slate-900">{item.label}</p><p className="mt-1 text-xs leading-5 text-slate-600">{item.description}</p></button>)}</div>
-        <label className="mt-4 block"><span className="text-xs font-bold uppercase tracking-wider text-slate-500">Justificativa da decisão</span><textarea value={justification} onChange={event => { setJustification(event.target.value); setSubmitted(false) }} disabled={!usingRealData} rows={4} placeholder="Registre o contexto, as evidências consideradas e o fundamento da decisão…" className="mt-2 w-full rounded-xl border border-slate-300 p-3 text-sm outline-none focus:border-[#0B7491] disabled:cursor-not-allowed disabled:bg-slate-100" /></label>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">{DECISIONS.map(item => <button key={item.value} type="button" onClick={() => { setDecision(item.value); setSubmitted(false); setError(null) }} disabled={!usingRealData || saving} className={`rounded-2xl border p-4 text-left transition ${decision === item.value ? 'border-[#0B7491] bg-cyan-50' : 'border-slate-200 hover:border-slate-300'} disabled:cursor-not-allowed disabled:opacity-50`}><p className="text-sm font-bold text-slate-900">{item.label}</p><p className="mt-1 text-xs leading-5 text-slate-600">{item.description}</p></button>)}</div>
+        <label className="mt-4 block"><span className="text-xs font-bold uppercase tracking-wider text-slate-500">Justificativa da decisão</span><textarea value={justification} onChange={event => { setJustification(event.target.value); setSubmitted(false); setError(null) }} disabled={!usingRealData || saving} rows={4} placeholder="Registre o contexto, as evidências consideradas e o fundamento da decisão…" className="mt-2 w-full rounded-xl border border-slate-300 p-3 text-sm outline-none focus:border-[#0B7491] disabled:cursor-not-allowed disabled:bg-slate-100" /></label>
         {!usingRealData ? <p className="mt-3 text-xs font-medium text-amber-700">A decisão permanece desabilitada enquanto o painel estiver em modo demonstração.</p> : null}
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs text-slate-500">Status selecionado: <strong>{selectedDecision.label}</strong>{decision !== 'under_review' ? ' · justificativa obrigatória' : ''}</p><button type="button" onClick={registerDecision} disabled={!canDecide} className="rounded-xl bg-[#081C2E] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">Registrar decisão</button></div>
-        {submitted ? <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">Decisão registrada nesta sessão de revisão. O próximo passo é persistir este registro no histórico auditável e vincular eventuais encaminhamentos ao fluxo oficial de intervenção.</div> : null}
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs text-slate-500">Status selecionado: <strong>{selectedDecision.label}</strong>{decision !== 'under_review' ? ' · justificativa obrigatória' : ''}</p><button type="button" onClick={registerDecision} disabled={!canDecide} className="rounded-xl bg-[#081C2E] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">{saving ? 'Registrando…' : 'Registrar decisão'}</button></div>
+        {error ? <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
+        {submitted ? <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">Decisão registrada com sucesso no fluxo auditável. O histórico permanece vinculado ao sinal e às evidências utilizadas nesta revisão.</div> : null}
       </div>
     </section>
   )
