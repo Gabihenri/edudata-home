@@ -164,7 +164,7 @@ export default function StatisticalExplorationPanel() {
     return fullData.slice(-size)
   }, [fullData, period])
 
-  const temporalData = useMemo(() => {
+  const temporalData = useMemo<DataRow[]>(() => {
     const average = movingAverage(limitedData.map(item => Number(item[selectedVariable] ?? 0)), window)
     return limitedData.map((item, index) => ({ ...item, movingAverage: average[index] }))
   }, [limitedData, selectedVariable, window])
