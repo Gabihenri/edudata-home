@@ -8,6 +8,7 @@ import EducationalAnalyticsHistoryPanel from '@/components/agenda/educational-an
 import EducationalAnalyticsLongitudinalPanel from '@/components/agenda/educational-analytics/EducationalAnalyticsLongitudinalPanel'
 import EducationalAnalyticsPanel from '@/components/agenda/educational-analytics/EducationalAnalyticsPanel'
 import InstitutionalExportPanel from '@/components/agenda/educational-analytics/InstitutionalExportPanel'
+import ModelExperimentLabPanel from '@/components/agenda/educational-analytics/ModelExperimentLabPanel'
 import ModelReadinessPanel from '@/components/agenda/educational-analytics/ModelReadinessPanel'
 import StatisticalExplorationPanel from '@/components/agenda/educational-analytics/StatisticalExplorationPanel'
 import { requireSessionUser } from '@/lib/auth/session'
@@ -15,7 +16,7 @@ import { requireSessionUser } from '@/lib/auth/session'
 export const metadata: Metadata = {
   title: 'Dashboard | EduData Analytics',
   description:
-    'Ambiente operacional de inteligência educacional, histórico, exploração estatística, prontidão para modelagem, evolução, comparação e relatórios do EduData Analytics.',
+    'Ambiente operacional de inteligência educacional, histórico, exploração estatística, prontidão para modelagem, configuração de experimentos, evolução, comparação e relatórios do EduData Analytics.',
 }
 
 export default async function AnalyticsDashboardPage() {
@@ -38,7 +39,7 @@ export default async function AnalyticsDashboardPage() {
               </div>
               <p className="mt-5 text-xs font-bold uppercase tracking-[0.22em] text-cyan-300">Dados · inteligência · decisão</p>
               <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">EduData Analytics</h1>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base sm:leading-7">Ambiente operacional para análise educacional, exploração estatística, avaliação de prontidão para modelagem, histórico longitudinal, comparação de versões e relatórios institucionais explicáveis.</p>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base sm:leading-7">Ambiente operacional para análise educacional, exploração estatística, preparação responsável de modelos, histórico longitudinal, comparação de versões e relatórios institucionais explicáveis.</p>
             </div>
             <nav className="flex flex-wrap gap-3" aria-label="Navegação do EduData Analytics">
               <Link href="/analytics" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/20 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10">Sobre o produto</Link>
@@ -59,6 +60,7 @@ export default async function AnalyticsDashboardPage() {
         <EducationalAnalyticsPanel />
         <StatisticalExplorationPanel />
         <ModelReadinessPanel />
+        <ModelExperimentLabPanel />
         <EducationalAnalyticsHistoryPanel />
         <EducationalAnalyticsComparisonPanel />
         <EducationalAnalyticsEvolutionPanel />
