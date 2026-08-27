@@ -5,6 +5,11 @@ import { usePathname } from 'next/navigation'
 
 const items = [
   {
+    label: 'Turmas',
+    shortLabel: 'Turmas',
+    href: '/agenda/turmas',
+  },
+  {
     label: 'Diário de Classe',
     shortLabel: 'Diário',
     href: '/agenda/diario-classe',
@@ -76,7 +81,7 @@ export function AgendaSecondaryNavigation() {
 
         <nav
           aria-label="Ferramentas pedagógicas da Agenda"
-          className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8"
+          className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5"
         >
           {items.map(item => {
             const active = isActive(pathname, item)
