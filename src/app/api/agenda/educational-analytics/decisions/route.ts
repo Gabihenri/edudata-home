@@ -5,10 +5,7 @@ import { analyticsHumanDecisionsRepository } from '@/lib/agenda/repository/analy
 import { mapAnalyticsDecisionToPedagogicalInterventionInput } from '@/lib/agenda/educational-analytics/analytics-intervention-input.mapper'
 import { generatePedagogicalInterventionService } from '@/lib/agenda/evidence-intelligence/pedagogical-intervention.service'
 import { createPedagogicalInterventionPersistenceService } from '@/lib/agenda/evidence-intelligence/pedagogical-intervention.persistence.service'
-import type {
-  AnalyticsHumanDecisionInput,
-  AnalyticsHumanDecisionStatus,
-} from '@/lib/agenda/educational-analytics/analytics-human-decision.types'
+import type { AnalyticsHumanDecisionInput, AnalyticsHumanDecisionStatus } from '@/lib/agenda/educational-analytics/analytics-human-decision.types'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -54,19 +51,20 @@ export async function POST(request: NextRequest) {
     if (sessionError || !sessionData.user || sessionData.user.id !== user.id) throw new Error('Usuário não autenticado.')
 
     const decision = await analyticsHumanDecisionsRepository.create(input, user.id)
-
-    if (decision.status !== 'forwarded') {
-      return NextResponse.json({ success: true, decision, intervention: null }, { status: 201, headers: NO_CACHE_HEADERS })
-    }
+    if (decision.status !== 'forwarded') return NextResponse.json({ success: true, decision, intervention: null }, { status: 201, headers: NO_CACHE_HEADERS })
 
     const generationInput = mapAnalyticsDecisionToPedagogicalInterventionInput({
       decision,
       requestedByUserId: user.id,
       privacy: {
-        classification: 'institutional',
         containsPersonalData: false,
         containsSensitiveData: false,
-        anonymizationRequired: true,
+        containsMinorData: false,
+        sensitivity: 'internal',
+        anonymized: true,
+        pseudonymized: false,
+        aggregated: true,
+        legalBasis: 'not_applicable',
         accessRestrictions: ['Uso institucional autorizado e revisão humana obrigatória.'],
         prohibitedUses: ['Decisão automatizada sobre estudantes ou profissionais.'],
         notes: 'Encaminhamento originado por sinal agregado da EduData Analytics.',
