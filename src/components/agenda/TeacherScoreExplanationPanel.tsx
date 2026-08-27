@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+
 type ScoreDimension = {
   label: string
   score: number
@@ -9,6 +11,12 @@ type ScoreDimension = {
 type TeacherScoreExplanationPanelProps = {
   overallScore: number
   dimensions: ScoreDimension[]
+}
+
+type DimensionAction = {
+  href: string
+  label: string
+  explanation: string
 }
 
 function clamp(value: number): number {
@@ -28,13 +36,26 @@ function getStatus(score: number): { label: string; className: string } {
   return { label: 'Prioridade', className: 'border-red-200 bg-red-50 text-red-800' }
 }
 
-function getNextStep(dimensions: ScoreDimension[]): string {
+function getDimensionAction(label: string): DimensionAction {
+  const normalized = label.toLocaleLowerCase('pt-BR')
+  if (normalized.includes('planejamento')) return { href: '/agenda/planejamento', label: 'Abrir planejamento', explanation: 'Revise os planejamentos e complete os registros que ainda estão pendentes.' }
+  if (normalized.includes('evid')) return { href: '/agenda/evidencias', label: 'Abrir evidências', explanation: 'Registre evidências contextualizadas para ampliar a cobertura do ciclo.' }
+  if (normalized.includes('tarefa')) return { href: '/agenda/tarefas', label: 'Abrir tarefas', explanation: 'Revise prioridades, prazos e pendências que ainda exigem acompanhamento.' }
+  if (normalized.includes('carga') || normalized.includes('agenda') || normalized.includes('calend')) return { href: '/agenda/calendario', label: 'Abrir calendário', explanation: 'Revise a distribuição da rotina e identifique concentrações ou lacunas.' }
+  return { href: '/agenda/dashboard', label: 'Abrir painel', explanation: 'Consulte os registros relacionados e escolha a próxima ação prioritária.' }
+}
+
+function getScoreReading(score: number): string {
+  if (score >= 80) return 'O ciclo apresenta uma condição operacional favorável nesta leitura.'
+  if (score >= 50) return 'Há registros consolidados, mas ainda existem pontos que merecem acompanhamento.'
+  return 'A leitura indica uma prioridade operacional que merece atenção no próximo ciclo de trabalho.'
+}
+
+function getNextStep(dimensions: ScoreDimension[]): { text: string; action: DimensionAction } {
   const lowest = [...dimensions].sort((a, b) => a.score - b.score)[0]
-
-  if (!lowest) return 'Continue acompanhando os registros do ciclo operacional.'
-  if (clamp(lowest.score) >= 80) return 'Mantenha o acompanhamento do ciclo e preserve os registros atualizados.'
-
-  return `Priorize ${lowest.label}: ${lowest.description}`
+  if (!lowest) return { text: 'Continue acompanhando os registros do ciclo operacional.', action: getDimensionAction('dashboard') }
+  if (clamp(lowest.score) >= 80) return { text: 'Mantenha o acompanhamento do ciclo e preserve os registros atualizados.', action: getDimensionAction('dashboard') }
+  return { text: `Priorize ${lowest.label}: ${lowest.description}`, action: getDimensionAction(lowest.label) }
 }
 
 export function TeacherScoreExplanationPanel({ overallScore, dimensions }: TeacherScoreExplanationPanelProps) {
@@ -43,6 +64,7 @@ export function TeacherScoreExplanationPanel({ overallScore, dimensions }: Teach
   const positive = ordered.filter(item => clamp(item.score) >= 80)
   const attention = ordered.filter(item => clamp(item.score) >= 50 && clamp(item.score) < 80)
   const safeOverallScore = clamp(overallScore)
+  const nextStep = getNextStep(dimensions)
 
   return (
     <section aria-label="Explicação do E-Score" className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
@@ -55,57 +77,29 @@ export function TeacherScoreExplanationPanel({ overallScore, dimensions }: Teach
         <div className="min-w-[160px] rounded-2xl border border-[#0B7491]/20 bg-cyan-50 px-5 py-4">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#075F78]">Resultado atual</p>
           <p className="mt-1 text-4xl font-bold tracking-tight text-[#071827]">{safeOverallScore}%</p>
-          <p className="mt-1 text-xs leading-5 text-slate-600">Síntese do ciclo analisado</p>
+          <p className="mt-1 text-xs leading-5 text-slate-600">{getScoreReading(safeOverallScore)}</p>
         </div>
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
-        <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#075F78]">1. Dados considerados</p>
-          <p className="mt-3 text-sm leading-6 text-slate-700">O resultado utiliza as dimensões disponíveis do ciclo operacional, como planejamento, evidências, tarefas e organização da agenda.</p>
-        </article>
-        <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#075F78]">2. Leitura por dimensão</p>
-          <p className="mt-3 text-sm leading-6 text-slate-700">Cada dimensão é analisada separadamente para evitar que um resultado positivo esconda uma pendência importante em outra área.</p>
-        </article>
-        <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#075F78]">3. Próxima ação</p>
-          <p className="mt-3 text-sm leading-6 text-slate-700">A dimensão que mais precisa de atenção é destacada para ajudar você a transformar dados em uma ação prática.</p>
-        </article>
+        <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#075F78]">1. Dados considerados</p><p className="mt-3 text-sm leading-6 text-slate-700">O resultado utiliza as dimensões disponíveis do ciclo operacional, como planejamento, evidências, tarefas e organização da agenda.</p></article>
+        <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#075F78]">2. Leitura por dimensão</p><p className="mt-3 text-sm leading-6 text-slate-700">Cada dimensão é analisada separadamente para evitar que um resultado positivo esconda uma pendência importante em outra área.</p></article>
+        <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#075F78]">3. Próxima ação</p><p className="mt-3 text-sm leading-6 text-slate-700">A dimensão que mais precisa de atenção é destacada e conectada diretamente à ação correspondente na Agenda.</p></article>
       </div>
 
       <div className="mt-6">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Como o resultado está distribuído</p><h4 className="mt-1 text-lg font-bold text-[#071827]">Veja cada dimensão separadamente</h4></div>
-          <p className="text-sm text-slate-500">Atualização depende dos registros e do próximo processamento.</p>
-        </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          {ordered.map(item => {
-            const score = clamp(item.score)
-            const status = getStatus(score)
-            return <article key={item.label} className="rounded-2xl border border-slate-200 bg-white p-4"><div className="flex items-start justify-between gap-3"><p className="text-sm font-bold text-slate-900">{item.label}</p><span className={`rounded-full border px-2 py-1 text-[11px] font-bold ${status.className}`}>{status.label}</span></div><p className="mt-5 text-3xl font-bold tracking-tight text-[#071827]">{score}%</p><div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-cyan-600" style={{ width: `${score}%` }} /></div><p className="mt-3 text-xs leading-5 text-slate-600">{item.description}</p></article>
-          })}
-        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Como o resultado está distribuído</p><h4 className="mt-1 text-lg font-bold text-[#071827]">Veja cada dimensão separadamente</h4></div><p className="text-sm text-slate-500">Atualização depende dos registros e do próximo processamento.</p></div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">{ordered.map(item => { const score = clamp(item.score); const status = getStatus(score); const action = getDimensionAction(item.label); return <article key={item.label} className="rounded-2xl border border-slate-200 bg-white p-4"><div className="flex items-start justify-between gap-3"><p className="text-sm font-bold text-slate-900">{item.label}</p><span className={`rounded-full border px-2 py-1 text-[11px] font-bold ${status.className}`}>{status.label}</span></div><p className="mt-5 text-3xl font-bold tracking-tight text-[#071827]">{score}%</p><div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-cyan-600" style={{ width: `${score}%` }} /></div><p className="mt-3 text-xs leading-5 text-slate-600">{item.description}</p><p className="mt-2 text-xs font-medium leading-5 text-slate-500">{getImpactLabel(score)}</p><Link href={action.href} className="mt-4 inline-flex min-h-10 items-center text-sm font-bold text-cyan-800 transition hover:text-cyan-950">{action.label}</Link></article> })}</div>
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <article className="rounded-2xl border border-red-200 bg-red-50 p-4">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-red-700">O que está reduzindo o score</p>
-          {critical.length === 0 ? <p className="mt-3 text-sm leading-6 text-red-800">Nenhuma dimensão crítica foi identificada neste momento.</p> : <ul className="mt-3 space-y-3">{critical.map(item => <li key={item.label} className="rounded-xl border border-red-100 bg-white p-3"><div className="flex items-center justify-between gap-3"><span className="font-semibold text-slate-900">{item.label}</span><span className="font-bold text-red-700">{clamp(item.score)}%</span></div><p className="mt-1 text-sm leading-5 text-slate-600">{item.description} {getImpactLabel(item.score)}</p></li>)}</ul>}
-        </article>
-        <article className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">O que está funcionando bem</p>
-          {positive.length === 0 ? <p className="mt-3 text-sm leading-6 text-emerald-800">Ainda não há uma dimensão com contribuição operacional forte.</p> : <ul className="mt-3 space-y-3">{positive.map(item => <li key={item.label} className="rounded-xl border border-emerald-100 bg-white p-3"><div className="flex items-center justify-between gap-3"><span className="font-semibold text-slate-900">{item.label}</span><span className="font-bold text-emerald-700">{clamp(item.score)}%</span></div><p className="mt-1 text-sm leading-5 text-slate-600">{item.description} {getImpactLabel(item.score)}</p></li>)}</ul>}
-        </article>
+        <article className="rounded-2xl border border-red-200 bg-red-50 p-4"><p className="text-xs font-bold uppercase tracking-[0.14em] text-red-700">O que está reduzindo o score</p>{critical.length === 0 ? <p className="mt-3 text-sm leading-6 text-red-800">Nenhuma dimensão crítica foi identificada neste momento.</p> : <ul className="mt-3 space-y-3">{critical.map(item => { const action = getDimensionAction(item.label); return <li key={item.label} className="rounded-xl border border-red-100 bg-white p-3"><div className="flex items-center justify-between gap-3"><span className="font-semibold text-slate-900">{item.label}</span><span className="font-bold text-red-700">{clamp(item.score)}%</span></div><p className="mt-1 text-sm leading-5 text-slate-600">{item.description} {getImpactLabel(item.score)}</p><Link href={action.href} className="mt-3 inline-flex text-sm font-bold text-red-700 hover:text-red-900">{action.label}</Link></li> })}</ul>}</article>
+        <article className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><p className="text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">O que está funcionando bem</p>{positive.length === 0 ? <p className="mt-3 text-sm leading-6 text-emerald-800">Ainda não há uma dimensão com contribuição operacional forte.</p> : <ul className="mt-3 space-y-3">{positive.map(item => <li key={item.label} className="rounded-xl border border-emerald-100 bg-white p-3"><div className="flex items-center justify-between gap-3"><span className="font-semibold text-slate-900">{item.label}</span><span className="font-bold text-emerald-700">{clamp(item.score)}%</span></div><p className="mt-1 text-sm leading-5 text-slate-600">{item.description} {getImpactLabel(item.score)}</p></li>)}</ul>}</article>
       </div>
 
       {attention.length > 0 ? <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-bold text-amber-900">Áreas que ainda exigem acompanhamento</p><p className="mt-1 text-sm leading-6 text-amber-800">{attention.map(item => `${item.label} (${clamp(item.score)}%)`).join(' · ')}</p></div> : null}
 
-      <div className="mt-4 rounded-2xl border border-cyan-200 bg-cyan-50 p-5">
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#075F78]">O que fazer agora</p>
-        <p className="mt-2 text-base font-bold text-[#071827]">{getNextStep(dimensions)}</p>
-        <p className="mt-2 text-sm leading-6 text-slate-600">As mudanças não alteram o resultado manualmente: elas passam a ser refletidas quando novos registros forem processados, preservando rastreabilidade e governança.</p>
-      </div>
+      <div className="mt-4 rounded-2xl border border-cyan-200 bg-cyan-50 p-5"><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#075F78]">O que fazer agora</p><p className="mt-2 text-base font-bold text-[#071827]">{nextStep.text}</p><p className="mt-2 text-sm leading-6 text-slate-600">{nextStep.action.explanation} As mudanças não alteram o resultado manualmente: elas passam a ser refletidas quando novos registros forem processados, preservando rastreabilidade e governança.</p><Link href={nextStep.action.href} className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl bg-cyan-700 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-cyan-800">{nextStep.action.label}</Link></div>
     </section>
   )
 }
