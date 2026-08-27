@@ -14,6 +14,14 @@ type TasksResponse = {
   error?: string
 }
 
+type UpdateTaskInput = {
+  title?: string
+  description?: string | null
+  status?: string
+  priority?: string
+  due_date?: string | null
+}
+
 export function useTasks() {
   const [tasks, setTasks] = useState<AgendaTask[]>([])
   const [loading, setLoading] = useState(true)
@@ -33,66 +41,69 @@ export function useTasks() {
       const result = (await response.json()) as TasksResponse
 
       if (!response.ok || !result.success || !Array.isArray(result.data)) {
-        throw new Error(
-          result.error ?? 'Não foi possível carregar as tarefas.',
-        )
+        throw new Error(result.error ?? 'Não foi possível carregar as tarefas.')
       }
 
       setTasks(result.data)
     } catch (loadError) {
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : 'Erro inesperado ao carregar tarefas.',
-      )
+      setError(loadError instanceof Error ? loadError.message : 'Erro inesperado ao carregar tarefas.')
     } finally {
       setLoading(false)
     }
   }, [])
 
-  const createTask = useCallback(
-    async (
-      input: CreateAgendaTaskInput,
-    ): Promise<AgendaTask> => {
-      const response = await fetch('/api/agenda/tasks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          title: input.title,
-          description: input.description ?? null,
-          status: input.status ?? 'pendente',
-          priority: input.priority ?? 'media',
-          dueDate: input.due_date ?? null,
-          eventId: input.event_id ?? null,
-          schoolId: input.school_id ?? null,
-          userId: input.user_id ?? null,
-        }),
-      })
+  const createTask = useCallback(async (input: CreateAgendaTaskInput): Promise<AgendaTask> => {
+    const response = await fetch('/api/agenda/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        title: input.title,
+        description: input.description ?? null,
+        status: input.status ?? 'pendente',
+        priority: input.priority ?? 'media',
+        dueDate: input.due_date ?? null,
+        eventId: input.event_id ?? null,
+        schoolId: input.school_id ?? null,
+        userId: input.user_id ?? null,
+      }),
+    })
 
-      const result = (await response.json()) as TasksResponse
+    const result = (await response.json()) as TasksResponse
 
-      if (
-        !response.ok ||
-        !result.success ||
-        !result.data ||
-        Array.isArray(result.data)
-      ) {
-        throw new Error(
-          result.error ?? 'Não foi possível criar a tarefa.',
-        )
-      }
+    if (!response.ok || !result.success || !result.data || Array.isArray(result.data)) {
+      throw new Error(result.error ?? 'Não foi possível criar a tarefa.')
+    }
 
-      const createdTask = result.data
+    const createdTask = result.data
+    setTasks(currentTasks => [...currentTasks, createdTask])
+    return createdTask
+  }, [])
 
-      setTasks((currentTasks) => [...currentTasks, createdTask])
+  const updateTask = useCallback(async (id: string, input: UpdateTaskInput): Promise<AgendaTask> => {
+    const response = await fetch(`/api/agenda/tasks/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        title: input.title,
+        description: input.description,
+        status: input.status,
+        priority: input.priority,
+        dueDate: input.due_date,
+      }),
+    })
 
-      return createdTask
-    },
-    [],
-  )
+    const result = (await response.json()) as TasksResponse
+
+    if (!response.ok || !result.success || !result.data || Array.isArray(result.data)) {
+      throw new Error(result.error ?? 'Não foi possível atualizar a tarefa.')
+    }
+
+    const updatedTask = result.data
+    setTasks(currentTasks => currentTasks.map(task => task.id === updatedTask.id ? updatedTask : task))
+    return updatedTask
+  }, [])
 
   useEffect(() => {
     void loadTasks()
@@ -104,5 +115,6 @@ export function useTasks() {
     error,
     reload: loadTasks,
     createTask,
+    updateTask,
   }
 }
