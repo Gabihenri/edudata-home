@@ -56,7 +56,7 @@ const PLANNING_SELECT = ['id','title','description','subject','class_name','obje
 const OBJECTIVES_SELECT = ['id','title','description','category','period','class_id','subject','responsible_user_id','expected_indicator','expected_evidence','start_date','end_date','school_year_id','academic_period_id','status','progress','user_id','organization_id','school_id','created_by','updated_by','deleted_at','deleted_by','deletion_reason','restored_at','restored_by','restore_reason','metadata','created_at','updated_at'].join(',')
 const LESSONS_SELECT = ['id','title','class_id','subject','scheduled_date','start_time','end_time','planning_id','academic_period_id','description','skills','resources','methodology','status','observations','next_action','actual_start_at','actual_end_at','completed_at','completed_by','rescheduled_from_date','rescheduled_at','rescheduled_by','rescheduling_reason','cancelled_at','cancelled_by','cancellation_reason','user_id','organization_id','school_id','created_by','updated_by','deleted_at','deleted_by','deletion_reason','restored_at','restored_by','restore_reason','metadata','created_at','updated_at'].join(',')
 const EVIDENCES_SELECT = ['id','title','description','evidence_type','file_url','external_url','planning_id','event_id','lesson_id','objective_id','class_id','reflection_id','academic_period_id','organization_id','school_id','user_id','contains_identifiable_minor','guardian_authorization_confirmed','authorization_reference','authorization_confirmed_at','authorization_confirmed_by','privacy_notice_version','storage_bucket','storage_path','original_file_name','file_mime_type','file_size_bytes','metadata','created_by','updated_by','deleted_at','deleted_by','deletion_reason','restored_at','restored_by','restore_reason','created_at','updated_at'].join(',')
-const TASKS_SELECT = ['id','title','description','status','priority','due_at','user_id','created_at','updated_at','archived_at','metadata'].join(',')
+const TASKS_SELECT = ['id','title','description','status','priority','due_date','user_id','created_at','updated_at','deleted_at','metadata'].join(',')
 
 function normalizeUserId(userId: string): string {
   const normalizedUserId = userId.trim()
@@ -92,8 +92,8 @@ async function loadEvidences({ client, userId }: { client: SupabaseClient; userI
 }
 
 async function loadTasks({ client, userId }: { client: SupabaseClient; userId: string }): Promise<OperationalCollectionResult<AgendaTask>> {
-  const { data, error } = await client.from('agenda_tasks').select(TASKS_SELECT).eq('user_id', userId).is('archived_at', null).order('due_at', { ascending: true, nullsFirst: false }).order('created_at', { ascending: false }).limit(MAX_RECORDS_PER_COLLECTION)
-  return { data: data as unknown as AgendaTask[] | null, error }
+  const { data, error } = await client.from('agenda_tasks').select(TASKS_SELECT).eq('user_id', userId).is('deleted_at', null).order('due_date', { ascending: true, nullsFirst: false }).order('created_at', { ascending: false }).limit(MAX_RECORDS_PER_COLLECTION)
+  return { data: data as AgendaTask[] | null, error }
 }
 
 function createSummary(snapshot: AgendaOperationalSnapshot): AgendaOperationalSnapshotSummary {
