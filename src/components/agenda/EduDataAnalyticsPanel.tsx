@@ -13,17 +13,16 @@ type AnalyticsResponse = {
     recommendations?: unknown[]
     correlations?: unknown[]
   } | null
-  snapshot?: {
-    summary?: Record<string, unknown>
+  dataset?: {
+    quality?: {
+      status?: string
+      score?: number
+      validObservations?: number
+      totalObservations?: number
+      missingProportion?: number
+      warnings?: string[]
+    }
     generatedAt?: string
-  }
-  quality?: {
-    status?: string
-    score?: number
-    validObservations?: number
-    totalObservations?: number
-    missingProportion?: number
-    warnings?: string[]
   }
 }
 
@@ -31,7 +30,7 @@ function labelStatus(data: AnalyticsResponse | null): string {
   if (!data) return 'Aguardando análise'
   if (!data.success) return 'Análise limitada'
   if ((data.errors?.length ?? 0) > 0) return 'Análise com restrições'
-  if ((data.warnings?.length ?? 0) > 0) return 'Análise disponível com limitações'
+  if ((data.warnings?.length ?? 0) > 0 || (data.dataset?.quality?.warnings?.length ?? 0) > 0) return 'Análise disponível com limitações'
   return 'Análise disponível'
 }
 
@@ -46,13 +45,10 @@ export default function EduDataAnalyticsPanel() {
     async function load() {
       try {
         setLoading(true)
-        const response = await fetch('/api/agenda/educational-analytics/operational', {
-          cache: 'no-store',
-        })
+        setError(null)
+        const response = await fetch('/api/agenda/educational-analytics/operational', { cache: 'no-store' })
         const result = await response.json()
-        if (!response.ok) {
-          throw new Error(result?.error ?? 'Não foi possível carregar a análise.')
-        }
+        if (!response.ok) throw new Error(result?.error ?? 'Não foi possível carregar a análise.')
         if (active) setData(result)
       } catch (err) {
         if (active) setError(err instanceof Error ? err.message : 'Erro ao carregar a análise.')
@@ -69,6 +65,7 @@ export default function EduDataAnalyticsPanel() {
   const anomalies = data?.analytics?.anomalies?.length ?? 0
   const recommendations = data?.analytics?.recommendations?.length ?? 0
   const correlations = data?.analytics?.correlations?.length ?? 0
+  const quality = data?.dataset?.quality
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -96,13 +93,13 @@ export default function EduDataAnalyticsPanel() {
           <div className="mt-5 rounded-xl bg-slate-50 p-4">
             <h3 className="font-semibold text-slate-900">Transparência da análise</h3>
             <div className="mt-2 grid gap-2 text-sm text-slate-600 sm:grid-cols-3">
-              <span>Registros válidos: {data.quality?.validObservations ?? '—'}</span>
-              <span>Registros avaliados: {data.quality?.totalObservations ?? '—'}</span>
-              <span>Dados ausentes: {typeof data.quality?.missingProportion === 'number' ? `${Math.round(data.quality.missingProportion * 100)}%` : '—'}</span>
+              <span>Registros válidos: {quality?.validObservations ?? '—'}</span>
+              <span>Registros avaliados: {quality?.totalObservations ?? '—'}</span>
+              <span>Dados ausentes: {typeof quality?.missingProportion === 'number' ? `${Math.round(quality.missingProportion * 100)}%` : '—'}</span>
             </div>
-            {(data.quality?.warnings?.length || data.warnings?.length) ? (
+            {(quality?.warnings?.length || data.warnings?.length) ? (
               <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-600">
-                {[...(data.quality?.warnings ?? []), ...(data.warnings ?? [])].slice(0, 3).map((warning, index) => <li key={index}>{warning}</li>)}
+                {[...(quality?.warnings ?? []), ...(data.warnings ?? [])].slice(0, 3).map((warning, index) => <li key={index}>{warning}</li>)}
               </ul>
             ) : null}
           </div>
@@ -115,10 +112,5 @@ export default function EduDataAnalyticsPanel() {
 }
 
 function Metric({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-xl border border-slate-200 p-4">
-      <p className="text-2xl font-bold text-slate-900">{value}</p>
-      <p className="mt-1 text-sm text-slate-600">{label}</p>
-    </div>
-  )
+  return <div className="rounded-xl border border-slate-200 p-4"><p className="text-2xl font-bold text-slate-900">{value}</p><p className="mt-1 text-sm text-slate-600">{label}</p></div>
 }
