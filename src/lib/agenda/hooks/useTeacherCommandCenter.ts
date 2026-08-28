@@ -57,7 +57,7 @@ export function useTeacherCommandCenter(options: UseTeacherCommandCenterOptions 
       const teacher = buildTeacherContext({ intelligence, suppliedContext: stableTeacherContext, role })
       const result = await orchestrateTeacherIntelligence({ dashboard_intelligence: intelligence, lessons: mapLessonsToCalendarActivities(operationalResponse.data.lessons), events: [], tasks: operationalResponse.data.tasks, planning_history: operationalResponse.data.planning, snapshot_history: [], period: buildCurrentWeekPeriod(), reference_datetime: buildReferenceDateTime(), teacher_context: teacher, role, maximum_priorities: maximumPriorities }, { signal: controller.signal, onStepChange: step => { if (mountedRef.current && !controller.signal.aborted && requestSequence === requestSequenceRef.current) setCurrentStep(step) } })
       if (!mountedRef.current || controller.signal.aborted || requestSequence !== requestSequenceRef.current) return null
-      setOrchestration(result); setStatus('success'); return result.snapshot
+      setOrchestration(result); setStatus('success'); return result.snapshot.result
     } catch (caughtError) {
       if (isAbortError(caughtError) || controller.signal.aborted) { if (mountedRef.current && requestSequence === requestSequenceRef.current) setStatus('cancelled'); return null }
       if (mountedRef.current && requestSequence === requestSequenceRef.current) { setError(normalizeErrorMessage(caughtError)); setStatus('error') }; return null
@@ -69,7 +69,7 @@ export function useTeacherCommandCenter(options: UseTeacherCommandCenterOptions 
   const clearError = useCallback(() => { if (mountedRef.current) setError(null) }, [])
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; abortControllerRef.current?.abort() } }, [])
   useEffect(() => { if (!autoLoad || !agendaState.data || agendaState.loading) return; if (processedIntelligenceRef.current === intelligenceKey) return; void load() }, [agendaState.data, agendaState.loading, autoLoad, intelligenceKey, load])
-  const snapshot = orchestration?.snapshot ?? null
+  const snapshot = orchestration?.snapshot.result ?? null
   const generatedAt = snapshot?.generated_at ?? null
   const loading = agendaState.loading || status === 'loading_agenda' || status === 'loading_snapshot' || status === 'processing'
   const progress = status === 'loading_agenda' ? 15 : status === 'loading_snapshot' ? 40 : status === 'processing' ? 75 : status === 'success' ? 100 : 0
