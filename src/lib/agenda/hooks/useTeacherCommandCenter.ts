@@ -63,15 +63,16 @@ export function useTeacherCommandCenter(options: UseTeacherCommandCenterOptions 
       if (mountedRef.current && requestSequence === requestSequenceRef.current) { setError(normalizeErrorMessage(caughtError)); setStatus('error') }; return null
     } finally { if (mountedRef.current && requestSequence === requestSequenceRef.current) setRefreshing(false) }
   }, [loadOperationalSnapshot, maximumPriorities, orchestration, role, stableTeacherContext])
-  const intelligenceKey = useMemo(() => JSON.stringify(agendaState.data ?? null), [agendaState.data])
-  const load = useCallback(async () => { if (!agendaState.data) return null; processedIntelligenceRef.current = intelligenceKey; return executeOrchestration(agendaState.data) }, [agendaState.data, executeOrchestration, intelligenceKey])
-  const reload = useCallback(async () => { await agendaState.reload(); return null }, [agendaState])
+  const agendaIntelligence = agendaState.intelligence
+  const intelligenceKey = useMemo(() => JSON.stringify(agendaIntelligence ?? null), [agendaIntelligence])
+  const load = useCallback(async () => { if (!agendaIntelligence) return null; processedIntelligenceRef.current = intelligenceKey; return executeOrchestration(agendaIntelligence) }, [agendaIntelligence, executeOrchestration, intelligenceKey])
+  const reload = useCallback(async () => { const refreshedIntelligence = await agendaState.reload(); if (!refreshedIntelligence) return null; processedIntelligenceRef.current = JSON.stringify(refreshedIntelligence); return executeOrchestration(refreshedIntelligence) }, [agendaState, executeOrchestration])
   const clearError = useCallback(() => { if (mountedRef.current) setError(null) }, [])
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; abortControllerRef.current?.abort() } }, [])
-  useEffect(() => { if (!autoLoad || !agendaState.data || agendaState.loading) return; if (processedIntelligenceRef.current === intelligenceKey) return; void load() }, [agendaState.data, agendaState.loading, autoLoad, intelligenceKey, load])
+  useEffect(() => { if (!autoLoad || !agendaIntelligence || agendaState.loading) return; if (processedIntelligenceRef.current === intelligenceKey) return; void load() }, [agendaIntelligence, agendaState.loading, autoLoad, intelligenceKey, load])
   const snapshot = orchestration?.snapshot.result ?? null
   const generatedAt = snapshot?.generated_at ?? null
   const loading = agendaState.loading || status === 'loading_agenda' || status === 'loading_snapshot' || status === 'processing'
   const progress = status === 'loading_agenda' ? 15 : status === 'loading_snapshot' ? 40 : status === 'processing' ? 75 : status === 'success' ? 100 : 0
-  return { agendaIntelligence: agendaState.data, operationalData, operationalSummary, orchestration, snapshot, status, currentStep, loading, refreshing, error, generatedAt, progress, load, reload, cancel, clearError }
+  return { agendaIntelligence, operationalData, operationalSummary, orchestration, snapshot, status, currentStep, loading, refreshing, error, generatedAt, progress, load, reload, cancel, clearError }
 }
