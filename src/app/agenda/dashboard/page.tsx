@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
 import { AgendaPageShell } from '@/components/agenda/AgendaPageShell'
+import EduDataAnalyticsPanel from '@/components/agenda/EduDataAnalyticsPanel'
 import TeacherCommandCenter from '@/components/dashboard/TeacherCommandCenter'
 
 type AgendaModuleLink = {
@@ -37,6 +38,8 @@ export default function AgendaDashboardPage() {
     >
       <div className="space-y-6 sm:space-y-8">
         <TeacherCommandCenter />
+
+        <EduDataAnalyticsPanel />
 
         <section className="rounded-[1.75rem] border border-cyan-200 bg-cyan-50 p-5 shadow-sm sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
