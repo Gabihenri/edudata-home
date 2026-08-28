@@ -177,6 +177,7 @@ export async function GET(
         executeCorrelation: true,
         executePattern: true,
         executeInfluence: false,
+        executeRecommendation: true,
         metadata: {
           source:
             'agenda_operational_snapshot',
