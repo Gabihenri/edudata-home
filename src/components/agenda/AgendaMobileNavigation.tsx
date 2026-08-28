@@ -12,10 +12,10 @@ type NavigationItem = {
 }
 
 const primaryItems: NavigationItem[] = [
-  { code: '01', label: 'Início', href: '/agenda/dashboard', description: 'Visão geral da Agenda' },
-  { code: '02', label: 'Calendário', href: '/agenda/calendario', description: 'Compromissos e prazos' },
-  { code: '03', label: 'Planejar', href: '/agenda/planejamento', description: 'Planejamento pedagógico' },
-  { code: '04', label: 'Diário', href: '/agenda/diario-classe', description: 'Diário de Classe unificado' },
+  { code: '01', label: 'Início', href: '/agenda/dashboard', description: 'Visão geral e próximo passo' },
+  { code: '02', label: 'Planejar', href: '/agenda/planejamento', description: 'Planejamento pedagógico' },
+  { code: '03', label: 'Diário', href: '/agenda/diario-classe', description: 'Execução e registros da aula' },
+  { code: '04', label: 'Evidências', href: '/agenda/evidencias', description: 'Documentação e rastreabilidade' },
 ]
 
 const menuGroups = [
@@ -25,7 +25,7 @@ const menuGroups = [
       { code: '01', label: 'Dashboard', href: '/agenda/dashboard', description: 'Visão geral da operação' },
       { code: '02', label: 'Calendário', href: '/agenda/calendario', description: 'Compromissos e prazos' },
       { code: '03', label: 'Planejamento', href: '/agenda/planejamento', description: 'Planos e ações pedagógicas' },
-      { code: '04', label: 'Diário de Classe', href: '/agenda/diario-classe', description: 'Frequência e registros em uma única lista' },
+      { code: '04', label: 'Diário de Classe', href: '/agenda/diario-classe', description: 'Execução, frequência e registros em uma única lista' },
       { code: '05', label: 'Evidências', href: '/agenda/evidencias', description: 'Consulta, registro e inteligência de evidências' },
       { code: '06', label: 'Tarefas', href: '/agenda/tarefas', description: 'Pendências e entregas' },
     ],
