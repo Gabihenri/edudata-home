@@ -19,12 +19,8 @@ import {
 } from '@/lib/auth/session'
 
 import {
-  loadAgendaOperationalSnapshot,
-} from '@/lib/agenda/services/operational-snapshot.service'
-
-import {
-  buildAgendaEducationalAnalyticsInput,
-} from '@/lib/agenda/educational-analytics/agenda-analytics.adapter'
+  loadAgendaAnalyticsDataset,
+} from '@/lib/agenda/educational-analytics/agenda-analytics-dataset.service'
 
 import {
   runEducationalAnalyticsWithReport,
@@ -167,25 +163,17 @@ export async function GET(
         getAccessToken(request),
       )
 
-    const snapshotResult =
-      await loadAgendaOperationalSnapshot({
+    const dataset =
+      await loadAgendaAnalyticsDataset({
         client,
         userId: user.id,
-      })
-
-    const input =
-      buildAgendaEducationalAnalyticsInput({
-        snapshot:
-          snapshotResult.snapshot,
-        userId:
-          user.id,
         correlationId:
           `agenda-operational-${crypto.randomUUID()}`,
       })
 
     const result =
       runEducationalAnalyticsWithReport({
-        input,
+        input: dataset.input,
         executeCorrelation: true,
         executePattern: true,
         executeInfluence: false,
@@ -193,7 +181,9 @@ export async function GET(
           source:
             'agenda_operational_snapshot',
           snapshotGeneratedAt:
-            snapshotResult.generatedAt,
+            dataset.generatedAt,
+          datasetQuality:
+            dataset.quality.status,
         },
       })
 
@@ -258,11 +248,13 @@ export async function GET(
       {
         ...result,
         persistence,
-        snapshot: {
-          summary:
-            snapshotResult.summary,
+        dataset: {
+          quality:
+            dataset.quality,
           generatedAt:
-            snapshotResult.generatedAt,
+            dataset.generatedAt,
+          operationalSummary:
+            dataset.operationalSummary,
         },
       },
       {
