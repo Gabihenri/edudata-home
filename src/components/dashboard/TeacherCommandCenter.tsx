@@ -58,7 +58,7 @@ const STATUS_PRESENTATION: Record<TeacherCommandCenterStatus, StatusPresentation
 
 const JOURNEY_STAGES: GuidedJourneyStage[] = [
   { code: '01', title: 'Planejar', description: 'Organize o que será desenvolvido com suas turmas.', href: '/agenda/planejamento', actionLabel: 'Planejar agora' },
-  { code: '02', title: 'Registrar', description: 'Registre aulas e transforme o planejamento em acompanhamento real.', href: '/agenda/diario-classe', actionLabel: 'Registrar aula' },
+  { code: '02', title: 'Executar e registrar', description: 'Realize a aula e registre o que aconteceu no Diário de Classe.', href: '/agenda/diario-classe', actionLabel: 'Registrar execução' },
   { code: '03', title: 'Evidenciar', description: 'Documente o que foi realizado com contexto e rastreabilidade.', href: '/agenda/evidencias', actionLabel: 'Adicionar evidência' },
   { code: '04', title: 'Analisar', description: 'Entenda os indicadores produzidos a partir dos seus registros.', href: '/agenda/indicadores', actionLabel: 'Analisar indicadores' },
   { code: '05', title: 'Agir', description: 'Use as leituras para acompanhar prioridades e tomar decisões pedagógicas.', href: '/agenda/casos', actionLabel: 'Abrir ações pedagógicas' },
@@ -70,11 +70,11 @@ function buildGuidedJourney(summary: TeacherCommandCenterOperationalSummary | nu
   const totalEvidences = summary?.totalEvidences ?? 0
 
   if (totalPlanning === 0) {
-    return { currentIndex: 0, completedCount: 0, recommendation: 'Comece pelo planejamento.', recommendationDetail: 'O planejamento cria a base para conectar aulas, avaliações, evidências e as leituras posteriores.', stages: JOURNEY_STAGES }
+    return { currentIndex: 0, completedCount: 0, recommendation: 'Comece pelo planejamento.', recommendationDetail: 'O planejamento cria a base para conectar execução, registros, evidências e leituras posteriores.', stages: JOURNEY_STAGES }
   }
 
   if (totalLessons === 0) {
-    return { currentIndex: 1, completedCount: 1, recommendation: 'Seu planejamento já existe. Agora registre suas aulas.', recommendationDetail: 'A Agenda começa a formar o ciclo operacional quando o planejamento passa a ser acompanhado no cotidiano.', stages: JOURNEY_STAGES }
+    return { currentIndex: 1, completedCount: 1, recommendation: 'Seu planejamento já existe. Agora execute e registre a aula.', recommendationDetail: 'A execução transforma o planejamento em acompanhamento real. Use o Diário de Classe para registrar o que aconteceu.', stages: JOURNEY_STAGES }
   }
 
   if (totalEvidences === 0) {
@@ -122,7 +122,6 @@ function GuidedJourneyPanel({ journey, summary }: { journey: GuidedJourney; summ
   const currentStage = journey.stages[journey.currentIndex]
   const progress = Math.round((journey.completedCount / journey.stages.length) * 100)
   const records = summary?.totalRecords ?? 0
-
   return (
     <section aria-labelledby="guided-journey-title" className="overflow-hidden rounded-[28px] border border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-slate-50 shadow-sm">
       <div className="border-b border-cyan-100 bg-white/80 px-5 py-5 sm:px-7"><div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#075F78]">Experiência Guiada EDI</p><h2 id="guided-journey-title" className="mt-1 text-xl font-bold tracking-tight text-[#071827] sm:text-2xl">Sua jornada está sendo acompanhada.</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">A recomendação abaixo é calculada a partir dos registros operacionais já existentes na sua Agenda.</p></div><div className="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-3"><p className="text-xs font-semibold text-cyan-800">Progresso do ciclo</p><p className="mt-1 text-2xl font-bold text-[#071827]">{progress}%</p><p className="mt-1 text-xs text-slate-600">{records} registros considerados</p></div></div></div>
@@ -160,12 +159,15 @@ export default function TeacherCommandCenter({ userName = null, role = 'professo
     { label: 'Carga semanal', score: snapshot.scores.calendar, description: 'Distribuição, concentração e equilíbrio da agenda.' },
   ] : [], [snapshot])
 
-  return <div className={`space-y-6 sm:space-y-8 ${className}`}>
-    <section aria-labelledby="teacher-command-center-title" className="overflow-hidden rounded-[28px] border border-slate-800 bg-[#071827] text-white shadow-[0_28px_90px_-45px_rgba(7,24,39,0.9)]"><div className="relative overflow-hidden px-5 py-7 sm:px-8 sm:py-9"><div aria-hidden="true" className="absolute -right-20 -top-24 h-64 w-64 rotate-12 border border-cyan-400/15" /><div aria-hidden="true" className="absolute -bottom-24 right-20 h-48 w-48 rotate-45 border border-white/10" /><div className="relative z-10 flex flex-col gap-7 xl:flex-row xl:items-end xl:justify-between"><div className="max-w-3xl"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">Centro Operacional Inteligente</p><h1 id="teacher-command-center-title" className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1><p className="mt-3 text-sm font-medium text-slate-300 sm:text-base">{getCurrentDateLabel()}</p><p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300">Acompanhe sua situação operacional, os pontos que exigem atenção e as ações prioritárias produzidas pelo EIOS.</p></div><div className="grid gap-3 sm:grid-cols-2 xl:min-w-[410px]"><div className="rounded-2xl border border-white/15 bg-white/5 p-4"><p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Score operacional</p><p className="mt-2 text-4xl font-bold tracking-tight">{snapshot ? Math.round(snapshot.summary.overall_score) : '--'}{snapshot ? '%' : ''}</p><p className="mt-1 text-xs text-slate-400">Entenda abaixo o que forma este resultado</p></div><div className="rounded-2xl border border-white/15 bg-white/5 p-4"><p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Estado atual</p><div className="mt-3 flex items-center gap-2"><span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${statusPresentation.markerClassName}`} /><p className="text-sm font-bold">{statusPresentation.label}</p></div><p className="mt-3 text-xs leading-5 text-slate-400">Atualizado em {formatDateTime(generatedAt)}</p></div></div></div></div><div className="flex flex-col gap-3 border-t border-white/10 bg-black/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8"><p className="text-xs leading-5 text-slate-400">Framework EDI · EIOS · Educational Capability Platform</p><div className="flex flex-col gap-2 sm:flex-row">{isProcessing ? <button type="button" onClick={cancel} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400">Cancelar processamento</button> : <button type="button" onClick={() => { void (snapshot ? reload() : load()) }} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">{snapshot ? 'Atualizar inteligência' : 'Gerar inteligência docente'}</button>}</div></div></section>
-    {(isProcessing || status === 'error' || status === 'cancelled') ? <ProgressPanel status={status} progress={progress} stepLabel={stepLabel} /> : null}
-    <GuidedJourneyPanel journey={guidedJourney} summary={operationalSummary} />
-    {operationalSummary ? <OperationalSummary {...summaryMetrics} /> : null}
-    {snapshot ? <TeacherScoreExplanationPanel overallScore={snapshot.summary.overall_score} dimensions={scoreDimensions} /> : null}
-    <TeacherPerformanceSnapshotPanel snapshot={snapshot} loading={isProcessing} error={error} onGenerate={() => { void load() }} onRetry={() => { void reload() }} onCancel={cancel} />
-  </div>
+  return (
+    <div className={`space-y-6 sm:space-y-8 ${className}`}>
+      <section className="overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-100 px-5 py-5 sm:px-7 sm:py-6"><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-700">Centro de Comando Docente</p><h2 className="mt-1 text-2xl font-bold tracking-tight text-[#071827] sm:text-3xl">{title}</h2><p className="mt-2 text-sm leading-6 text-slate-600">{getCurrentDateLabel()}</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => void reload()} disabled={isProcessing} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-60">{refreshing ? 'Atualizando...' : 'Atualizar dados'}</button>{isProcessing ? <button type="button" onClick={cancel} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-bold text-red-700 transition hover:bg-red-100">Cancelar</button> : null}</div></div></div>
+        <div className="p-5 sm:p-7"><ProgressPanel status={status} progress={progress} stepLabel={stepLabel} />{error ? <div role="alert" className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"><p className="font-bold">{statusPresentation.label}</p><p className="mt-1 leading-6">{error}</p><button type="button" onClick={() => void load()} className="mt-3 font-bold underline underline-offset-4">Tentar novamente</button></div> : null}{generatedAt ? <p className="mt-4 text-xs text-slate-500">Última atualização: {formatDateTime(generatedAt)}</p> : null}</div>
+      </section>
+      <GuidedJourneyPanel journey={guidedJourney} summary={operationalSummary} />
+      <OperationalSummary {...summaryMetrics} />
+      {snapshot ? <><TeacherPerformanceSnapshotPanel snapshot={snapshot} /><TeacherScoreExplanationPanel overallScore={snapshot.overall_score} dimensions={scoreDimensions} /></> : null}
+    </div>
+  )
 }
