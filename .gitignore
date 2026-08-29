@@ -1,8 +1,11 @@
 node_modules
-
 .next/
-node_modules/
+
+# Environment files and credentials
 .env
-.env.local
+.env.*
+!.env.example
+!.env.*.example
+
 __pycache__/
 *.pyc
