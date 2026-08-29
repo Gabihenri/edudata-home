@@ -110,6 +110,7 @@ export default function StudentRegistryPage() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [fullName, setFullName] = useState('')
@@ -226,7 +227,11 @@ export default function StudentRegistryPage() {
     }
   }
 
-  function downloadTemplate() {
+  async function downloadTemplate() {
+    setError(null)
+    setSuccess(null)
+    setDownloadingTemplate(true)
+
     const content = [
       'Nome Completo;Matrícula Institucional;Número de Chamada',
       'João Silva;2026001;1',
@@ -234,17 +239,55 @@ export default function StudentRegistryPage() {
       'José Oliveira;2026003;3',
     ].join('\n')
 
+    const fileName = 'modelo-estudantes-edudata.csv'
     const blob = new Blob([`\uFEFF${content}`], {
       type: 'text/csv;charset=utf-8',
     })
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = 'modelo-estudantes-edudata.csv'
-    document.body.appendChild(anchor)
-    anchor.click()
-    anchor.remove()
-    URL.revokeObjectURL(url)
+    const file = new File([blob], fileName, { type: blob.type })
+
+    const downloadFallback = () => {
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = fileName
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    }
+
+    try {
+      const canShareFiles =
+        typeof navigator !== 'undefined' &&
+        typeof navigator.share === 'function' &&
+        typeof navigator.canShare === 'function' &&
+        navigator.canShare({ files: [file] })
+
+      if (canShareFiles) {
+        await navigator.share({
+          title: 'Modelo de estudantes EduData IA',
+          text: 'Modelo CSV compatível com Excel para importação de estudantes.',
+          files: [file],
+        })
+        setSuccess('Modelo preparado. Escolha Salvar em Arquivos ou abra no Excel para preencher a lista.')
+      } else {
+        downloadFallback()
+        setSuccess('Modelo baixado com sucesso.')
+      }
+    } catch (downloadError) {
+      if (downloadError instanceof DOMException && downloadError.name === 'AbortError') {
+        return
+      }
+
+      try {
+        downloadFallback()
+        setSuccess('Modelo baixado com sucesso.')
+      } catch {
+        setError('Não foi possível preparar o modelo para download neste dispositivo.')
+      }
+    } finally {
+      setDownloadingTemplate(false)
+    }
   }
 
   async function handleImport(file: File | null) {
@@ -258,7 +301,7 @@ export default function StudentRegistryPage() {
     }
 
     if (!file.name.toLocaleLowerCase('pt-BR').endsWith('.csv')) {
-      setError('Nesta primeira versão, envie o modelo CSV compatível com Excel. O arquivo .xlsx será habilitado na evolução do importador.')
+      setError('Envie o modelo CSV compatível com Excel disponibilizado pela Agenda EDI.')
       return
     }
 
@@ -346,10 +389,11 @@ export default function StudentRegistryPage() {
 
             <button
               type="button"
-              onClick={downloadTemplate}
-              className="min-h-12 rounded-xl border border-[#0B7491] bg-white px-5 text-sm font-bold text-[#075F78]"
+              onClick={() => void downloadTemplate()}
+              disabled={downloadingTemplate}
+              className="min-h-12 rounded-xl border border-[#0B7491] bg-white px-5 text-sm font-bold text-[#075F78] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Baixar modelo
+              {downloadingTemplate ? 'Preparando…' : 'Baixar modelo'}
             </button>
 
             <label className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-xl bg-[#071827] px-5 text-sm font-bold text-white">
