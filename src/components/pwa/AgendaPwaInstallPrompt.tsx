@@ -65,6 +65,56 @@ function isIosDevice() {
   )
 }
 
+function openIosReportVersion() {
+  const report = document.querySelector(
+    'main article.mx-auto',
+  ) as HTMLElement | null
+
+  if (!report) {
+    return false
+  }
+
+  const reportWindow = window.open(
+    '',
+    '_blank',
+  )
+
+  if (!reportWindow) {
+    return false
+  }
+
+  const title =
+    report.querySelector('h2')?.textContent ||
+    'Relatório Agenda Inteligente EDI'
+
+  const styles = `
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #f8fafc; color: #0f172a; font-family: Arial, Helvetica, sans-serif; }
+    body { padding: 20px; }
+    article { width: 100%; max-width: 210mm; margin: 0 auto; background: #ffffff; padding: 14mm; }
+    header { border-bottom: 2px solid #071827; padding-bottom: 18px; }
+    h1, h2, h3, p { margin-top: 0; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #e2e8f0; padding: 10px 8px; vertical-align: top; }
+    th { background: #f8fafc; text-align: left; }
+    img { max-width: 100%; height: auto; }
+    @media print {
+      @page { size: A4; margin: 12mm; }
+      html, body { background: #ffffff; }
+      body { padding: 0; }
+      article { max-width: none; padding: 0; }
+    }
+  `
+
+  reportWindow.document.open()
+  reportWindow.document.write(
+    `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title><style>${styles}</style></head><body>${report.outerHTML}</body></html>`,
+  )
+  reportWindow.document.close()
+
+  return true
+}
+
 export default function AgendaPwaInstallPrompt() {
   const [
     deferredPrompt,
@@ -85,6 +135,57 @@ export default function AgendaPwaInstallPrompt() {
     setVisible,
   ] =
     useState(false)
+
+  useEffect(() => {
+    if (!isIosDevice()) {
+      return
+    }
+
+    const handleReportPrint = (
+      event: MouseEvent,
+    ) => {
+      const target =
+        event.target instanceof Element
+          ? event.target.closest('button')
+          : null
+
+      if (!target) {
+        return
+      }
+
+      const label =
+        target.textContent?.trim()
+
+      if (
+        label !==
+        'Imprimir / Salvar em PDF'
+      ) {
+        return
+      }
+
+      const opened =
+        openIosReportVersion()
+
+      if (opened) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+    }
+
+    window.addEventListener(
+      'click',
+      handleReportPrint,
+      true,
+    )
+
+    return () => {
+      window.removeEventListener(
+        'click',
+        handleReportPrint,
+        true,
+      )
+    }
+  }, [])
 
   useEffect(() => {
     if (
