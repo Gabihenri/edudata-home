@@ -36,7 +36,7 @@ export default async function AgendaLayout({ children }: AgendaLayoutProps) {
     return (
       <div className="min-h-screen bg-[#EEF3F7] pb-[calc(4rem+env(safe-area-inset-bottom))] font-sans text-slate-950 lg:pb-0">
         <section className="border-b border-slate-200 bg-white">
-          <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8">
+          <div className="mx-auto max-w-7xl px-4 pb-5 pt-[max(1.25rem,calc(env(safe-area-inset-top)+0.75rem))] sm:px-6 sm:pb-7 sm:pt-[max(1.75rem,calc(env(safe-area-inset-top)+1rem))] lg:px-8 lg:pb-8 lg:pt-8">
             <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-6">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.17em] sm:text-xs sm:tracking-[0.18em]">
