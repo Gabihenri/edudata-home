@@ -1,4 +1,9 @@
 import {
+  createClient,
+  type SupabaseClient,
+} from '@supabase/supabase-js'
+
+import {
   NextRequest,
   NextResponse,
 } from 'next/server'
@@ -8,7 +13,12 @@ import {
   requireFeatureAccess,
   serializeAccessDeniedError,
 } from '@/lib/access/guards/require-feature-access'
-import { evidencesService } from '@/lib/agenda/services/evidences.service'
+import {
+  EvidencesRepository,
+} from '@/lib/agenda/repository/evidences.repository'
+import {
+  EvidencesService,
+} from '@/lib/agenda/services/evidences.service'
 import { requireSessionUser } from '@/lib/auth/session'
 
 export const dynamic = 'force-dynamic'
@@ -38,6 +48,77 @@ function isRecord(
     value !== null &&
     !Array.isArray(value)
   )
+}
+
+function getAccessToken(
+  request: NextRequest,
+): string {
+  const accessToken =
+    request.cookies.get(
+      'sb-access-token',
+    )?.value ??
+    request.cookies.get(
+      'access_token',
+    )?.value
+
+  if (!accessToken) {
+    throw new Error(
+      'Usuário não autenticado.',
+    )
+  }
+
+  return accessToken
+}
+
+function createAuthenticatedClient(
+  accessToken: string,
+): SupabaseClient {
+  const url =
+    process.env
+      .NEXT_PUBLIC_SUPABASE_URL
+
+  const anonKey =
+    process.env
+      .NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!url || !anonKey) {
+    throw new Error(
+      'Variáveis públicas do Supabase não configuradas.',
+    )
+  }
+
+  return createClient(
+    url,
+    anonKey,
+    {
+      global: {
+        headers: {
+          Authorization:
+            `Bearer ${accessToken}`,
+        },
+      },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    },
+  )
+}
+
+function createEvidencesService(
+  request: NextRequest,
+): EvidencesService {
+  const accessToken =
+    getAccessToken(request)
+
+  const client =
+    createAuthenticatedClient(accessToken)
+
+  const repository =
+    new EvidencesRepository(client)
+
+  return new EvidencesService(repository)
 }
 
 function normalizeEvidenceId(
@@ -138,6 +219,9 @@ function getErrorStatus(
     ) ||
     message.includes(
       'permission denied',
+    ) ||
+    message.includes(
+      'row-level security',
     )
   ) {
     return 403
@@ -182,18 +266,13 @@ function createErrorResponse(
   fallbackMessage: string,
 ) {
   if (
-    isAccessDeniedError(
-      error,
-    )
+    isAccessDeniedError(error)
   ) {
     return NextResponse.json(
-      serializeAccessDeniedError(
-        error,
-      ),
+      serializeAccessDeniedError(error),
       {
         status: 403,
-        headers:
-          NO_CACHE_HEADERS,
+        headers: NO_CACHE_HEADERS,
       },
     )
   }
@@ -215,8 +294,7 @@ function createErrorResponse(
     },
     {
       status,
-      headers:
-        NO_CACHE_HEADERS,
+      headers: NO_CACHE_HEADERS,
     },
   )
 }
@@ -234,44 +312,36 @@ export async function DELETE(
         context.params.id,
       )
 
+    const service =
+      createEvidencesService(request)
+
     const evidence =
-      await evidencesService.getById(
-        evidenceId,
-      )
+      await service.getById(evidenceId)
 
     const requiredFeature =
-      evidence.evidence_type ===
-        'imagem' ||
-      evidence.evidence_type ===
-        'pdf'
+      evidence.evidence_type === 'imagem' ||
+      evidence.evidence_type === 'pdf'
         ? 'evidences.upload'
         : 'evidences.text'
 
     await requireFeatureAccess({
       userId: user.id,
-      featureCode:
-        requiredFeature,
+      featureCode: requiredFeature,
       options: {
         includeUsage: false,
       },
     })
 
     const body =
-      await readRequestBody(
-        request,
-      )
+      await readRequestBody(request)
 
     const reason =
-      normalizeDeletionReason(
-        body,
-      )
+      normalizeDeletionReason(body)
 
-    await evidencesService.delete(
+    await service.delete(
       evidenceId,
       {
-        actorUserId:
-          user.id,
-
+        actorUserId: user.id,
         reason,
       },
     )
@@ -279,10 +349,8 @@ export async function DELETE(
     return NextResponse.json(
       {
         success: true,
-
         message:
           'Evidência excluída de forma governada.',
-
         data: {
           evidenceId,
           deletedAt:
@@ -291,8 +359,7 @@ export async function DELETE(
       },
       {
         status: 200,
-        headers:
-          NO_CACHE_HEADERS,
+        headers: NO_CACHE_HEADERS,
       },
     )
   } catch (error) {
