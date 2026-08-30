@@ -7,6 +7,8 @@ import {
   listAttendanceByDate,
   listClassRoster,
   upsertAttendance,
+  upsertAttendanceBatch,
+  type AttendanceBatchItem,
   type AttendanceStatus,
 } from '@/lib/agenda/repository/class-diary.repository'
 
@@ -60,7 +62,8 @@ function errorResponse(error: unknown) {
     ? 401
     : normalized.includes('obrigatório') ||
         normalized.includes('não corresponde') ||
-        normalized.includes('não encontrado')
+        normalized.includes('não encontrado') ||
+        normalized.includes('não pertence')
       ? 400
       : 500
 
@@ -138,6 +141,26 @@ async function requirePlanningContext({
   }
 
   return data
+}
+
+async function requireRosterStudents({
+  client,
+  userId,
+  classId,
+  studentIds,
+}: {
+  client: SupabaseClient
+  userId: string
+  classId: string
+  studentIds: string[]
+}) {
+  const roster = await listClassRoster({ client, userId, classId })
+  const rosterIds = new Set(roster.map(student => student.id))
+  const invalidStudent = studentIds.find(studentId => !rosterIds.has(studentId))
+
+  if (invalidStudent) {
+    throw new Error('Um ou mais estudantes não pertencem à lista ativa da turma.')
+  }
 }
 
 function planningDependencyResponse(error: unknown) {
@@ -267,7 +290,7 @@ export async function POST(request: NextRequest) {
     const user = await requireSessionUser()
     const client = createAuthenticatedClient(getAccessToken(request))
     const body = await request.json() as {
-      operation?: 'add_student' | 'attendance'
+      operation?: 'add_student' | 'attendance' | 'attendance_batch'
       classId?: string
       planningId?: string
       fullName?: string
@@ -277,6 +300,7 @@ export async function POST(request: NextRequest) {
       lessonDate?: string
       status?: AttendanceStatus
       notes?: string | null
+      entries?: AttendanceBatchItem[]
     }
 
     if (!body.classId?.trim()) throw new Error('classId é obrigatório.')
@@ -297,11 +321,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (body.operation === 'attendance') {
+    if (body.operation === 'attendance' || body.operation === 'attendance_batch') {
       if (!body.planningId?.trim()) throw new Error('planningId é obrigatório.')
-      if (!body.studentId?.trim()) throw new Error('studentId é obrigatório.')
       if (!body.lessonDate?.trim()) throw new Error('lessonDate é obrigatório.')
-      if (!body.status) throw new Error('status é obrigatório.')
 
       try {
         await requirePlanningContext({
@@ -314,19 +336,69 @@ export async function POST(request: NextRequest) {
         console.error('[AGENDA_DIARY_ATTENDANCE_PLANNING_DEPENDENCY]', planningError)
         return planningDependencyResponse(planningError)
       }
+    }
+
+    if (body.operation === 'attendance') {
+      if (!body.studentId?.trim()) throw new Error('studentId é obrigatório.')
+      if (!body.status) throw new Error('status é obrigatório.')
+
+      await requireRosterStudents({
+        client,
+        userId: user.id,
+        classId: body.classId,
+        studentIds: [body.studentId],
+      })
 
       const attendance = await upsertAttendance({
         client,
         userId: user.id,
         classId: body.classId,
         studentId: body.studentId,
-        lessonDate: body.lessonDate,
+        lessonDate: body.lessonDate!,
         status: body.status,
         notes: body.notes,
       })
 
       return NextResponse.json(
         { success: true, attendance },
+        { status: 200, headers: NO_CACHE_HEADERS },
+      )
+    }
+
+    if (body.operation === 'attendance_batch') {
+      if (!Array.isArray(body.entries) || body.entries.length === 0) {
+        throw new Error('entries é obrigatório para salvar a frequência em lote.')
+      }
+
+      const invalidEntry = body.entries.find(
+        entry => !entry?.studentId?.trim() || !entry.status,
+      )
+      if (invalidEntry) {
+        throw new Error('Cada frequência do lote deve informar estudante e status.')
+      }
+
+      const studentIds = body.entries.map(entry => entry.studentId.trim())
+      await requireRosterStudents({
+        client,
+        userId: user.id,
+        classId: body.classId,
+        studentIds,
+      })
+
+      const attendance = await upsertAttendanceBatch({
+        client,
+        userId: user.id,
+        classId: body.classId,
+        lessonDate: body.lessonDate!,
+        entries: body.entries.map(entry => ({
+          studentId: entry.studentId.trim(),
+          status: entry.status,
+          notes: entry.notes,
+        })),
+      })
+
+      return NextResponse.json(
+        { success: true, attendance, saved: attendance.length },
         { status: 200, headers: NO_CACHE_HEADERS },
       )
     }
