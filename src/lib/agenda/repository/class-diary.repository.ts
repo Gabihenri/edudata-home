@@ -16,6 +16,12 @@ export type AttendanceStatus =
   | 'late'
   | 'not_recorded'
 
+export type AttendanceBatchItem = {
+  studentId: string
+  status: AttendanceStatus
+  notes?: string | null
+}
+
 const ATTENDANCE_SELECT =
   'id,student_id,status,notes,lesson_date,updated_at'
 
@@ -245,13 +251,6 @@ export async function upsertAttendance({
     return data
   }
 
-  /*
-   * O banco preserva histórico com archived_at e possui índice único
-   * apenas para registros ativos. Se duas gravações simultâneas
-   * tentarem criar a mesma frequência, uma delas pode receber 23505.
-   * Nesse caso buscamos o registro ativo criado pela outra requisição
-   * e o atualizamos.
-   */
   if (error.code === '23505') {
     const concurrent = await findActiveAttendance({
       client,
@@ -279,4 +278,106 @@ export async function upsertAttendance({
   throw new Error(
     `Não foi possível salvar a frequência: ${error.message}`,
   )
+}
+
+/**
+ * Persiste uma chamada completa em uma única operação de API. A consulta dos
+ * registros existentes é feita de uma vez; os novos registros são inseridos em
+ * lote e os já existentes são atualizados em paralelo. Isso elimina o padrão
+ * anterior de uma requisição HTTP por estudante.
+ */
+export async function upsertAttendanceBatch({
+  client,
+  userId,
+  classId,
+  lessonDate,
+  entries,
+}: {
+  client: SupabaseClient
+  userId: string
+  classId: string
+  lessonDate: string
+  entries: AttendanceBatchItem[]
+}) {
+  if (entries.length === 0) return []
+
+  const uniqueEntries = new Map<string, AttendanceBatchItem>()
+  for (const entry of entries) {
+    uniqueEntries.set(entry.studentId, entry)
+  }
+
+  const normalizedEntries = Array.from(uniqueEntries.values())
+  const studentIds = normalizedEntries.map(entry => entry.studentId)
+
+  const { data: existingRows, error: existingError } = await client
+    .from('agenda_attendance_entries')
+    .select('id,student_id')
+    .eq('user_id', userId)
+    .eq('class_id', classId)
+    .eq('lesson_date', lessonDate)
+    .in('student_id', studentIds)
+    .is('archived_at', null)
+
+  if (existingError) {
+    throw new Error(
+      `Não foi possível consultar as frequências existentes: ${existingError.message}`,
+    )
+  }
+
+  const existingByStudent = new Map(
+    (existingRows ?? []).map(row => [row.student_id as string, row.id as string]),
+  )
+  const updates = normalizedEntries.filter(entry => existingByStudent.has(entry.studentId))
+  const inserts = normalizedEntries.filter(entry => !existingByStudent.has(entry.studentId))
+
+  if (updates.length > 0) {
+    await Promise.all(
+      updates.map(async entry => {
+        const id = existingByStudent.get(entry.studentId)
+        if (!id) return
+
+        const { error } = await client
+          .from('agenda_attendance_entries')
+          .update({
+            status: entry.status,
+            notes: entry.notes?.trim() || null,
+            recorded_by: userId,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', id)
+          .eq('user_id', userId)
+          .is('archived_at', null)
+
+        if (error) {
+          throw new Error(
+            `Não foi possível atualizar a frequência de um estudante: ${error.message}`,
+          )
+        }
+      }),
+    )
+  }
+
+  if (inserts.length > 0) {
+    const { error } = await client
+      .from('agenda_attendance_entries')
+      .insert(
+        inserts.map(entry => ({
+          user_id: userId,
+          class_id: classId,
+          student_id: entry.studentId,
+          lesson_date: lessonDate,
+          status: entry.status,
+          notes: entry.notes?.trim() || null,
+          recorded_by: userId,
+        })),
+      )
+
+    if (error) {
+      throw new Error(
+        `Não foi possível salvar a frequência em lote: ${error.message}`,
+      )
+    }
+  }
+
+  return listAttendanceByDate({ client, userId, classId, lessonDate })
 }
