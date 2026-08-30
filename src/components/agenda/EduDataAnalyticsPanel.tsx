@@ -28,10 +28,18 @@ type AnalyticsResponse = {
 
 function labelStatus(data: AnalyticsResponse | null): string {
   if (!data) return 'Aguardando análise'
-  if (!data.success) return 'Análise limitada'
+  if (!data.success) return 'Dados ainda insuficientes'
   if ((data.errors?.length ?? 0) > 0) return 'Análise com restrições'
   if ((data.warnings?.length ?? 0) > 0 || (data.dataset?.quality?.warnings?.length ?? 0) > 0) return 'Análise disponível com limitações'
   return 'Análise disponível'
+}
+
+function getLimitations(data: AnalyticsResponse): string[] {
+  return [
+    ...(data.errors ?? []),
+    ...(data.dataset?.quality?.warnings ?? []),
+    ...(data.warnings ?? []),
+  ].filter((value, index, values) => values.indexOf(value) === index).slice(0, 3)
 }
 
 export default function EduDataAnalyticsPanel() {
@@ -47,8 +55,20 @@ export default function EduDataAnalyticsPanel() {
         setLoading(true)
         setError(null)
         const response = await fetch('/api/agenda/educational-analytics/operational', { cache: 'no-store' })
-        const result = await response.json()
-        if (!response.ok) throw new Error(result?.error ?? 'Não foi possível carregar a análise.')
+        const result = await response.json() as AnalyticsResponse & { error?: string }
+
+        // Uma resposta 422 pode representar uma limitação legítima dos dados
+        // (por exemplo, ausência de observações suficientes), e não uma falha técnica.
+        // Nesse caso, preservamos o resultado e mostramos o estado pedagógico ao usuário.
+        if (!response.ok && result.dataset) {
+          if (active) setData(result)
+          return
+        }
+
+        if (!response.ok) {
+          throw new Error(result?.error ?? 'Não foi possível carregar a análise.')
+        }
+
         if (active) setData(result)
       } catch (err) {
         if (active) setError(err instanceof Error ? err.message : 'Erro ao carregar a análise.')
@@ -66,6 +86,7 @@ export default function EduDataAnalyticsPanel() {
   const recommendations = data?.analytics?.recommendations?.length ?? 0
   const correlations = data?.analytics?.correlations?.length ?? 0
   const quality = data?.dataset?.quality
+  const limitations = data ? getLimitations(data) : []
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -97,12 +118,18 @@ export default function EduDataAnalyticsPanel() {
               <span>Registros avaliados: {quality?.totalObservations ?? '—'}</span>
               <span>Dados ausentes: {typeof quality?.missingProportion === 'number' ? `${Math.round(quality.missingProportion * 100)}%` : '—'}</span>
             </div>
-            {(quality?.warnings?.length || data.warnings?.length) ? (
+            {limitations.length > 0 ? (
               <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-600">
-                {[...(quality?.warnings ?? []), ...(data.warnings ?? [])].slice(0, 3).map((warning, index) => <li key={index}>{warning}</li>)}
+                {limitations.map((limitation, index) => <li key={index}>{limitation}</li>)}
               </ul>
             ) : null}
           </div>
+
+          {!data.success && (
+            <p className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
+              A análise ainda não pode ser concluída com os registros atuais. Continue utilizando a Agenda; assim que houver dados suficientes, os indicadores serão atualizados automaticamente.
+            </p>
+          )}
 
           <p className="mt-4 text-xs text-slate-500">Importante: padrões e correlações ajudam a orientar decisões, mas uma associação estatística não comprova causalidade. Recomendações devem ser interpretadas com contexto e revisão humana.</p>
         </>
