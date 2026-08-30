@@ -26,6 +26,7 @@ type DiaryResponse = {
   success: boolean
   roster?: RosterStudent[]
   attendance?: AttendanceEntry[]
+  saved?: number
   error?: string
 }
 
@@ -74,6 +75,8 @@ export default function ClassDiaryPanel() {
   const [roster, setRoster] = useState<RosterStudent[]>([])
   const [drafts, setDrafts] = useState<Record<string, RowDraft>>({})
   const [loading, setLoading] = useState(false)
+  const [savingAttendanceBatch, setSavingAttendanceBatch] = useState(false)
+  const [attendanceMessage, setAttendanceMessage] = useState<string | null>(null)
   const [hasLoadedDiary, setHasLoadedDiary] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -91,6 +94,7 @@ export default function ClassDiaryPanel() {
     setPlanningId('')
     setRoster([])
     setDrafts({})
+    setAttendanceMessage(null)
     setHasLoadedDiary(false)
     setError(null)
   }, [classId])
@@ -98,6 +102,7 @@ export default function ClassDiaryPanel() {
   useEffect(() => {
     setRoster([])
     setDrafts({})
+    setAttendanceMessage(null)
     setHasLoadedDiary(false)
     setError(null)
   }, [planningId, lessonDate])
@@ -109,6 +114,7 @@ export default function ClassDiaryPanel() {
     setLoading(true)
     setHasLoadedDiary(false)
     setError(null)
+    setAttendanceMessage(null)
 
     try {
       const params = new URLSearchParams({ classId, lessonDate, planningId })
@@ -151,55 +157,101 @@ export default function ClassDiaryPanel() {
     }
   }
 
-  async function saveAttendance(student: RosterStudent, status: AttendanceStatus) {
-    if (!planningId) {
-      setError('Selecione um planejamento válido antes de registrar frequência.')
-      return
-    }
-
+  function setAttendanceStatus(studentId: string, status: AttendanceStatus) {
+    setAttendanceMessage(null)
     setDrafts(current => ({
       ...current,
-      [student.id]: {
-        ...current[student.id],
+      [studentId]: {
+        ...current[studentId],
         attendance: status,
-        savingAttendance: true,
+        savingAttendance: false,
         message: null,
       },
     }))
+  }
+
+  function markAllPresent() {
+    setAttendanceMessage(null)
+    setDrafts(current => {
+      const next = { ...current }
+      for (const student of roster) {
+        const row = next[student.id]
+        if (row) {
+          next[student.id] = {
+            ...row,
+            attendance: 'present',
+            savingAttendance: false,
+            message: null,
+          }
+        }
+      }
+      return next
+    })
+  }
+
+  function markAll(status: AttendanceStatus) {
+    setAttendanceMessage(null)
+    setDrafts(current => {
+      const next = { ...current }
+      for (const student of roster) {
+        const row = next[student.id]
+        if (row) next[student.id] = { ...row, attendance: status, message: null }
+      }
+      return next
+    })
+  }
+
+  async function saveAttendanceBatch() {
+    if (!planningId || !classId || !lessonDate) {
+      setError('Selecione turma, planejamento e data antes de salvar a frequência.')
+      return
+    }
+
+    const entries = roster
+      .map(student => ({
+        studentId: student.id,
+        status: drafts[student.id]?.attendance ?? 'not_recorded',
+      }))
+      .filter(entry => entry.status !== 'not_recorded')
+
+    if (entries.length === 0) {
+      setError('Marque a frequência de pelo menos um estudante antes de salvar.')
+      return
+    }
+
+    setSavingAttendanceBatch(true)
+    setError(null)
+    setAttendanceMessage(null)
 
     try {
       const response = await fetch('/api/agenda/diario-classe', {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({
-          operation: 'attendance',
+          operation: 'attendance_batch',
           classId,
           planningId,
-          studentId: student.id,
           lessonDate,
-          status,
-          notes: selectedPlanning ? `Planejamento: ${selectedPlanning.title}` : null,
+          entries: entries.map(entry => ({
+            ...entry,
+            notes: selectedPlanning ? `Planejamento: ${selectedPlanning.title}` : null,
+          })),
         }),
       })
       const body = await response.json() as DiaryResponse
       if (!response.ok || !body.success) {
-        throw new Error(body.error || 'Não foi possível salvar a frequência.')
+        throw new Error(body.error || 'Não foi possível salvar a frequência em lote.')
       }
 
-      setDrafts(current => ({
-        ...current,
-        [student.id]: { ...current[student.id], savingAttendance: false, message: 'Frequência salva' },
-      }))
+      setAttendanceMessage(
+        `${body.saved ?? entries.length} frequências salvas com sucesso em uma única operação.`,
+      )
     } catch (saveError) {
-      setDrafts(current => ({
-        ...current,
-        [student.id]: {
-          ...current[student.id],
-          savingAttendance: false,
-          message: saveError instanceof Error ? saveError.message : 'Erro ao salvar frequência.',
-        },
-      }))
+      setError(saveError instanceof Error ? saveError.message : 'Não foi possível salvar a frequência em lote.')
+    } finally {
+      setSavingAttendanceBatch(false)
     }
   }
 
@@ -271,14 +323,6 @@ export default function ClassDiaryPanel() {
           message: saveError instanceof Error ? saveError.message : 'Erro ao salvar nota.',
         },
       }))
-    }
-  }
-
-  async function markAllPresent() {
-    for (const student of roster) {
-      if (drafts[student.id]?.attendance !== 'present') {
-        await saveAttendance(student, 'present')
-      }
     }
   }
 
@@ -376,10 +420,7 @@ export default function ClassDiaryPanel() {
           <p className="mt-1 text-sm leading-6 text-slate-600">
             A chamada não cadastra estudantes. Use o Cadastro de Estudantes para informar João, Maria, José ou importar a lista nominal e depois retorne ao Diário.
           </p>
-          <Link
-            href={`/agenda/cadastros/estudantes?classId=${encodeURIComponent(classId)}`}
-            className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0B7491] px-5 py-2.5 text-sm font-bold text-white"
-          >
+          <Link href={`/agenda/cadastros/estudantes?classId=${encodeURIComponent(classId)}`} className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0B7491] px-5 py-2.5 text-sm font-bold text-white">
             Gerenciar estudantes desta turma
           </Link>
         </section>
@@ -387,14 +428,22 @@ export default function ClassDiaryPanel() {
 
       {roster.length > 0 ? (
         <section className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
-          <header className="flex flex-col gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <header className="flex flex-col gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#0B7491]">Lista nominal</p>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#0B7491]">Lista nominal · lançamento em lote</p>
               <h2 className="mt-1 text-xl font-bold text-[#071827]">{selectedClass?.name ?? 'Turma'} · {roster.length} estudantes</h2>
               <p className="mt-1 text-xs text-slate-500">{selectedPlanning?.title ?? ''} · {lessonDate}</p>
             </div>
-            <button type="button" onClick={() => void markAllPresent()} className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-800">Marcar todos presentes</button>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={markAllPresent} disabled={savingAttendanceBatch} className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-800 disabled:opacity-50">Marcar todos presentes</button>
+              <button type="button" onClick={() => markAll('absent')} disabled={savingAttendanceBatch} className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-bold text-red-800 disabled:opacity-50">Marcar todos com falta</button>
+              <button type="button" onClick={() => void saveAttendanceBatch()} disabled={savingAttendanceBatch} className="rounded-xl bg-[#071827] px-5 py-2 text-sm font-bold text-white disabled:opacity-50">
+                {savingAttendanceBatch ? 'Salvando chamada…' : 'Salvar frequência da turma'}
+              </button>
+            </div>
           </header>
+
+          {attendanceMessage ? <p className="mx-5 mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800">{attendanceMessage}</p> : null}
 
           <div className="divide-y divide-slate-100">
             {roster.map((student, index) => {
@@ -413,7 +462,7 @@ export default function ClassDiaryPanel() {
                     {attendanceOptions.map(option => {
                       const active = row.attendance === option.value
                       return (
-                        <button key={option.value} type="button" title={option.label} onClick={() => void saveAttendance(student, option.value)} disabled={row.savingAttendance} className={`h-11 min-w-11 rounded-xl border px-3 text-sm font-black transition ${active ? 'border-cyan-400 bg-[#071827] text-white ring-2 ring-cyan-100' : 'border-slate-300 bg-white text-slate-700 hover:border-cyan-300 hover:bg-cyan-50'}`}>
+                        <button key={option.value} type="button" title={option.label} onClick={() => setAttendanceStatus(student.id, option.value)} disabled={savingAttendanceBatch} className={`h-11 min-w-11 rounded-xl border px-3 text-sm font-black transition ${active ? 'border-cyan-400 bg-[#071827] text-white ring-2 ring-cyan-100' : 'border-slate-300 bg-white text-slate-700 hover:border-cyan-300 hover:bg-cyan-50'}`}>
                           {option.short}
                         </button>
                       )
@@ -439,11 +488,17 @@ export default function ClassDiaryPanel() {
               )
             })}
           </div>
+
+          <div className="flex justify-end border-t border-slate-200 bg-slate-50 px-5 py-4">
+            <button type="button" onClick={() => void saveAttendanceBatch()} disabled={savingAttendanceBatch} className="min-h-12 rounded-xl bg-[#071827] px-6 py-3 text-sm font-bold text-white disabled:opacity-50">
+              {savingAttendanceBatch ? 'Salvando chamada…' : 'Salvar frequência da turma'}
+            </button>
+          </div>
         </section>
       ) : null}
 
       <aside className="rounded-2xl border border-cyan-200 bg-cyan-50 p-5 text-sm leading-6 text-slate-700">
-        O Diário de Classe é uma tela operacional. Cadastros de turma e estudante ficam fora da chamada; o Diário apenas consome o contexto previamente organizado e registra o que aconteceu na aula.
+        O Diário de Classe é uma tela operacional. Cadastros de turma e estudante ficam fora da chamada; o Diário apenas consome o contexto previamente organizado e registra o que aconteceu na aula. A frequência pode ser preparada coletivamente e persistida em lote.
       </aside>
     </section>
   )
