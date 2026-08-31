@@ -18,12 +18,10 @@ type EdiIconName =
   | 'settings'
   | 'analyze'
   | 'act'
+  | 'analytics'
+  | 'cases'
 
-type EdiIconProps = {
-  name: EdiIconName
-  className?: string
-  'aria-hidden'?: boolean
-}
+type EdiIconProps = { name: EdiIconName; className?: string; 'aria-hidden'?: boolean }
 
 const paths: Record<EdiIconName, ReactNode> = {
   home: <><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="M9 21v-6h6v6" /></>,
@@ -35,12 +33,14 @@ const paths: Record<EdiIconName, ReactNode> = {
   student: <><circle cx="12" cy="8" r="3" /><path d="M5 21c.8-4 3.2-6 7-6s6.2 2 7 6" /></>,
   alert: <><path d="M12 3 2.8 20h18.4z" /><path d="M12 9v4M12 17h.01" /></>,
   case: <><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="M8 12h8M8 16h5" /></>,
+  cases: <><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="M8 12h8M8 16h5" /></>,
   intelligence: <><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2M4 12h2M18 12h2M12 4v2M12 18v2" /></>,
   report: <><path d="M6 3h9l3 3v15H6z" /><path d="M15 3v4h3M9 12h6M9 16h6" /></>,
   chart: <><path d="M4 20V4M4 20h16" /><path d="m7 16 3-4 3 2 5-6" /></>,
+  analytics: <><path d="M4 20V4M4 20h16" /><path d="m7 16 3-4 3 2 5-6" /></>,
   history: <><path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 5v5h5M12 7v5l3 2" /></>,
   calendar: <><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4M16 3v4M4 10h16M8 14h2M14 14h2M8 17h2" /></>,
-  settings: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.1 2.1-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5v.2h-3v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1-2.1-2.1.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H5v-3h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1 2.1-2.1.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5V4h3v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 2.1 2.1-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.2v3h-.2a1.7 1.7 0 0 0-1.4 1z" /></>,
+  settings: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.1 2.1-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5v.2h-3v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1-2.1-2.1.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H5v-3h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1 2.1-2.1.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5V4h3v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 2.1 2.1-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 .3 1.9 1.7 1.7 0 0 0 1.5 1h.2v3h-.2a1.7 1.7 0 0 0-1.4 1z" /></>,
   analyze: <><circle cx="11" cy="11" r="6" /><path d="m16 16 4 4M8 11h6M11 8v6" /></>,
   act: <><path d="M4 12h5l2-7 2 14 2-7h5" /></>,
 }
