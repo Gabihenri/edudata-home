@@ -14,7 +14,6 @@ select ok(exists (select 1 from pg_policies where schemaname='public' and tablen
 select ok(exists (select 1 from pg_proc where pronamespace='public'::regnamespace and proname='can_view_agenda_record'), 'Agenda exposes view authorization function');
 select ok(exists (select 1 from pg_proc where pronamespace='public'::regnamespace and proname='can_update_agenda_record'), 'Agenda exposes update authorization function');
 
--- Synthetic authenticated users. All assertions are isolated in this transaction.
 select set_config('request.jwt.claims', json_build_object('sub','00000000-0000-0000-0000-0000000000a1','role','authenticated')::text, true);
 select is(auth.uid(), '00000000-0000-0000-0000-0000000000a1'::uuid, 'Professor A JWT context resolves to A');
 select ok(public.can_view_agenda_record(auth.uid()), 'Professor A can view own record');
@@ -25,9 +24,9 @@ select is(auth.uid(), '00000000-0000-0000-0000-0000000000b2'::uuid, 'Professor B
 select ok(not public.can_view_agenda_record('00000000-0000-0000-0000-0000000000a1'::uuid), 'Professor B cannot view A record without an authorized relationship');
 select ok(not public.can_update_agenda_record('00000000-0000-0000-0000-0000000000a1'::uuid), 'Professor B cannot update A record without an authorized relationship');
 
--- Explicit negative governance case: same organization is not sufficient by itself.
+-- Same organization alone does not grant cross-user access.
 select set_config('request.jwt.claims', json_build_object('sub','00000000-0000-0000-0000-0000000000c3','role','authenticated')::text, true);
-select ok(not public.can_view_agenda_record_as(auth.uid(), '00000000-0000-0000-0000-0000000000d4'::uuid, '00000000-0000-0000-0000-0000000000e5'::uuid, null), 'Unrelated manager cannot view a peer without explicit responsibility scope');
+select ok(not public.can_view_agenda_record_as(auth.uid(), '00000000-0000-0000-0000-0000000000d4'::uuid, '00000000-0000-0000-0000-0000000000e5'::uuid, null), 'Unrelated manager cannot view peer without explicit responsibility scope');
 
 select * from finish();
 rollback;
