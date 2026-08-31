@@ -16,13 +16,13 @@ select ok(exists (select 1 from pg_proc where pronamespace='public'::regnamespac
 
 select set_config('request.jwt.claims', json_build_object('sub','00000000-0000-0000-0000-0000000000a1','role','authenticated')::text, true);
 select is(auth.uid(), '00000000-0000-0000-0000-0000000000a1'::uuid, 'Professor A JWT context resolves to A');
-select ok(public.can_view_agenda_record(auth.uid()), 'Professor A can view own record');
-select ok(public.can_update_agenda_record(auth.uid()), 'Professor A can update own record');
+select ok(public.can_view_agenda_record(auth.uid(), '00000000-0000-0000-0000-0000000000d4'::uuid, '00000000-0000-0000-0000-0000000000e5'::uuid), 'Professor A can view own agenda context');
+select ok(public.can_update_agenda_record(auth.uid(), '00000000-0000-0000-0000-0000000000d4'::uuid, '00000000-0000-0000-0000-0000000000e5'::uuid), 'Professor A can update own agenda context');
 
 select set_config('request.jwt.claims', json_build_object('sub','00000000-0000-0000-0000-0000000000b2','role','authenticated')::text, true);
 select is(auth.uid(), '00000000-0000-0000-0000-0000000000b2'::uuid, 'Professor B JWT context resolves to B');
-select ok(not public.can_view_agenda_record('00000000-0000-0000-0000-0000000000a1'::uuid), 'Professor B cannot view A record without an authorized relationship');
-select ok(not public.can_update_agenda_record('00000000-0000-0000-0000-0000000000a1'::uuid), 'Professor B cannot update A record without an authorized relationship');
+select ok(not public.can_view_agenda_record('00000000-0000-0000-0000-0000000000a1'::uuid, '00000000-0000-0000-0000-0000000000d4'::uuid, '00000000-0000-0000-0000-0000000000e5'::uuid), 'Professor B cannot view A agenda without an authorized relationship');
+select ok(not public.can_update_agenda_record('00000000-0000-0000-0000-0000000000a1'::uuid, '00000000-0000-0000-0000-0000000000d4'::uuid, '00000000-0000-0000-0000-0000000000e5'::uuid), 'Professor B cannot update A agenda without an authorized relationship');
 
 -- Same organization alone does not grant cross-user access.
 select set_config('request.jwt.claims', json_build_object('sub','00000000-0000-0000-0000-0000000000c3','role','authenticated')::text, true);
