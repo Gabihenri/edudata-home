@@ -5,6 +5,7 @@ on:
     branches: ['main', 'feat/**']
   pull_request:
     branches: ['main']
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -23,6 +24,9 @@ jobs:
         uses: supabase/setup-cli@v1
         with:
           version: latest
+
+      - name: Verify Supabase configuration
+        run: supabase status || true
 
       - name: Start local Supabase
         run: supabase start
