@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "name": "EDI-QI business rules",
+  "rules": [
+    {"id":"AUTH-001","area":"auth","severity":"critical","description":"Rotas e APIs protegidas não podem expor dados sem autenticação."},
+    {"id":"AGENDA-001","area":"agenda","severity":"critical","description":"O proprietário do evento deve ser determinado pelo usuário autenticado, nunca por user_id confiado do cliente."},
+    {"id":"AGENDA-002","area":"agenda","severity":"high","description":"Evento inválido não pode ser persistido."},
+    {"id":"AGENDA-003","area":"agenda","severity":"high","description":"Recorrência inválida não pode ser persistida."},
+    {"id":"AGENDA-004","area":"agenda","severity":"critical","description":"Um usuário não pode ler, alterar ou excluir evento pertencente a outro usuário sem autorização compatível com seu papel."},
+    {"id":"EVID-001","area":"evidences","severity":"critical","description":"Evidências não podem ser consultadas ou criadas por usuário não autenticado."},
+    {"id":"EVID-002","area":"evidences","severity":"high","description":"Tipo de evidência deve pertencer ao conjunto permitido pelo domínio."},
+    {"id":"EVID-003","area":"evidences","severity":"critical","description":"Evidências com dados identificáveis de menores exigem autorização do responsável conforme o contrato do domínio."},
+    {"id":"RLS-001","area":"security","severity":"critical","description":"RLS deve impedir acesso cruzado entre usuários fora do escopo autorizado."},
+    {"id":"RLS-002","area":"security","severity":"critical","description":"Permissões de professor, coordenador e diretor devem respeitar seus respectivos escopos institucionais."},
+    {"id":"DATA-001","area":"integrity","severity":"high","description":"Toda operação confirmada pela interface deve produzir estado persistido coerente e verificável."}
+  ]
+}
