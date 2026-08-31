@@ -1,0 +1,30 @@
+name: EDI-QI Local Database
+
+on:
+  push:
+    branches: ['feat/edi-qi-qa-journeys']
+  pull_request:
+    branches: ['main']
+
+permissions:
+  contents: read
+
+jobs:
+  database:
+    name: EDI-QI Database
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start local Supabase
+        run: supabase start
+      - name: Run EDI-QI database tests
+        run: supabase test db supabase/tests/edi_qi_rls.test.sql
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop
