@@ -54,11 +54,7 @@ function mapTaskRow(data: Record<string, unknown>): AgendaTask {
     description: typeof data.description === 'string' ? data.description : null,
     status: String(data.status),
     priority: String(data.priority),
-    due_date: typeof data.due_at === 'string'
-      ? data.due_at
-      : typeof data.due_date === 'string'
-        ? data.due_date
-        : null,
+    due_date: typeof data.due_date === 'string' ? data.due_date : null,
     event_id: typeof data.event_id === 'string' ? data.event_id : null,
     school_id: typeof data.school_id === 'string' ? data.school_id : null,
     user_id: typeof data.user_id === 'string' ? data.user_id : null,
@@ -107,8 +103,8 @@ class TasksRepository {
     const { data, error } = await this.client
       .from('agenda_tasks')
       .select('*')
-      .is('archived_at', null)
-      .order('due_at', { ascending: true })
+      .is('deleted_at', null)
+      .order('due_date', { ascending: true })
 
     if (error) throw new Error(`Erro ao listar tarefas: ${error.message}`)
     return (data ?? []).map(row => mapTaskRow(row as Record<string, unknown>))
@@ -119,8 +115,8 @@ class TasksRepository {
       .from('agenda_tasks')
       .select('*')
       .eq('user_id', userId)
-      .is('archived_at', null)
-      .order('due_at', { ascending: true })
+      .is('deleted_at', null)
+      .order('due_date', { ascending: true })
 
     if (error) throw new Error(`Erro ao listar tarefas do usuário: ${error.message}`)
     return (data ?? []).map(row => mapTaskRow(row as Record<string, unknown>))
@@ -131,7 +127,7 @@ class TasksRepository {
       .from('agenda_tasks')
       .select('*')
       .eq('id', id)
-      .is('archived_at', null)
+      .is('deleted_at', null)
       .maybeSingle()
 
     if (error) throw new Error(`Erro ao buscar tarefa: ${error.message}`)
@@ -144,7 +140,7 @@ class TasksRepository {
       .select('*')
       .eq('id', id)
       .eq('user_id', userId)
-      .is('archived_at', null)
+      .is('deleted_at', null)
       .maybeSingle()
 
     if (error) throw new Error(`Erro ao buscar tarefa do usuário: ${error.message}`)
@@ -158,12 +154,9 @@ class TasksRepository {
       description: input.description ?? null,
       status: normalizeStatus(input.status ?? 'pending'),
       priority: input.priority ?? 'medium',
-      due_at: input.due_date ?? null,
-      source_type: 'manual',
-      metadata: {
-        event_id: input.event_id ?? null,
-        school_id: input.school_id ?? null,
-      },
+      due_date: input.due_date ?? null,
+      event_id: input.event_id ?? null,
+      school_id: input.school_id ?? null,
     }
 
     const { data, error } = await this.client
@@ -181,7 +174,7 @@ class TasksRepository {
     if (input.title !== undefined) payload.title = input.title
     if (input.description !== undefined) payload.description = input.description
     if (input.priority !== undefined) payload.priority = input.priority
-    if (input.due_date !== undefined) payload.due_at = input.due_date
+    if (input.due_date !== undefined) payload.due_date = input.due_date
 
     if (input.status !== undefined) {
       const { data, error } = await this.client.rpc('set_agenda_task_status', {
@@ -222,7 +215,7 @@ class TasksRepository {
     if (input.title !== undefined) payload.title = input.title
     if (input.description !== undefined) payload.description = input.description
     if (input.priority !== undefined) payload.priority = input.priority
-    if (input.due_date !== undefined) payload.due_at = input.due_date
+    if (input.due_date !== undefined) payload.due_date = input.due_date
 
     const { data, error } = await this.client
       .from('agenda_tasks')
@@ -239,7 +232,7 @@ class TasksRepository {
   async delete(id: string): Promise<void> {
     const { error } = await this.client
       .from('agenda_tasks')
-      .update({ archived_at: new Date().toISOString() })
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', id)
 
     if (error) throw new Error(`Erro ao arquivar tarefa: ${error.message}`)
@@ -248,7 +241,7 @@ class TasksRepository {
   async deleteOwned(id: string, userId: string): Promise<boolean> {
     const { data, error } = await this.client
       .from('agenda_tasks')
-      .update({ archived_at: new Date().toISOString() })
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', id)
       .eq('user_id', userId)
       .select('id')
