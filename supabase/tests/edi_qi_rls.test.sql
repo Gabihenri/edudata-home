@@ -2,8 +2,8 @@ begin;
 create extension if not exists pgtap with schema extensions;
 
 -- EDI-QI: local database security contract.
--- No production data or remote Supabase branch is used.
-select plan(8);
+-- Structural contract follows the current governed Agenda policies.
+select plan(9);
 
 select has_table('public', 'agenda_events', 'Agenda events table exists');
 select has_table('public', 'agenda_evidences', 'Agenda evidences table exists');
@@ -25,33 +25,47 @@ select ok(
     select 1 from pg_policies
     where schemaname = 'public'
       and tablename = 'agenda_events'
-      and policyname = 'agenda_same_organization'
+      and policyname = 'agenda_events_governed_select'
   ),
-  'Agenda has organization-scoped RLS policy'
+  'Agenda SELECT uses governed authorization'
+);
+
+select ok(
+  exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'agenda_events'
+      and policyname = 'agenda_events_governed_update'
+  ),
+  'Agenda UPDATE uses governed authorization'
+);
+
+select ok(
+  exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'agenda_events'
+      and policyname = 'agenda_events_owner_insert'
+  ),
+  'Agenda INSERT is owner-scoped'
 );
 
 select ok(
   exists (
     select 1 from pg_proc
-    where proname = 'can_view_agenda_record'
+    where pronamespace = 'public'::regnamespace
+      and proname = 'can_view_agenda_record'
   ),
-  'Agenda exposes an authorization function'
+  'Agenda exposes view authorization function'
 );
 
 select ok(
   exists (
     select 1 from pg_proc
-    where proname = 'can_update_agenda_record'
+    where pronamespace = 'public'::regnamespace
+      and proname = 'can_update_agenda_record'
   ),
-  'Agenda exposes an update authorization function'
-);
-
-select ok(
-  exists (
-    select 1 from pg_proc
-    where proname = 'apply_agenda_record_governance'
-  ),
-  'Agenda exposes governance enforcement'
+  'Agenda exposes update authorization function'
 );
 
 select * from finish();
