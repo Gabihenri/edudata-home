@@ -1,0 +1,48 @@
+name: EDI-QI
+
+on:
+  push:
+    branches: ['main', 'feat/**']
+  pull_request:
+    branches: ['main']
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: EDI-QI E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run EDI-QI
+        run: npm run test:e2e
+        env:
+          CI: true
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+
+      - name: Upload EDI-QI report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: edi-qi-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
