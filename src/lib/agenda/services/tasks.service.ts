@@ -1,4 +1,5 @@
 import {
+  TasksRepository,
   tasksRepository,
   type AgendaTask,
   type CreateAgendaTaskInput,
@@ -98,13 +99,19 @@ function normalizeUpdateInput(
   return normalizedInput
 }
 
-class TasksService {
+export class TasksService {
+  private readonly repository: TasksRepository
+
+  constructor(repository: TasksRepository = tasksRepository) {
+    this.repository = repository
+  }
+
   /**
    * Uso administrativo interno.
    * Não deve ser utilizado diretamente em rotas de usuários.
    */
   async listAll(): Promise<AgendaTask[]> {
-    return tasksRepository.findAll()
+    return this.repository.findAll()
   }
 
   async listByUserId(
@@ -116,7 +123,7 @@ class TasksService {
         'ID do usuário',
       )
 
-    return tasksRepository.findByUserId(
+    return this.repository.findByUserId(
       normalizedUserId,
     )
   }
@@ -135,7 +142,7 @@ class TasksService {
       )
 
     const task =
-      await tasksRepository.findById(
+      await this.repository.findById(
         normalizedId,
       )
 
@@ -165,7 +172,7 @@ class TasksService {
       )
 
     const task =
-      await tasksRepository.findOwnedById(
+      await this.repository.findOwnedById(
         normalizedId,
         normalizedUserId,
       )
@@ -185,7 +192,7 @@ class TasksService {
     const normalizedInput =
       normalizeTaskInput(input)
 
-    return tasksRepository.create(
+    return this.repository.create(
       normalizedInput,
     )
   }
@@ -206,7 +213,7 @@ class TasksService {
         user_id: normalizedUserId,
       })
 
-    return tasksRepository.create(
+    return this.repository.create(
       normalizedInput,
     )
   }
@@ -226,7 +233,7 @@ class TasksService {
       )
 
     const existingTask =
-      await tasksRepository.findById(
+      await this.repository.findById(
         normalizedId,
       )
 
@@ -239,7 +246,7 @@ class TasksService {
     const normalizedInput =
       normalizeUpdateInput(input)
 
-    return tasksRepository.update(
+    return this.repository.update(
       normalizedId,
       normalizedInput,
     )
@@ -263,7 +270,7 @@ class TasksService {
       )
 
     const existingTask =
-      await tasksRepository.findOwnedById(
+      await this.repository.findOwnedById(
         normalizedId,
         normalizedUserId,
       )
@@ -284,7 +291,7 @@ class TasksService {
     delete normalizedInput.user_id
 
     const updatedTask =
-      await tasksRepository.updateOwned(
+      await this.repository.updateOwned(
         normalizedId,
         normalizedUserId,
         normalizedInput,
@@ -313,7 +320,7 @@ class TasksService {
       )
 
     const existingTask =
-      await tasksRepository.findById(
+      await this.repository.findById(
         normalizedId,
       )
 
@@ -323,7 +330,7 @@ class TasksService {
       )
     }
 
-    await tasksRepository.delete(
+    await this.repository.delete(
       normalizedId,
     )
   }
@@ -345,7 +352,7 @@ class TasksService {
       )
 
     const deleted =
-      await tasksRepository.deleteOwned(
+      await this.repository.deleteOwned(
         normalizedId,
         normalizedUserId,
       )
