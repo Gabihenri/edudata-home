@@ -1,4 +1,7 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+
 import {
+  ClassesRepository,
   classesRepository,
   type AgendaClass,
   type CreateAgendaClassInput,
@@ -6,8 +9,18 @@ import {
 } from '@/lib/agenda/repository/classes.repository'
 
 class ClassesService {
+  private readonly repository: ClassesRepository
+
+  constructor(repository: ClassesRepository = classesRepository) {
+    this.repository = repository
+  }
+
+  withClient(client: SupabaseClient): ClassesService {
+    return new ClassesService(new ClassesRepository(client))
+  }
+
   async listAll(): Promise<AgendaClass[]> {
-    return classesRepository.findAll()
+    return this.repository.findAll()
   }
 
   async getById(id: string): Promise<AgendaClass> {
@@ -15,7 +28,28 @@ class ClassesService {
       throw new Error('ID da turma é obrigatório.')
     }
 
-    const agendaClass = await classesRepository.findById(id)
+    const agendaClass = await this.repository.findById(id)
+
+    if (!agendaClass) {
+      throw new Error('Turma não encontrada.')
+    }
+
+    return agendaClass
+  }
+
+  async getOwnedById(
+    id: string,
+    teacherId: string,
+  ): Promise<AgendaClass> {
+    if (!id?.trim()) {
+      throw new Error('ID da turma é obrigatório.')
+    }
+
+    if (!teacherId?.trim()) {
+      throw new Error('ID do professor é obrigatório.')
+    }
+
+    const agendaClass = await this.repository.findOwnedById(id, teacherId)
 
     if (!agendaClass) {
       throw new Error('Turma não encontrada.')
@@ -29,7 +63,7 @@ class ClassesService {
       throw new Error('ID do professor é obrigatório.')
     }
 
-    return classesRepository.findByTeacherId(teacherId)
+    return this.repository.findByTeacherId(teacherId)
   }
 
   async listBySchoolId(schoolId: string): Promise<AgendaClass[]> {
@@ -37,7 +71,7 @@ class ClassesService {
       throw new Error('ID da escola é obrigatório.')
     }
 
-    return classesRepository.findBySchoolId(schoolId)
+    return this.repository.findBySchoolId(schoolId)
   }
 
   async create(input: CreateAgendaClassInput): Promise<AgendaClass> {
@@ -55,7 +89,7 @@ class ClassesService {
       )
     }
 
-    return classesRepository.create({
+    return this.repository.create({
       ...input,
       name,
       school_year: input.school_year?.trim() || null,
@@ -74,12 +108,82 @@ class ClassesService {
       throw new Error('ID da turma é obrigatório.')
     }
 
-    const existingClass = await classesRepository.findById(id)
+    const existingClass = await this.repository.findById(id)
 
     if (!existingClass) {
       throw new Error('Turma não encontrada.')
     }
 
+    return this.updateNormalized(id, input)
+  }
+
+  async updateOwned(
+    id: string,
+    teacherId: string,
+    input: UpdateAgendaClassInput,
+  ): Promise<AgendaClass> {
+    if (!id?.trim()) {
+      throw new Error('ID da turma é obrigatório.')
+    }
+
+    if (!teacherId?.trim()) {
+      throw new Error('ID do professor é obrigatório.')
+    }
+
+    const existingClass = await this.repository.findOwnedById(id, teacherId)
+
+    if (!existingClass) {
+      throw new Error('Turma não encontrada.')
+    }
+
+    const normalizedInput = this.normalizeUpdateInput(input)
+
+    return this.repository.updateOwned(id, teacherId, normalizedInput)
+  }
+
+  async delete(id: string): Promise<void> {
+    if (!id?.trim()) {
+      throw new Error('ID da turma é obrigatório.')
+    }
+
+    const existingClass = await this.repository.findById(id)
+
+    if (!existingClass) {
+      throw new Error('Turma não encontrada.')
+    }
+
+    await this.repository.delete(id)
+  }
+
+  async deleteOwned(id: string, teacherId: string): Promise<void> {
+    if (!id?.trim()) {
+      throw new Error('ID da turma é obrigatório.')
+    }
+
+    if (!teacherId?.trim()) {
+      throw new Error('ID do professor é obrigatório.')
+    }
+
+    const existingClass = await this.repository.findOwnedById(id, teacherId)
+
+    if (!existingClass) {
+      throw new Error('Turma não encontrada.')
+    }
+
+    await this.repository.deleteOwned(id, teacherId)
+  }
+
+  private async updateNormalized(
+    id: string,
+    input: UpdateAgendaClassInput,
+  ): Promise<AgendaClass> {
+    const normalizedInput = this.normalizeUpdateInput(input)
+    return this.repository.update(id, normalizedInput)
+  }
+
+  private normalizeUpdateInput(
+    input: UpdateAgendaClassInput,
+  ): UpdateAgendaClassInput {
     const normalizedInput: UpdateAgendaClassInput = {
       ...input,
     }
@@ -95,8 +199,7 @@ class ClassesService {
     }
 
     if (input.school_year !== undefined) {
-      normalizedInput.school_year =
-        input.school_year?.trim() || null
+      normalizedInput.school_year = input.school_year?.trim() || null
     }
 
     if (input.grade !== undefined) {
@@ -120,22 +223,9 @@ class ClassesService {
       normalizedInput.students_count = input.students_count
     }
 
-    return classesRepository.update(id, normalizedInput)
-  }
-
-  async delete(id: string): Promise<void> {
-    if (!id?.trim()) {
-      throw new Error('ID da turma é obrigatório.')
-    }
-
-    const existingClass = await classesRepository.findById(id)
-
-    if (!existingClass) {
-      throw new Error('Turma não encontrada.')
-    }
-
-    await classesRepository.delete(id)
+    return normalizedInput
   }
 }
 
+export { ClassesService }
 export const classesService = new ClassesService()
