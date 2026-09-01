@@ -1,4 +1,9 @@
 import {
+  createClient,
+  type SupabaseClient,
+} from '@supabase/supabase-js'
+
+import {
   NextRequest,
   NextResponse,
 } from 'next/server'
@@ -27,6 +32,49 @@ type UnknownRecord =
 const NO_CACHE_HEADERS = {
   'Cache-Control':
     'no-store, no-cache, must-revalidate',
+}
+
+function getAccessToken(
+  request: NextRequest,
+): string {
+  const token =
+    request.cookies.get('sb-access-token')?.value ??
+    request.cookies.get('access_token')?.value
+
+  if (!token) {
+    throw new Error('Usuário não autenticado.')
+  }
+
+  return token
+}
+
+function createAuthenticatedClient(
+  accessToken: string,
+): SupabaseClient {
+  const url =
+    process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!url || !anonKey) {
+    throw new Error(
+      'Variáveis públicas do Supabase não configuradas.',
+    )
+  }
+
+  return createClient(url, anonKey, {
+    global: {
+      headers: {
+        Authorization:
+          `Bearer ${accessToken}`,
+      },
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  })
 }
 
 function isRecord(
@@ -296,19 +344,24 @@ export async function PATCH(
       )
     }
 
-    const existingClass =
-      await classesService
-        .getById(classId)
+    const accessToken =
+      getAccessToken(request)
 
-    /*
-     * Segurança:
-     * o professor somente pode atualizar
-     * turmas pertencentes à própria conta.
-     */
-    if (
-      existingClass.teacher_id !==
-      user.id
-    ) {
+    const authenticatedService =
+      classesService.withClient(
+        createAuthenticatedClient(
+          accessToken,
+        ),
+      )
+
+    const existingClass =
+      await authenticatedService
+        .getOwnedById(
+          classId,
+          user.id,
+        )
+
+    if (!existingClass) {
       throw new Error(
         'Você não possui permissão para atualizar esta turma.',
       )
@@ -411,9 +464,10 @@ export async function PATCH(
      * pelo navegador e permanecem inalterados.
      */
     const data =
-      await classesService
-        .update(
+      await authenticatedService
+        .updateOwned(
           classId,
+          user.id,
           input,
         )
 
