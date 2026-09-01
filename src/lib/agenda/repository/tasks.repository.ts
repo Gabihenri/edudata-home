@@ -164,7 +164,7 @@ function applyStatusLifecycle(
   payload.cancelled_by = null
 }
 
-class TasksRepository {
+export class TasksRepository {
   private readonly injectedClient: SupabaseClient | null
 
   constructor(client?: SupabaseClient) {
@@ -400,7 +400,6 @@ class TasksRepository {
       .from('agenda_tasks')
       .update({
         deleted_at: new Date().toISOString(),
-        deleted_by: userId,
       })
       .eq('id', id)
       .eq('user_id', userId)
