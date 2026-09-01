@@ -1,4 +1,9 @@
 import {
+  createClient,
+  type SupabaseClient,
+} from '@supabase/supabase-js'
+
+import {
   NextRequest,
   NextResponse,
 } from 'next/server'
@@ -25,6 +30,71 @@ type CreateClassRequestBody = {
   studentsCount?: unknown
 
   active?: unknown
+}
+
+function getAccessToken(
+  request: NextRequest,
+): string {
+  const accessToken =
+    request.cookies.get(
+      'sb-access-token',
+    )?.value ??
+    request.cookies.get(
+      'access_token',
+    )?.value
+
+  if (!accessToken) {
+    throw new Error(
+      'Usuário não autenticado.',
+    )
+  }
+
+  return accessToken
+}
+
+function createAuthenticatedClient(
+  accessToken: string,
+): SupabaseClient {
+  const url =
+    process.env.NEXT_PUBLIC_SUPABASE_URL
+
+  const anonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!url || !anonKey) {
+    throw new Error(
+      'Variáveis públicas do Supabase não configuradas.',
+    )
+  }
+
+  return createClient(
+    url,
+    anonKey,
+    {
+      global: {
+        headers: {
+          Authorization:
+            `Bearer ${accessToken}`,
+        },
+      },
+
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    },
+  )
+}
+
+function createAuthenticatedClassesService(
+  request: NextRequest,
+) {
+  return classesService.withClient(
+    createAuthenticatedClient(
+      getAccessToken(request),
+    ),
+  )
 }
 
 function normalizeOptionalText(
@@ -198,21 +268,20 @@ function createErrorResponse(
   )
 }
 
-export async function GET() {
+export async function GET(
+  request: NextRequest,
+) {
   try {
     const user =
       await requireSessionUser()
 
-    /*
-     * Segurança:
-     * cada professor visualiza somente
-     * as próprias turmas.
-     *
-     * O identificador não é recebido
-     * por query string ou pelo navegador.
-     */
+    const service =
+      createAuthenticatedClassesService(
+        request,
+      )
+
     const data =
-      await classesService
+      await service
         .listByTeacherId(
           user.id,
         )
@@ -253,6 +322,11 @@ export async function POST(
     const user =
       await requireSessionUser()
 
+    const service =
+      createAuthenticatedClassesService(
+        request,
+      )
+
     const body =
       (
         await request.json()
@@ -285,24 +359,9 @@ export async function POST(
           body.studentsCount,
         ),
 
-      /*
-       * A propriedade da turma sempre
-       * pertence ao usuário autenticado.
-       *
-       * Nunca aceitar teacherId enviado
-       * pelo navegador.
-       */
       teacher_id:
         user.id,
 
-      /*
-       * O vínculo institucional será
-       * resolvido posteriormente pelo
-       * contexto seguro da organização.
-       *
-       * Não aceitar schoolId arbitrário
-       * enviado pelo navegador.
-       */
       school_id:
         null,
 
@@ -313,7 +372,7 @@ export async function POST(
     }
 
     const data =
-      await classesService
+      await service
         .create(input)
 
     return NextResponse.json(
