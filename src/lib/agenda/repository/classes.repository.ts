@@ -46,8 +46,14 @@ function createSupabaseClient(): SupabaseClient {
 }
 
 class ClassesRepository {
+  private readonly injectedClient: SupabaseClient | null
+
+  constructor(client?: SupabaseClient) {
+    this.injectedClient = client ?? null
+  }
+
   private get client(): SupabaseClient {
-    return createSupabaseClient()
+    return this.injectedClient ?? createSupabaseClient()
   }
 
   async findAll(): Promise<AgendaClass[]> {
@@ -109,6 +115,24 @@ class ClassesRepository {
     return (data ?? []) as AgendaClass[]
   }
 
+  async findOwnedById(
+    id: string,
+    teacherId: string,
+  ): Promise<AgendaClass | null> {
+    const { data, error } = await this.client
+      .from('agenda_classes')
+      .select('*')
+      .eq('id', id)
+      .eq('teacher_id', teacherId)
+      .maybeSingle()
+
+    if (error) {
+      throw new Error(`Erro ao buscar turma: ${error.message}`)
+    }
+
+    return data as AgendaClass | null
+  }
+
   async create(input: CreateAgendaClassInput): Promise<AgendaClass> {
     const payload = {
       name: input.name,
@@ -157,6 +181,32 @@ class ClassesRepository {
     return data as AgendaClass
   }
 
+  async updateOwned(
+    id: string,
+    teacherId: string,
+    input: UpdateAgendaClassInput,
+  ): Promise<AgendaClass> {
+    const payload = {
+      ...input,
+      updated_at: new Date().toISOString(),
+      updated_by: teacherId,
+    }
+
+    const { data, error } = await this.client
+      .from('agenda_classes')
+      .update(payload)
+      .eq('id', id)
+      .eq('teacher_id', teacherId)
+      .select('*')
+      .single()
+
+    if (error) {
+      throw new Error(`Erro ao atualizar turma: ${error.message}`)
+    }
+
+    return data as AgendaClass
+  }
+
   async delete(id: string): Promise<void> {
     const { error } = await this.client
       .from('agenda_classes')
@@ -167,6 +217,19 @@ class ClassesRepository {
       throw new Error(`Erro ao excluir turma: ${error.message}`)
     }
   }
+
+  async deleteOwned(id: string, teacherId: string): Promise<void> {
+    const { error } = await this.client
+      .from('agenda_classes')
+      .delete()
+      .eq('id', id)
+      .eq('teacher_id', teacherId)
+
+    if (error) {
+      throw new Error(`Erro ao excluir turma: ${error.message}`)
+    }
+  }
 }
 
+export { ClassesRepository }
 export const classesRepository = new ClassesRepository()
