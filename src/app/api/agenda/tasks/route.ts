@@ -10,7 +10,10 @@ import {
 
 import { requireSessionUser } from '@/lib/auth/session'
 
-import type { CreateAgendaTaskInput } from '@/lib/agenda/repository/tasks.repository'
+import {
+  TasksRepository,
+  type CreateAgendaTaskInput,
+} from '@/lib/agenda/repository/tasks.repository'
 import {
   TasksService,
 } from '@/lib/agenda/services/tasks.service'
@@ -178,8 +181,11 @@ function createTasksService(
       accessToken,
     )
 
+  const repository =
+    new TasksRepository(client)
+
   return new TasksService(
-    undefined,
+    repository,
   )
 }
 
