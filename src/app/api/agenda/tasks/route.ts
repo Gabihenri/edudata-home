@@ -1,4 +1,9 @@
 import {
+  createClient,
+  type SupabaseClient,
+} from '@supabase/supabase-js'
+
+import {
   NextRequest,
   NextResponse,
 } from 'next/server'
@@ -6,7 +11,9 @@ import {
 import { requireSessionUser } from '@/lib/auth/session'
 
 import type { CreateAgendaTaskInput } from '@/lib/agenda/repository/tasks.repository'
-import { tasksService } from '@/lib/agenda/services/tasks.service'
+import {
+  TasksService,
+} from '@/lib/agenda/services/tasks.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,6 +25,61 @@ type CreateTaskRequestBody = {
   dueDate?: string | null
   eventId?: string | null
   schoolId?: string | null
+}
+
+function getAccessToken(
+  request: NextRequest,
+): string {
+  const accessToken =
+    request.cookies.get(
+      'sb-access-token',
+    )?.value ??
+    request.cookies.get(
+      'access_token',
+    )?.value
+
+  if (!accessToken) {
+    throw new Error(
+      'Usuário não autenticado.',
+    )
+  }
+
+  return accessToken
+}
+
+function createAuthenticatedClient(
+  accessToken: string,
+): SupabaseClient {
+  const url =
+    process.env.NEXT_PUBLIC_SUPABASE_URL
+
+  const anonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!url || !anonKey) {
+    throw new Error(
+      'Variáveis públicas do Supabase não configuradas.',
+    )
+  }
+
+  return createClient(
+    url,
+    anonKey,
+    {
+      global: {
+        headers: {
+          Authorization:
+            `Bearer ${accessToken}`,
+        },
+      },
+
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    },
+  )
 }
 
 function normalizeOptionalText(
@@ -105,17 +167,34 @@ function createErrorResponse(
   )
 }
 
-export async function GET() {
+function createTasksService(
+  request: NextRequest,
+): TasksService {
+  const accessToken =
+    getAccessToken(request)
+
+  const client =
+    createAuthenticatedClient(
+      accessToken,
+    )
+
+  return new TasksService(
+    undefined,
+  )
+}
+
+export async function GET(
+  request: NextRequest,
+) {
   try {
     const user =
       await requireSessionUser()
 
-    /*
-     * A consulta já é filtrada no banco pelo
-     * proprietário autenticado.
-     */
+    const service =
+      createTasksService(request)
+
     const data =
-      await tasksService.listByUserId(
+      await service.listByUserId(
         user.id,
       )
 
@@ -152,6 +231,9 @@ export async function POST(
   try {
     const user =
       await requireSessionUser()
+
+    const service =
+      createTasksService(request)
 
     const body =
       (await request.json()) as CreateTaskRequestBody
@@ -193,13 +275,8 @@ export async function POST(
         ),
     }
 
-    /*
-     * O user_id é definido pelo servidor.
-     * Nenhum proprietário enviado pelo navegador
-     * será aceito.
-     */
     const data =
-      await tasksService.createOwned(
+      await service.createOwned(
         user.id,
         input,
       )
