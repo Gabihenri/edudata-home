@@ -1,11 +1,21 @@
 import {
+  createClient,
+  type SupabaseClient,
+} from '@supabase/supabase-js'
+
+import {
   NextRequest,
   NextResponse,
 } from 'next/server'
 
 import { requireSessionUser } from '@/lib/auth/session'
 import type { UpdateAgendaTaskInput } from '@/lib/agenda/repository/tasks.repository'
-import { tasksService } from '@/lib/agenda/services/tasks.service'
+import {
+  TasksRepository,
+} from '@/lib/agenda/repository/tasks.repository'
+import {
+  TasksService,
+} from '@/lib/agenda/services/tasks.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,21 +33,117 @@ type UpdateTaskRequestBody = {
   dueDate?: string | null
 }
 
+function getAccessToken(
+  request: NextRequest,
+): string {
+  const accessToken =
+    request.cookies.get(
+      'sb-access-token',
+    )?.value ??
+    request.cookies.get(
+      'access_token',
+    )?.value
+
+  if (!accessToken) {
+    throw new Error(
+      'Usuário não autenticado.',
+    )
+  }
+
+  return accessToken
+}
+
+function createAuthenticatedClient(
+  accessToken: string,
+): SupabaseClient {
+  const url =
+    process.env.NEXT_PUBLIC_SUPABASE_URL
+
+  const anonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!url || !anonKey) {
+    throw new Error(
+      'Variáveis públicas do Supabase não configuradas.',
+    )
+  }
+
+  return createClient(
+    url,
+    anonKey,
+    {
+      global: {
+        headers: {
+          Authorization:
+            `Bearer ${accessToken}`,
+        },
+      },
+
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    },
+  )
+}
+
+function createTasksService(
+  request: NextRequest,
+): TasksService {
+  const accessToken =
+    getAccessToken(request)
+
+  const client =
+    createAuthenticatedClient(
+      accessToken,
+    )
+
+  const repository =
+    new TasksRepository(client)
+
+  return new TasksService(
+    repository,
+  )
+}
+
 function getErrorStatus(error: unknown): number {
   if (error instanceof SyntaxError) return 400
   if (!(error instanceof Error)) return 500
 
   const message = error.message.toLowerCase()
 
-  if (message.includes('não autenticado') || message.includes('não autorizado')) return 401
-  if (message.includes('sem permissão') || message.includes('proibido')) return 403
+  if (
+    message.includes('não autenticado') ||
+    message.includes('não autorizado')
+  ) {
+    return 401
+  }
+
+  if (
+    message.includes('sem permissão') ||
+    message.includes('proibido')
+  ) {
+    return 403
+  }
+
   if (message.includes('não encontrada')) return 404
-  if (message.includes('obrigatório') || message.includes('inválido') || message.includes('não pode ficar vazio')) return 400
+
+  if (
+    message.includes('obrigatório') ||
+    message.includes('inválido') ||
+    message.includes('não pode ficar vazio')
+  ) {
+    return 400
+  }
 
   return 500
 }
 
-function createErrorResponse(error: unknown, fallbackMessage: string) {
+function createErrorResponse(
+  error: unknown,
+  fallbackMessage: string,
+) {
   const message = error instanceof Error ? error.message : fallbackMessage
 
   return NextResponse.json(
@@ -55,6 +161,7 @@ export async function PATCH(
 ) {
   try {
     const user = await requireSessionUser()
+    const service = createTasksService(request)
     const body = (await request.json()) as UpdateTaskRequestBody
 
     const input: UpdateAgendaTaskInput = {}
@@ -69,12 +176,16 @@ export async function PATCH(
       throw new Error('Informe ao menos um campo para atualização.')
     }
 
-    const data = await tasksService.updateOwned(params.id, user.id, input)
+    const data = await service.updateOwned(
+      params.id,
+      user.id,
+      input,
+    )
 
     return NextResponse.json(
       {
         success: true,
-        message: 'Status da tarefa atualizado com sucesso.',
+        message: 'Tarefa atualizada com sucesso.',
         data,
       },
       {
