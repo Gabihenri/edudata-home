@@ -1,10 +1,11 @@
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 import {
   getCurrentUserRole,
   getSessionUser,
 } from '@/lib/auth'
-import { evidencesRepository } from '@/lib/agenda/repository'
+import { EvidencesRepository } from '@/lib/agenda/repository/evidences.repository'
 import {
   createSignedUrl,
   STORAGE_BUCKETS,
@@ -38,8 +39,56 @@ function jsonError(
   )
 }
 
+function getAccessToken(request: Request): string | null {
+  const cookieHeader = request.headers.get('cookie')
+
+  if (!cookieHeader) {
+    return null
+  }
+
+  const cookies = cookieHeader.split(';').reduce<Record<string, string>>(
+    (accumulator, cookie) => {
+      const separatorIndex = cookie.indexOf('=')
+      if (separatorIndex === -1) return accumulator
+
+      const name = cookie.slice(0, separatorIndex).trim()
+      const value = cookie.slice(separatorIndex + 1).trim()
+
+      if (name) accumulator[name] = decodeURIComponent(value)
+      return accumulator
+    },
+    {},
+  )
+
+  return cookies['sb-access-token'] ?? cookies.access_token ?? null
+}
+
+function createAuthenticatedClient(accessToken: string): SupabaseClient {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!url || !anonKey) {
+    throw new Error(
+      'Variáveis públicas do Supabase não configuradas.',
+    )
+  }
+
+  return createClient(url, anonKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  })
+}
+
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: EvidenceFileRouteContext,
 ) {
   try {
@@ -63,8 +112,19 @@ export async function GET(
       )
     }
 
-    const evidence =
-      await evidencesRepository.findById(evidenceId)
+    const accessToken = getAccessToken(request)
+
+    if (!accessToken) {
+      return jsonError(
+        'Token de acesso não encontrado.',
+        401,
+        'AUTH_TOKEN_REQUIRED',
+      )
+    }
+
+    const client = createAuthenticatedClient(accessToken)
+    const repository = new EvidencesRepository(client)
+    const evidence = await repository.findById(evidenceId)
 
     if (!evidence) {
       return jsonError(
@@ -74,14 +134,9 @@ export async function GET(
       )
     }
 
-    const currentRole =
-      await getCurrentUserRole()
-
-    const isOwner =
-      evidence.user_id === user.id
-
-    const isSuperAdmin =
-      currentRole === 'super_admin'
+    const currentRole = await getCurrentUserRole()
+    const isOwner = evidence.user_id === user.id
+    const isSuperAdmin = currentRole === 'super_admin'
 
     if (!isOwner && !isSuperAdmin) {
       return jsonError(
@@ -91,11 +146,8 @@ export async function GET(
       )
     }
 
-    const storageBucket =
-      evidence.storage_bucket?.trim()
-
-    const storagePath =
-      evidence.storage_path?.trim()
+    const storageBucket = evidence.storage_bucket?.trim()
+    const storagePath = evidence.storage_path?.trim()
 
     if (!storageBucket || !storagePath) {
       return jsonError(
@@ -113,14 +165,11 @@ export async function GET(
       )
     }
 
-    const evidenceOwnerId =
-      evidence.user_id?.trim()
+    const evidenceOwnerId = evidence.user_id?.trim()
 
     if (
       !evidenceOwnerId ||
-      !storagePath.startsWith(
-        `${evidenceOwnerId}/`,
-      )
+      !storagePath.startsWith(`${evidenceOwnerId}/`)
     ) {
       return jsonError(
         'O arquivo da evidência possui um caminho de armazenamento inválido.',
@@ -132,8 +181,7 @@ export async function GET(
     const result = await createSignedUrl({
       bucket: STORAGE_BUCKETS.EVIDENCES,
       path: storagePath,
-      expiresIn:
-        SIGNED_URL_EXPIRATION_SECONDS,
+      expiresIn: SIGNED_URL_EXPIRATION_SECONDS,
     })
 
     return NextResponse.json({
@@ -142,10 +190,8 @@ export async function GET(
         signedUrl: result.signedUrl,
         expiresIn: result.expiresIn,
         evidenceId: evidence.id,
-        fileName:
-          evidence.original_file_name,
-        mimeType:
-          evidence.file_mime_type,
+        fileName: evidence.original_file_name,
+        mimeType: evidence.file_mime_type,
       },
     })
   } catch (error) {
