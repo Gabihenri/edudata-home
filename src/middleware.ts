@@ -34,7 +34,6 @@ const BLOCKED_PRODUCT_ROUTES = [
 const EXACT_PUBLIC_ROUTES = [
   '/',
   '/login',
-  '/agenda',
 ]
 
 const PUBLIC_ROUTE_PREFIXES = [
