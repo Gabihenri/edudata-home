@@ -138,11 +138,9 @@ export async function POST(request: NextRequest) {
       notes: body.notes || null,
     }
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('matriculas_na_academia')
       .insert(payload)
-      .select()
-      .single()
 
     if (error) {
       return NextResponse.json(
@@ -154,7 +152,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Inscrição realizada com sucesso.',
-      data,
     })
   } catch (error) {
     return NextResponse.json(
