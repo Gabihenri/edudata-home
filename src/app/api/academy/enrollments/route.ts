@@ -1,25 +1,72 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+
+import { requireSessionUser } from '@/lib/auth/session'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-function getSupabase() {
+function getServiceRoleSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!url || !key) {
-    throw new Error('Variáveis do Supabase não configuradas.')
+    throw new Error('Credenciais administrativas do Supabase não configuradas.')
   }
 
-  return createClient(url, key)
+  return createClient(url, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  })
+}
+
+function isAdminRole(role: unknown): boolean {
+  if (typeof role !== 'string') return false
+
+  return [
+    'admin',
+    'administrator',
+    'platform_admin',
+    'super_admin',
+    'diretor',
+    'director',
+    'coordenador',
+    'coordinator',
+  ].includes(role.trim().toLowerCase())
+}
+
+async function requireAcademyAdmin() {
+  const sessionUser = await requireSessionUser()
+
+  if (!sessionUser?.id) {
+    throw new Error('Usuário não autenticado.')
+  }
+
+  const supabase = getServiceRoleSupabase()
+
+  const { data: profile, error } = await supabase
+    .from('user_profiles')
+    .select('role, status')
+    .eq('user_id', sessionUser.id)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error('Não foi possível validar as permissões administrativas.')
+  }
+
+  if (profile?.status !== 'active' || !isAdminRole(profile?.role)) {
+    throw new Error('Usuário não autorizado.')
+  }
+
+  return supabase
 }
 
 export async function GET() {
   try {
-    const supabase = getSupabase()
+    const supabase = await requireAcademyAdmin()
 
     const { data, error } = await supabase
       .from('matriculas_na_academia')
@@ -28,7 +75,7 @@ export async function GET() {
 
     if (error) {
       return NextResponse.json(
-        { success: false, error: error.message },
+        { success: false, error: 'Não foi possível carregar as inscrições.' },
         { status: 500 },
       )
     }
@@ -39,20 +86,17 @@ export async function GET() {
       data,
     })
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Acesso não autorizado.'
+    const status = message.includes('não autenticado') ? 401 : 403
+
     return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Erro interno ao buscar inscrições.',
-      },
-      { status: 500 },
+      { success: false, error: message },
+      { status },
     )
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
@@ -80,7 +124,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const supabase = getSupabase()
+    const supabase = getServiceRoleSupabase()
 
     const payload = {
       course_slug: body.courseSlug || body.curso || body.courseId || 'professor-digital',
@@ -102,7 +146,7 @@ export async function POST(request: Request) {
 
     if (error) {
       return NextResponse.json(
-        { success: false, error: error.message },
+        { success: false, error: 'Não foi possível registrar a inscrição.' },
         { status: 500 },
       )
     }
