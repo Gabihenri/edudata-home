@@ -42,15 +42,9 @@ const REALIZED_STATUS = 'realizada'
 const PARTIALLY_REALIZED_STATUS = 'parcialmente_realizada'
 
 function normalizeReferenceDate(value?: string | Date): string {
-  if (!value) {
-    return new Date().toISOString().slice(0, 10)
-  }
-
+  if (!value) return new Date().toISOString().slice(0, 10)
   const date = value instanceof Date ? value : new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    throw new Error('Data de referência inválida.')
-  }
-
+  if (Number.isNaN(date.getTime())) throw new Error('Data de referência inválida.')
   return date.toISOString().slice(0, 10)
 }
 
@@ -77,11 +71,9 @@ function dateRange(start: string, end: string): string[] {
   const first = parseDate(start)
   const last = parseDate(end)
   const dates: string[] = []
-
   for (let current = first; current <= last; current = addDays(current, 1)) {
     dates.push(formatDate(current))
   }
-
   return dates
 }
 
@@ -102,20 +94,16 @@ function buildInstructionalDateSet(
 
   for (const date of dateRange(period.start_date, period.end_date)) {
     const weekday = parseDate(date).getUTCDay()
-    if (weekday >= 1 && weekday <= 5) {
-      instructionalDates.add(date)
-    }
+    if (weekday >= 1 && weekday <= 5) instructionalDates.add(date)
   }
 
   for (const event of events) {
     for (const date of expandEventDates(event)) {
       if (!overlaps(date, period.start_date, period.end_date)) continue
-
       if (event.suspends_classes || !event.is_instructional_day) {
         instructionalDates.delete(date)
         continue
       }
-
       if (event.is_instructional_day && event.counts_as_school_day) {
         instructionalDates.add(date)
       }
@@ -123,15 +111,9 @@ function buildInstructionalDateSet(
   }
 
   for (const exception of exceptions) {
-    if (!overlaps(exception.exception_date, period.start_date, period.end_date)) {
-      continue
-    }
-
-    if (exception.counts_as_school_day) {
-      instructionalDates.add(exception.exception_date)
-    } else {
-      instructionalDates.delete(exception.exception_date)
-    }
+    if (!overlaps(exception.exception_date, period.start_date, period.end_date)) continue
+    if (exception.counts_as_school_day) instructionalDates.add(exception.exception_date)
+    else instructionalDates.delete(exception.exception_date)
   }
 
   return instructionalDates
@@ -161,7 +143,6 @@ function classify(
 
   const deviation = realized - expected
   const tolerance = Math.max(1, planned * 0.05)
-
   if (referenceDate >= periodEnd && realized < planned) return 'atrasado'
   if (deviation < -tolerance) return 'atrasado'
   if (deviation > tolerance) return 'adiantado'
@@ -181,9 +162,11 @@ export class PlanningProgressService {
     const planning = input.planning
     const referenceDate = normalizeReferenceDate(input.referenceDate)
 
+    // O RLS e a autorização institucional definem quais registros o cliente pode ler.
+    // Não restringimos a consulta pelo userId: um planejamento pode ter aulas executadas
+    // por outro profissional autorizado (substituição/colaboração).
     const lessons: AgendaLesson[] = await this.lessonsRepository.findAll({
       planningId: planning.id,
-      userId: input.userId ?? undefined,
       includeDeleted: false,
     })
 
@@ -205,14 +188,10 @@ export class PlanningProgressService {
         schoolId: planning.school_id ?? undefined,
         includeDeleted: false,
       })
-
-      const period = periods.find(
-        (candidate) => candidate.id === planning.academic_period_id,
-      )
+      const period = periods.find((candidate) => candidate.id === planning.academic_period_id)
 
       if (period) {
         periodEnd = period.end_date
-
         const events = await this.calendarRepository.findInstitutionalEvents({
           schoolId: planning.school_id ?? undefined,
           schoolYearId: planning.school_year_id ?? undefined,
@@ -221,7 +200,6 @@ export class PlanningProgressService {
           endDate: period.end_date,
           includeDeleted: false,
         })
-
         const exceptions = await this.calendarRepository.findCalendarExceptions({
           schoolId: planning.school_id ?? undefined,
           schoolYearId: planning.school_year_id ?? undefined,
@@ -230,20 +208,12 @@ export class PlanningProgressService {
           includeDeleted: false,
         })
 
-        const instructionalDates = buildInstructionalDateSet(
-          period,
-          events,
-          exceptions,
-        )
+        const instructionalDates = buildInstructionalDateSet(period, events, exceptions)
         const totalInstructionalDays = period.instructional_days_target ?? instructionalDates.size
-        const elapsedInstructionalDays = countElapsedInstructionalDays(
-          instructionalDates,
-          referenceDate,
-        )
+        const elapsedInstructionalDays = countElapsedInstructionalDays(instructionalDates, referenceDate)
         const temporalProgress = totalInstructionalDays > 0
           ? Math.min(1, Math.max(0, elapsedInstructionalDays / totalInstructionalDays))
           : 0
-
         expectedLessons = round(plannedLessons * temporalProgress)
       }
     } else if (planning.planned_date) {
@@ -267,13 +237,7 @@ export class PlanningProgressService {
       executionPercentage,
       paceDeviation,
       pacePercentage,
-      status: classify(
-        realizedLessons,
-        expectedLessons,
-        plannedLessons,
-        referenceDate,
-        periodEnd,
-      ),
+      status: classify(realizedLessons, expectedLessons, plannedLessons, referenceDate, periodEnd),
       referenceDate,
     }
   }
