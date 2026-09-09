@@ -36,11 +36,13 @@ O Core já possui `substitutions`, vinculando escola, organização, docente aus
 
 **Decisão:** `substitutions` permanece como registro operacional da substituição confirmada. A evolução deve ser incremental, preservando compatibilidade e histórico.
 
-### 2.5 Auditoria
+### 2.5 Auditoria e governança EIOS
 
 O Core possui `audit_logs` central com escola, organização, usuário, ação, entidade, entidade/registro afetado, valores anterior/novo, metadados, request/session e timestamp.
 
-**Decisão:** reutilizar `audit_logs`. Não criar `substitution_audit_log` paralelo.
+Além disso, a camada EIOS já possui estruturas específicas para auditoria, workflow, proveniência e decisões humanas, com registros append-only e RLS. A migration 011 exige as funções `can_view_agenda_record(uuid,uuid,uuid)` e `can_update_agenda_record(uuid,uuid,uuid)` antes de aplicar suas policies. cite não usar aqui — evidência registrada pelo commit do repositório.
+
+**Decisão atual:** `audit_logs` continua sendo o ledger central mínimo do Core. A eventual utilização de `eios_governance_audit_events`, `eios_governance_provenance_records` e `eios_governance_decision_records` pela Escala será tratada como integração de governança, não como substituição silenciosa do ledger existente. Isso será definido após auditoria específica das funções de autorização.
 
 ### 2.6 Agenda e impedimentos
 
@@ -55,27 +57,32 @@ O Core possui `audit_logs` central com escola, organização, usuário, ação, 
 **Severidade:** CRÍTICA  
 **Estado:** BLOQUEADOR
 
-O arquivo `database/08_substitutions.sql` cria uma FK de `substitutions.schedule_id` para `schedules(id)`, porém a auditoria do diretório `database/` não localizou uma declaração `CREATE TABLE schedules` correspondente. A busca também retornou somente essa referência à tabela `schedules`.
+O arquivo `database/08_substitutions.sql` cria uma FK de `substitutions.schedule_id` para `schedules(id)`, porém a auditoria do diretório `database/` não localizou uma declaração `CREATE TABLE schedules` correspondente.
 
-Isso produz uma inconsistência estrutural relevante: o modelo da Escala depende de uma grade/horário oficial, mas o Core atualmente não apresenta, no conjunto de SQL auditado, uma tabela `schedules` verificável.
+A nova evidência mostra que `database/11_indexes.sql` também presume a existência de `schedules`, criando índices em `schedules(teacher_id)` e `schedules(class_id)`. Portanto, há evidência de que `schedules` foi prevista pelo Core, mas **não há, no conjunto de SQL versionado auditado, a definição da tabela**. cite não usar aqui — evidência registrada pelo commit do repositório.
+
+A listagem de `database/supabase/migrations/` também não apresentou uma migration dedicada à criação de `schedules` no conjunto atualmente versionado consultado.
 
 **Impacto:** não é seguro criar `substitution_vacancies` referenciando `schedules(id)` até que a existência real dessa tabela no banco seja comprovada ou que o modelo oficial de horários seja definido.
 
-**Ação obrigatória:** antes da migration v1, verificar diretamente o schema efetivamente aplicado no Supabase e reconciliar essa divergência com o repositório.
+**Ação obrigatória:** verificar diretamente o schema efetivamente aplicado no Supabase e reconciliar essa divergência com o repositório. Se a tabela existir no banco, o schema aplicado deve ser documentado e posteriormente sincronizado com o repositório. Se não existir, será necessário definir a fonte oficial de horários antes da migration da Escala.
 
 ## 4. RLS — achado de governança
 
 O `database/12_rls.sql` habilita RLS para `users`, `teacher_profiles`, `substitutions` e `audit_logs`, utilizando principalmente escopo por organização; classes e algumas entidades acadêmicas utilizam escopo por escola.
 
-Para a Escala, isso é insuficiente como especificação final de autorização: a regra de negócio exige que a recomendação seja acessível somente a usuários autorizados a administrar a escala, sem ampliar automaticamente a visibilidade de dados docentes.
+Também foi confirmada a existência de uma camada EIOS posterior que utiliza funções específicas de autorização para leitura e atualização de registros. A migration EIOS 011 valida explicitamente essas funções antes de criar as policies de governança. cite não usar aqui — evidência registrada pelo commit do repositório.
 
-**Risco:** copiar mecanicamente uma policy `same_organization` para todas as novas tabelas pode permitir acesso de pares que não deveriam administrar ou confirmar substituições.
+Para a Escala, isso significa que não devemos simplesmente copiar uma policy `same_organization` para todas as novas tabelas.
+
+**Risco:** permitir que qualquer usuário dentro da organização visualize ou altere recomendações e decisões administrativas da escala.
 
 **Ação:** a migration da Escala deverá separar, no mínimo:
 - leitura operacional compatível com o escopo institucional;
 - acesso a candidatos/recomendações conforme papel/permissão;
 - confirmação administrativa somente por usuário autorizado;
-- preservação da auditoria sem abrir dados além do necessário.
+- preservação da auditoria sem abrir dados além do necessário;
+- ausência de policies UPDATE/DELETE em registros históricos quando o desenho exigir append-only.
 
 ## 5. Matriz de decisão
 
@@ -90,8 +97,9 @@ Para a Escala, isso é insuficiente como especificação final de autorização:
 | `availability` | Confirmado | Sim | Médio | Elegibilidade temporal |
 | `agenda_events` | Confirmado | Sim | Médio | Impedimentos/contexto |
 | `substitutions` | Confirmado | Sim, evolutivo | Alto | Resultado operacional |
-| `audit_logs` | Confirmado | Sim | Baixo | Auditoria central |
-| `schedules` | Não localizado | Ainda não | Crítico | BLOQUEADO |
+| `audit_logs` | Confirmado | Sim | Baixo | Ledger central |
+| EIOS governance | Confirmado no repositório | Potencialmente | Médio/Alto | Integrar após auditoria de autorização |
+| `schedules` | Referenciado, definição não localizada | Ainda não | Crítico | BLOQUEADO |
 
 ## 6. O que pode avançar
 
@@ -103,7 +111,9 @@ A arquitetura lógica permanece válida para as entidades específicas da Escala
 - `substitution_rule_sets`
 - `substitution_engine_runs`
 
-Entretanto, os FKs dessas tabelas só devem ser definidos após a reconciliação do modelo oficial de horários.
+Também podemos avançar no **desenho lógico da migration**, sem executá-la e sem fixar ainda a FK para `schedules`.
+
+O draft deve manter uma seção explícita de dependências bloqueadas, para impedir que um placeholder estrutural vire acidentalmente DDL executável.
 
 ## 7. Critério para liberar a migration
 
@@ -114,11 +124,13 @@ A migration SQL v1 somente será considerada pronta quando:
 3. políticas RLS reais e funções de autorização forem confrontadas com o desenho da Escala;
 4. a evolução de `substitutions` for validada sem perda de compatibilidade;
 5. houver testes para conflito de horário, indisponibilidade, dupla alocação, ausência de candidato e acesso indevido;
-6. a auditoria de cada decisão estiver preservada no `audit_logs` central;
+6. a auditoria de cada decisão estiver preservada no ledger apropriado, sem duplicação incoerente;
 7. a migration for revisada como artefato antes de qualquer execução no Supabase.
 
 ## 8. Resultado da auditoria
 
 **Resultado: NÃO LIBERADO PARA EXECUÇÃO.**
 
-O bloqueio é deliberado e positivo: foi identificado um ponto estrutural que precisa ser resolvido antes de criar tabelas dependentes. A próxima etapa deve ser a reconciliação do modelo de horários real do Core/Supabase e, somente depois, a elaboração da migration SQL v1.
+O bloqueio permanece deliberado. A auditoria avançou e agora distingue dois fatos: `schedules` é uma dependência prevista pelo Core, inclusive referenciada por índices e por `substitutions`, mas sua definição não está presente no conjunto SQL versionado auditado; e a governança EIOS já fornece mecanismos adicionais de proveniência e decisão que precisam ser avaliados antes de desenhar o RLS da Escala.
+
+**Próxima etapa:** elaborar o draft da migration SQL v1 com os FKs sensíveis marcados como dependências bloqueadas, enquanto se fecha a reconciliação do schema de horários e da autorização.
