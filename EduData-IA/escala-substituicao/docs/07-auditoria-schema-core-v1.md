@@ -40,9 +40,9 @@ O Core já possui `substitutions`, vinculando escola, organização, docente aus
 
 O Core possui `audit_logs` central com escola, organização, usuário, ação, entidade, entidade/registro afetado, valores anterior/novo, metadados, request/session e timestamp.
 
-Além disso, a camada EIOS já possui estruturas específicas para auditoria, workflow, proveniência e decisões humanas, com registros append-only e RLS. A migration 011 exige as funções `can_view_agenda_record(uuid,uuid,uuid)` e `can_update_agenda_record(uuid,uuid,uuid)` antes de aplicar suas policies. cite não usar aqui — evidência registrada pelo commit do repositório.
+Além disso, a camada EIOS possui estruturas específicas para auditoria, workflow, proveniência e decisões humanas, com registros append-only e RLS. A migration 011 valida explicitamente as funções `can_view_agenda_record(uuid,uuid,uuid)` e `can_update_agenda_record(uuid,uuid,uuid)` antes de aplicar suas policies.
 
-**Decisão atual:** `audit_logs` continua sendo o ledger central mínimo do Core. A eventual utilização de `eios_governance_audit_events`, `eios_governance_provenance_records` e `eios_governance_decision_records` pela Escala será tratada como integração de governança, não como substituição silenciosa do ledger existente. Isso será definido após auditoria específica das funções de autorização.
+**Decisão atual:** `audit_logs` continua sendo o ledger central mínimo do Core. A eventual utilização das estruturas de governança EIOS pela Escala será tratada como integração de governança, não como substituição silenciosa do ledger existente. Isso será definido após auditoria específica das funções de autorização.
 
 ### 2.6 Agenda e impedimentos
 
@@ -59,9 +59,9 @@ Além disso, a camada EIOS já possui estruturas específicas para auditoria, wo
 
 O arquivo `database/08_substitutions.sql` cria uma FK de `substitutions.schedule_id` para `schedules(id)`, porém a auditoria do diretório `database/` não localizou uma declaração `CREATE TABLE schedules` correspondente.
 
-A nova evidência mostra que `database/11_indexes.sql` também presume a existência de `schedules`, criando índices em `schedules(teacher_id)` e `schedules(class_id)`. Portanto, há evidência de que `schedules` foi prevista pelo Core, mas **não há, no conjunto de SQL versionado auditado, a definição da tabela**. cite não usar aqui — evidência registrada pelo commit do repositório.
+A auditoria também encontrou `database/11_indexes.sql` criando índices em `schedules(teacher_id)` e `schedules(class_id)`. Portanto, há evidência de que `schedules` foi prevista pelo Core, mas **não há, no conjunto de SQL versionado auditado, a definição da tabela**.
 
-A listagem de `database/supabase/migrations/` também não apresentou uma migration dedicada à criação de `schedules` no conjunto atualmente versionado consultado.
+A listagem de `database/supabase/migrations/` consultada também não apresentou uma migration dedicada à criação de `schedules` no conjunto atualmente versionado.
 
 **Impacto:** não é seguro criar `substitution_vacancies` referenciando `schedules(id)` até que a existência real dessa tabela no banco seja comprovada ou que o modelo oficial de horários seja definido.
 
@@ -71,7 +71,7 @@ A listagem de `database/supabase/migrations/` também não apresentou uma migrat
 
 O `database/12_rls.sql` habilita RLS para `users`, `teacher_profiles`, `substitutions` e `audit_logs`, utilizando principalmente escopo por organização; classes e algumas entidades acadêmicas utilizam escopo por escola.
 
-Também foi confirmada a existência de uma camada EIOS posterior que utiliza funções específicas de autorização para leitura e atualização de registros. A migration EIOS 011 valida explicitamente essas funções antes de criar as policies de governança. cite não usar aqui — evidência registrada pelo commit do repositório.
+Também foi confirmada uma camada EIOS posterior que utiliza funções específicas de autorização para leitura e atualização de registros. A migration EIOS 011 valida explicitamente essas funções antes de criar as policies de governança.
 
 Para a Escala, isso significa que não devemos simplesmente copiar uma policy `same_organization` para todas as novas tabelas.
 
