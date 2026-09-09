@@ -2,331 +2,348 @@
 
 ## 1. Objetivo
 
-Definir o modelo lógico de dados da Escala Inteligente de Substituição, separando dados de origem, configurações institucionais, resultados derivados pelo motor e decisões humanas.
+Definir o modelo lógico da Escala Inteligente de Substituição sem duplicar entidades já pertencentes ao Core/EIOS do EduData IA.
 
-O modelo deve permitir rastreabilidade completa desde a ausência de um docente até a substituição confirmada.
+O módulo deve consumir os dados institucionais existentes e acrescentar somente os dados específicos do processo de substituição.
 
-## 2. Princípios
+## 2. Princípio arquitetural
 
-- **Instituição como escopo obrigatório:** todo dado operacional deve estar vinculado à instituição correspondente.
-- **Reutilização do Core/EIOS:** identidade de usuário, instituição, autenticação e autorização não devem ser duplicadas quando já existirem no ecossistema EduData IA.
-- **Fonte ≠ derivação:** horários, disponibilidades e ausências são fatos de origem; candidatos, pontuações e recomendações são resultados do motor.
-- **Auditoria:** recomendações e decisões devem preservar autor, data/hora, origem e justificativa.
-- **Privacidade e mínimo privilégio:** somente dados necessários à operação da escala devem ser expostos.
-- **Não sobrescrever decisão humana:** uma alocação confirmada deve possuir histórico próprio.
-
-## 3. Entidades principais
-
-### 3.1 `teachers`
-
-Representa o perfil operacional do docente usado pelo motor.
-
-Campos mínimos:
-
-- `id` — UUID
-- `institution_id` — referência à instituição
-- `user_id` — referência opcional ao usuário do Core/EIOS
-- `display_name` — nome operacional
-- `status` — `active`, `inactive`
-- `employment_type` — tipo de vínculo, quando necessário
-- `created_at`
-- `updated_at`
-
-Não armazenar aqui informações pessoais que não sejam necessárias para a escala.
-
-### 3.2 `teacher_subject_qualifications`
-
-Relaciona docentes às disciplinas/competências que podem ser consideradas pelo motor.
-
-Campos mínimos:
-
-- `id`
-- `teacher_id`
-- `subject_id` ou referência à disciplina do Core
-- `knowledge_area_id` — referência à área de conhecimento
-- `qualification_level` — grau de aderência configurado
-- `source` — origem do dado
-- `created_at`
-- `updated_at`
-
-A qualificação deve ser tratada como dado institucional configurável e auditável.
-
-### 3.3 `teacher_availability`
-
-Registra disponibilidade operacional do docente.
-
-Campos mínimos:
-
-- `id`
-- `institution_id`
-- `teacher_id`
-- `weekday`
-- `start_time`
-- `end_time`
-- `availability_type` — `available`, `unavailable`, `conditional`
-- `reason` — opcional
-- `valid_from`
-- `valid_until`
-- `source`
-- `created_at`
-- `updated_at`
-
-Eventos de agenda, formação, ATPCA, reunião ou apoio presencial que bloqueiem uma faixa devem prevalecer sobre uma disponibilidade genérica.
-
-### 3.4 `school_schedule`
-
-Representa o horário oficial das aulas.
-
-Campos mínimos:
-
-- `id`
-- `institution_id`
-- `academic_year`
-- `weekday`
-- `period_order`
-- `start_time`
-- `end_time`
-- `class_id`
-- `subject_id`
-- `teacher_id`
-- `room` — opcional
-- `status`
-- `source`
-- `created_at`
-- `updated_at`
-
-O registro deve permitir identificar exatamente qual aula fica descoberta em caso de ausência.
-
-### 3.5 `absences`
-
-Registra a ausência de um docente.
-
-Campos mínimos:
-
-- `id`
-- `institution_id`
-- `teacher_id`
-- `absence_date`
-- `start_time`
-- `end_time`
-- `reason_category`
-- `status` — `draft`, `confirmed`, `cancelled`
-- `source`
-- `created_by`
-- `confirmed_by`
-- `confirmed_at`
-- `created_at`
-- `updated_at`
-
-Uma ausência só deve gerar escala automática quando estiver em estado operacional válido, preferencialmente `confirmed`.
-
-### 3.6 `vacant_lessons`
-
-É uma entidade derivada que materializa as aulas afetadas por uma ausência.
-
-Campos mínimos:
-
-- `id`
-- `institution_id`
-- `absence_id`
-- `schedule_id`
-- `vacancy_date`
-- `start_time`
-- `end_time`
-- `status` — `open`, `recommended`, `allocated`, `unallocated`, `blocked`
-- `created_at`
-- `updated_at`
-
-Uma ausência pode produzir uma ou várias vagas.
-
-### 3.7 `substitution_candidates`
-
-Registra cada relação entre uma vaga e um docente considerado pelo motor.
-
-Campos mínimos:
-
-- `id`
-- `institution_id`
-- `vacant_lesson_id`
-- `teacher_id`
-- `eligibility_status` — `eligible`, `ineligible`
-- `score`
-- `score_breakdown` — JSON estruturado com critérios e pesos
-- `rule_results` — JSON estruturado com regras aplicadas
-- `ineligibility_reason` — opcional
-- `engine_version`
-- `generated_at`
-
-Essa entidade é essencial para explicar por que um docente foi recomendado ou descartado.
-
-### 3.8 `substitutions`
-
-Representa a proposta e/ou decisão de alocação.
-
-Campos mínimos:
-
-- `id`
-- `institution_id`
-- `vacant_lesson_id`
-- `teacher_id`
-- `candidate_id` — referência à recomendação utilizada, quando houver
-- `status` — `recommended`, `pending_validation`, `confirmed`, `unallocated`, `blocked`
-- `decision_source` — `engine`, `manual`
-- `decided_by`
-- `decided_at`
-- `justification`
-- `engine_version`
-- `created_at`
-- `updated_at`
-
-A recomendação do motor e a confirmação da gestão são estados diferentes do mesmo processo, mas devem manter sua proveniência.
-
-## 4. Regras institucionais
-
-### `substitution_rules`
-
-Tabela para parâmetros configuráveis sem alterar o código do motor.
-
-Campos sugeridos:
-
-- `id`
-- `institution_id`
-- `rule_code`
-- `rule_name`
-- `rule_type` — `mandatory`, `preferential`, `institutional`
-- `enabled`
-- `priority`
-- `parameters` — JSON
-- `valid_from`
-- `valid_until`
-- `created_by`
-- `updated_by`
-- `created_at`
-- `updated_at`
-
-Exemplos de `rule_code`: `R01_SCHEDULE_CONFLICT`, `R02_AVAILABILITY`, `R03_QUALIFICATION`, `R04_SUBSTITUTION_LIMIT`.
-
-## 5. Auditoria
-
-### `substitution_audit_log`
-
-Registra mudanças relevantes do processo.
-
-Campos mínimos:
-
-- `id`
-- `institution_id`
-- `entity_type`
-- `entity_id`
-- `action`
-- `actor_user_id`
-- `previous_state` — JSON, quando aplicável
-- `new_state` — JSON, quando aplicável
-- `reason`
-- `created_at`
-
-Eventos importantes incluem geração de recomendação, confirmação, rejeição, alteração manual, bloqueio e cancelamento.
-
-## 6. Relações
+A Escala não cria uma segunda identidade institucional.
 
 ```text
-Instituição
-   │
-   ├── Docentes
-   │     ├── Qualificações
-   │     └── Disponibilidades
-   │
-   ├── Horário oficial
-   │
-   ├── Ausências
-   │      │
-   │      └── Aulas vagas
-   │              │
-   │              └── Candidatos
-   │                       │
-   │                       └── Substituição
-   │
-   ├── Regras institucionais
-   │
-   └── Auditoria
+Core / EIOS
+├── organizations
+├── schools
+├── users
+├── organization_members
+├── teacher_profiles
+├── knowledge_areas
+├── subjects
+├── classes
+├── schedules
+├── availability
+├── agenda_events
+└── audit_logs
+        │
+        ▼
+Escala Inteligente
+├── substitution_absences
+├── substitution_vacancies
+├── substitution_candidates
+├── substitution_rule_sets
+├── substitution_engine_runs
+└── substitutions  ← registro operacional do Core
 ```
 
-## 7. Linha de proveniência
+A tabela `substitutions` existente no Core permanece como registro operacional de alocação. Não será criada uma segunda tabela concorrente de alocações.
 
-A cadeia de dados deve ser preservada:
+## 3. Fontes de verdade
 
-1. identidade institucional — Core/EIOS;
-2. horário oficial — fonte institucional;
-3. disponibilidade e impedimentos — agenda/registro operacional;
-4. ausência confirmada — operação escolar;
-5. regras — configuração institucional;
-6. vaga — derivação da ausência + horário;
-7. candidatos — execução do motor;
-8. ranking — cálculo do motor;
-9. substituição — decisão humana ou proposta do motor;
-10. auditoria — histórico da operação.
-
-## 8. Dados derivados x dados de origem
-
-| Categoria | Exemplos | Pode ser recalculada? |
+| Prioridade | Fonte | Natureza |
 |---|---|---|
-| Origem | docente, horário, ausência | Não sem alterar a fonte |
-| Configuração | regras, pesos, limites | Sim, por configuração autorizada |
-| Derivação | vaga, candidato, score | Sim |
-| Decisão | substituição confirmada | Não silenciosamente |
-| Auditoria | eventos e estados anteriores | Não |
+| 1 | Identidade institucional | Core/EIOS |
+| 2 | Escola e organização | Core/EIOS |
+| 3 | Horário oficial | Core/EIOS |
+| 4 | Perfil e qualificação docente | Core/EIOS |
+| 5 | Disponibilidade | Core/operacional |
+| 6 | Agenda e impedimentos | Agenda EDI/Core |
+| 7 | Ausência confirmada | Escala |
+| 8 | Regras configuradas | Escala, versionadas |
+| 9 | Candidatos/ranking | Resultado derivado |
+| 10 | Substituição confirmada | Decisão humana |
 
-## 9. Consistência e idempotência
+Dados derivados nunca devem substituir silenciosamente os dados de origem.
 
-O processamento deve ser idempotente para uma mesma combinação de:
+## 4. Entidades específicas do módulo
 
-- instituição;
-- data;
-- horário;
-- ausência;
-- versão do horário;
-- versão das regras.
+### 4.1 `substitution_absences`
 
-Reprocessamentos não devem criar duplicações de vagas ou recomendações sem necessidade. O motor deve identificar uma execução anterior e registrar nova versão quando houver alteração relevante de dados ou regras.
+Representa a ausência de um docente em determinado período.
 
-## 10. Versionamento do motor
+Campos mínimos:
 
-Toda recomendação deve registrar `engine_version`.
+- `id` — UUID;
+- `organization_id`;
+- `school_id`;
+- `teacher_id`;
+- `absence_date`;
+- `start_time`;
+- `end_time`;
+- `reason_code`;
+- `reason_notes`;
+- `status` — `draft`, `confirmed`, `cancelled`;
+- `source`;
+- `created_by`;
+- `confirmed_by`;
+- `confirmed_at`;
+- `created_at` / `updated_at`.
+
+A ausência é um **fato de entrada**, não uma recomendação.
+
+### 4.2 `substitution_vacancies`
+
+Representa cada aula efetivamente afetada por uma ausência.
+
+Campos mínimos:
+
+- `id`;
+- `absence_id`;
+- `schedule_id`;
+- `class_id`;
+- `subject_id`;
+- `absent_teacher_id`;
+- `vacancy_date`;
+- `start_time` / `end_time`;
+- `status` — `open`, `processing`, `recommended`, `allocated`, `unallocated`, `cancelled`;
+- `engine_run_id`;
+- `created_at` / `updated_at`.
+
+Uma ausência pode produzir várias vagas.
+
+### 4.3 `substitution_candidates`
+
+Representa a avaliação de um docente para uma vaga específica.
+
+Campos mínimos:
+
+- `id`;
+- `vacancy_id`;
+- `candidate_teacher_id`;
+- `eligibility_status` — `eligible`, `ineligible`, `blocked`;
+- `score`;
+- `rank`;
+- `hard_rule_failures` — JSONB;
+- `score_breakdown` — JSONB;
+- `explanation`;
+- `engine_run_id`;
+- `created_at`.
+
+Essa entidade permite reconstruir por que um docente foi considerado, priorizado ou descartado.
+
+### 4.4 `substitution_rule_sets`
+
+Representa uma versão das regras utilizadas pelo motor.
+
+Campos mínimos:
+
+- `id`;
+- `organization_id`;
+- `school_id` opcional;
+- `version`;
+- `name`;
+- `rules` — JSONB;
+- `status` — `draft`, `active`, `archived`;
+- `created_by`;
+- `activated_by`;
+- `activated_at`;
+- `created_at` / `updated_at`.
+
+Após ativação, a versão utilizada por uma execução deve ser imutável.
+
+### 4.5 `substitution_engine_runs`
+
+Representa uma execução do motor.
+
+Campos mínimos:
+
+- `id`;
+- `organization_id`;
+- `school_id`;
+- `run_date`;
+- `input_reference`;
+- `rule_set_id`;
+- `engine_version`;
+- `status` — `running`, `completed`, `failed`, `cancelled`;
+- `input_hash`;
+- `result_summary` — JSONB;
+- `started_at`;
+- `completed_at`;
+- `created_by`.
+
+O `input_hash`, `engine_version` e `rule_set_id` permitem diferenciar reprocessamentos e verificar determinismo.
+
+## 5. `substitutions` — registro final
+
+O Core já possui `substitutions` com escola, organização, docente ausente, substituto, turma, disciplina, horário, data, recomendação, score, status e aprovação.
+
+A evolução deve ser incremental. Quando necessário, acrescentar referências como:
+
+- `vacancy_id`;
+- `engine_run_id`;
+- `rule_set_id`;
+- estado específico da recomendação;
+- `decision_source`;
+- `decision_reason`;
+- timestamps de decisão.
+
+**Não criar uma segunda tabela de alocações.**
+
+## 6. Relacionamentos
+
+```text
+substitution_absences
+        │
+        ├── 1:N ── substitution_vacancies
+        │                  │
+        │                  └── 1:N ── substitution_candidates
+        │
+        └── teacher_id ──> users / teacher_profiles
+
+substitution_vacancies
+        ├── schedule_id ──> schedules
+        ├── class_id ─────> classes
+        └── subject_id ──> subjects
+
+substitution_candidates
+        └── candidate_teacher_id ──> users / teacher_profiles
+
+substitution_engine_runs
+        └── rule_set_id ──> substitution_rule_sets
+
+substitution_vacancies
+        └── substitution_id ──> substitutions
+```
+
+## 7. Proveniência
+
+Todo dado produzido pelo motor deve permitir identificar:
+
+```text
+origem → transformação → versão → resultado → decisão
+```
 
 Exemplo:
 
 ```text
-engine_version = substitution-v1.0
+Horário oficial
+      +
+Ausência confirmada
+      +
+Disponibilidade
+      +
+Agenda/impedimentos
+      +
+Perfil docente
+      +
+Rule Set v1.0
+      ↓
+Engine v1.0
+      ↓
+Candidate ranking
+      ↓
+Recomendação
+      ↓
+Confirmação do gestor
 ```
 
-Isso permite reconstruir posteriormente por que determinada recomendação foi produzida.
+## 8. Integridade temporal
 
-## 11. Segurança e RLS
+O modelo deve impedir ou sinalizar:
 
-Todas as tabelas operacionais devem possuir escopo por `institution_id` e políticas compatíveis com o modelo de autorização do Core/EIOS.
+- ausência sem período válido;
+- vaga fora do período da ausência;
+- horário com início posterior ao fim;
+- candidato alocado em duas vagas simultâneas;
+- substituição confirmada sem vaga correspondente;
+- confirmação fora do período operacional da vaga;
+- alteração de dados de origem que torne uma decisão histórica inconsistente.
 
-Princípios mínimos:
+## 9. Histórico e imutabilidade lógica
 
-- docente acessa apenas o que sua função permitir;
-- gestão autorizada acessa dados necessários à escala;
-- dados de outras instituições nunca devem aparecer em consultas operacionais;
-- candidatos não devem revelar informações desnecessárias sobre outros docentes;
-- auditoria deve ser protegida contra alteração por usuários comuns;
-- o motor deve executar respeitando as mesmas fronteiras de autorização do produto.
+Recomendações e decisões não devem ser apagadas fisicamente para corrigir um processo.
 
-## 12. MVP recomendado
+Quando houver correção:
 
-A primeira implementação persistente pode começar com:
+1. registrar a nova situação;
+2. preservar a anterior;
+3. registrar ator e timestamp;
+4. registrar motivo;
+5. associar nova execução do motor quando houver reprocessamento.
 
-1. `teachers`
-2. `teacher_subject_qualifications`
-3. `teacher_availability`
-4. `school_schedule`
-5. `absences`
-6. `vacant_lessons`
-7. `substitution_candidates`
-8. `substitutions`
-9. `substitution_rules`
-10. `substitution_audit_log`
+O histórico deve utilizar a auditoria central do Core, evitando criar um segundo mecanismo de auditoria sem necessidade.
 
-A implementação física deve reutilizar as tabelas de identidade/instituição existentes no EduData IA quando houver equivalência funcional, evitando duplicação do Core.
+## 10. Segurança
+
+Todas as entidades operacionais específicas devem carregar `organization_id` e, quando aplicável, `school_id`, para permitir isolamento institucional.
+
+O acesso deve respeitar o modelo de governança existente:
+
+- professor: próprios registros autorizados;
+- coordenador: equipe/escopo autorizado;
+- direção: escola autorizada;
+- gestores superiores: escopo atribuído;
+- administrador técnico: sem acesso automático ao conteúdo pedagógico privado.
+
+O motor deve processar somente os atributos docentes necessários para a decisão.
+
+## 11. Estados principais
+
+### Ausência
+`draft → confirmed → cancelled`
+
+### Vaga
+`open → processing → recommended → allocated`
+
+ou `open → processing → unallocated`
+
+### Candidato
+`eligible | ineligible | blocked`
+
+### Execução
+`running → completed` ou `running → failed`
+
+### Substituição
+`pending → recommended → confirmed`
+
+ou `pending → rejected` / `pending → unallocated`.
+
+Os estados do motor e da decisão administrativa permanecem distintos.
+
+## 12. Regra contra dupla alocação
+
+Um docente não pode ser confirmado para duas vagas que se sobreponham temporalmente na mesma unidade operacional.
+
+A proteção deve existir em duas camadas:
+
+1. validação do motor;
+2. proteção transacional no banco, quando tecnicamente suportada pelo schema final.
+
+## 13. Reutilização do Core
+
+Não duplicar:
+
+- organizações;
+- escolas;
+- usuários;
+- perfis docentes;
+- áreas de conhecimento;
+- disciplinas;
+- turmas;
+- horários;
+- disponibilidade;
+- agenda;
+- auditoria.
+
+Antes de qualquer migration física, cada relação deve ser conferida contra o schema real do Core.
+
+## 14. Próxima etapa física
+
+Antes de executar qualquer SQL no Supabase:
+
+1. validar nomes e tipos reais das tabelas/colunas do Core;
+2. validar chaves estrangeiras existentes;
+3. desenhar migration incremental;
+4. desenhar RLS das novas entidades;
+5. definir constraints e índices;
+6. criar testes de integridade e dupla alocação;
+7. testar idempotência e reprocessamento;
+8. executar auditoria de segurança;
+9. somente então aplicar a migration.
+
+## 15. Decisão arquitetural
+
+A Escala Inteligente de Substituição é um **módulo especializado do ecossistema EduData IA**, não um sistema isolado.
+
+Seu domínio é transformar fatos institucionais e operacionais em recomendações de substituição explicáveis, auditáveis e submetidas à decisão humana.
+
+O Core permanece como fonte de identidade, instituição, autorização e dados compartilhados. A Escala mantém apenas o estado e os artefatos próprios do processo de substituição.
