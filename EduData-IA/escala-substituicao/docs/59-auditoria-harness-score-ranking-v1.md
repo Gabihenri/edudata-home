@@ -2,173 +2,118 @@
 
 **Produto:** Escala de Substituição  
 **Artefato auditado:** `tests/candidate-score-ranking.postgres.test.sql`  
-**Versão:** v1  
-**Data:** 2026-09-10  
+**Commit auditado:** `6ebf7644324f99bed05d3b084d20b1cf226556f8`  
+**Blob auditado:** `11ba69ca22229f828f1ba0d7f15a6f2190a5e117`  
+**Data desta revalidação:** 2026-09-10  
 **Gate de produção:** 🔴 RED / BLOCKED
 
 ## 1. Objetivo
 
-Auditar o harness sintético de PostgreSQL responsável por verificar o contrato de pontuação e ranking de candidatos após a passagem pelas regras HARD de elegibilidade.
+Revalidar o harness sintético de PostgreSQL responsável por verificar o contrato de pontuação e ranking após a elegibilidade HARD, distinguindo falhas reais do arquivo de erros introduzidos em consultas manuais de teste.
 
-O arquivo auditado está versionado no repositório e possui SHA `679ffe340a780e665bee4fe09c9fc6e389d3478f`.
+## 2. Correção de evidência sobre o `run_id`
 
-## 2. Escopo
+A tentativa anterior de execução apresentou uma violação de FK envolvendo o UUID `90000000-0000-0000-0000-000000000008`. A rechecagem do blob atual do repositório **não encontrou esse UUID como `run_id`** no arquivo.
 
-Foram confrontados:
+O arquivo armazenado utiliza os runs:
 
-- pesos dos sete critérios;
-- faixa de pontuação;
-- bloqueio de candidatos inelegíveis;
-- reconstrução do score por contribuições;
-- diferenciação por componente;
-- tratamento de evidência de proximidade;
-- desempate determinístico;
-- versão do conjunto de regras;
-- referência do snapshot.
+- `90000000-0000-0000-0000-000000000001` → `score-v1`;
+- `90000000-0000-0000-0000-000000000002` → `score-v2`.
 
-Também foram procuradas lacunas entre o contrato `58-contrato-pontuacao-ranking-v1.md` e o que o harness efetivamente demonstra.
+Conclusão: a falha `...0008` não deve ser atribuída ao repositório. Ela pertenceu à consulta manual reconstruída na tentativa anterior e fica desconsiderada como defeito do arquivo.
 
-## 3. Resultado resumido
+## 3. Falha semântica confirmada — GATE-06
 
-| Controle | Status | Observação |
-|---|---|---|
-| SR-AUD-01 — pesos totalizam 100 | 🟢 | GATE-01 cobre explicitamente |
-| SR-AUD-02 — score entre 0 e 100 | 🟢 | GATE-02 cobre faixa |
-| SR-AUD-03 — HARD bloqueia score operacional | 🟢/🟡 | GATE-03 bloqueia scored/ranked, mas usa `score=0` para excluído |
-| SR-AUD-04 — breakdown reconstrutível | 🟢 | GATE-04 demonstra soma das contribuições |
-| SR-AUD-05 — componente influencia score | 🟢 | GATE-05 demonstra diferença numérica |
-| SR-AUD-06 — proximidade sem evidência não gera vantagem | 🟡 | Não há estado explícito de evidência |
-| SR-AUD-07 — desempate determinístico | 🟡 | Ordenação é demonstrada, mas não existe ranking materializado de múltiplos candidatos |
-| SR-AUD-08 — regra de desempate usa identificador homologado | 🟡 | Harness trata `teacher_id` como técnico, sem campo explícito de homologação |
-| SR-AUD-09 — mudança de rule set gera novo run | 🔴 | Não testado |
-| SR-AUD-10 — histórico não é sobrescrito | 🔴 | Não testado |
-| SR-AUD-11 — score excluído é nulo | 🔴 | Contrato prevê `null`; harness exige `NOT NULL` e usa zero |
-| SR-AUD-12 — execução PostgreSQL real | 🔴 | Harness não foi executado contra banco real |
-| SR-AUD-13 — avaliação real do motor | 🟡 | Harness injeta resultados esperados; não implementa o motor |
+O candidato `007` possui:
 
-## 4. Achados
+- `proximity = 1`;
+- `proximity_evidence_status = 'not_available'`.
 
-### FIND-01 — Score de candidato excluído está representado como zero
+A função `calculate_score()` usa diretamente `c.proximity * w.proximity_weight`, sem transformar `not_available` em contribuição efetiva zero.
 
-**Severidade:** Alta  
-**Status:** Aberto
+O GATE-06 compara o score do candidato `007` com o candidato `001`, que possui a mesma proximidade numérica, mas evidência `homologated`.
 
-O contrato de pontuação estabelece que candidatos excluídos não recebem score operacional. A modelagem do harness, entretanto, declara `score numeric ... NOT NULL` e registra o candidato inelegível com `score = 0`.
+Foi executada uma reprodução isolada dessa mesma lógica no PostgreSQL do projeto `ihchzfndmdwtoabttkil`. Resultado:
 
-Isso pode ser interpretado como um score válido, ainda que acompanhado de `ranking_status = 'excluded'`.
+| Candidato | Score | Evidência | Resultado |
+|---|---:|---|---|
+| 001 | 100.000 | homologated | referência |
+| 007 | 100.000 | not_available | **FAIL: GATE-06** |
 
-**Risco:** ambiguidade semântica entre “não pontuado” e “pontuado com zero”.
+Portanto, o problema é real e está na semântica do harness: a ausência de evidência é registrada, mas não afeta o cálculo.
 
-**Correção requerida:** permitir `score NULL` para `excluded` e validar que candidatos excluídos não possuam score nem rank. As contribuições também devem ser nulas ou explicitamente tratadas como não calculadas, conforme decisão final do contrato.
+### Correção obrigatória
 
-### FIND-02 — Proximidade não possui estado explícito de evidência
+A regra de SCORE-06 deve ser aplicada de forma única no cálculo e no breakdown:
 
-**Severidade:** Média  
-**Status:** Aberto
+- `homologated` → usa o valor homologado;
+- `not_available` → contribuição efetiva `0` e razão `PROXIMITY_NOT_AVAILABLE`;
+- `invalid` → não pode produzir mérito; deve resultar em contribuição efetiva `0` ou bloqueio, conforme o contrato final.
 
-O harness representa ausência de evidência de proximidade simplesmente com `proximity = 0`. O contrato, porém, determina que proximidade só pode produzir mérito quando existir fonte homologada e prevê o motivo `PROXIMITY_NOT_AVAILABLE`.
+## 4. Divergência de desempate
 
-**Risco:** não é possível distinguir “evidência inexistente”, “evidência indisponível”, “distância efetivamente desfavorável” e “valor normalizado zero”.
+O contrato define como quarto desempate **menor número de substituições válidas**. O harness atual usa `distribution_balance DESC` nessa posição.
 
-**Correção requerida:** adicionar estado/proveniência explícita da evidência de proximidade ou uma estrutura equivalente que permita reconstrução da decisão.
+São conceitos diferentes. Distribuição balanceada pode ser um critério de score, mas não substitui o desempate explícito por quantidade de substituições válidas.
 
-### FIND-03 — O harness não demonstra ranking real entre múltiplos candidatos
+### Correção obrigatória
 
-**Severidade:** Média  
-**Status:** Aberto
+Adicionar ao cenário sintético `valid_substitutions_count` e testar a ordem contratual:
 
-O cenário S02 demonstra que uma diferença de componente altera o valor calculado, e S04 demonstra uma ordenação determinística sobre `teacher_id`. Porém, não há uma consulta de ranking que produza posições para um conjunto de candidatos elegíveis e valide a ordem completa segundo todos os critérios de desempate.
+1. score total DESC;
+2. componente DESC;
+3. área DESC;
+4. continuidade DESC;
+5. `valid_substitutions_count` ASC;
+6. identificador técnico acadêmico homologado ASC.
 
-**Risco:** o contrato de ranking pode estar correto no papel sem que a implementação do ranking seja efetivamente verificada.
+## 5. Identificador de desempate ainda não comprovado como homologado
 
-**Correção requerida:** incluir cenário com múltiplos candidatos, scores calculados e `rank_position` produzido por ordenação determinística conforme o contrato.
+O harness utiliza `teacher_id_homologated boolean`, mas isso demonstra apenas um estado lógico. Não demonstra que o UUID usado como desempate é realmente o identificador técnico acadêmico proveniente de uma fonte homologada.
 
-### FIND-04 — Identificador do desempate não comprova homologação
+### Correção
 
-**Severidade:** Média  
-**Status:** Aberto
+Representar explicitamente o identificador técnico homologado e sua proveniência, ou vincular o cenário a um contrato de identidade acadêmica já homologado.
 
-O comentário de S04 chama `teacher_id` de “homologated technical id”, mas o esquema não possui um atributo ou relação que demonstre essa homologação.
+## 6. Breakdown v2 incompleto
 
-**Risco:** o teste pode passar usando qualquer UUID técnico, sem provar que o identificador utilizado no desempate é o identificador acadêmico oficial homologado.
+A materialização `score-v2` registra apenas `{"rule_set_version":"score-v2"}`, enquanto a v1 registra critérios, pesos, valores normalizados e evidência.
 
-**Correção requerida:** representar explicitamente a propriedade de homologação ou vincular o identificador a uma entidade/contrato de identidade acadêmica já aprovado.
+Para cumprir o requisito de reconstruibilidade histórica, o breakdown v2 deve registrar a mesma estrutura semântica, com a versão alterada.
 
-### FIND-05 — Versionamento do rule set não testa criação de novo run
+## 7. O que permanece válido
 
-**Severidade:** Média  
-**Status:** Aberto
+- Os pesos v1/v2 totalizam 100.
+- O score é limitado a 0–100.
+- Candidatos inelegíveis não entram na materialização normal de score.
+- O breakdown v1 possui contribuições individualizadas.
+- A mudança de rule set está representada por runs distintos.
+- Existe captura histórica temporária de v1 antes da materialização v2.
+- O teste é sintético e isolado.
+- O arquivo não cria tabelas de produção.
 
-GATE-08 prova apenas que um run conserva sua versão e snapshot. Não prova que uma alteração de `rule_set_version` gere um novo `engine_run/score_run` nem que o resultado anterior permaneça histórico.
+## 8. Limites da evidência atual
 
-**Correção requerida:** adicionar cenário v1 → v2 com novo run e preservação integral do resultado anterior.
+A reprodução PostgreSQL confirmou a falha semântica de GATE-06, mas **não equivale à execução integral do arquivo do repositório**. A execução integral deve ocorrer depois da correção do harness, usando exatamente o arquivo versionado, sem reconstrução manual.
 
-### FIND-06 — Ausência de teste de não sobrescrita histórica
+Também permanece a limitação estrutural de que o harness é contratual/assertivo: ele não é ainda o motor real de produção.
 
-**Severidade:** Média  
-**Status:** Aberto
+## 9. Dependências que continuam bloqueando produção
 
-O `UNIQUE (run_id, candidate_id)` impede duplicidade dentro de um mesmo run, mas não demonstra a política histórica entre runs diferentes.
+1. artefato técnico/API/export da Grade Horária oficial da SEDUC;
+2. identificador oficial homologado de professor;
+3. identificador oficial homologado de turma;
+4. código/ID oficial homologado de componente;
+5. ponte Auth ↔ identidade acadêmica docente;
+6. catálogo de permissões e RLS da Escala;
+7. execução integral dos harnesses em PostgreSQL;
+8. DDL físico de produção de vagas, candidatos e alocações;
+9. versão final do motor de regras.
 
-**Correção requerida:** provar que rerun/reprocessamento cria novo contexto de execução e não modifica silenciosamente resultado histórico.
+## 10. Decisão
 
-### FIND-07 — Harness é contratual/assertivo, não implementação do motor
+**🔴 RED / BLOCKED.**
 
-**Severidade:** Média  
-**Status:** Informativo / aberto para integração
+O contrato de pontuação/ranking continua utilizável como base de implementação, mas o harness **não está aprovado**.
 
-Os cenários inserem diretamente valores esperados em `scores` e `candidate` e depois executam gates. Portanto, o arquivo valida propriedades estruturais e invariantes do contrato, mas não executa uma implementação real do motor de pontuação/ranking.
-
-Isso é adequado nesta fase de definição, desde que não seja confundido com teste de integração ou teste de produção.
-
-**Correção requerida:** manter o harness como contrato e, posteriormente, adicionar teste de integração do motor real quando as dependências físicas forem homologadas.
-
-## 5. Pontos positivos
-
-- Os sete pesos definidos no contrato estão representados e somam exatamente 100.
-- A faixa 0–100 possui gate explícito.
-- A barreira entre elegibilidade HARD e pontuação operacional está explicitamente testada.
-- A decomposição das contribuições permite reconstruir o score máximo.
-- O componente, de maior peso, é demonstrado como fator diferenciador.
-- A regra temporal de proximidade não concede vantagem quando seu valor é zero.
-- O desempate não depende da ordem de inserção.
-- O run preserva `rule_set_version` e `snapshot_reference`.
-- O teste permanece sintético, isolado e termina com `ROLLBACK`, sem modificar tabelas de produção.
-
-## 6. Correções prioritárias
-
-### Prioridade P0
-1. Corrigir semântica de score excluído (`NULL`, não zero), conforme contrato.
-2. Executar o harness em PostgreSQL real e registrar evidência.
-
-### Prioridade P1
-3. Criar evidência explícita de proximidade e sua proveniência.
-4. Testar ranking efetivo de múltiplos candidatos.
-5. Representar homologação do identificador usado no desempate.
-6. Testar mudança de rule set com novo run.
-7. Testar preservação histórica entre runs.
-
-### Prioridade P2
-8. Integrar o harness contratual ao motor real somente após homologação das dependências físicas e de identidade.
-
-## 7. Dependências externas que continuam bloqueando produção
-
-Este audit não altera o gate geral do produto. Permanecem bloqueadores já registrados:
-
-1. artefato técnico/API/export da Grade Horária oficial da SEDUC ainda não homologado;
-2. identificador oficial de professor ainda não homologado;
-3. identificador oficial de turma ainda não homologado;
-4. código/ID oficial de componente ainda não homologado;
-5. ponte Auth ↔ identidade acadêmica docente ainda não física/homologada;
-6. catálogo de permissões e RLS específico da Escala ainda não publicado;
-7. execução real dos harnesses PostgreSQL ainda pendente;
-8. DDL físico de produção para vagas, candidatos e alocações ainda pendente;
-9. versão final do motor de regras ainda pendente.
-
-## 8. Decisão de auditoria
-
-**Resultado: 🔴 RED / BLOCKED.**
-
-O contrato de pontuação/ranking está suficientemente especificado para continuar a etapa de correção do harness, mas não há evidência suficiente para considerar o componente validado para produção.
-
-A próxima ação segura é **corrigir o harness de score/ranking**, começando pela semântica de candidato excluído e, na mesma sequência controlada de engenharia, ampliar a prova de ranking, evidência e versionamento. Não criar DDL de produção enquanto os bloqueadores de identidade, fonte oficial SEDUC e execução PostgreSQL permanecerem abertos.
+A próxima ação é corrigir o arquivo `tests/candidate-score-ranking.postgres.test.sql` em um único commit controlado, começando por GATE-06, e então executar o arquivo completo exatamente como versionado no PostgreSQL. Somente após todos os gates passarem será produzida a evidência de aprovação do harness.
