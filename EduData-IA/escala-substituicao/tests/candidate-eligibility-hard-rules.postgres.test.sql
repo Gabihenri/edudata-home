@@ -165,11 +165,11 @@ INSERT INTO escala_candidate_test.candidates VALUES
 INSERT INTO escala_candidate_test.candidate_rule_results VALUES
 ('90000000-0000-0000-0000-000000000006', 'HARD-03', false);
 
--- T07: HARD-04 is intentionally a non-overlap at 15:00-15:30, so it must not block.
+-- T07: HARD-04 overlap: 15:00-15:30 overlaps 14:20-15:10.
 INSERT INTO escala_candidate_test.candidates VALUES
-('90000000-0000-0000-0000-000000000007', '10000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000007', 'eligible', now());
+('90000000-0000-0000-0000-000000000007', '10000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000007', 'ineligible', now());
 INSERT INTO escala_candidate_test.candidate_rule_results VALUES
-('90000000-0000-0000-0000-000000000007', 'HARD-04', true);
+('90000000-0000-0000-0000-000000000007', 'HARD-04', false);
 
 -- T08: HARD-05 overlap: 14:50-15:20 overlaps vacancy.
 INSERT INTO escala_candidate_test.candidates VALUES
@@ -249,7 +249,7 @@ BEGIN
     SELECT 1 FROM escala_candidate_test.vacancies
     WHERE status = 'active' AND source_published = false
   ) THEN
-    RAISE EXCEPTION 'GATE-05 failed: unpublished vacancy exists in eligible evaluation scope';
+    RAISE EXCEPTION 'GATE-05 failed: unpublished vacancy remained eligible for evaluation';
   END IF;
 END $$;
 
