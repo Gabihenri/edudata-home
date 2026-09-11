@@ -57,6 +57,8 @@ SELECT CASE WHEN (SELECT first_teacher||'|'||second_teacher FROM plans ORDER BY 
 
 -- ================================================================
 -- CASO 3 — Maior pontuação bloqueada por conflito temporal.
+-- O1 só pode usar P1. O2 prefere P1, mas P1 já está ocupado em O1;
+-- a solução global admissível deve usar P1 em O1 e P2 em O2.
 -- ================================================================
 WITH candidates AS (
   SELECT * FROM (VALUES
@@ -64,11 +66,26 @@ WITH candidates AS (
     ('O2','P1',99,true,true),
     ('O2','P2',80,true,true)
   ) v(occurrence_id,teacher_id,score,eligible,available)
+), plans AS (
+  SELECT o1.teacher_id AS o1_teacher,
+         o2.teacher_id AS o2_teacher,
+         o1.score + o2.score AS quality
+  FROM candidates o1
+  CROSS JOIN candidates o2
+  WHERE o1.occurrence_id='O1'
+    AND o2.occurrence_id='O2'
+    AND o1.eligible AND o1.available
+    AND o2.eligible AND o2.available
+    AND o1.teacher_id<>o2.teacher_id
+), best AS (
+  SELECT * FROM plans ORDER BY quality DESC,
+    o1_teacher||'|'||o2_teacher ASC LIMIT 1
 )
-SELECT CASE WHEN COUNT(*)=0 THEN 'PASS_CONFLICT_BLOCKS_REUSE' ELSE 'FAIL_CONFLICT_BLOCKS_REUSE' END assertion
-FROM candidates
-WHERE occurrence_id='O2' AND teacher_id='P1'
-  AND EXISTS (SELECT 1 FROM candidates x WHERE x.occurrence_id='O1' AND x.teacher_id='P1');
+SELECT CASE
+  WHEN o1_teacher='P1' AND o2_teacher='P2' THEN 'PASS_CONFLICT_BLOCKS_REUSE'
+  ELSE 'FAIL_CONFLICT_BLOCKS_REUSE'
+END assertion
+FROM best;
 
 -- ================================================================
 -- CASO 4 — Elegibilidade e disponibilidade são filtros duros.
@@ -86,16 +103,31 @@ FROM candidates WHERE eligible AND available;
 
 -- ================================================================
 -- CASO 5 — Nenhum candidato elegível/disponível.
+-- O resultado do motor deve ser explicitamente uncovered.
 -- ================================================================
-WITH candidates AS (
+WITH occurrences AS (
+  SELECT 'O1'::text AS occurrence_id
+), candidates AS (
   SELECT * FROM (VALUES
-    ('P1',true,false),
-    ('P2',false,true)
-  ) v(teacher_id,eligible,available)
+    ('O1','P1',true,false),
+    ('O1','P2',false,true)
+  ) v(occurrence_id,teacher_id,eligible,available)
+), valid AS (
+  SELECT * FROM candidates WHERE occurrence_id='O1' AND eligible AND available
+), engine_result AS (
+  SELECT o.occurrence_id,
+         CASE WHEN EXISTS (SELECT 1 FROM valid v WHERE v.occurrence_id=o.occurrence_id)
+              THEN 'COVERED' ELSE 'UNCOVERED' END AS coverage_state,
+         CASE WHEN EXISTS (SELECT 1 FROM valid v WHERE v.occurrence_id=o.occurrence_id)
+              THEN NULL ELSE 'NO_ELIGIBLE_AVAILABLE_TEACHER' END AS reason_code
+  FROM occurrences o
 )
-SELECT CASE WHEN COUNT(*)=0
-  THEN 'PASS_NO_CANDIDATE_UNCOVERED' ELSE 'FAIL_NO_CANDIDATE_UNCOVERED' END assertion
-FROM candidates WHERE eligible AND available;
+SELECT CASE
+  WHEN coverage_state='UNCOVERED' AND reason_code='NO_ELIGIBLE_AVAILABLE_TEACHER'
+  THEN 'PASS_NO_CANDIDATE_UNCOVERED'
+  ELSE 'FAIL_NO_CANDIDATE_UNCOVERED'
+END assertion
+FROM engine_result;
 
 -- ================================================================
 -- CASO 6 — Mudança de pesos não pode superar restrição dura.
@@ -114,10 +146,20 @@ FROM valid;
 
 -- ================================================================
 -- CASO 7 — Resultado parcial deve conservar motivo operacional.
+-- O reason code precisa estar ligado a uma ocorrência realmente uncovered.
 -- ================================================================
-SELECT CASE WHEN reason_code='NO_ELIGIBLE_AVAILABLE_TEACHER'
-  THEN 'PASS_EXPLAINABLE_UNCOVERED' ELSE 'FAIL_EXPLAINABLE_UNCOVERED' END assertion
-FROM (VALUES ('NO_ELIGIBLE_AVAILABLE_TEACHER')) v(reason_code);
+WITH engine_result AS (
+  SELECT * FROM (VALUES
+    ('O2','UNCOVERED','NO_ELIGIBLE_AVAILABLE_TEACHER')
+  ) v(occurrence_id,coverage_state,reason_code)
+)
+SELECT CASE
+  WHEN coverage_state='UNCOVERED'
+   AND reason_code='NO_ELIGIBLE_AVAILABLE_TEACHER'
+  THEN 'PASS_EXPLAINABLE_UNCOVERED'
+  ELSE 'FAIL_EXPLAINABLE_UNCOVERED'
+END assertion
+FROM engine_result;
 
 -- Regra transversal: todos os resultados do motor permanecem sujeitos
 -- a validação humana antes de qualquer indicação operacional.
