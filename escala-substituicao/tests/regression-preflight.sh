@@ -22,7 +22,10 @@ required_files=(
   'escala-substituicao/tests/global-allocation-v1.sql'
   'escala-substituicao/tests/global-allocation-adversarial-v1.sql'
   'escala-substituicao/tests/global-allocation-determinism-v1.sql'
+  'escala-substituicao/tests/global-allocation-reproducibility-v1.sql'
   'escala-substituicao/tests/human-override-preservation-v1.sql'
+  'escala-substituicao/tests/snapshot-reexecution-v1.sql'
+  'escala-substituicao/tests/snapshot-change-state-v1.sql'
   'escala-substituicao/tests/regression-suite-v1.sql'
 )
 
