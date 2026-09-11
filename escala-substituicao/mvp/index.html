@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Escala de Substituição — MVP</title>
+  <style>
+    :root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#102333;background:#f4f7fa}*{box-sizing:border-box}body{margin:0}.top{background:#081c2e;color:#fff;padding:18px 28px}.top strong{font-size:20px}.top span{opacity:.72;margin-left:10px}.wrap{max-width:1180px;margin:0 auto;padding:28px}.grid{display:grid;grid-template-columns:1.05fr .95fr;gap:22px}@media(max-width:850px){.grid{grid-template-columns:1fr}.wrap{padding:18px}}.card{background:#fff;border:1px solid #dce5ec;border-radius:14px;padding:20px;box-shadow:0 2px 10px rgba(16,35,51,.05)}h1{font-size:27px;margin:0 0 6px}h2{font-size:17px;margin:0 0 16px}.muted{color:#667887}.occ{width:100%;text-align:left;background:#fff;border:1px solid #dce5ec;border-radius:11px;padding:15px;margin:0 0 10px;cursor:pointer}.occ:hover,.occ.active{border-color:#2d6cdf;background:#f5f9ff}.occ b{display:block;margin-bottom:5px}.meta{font-size:13px;color:#667887}.badge{display:inline-block;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:700;margin-left:7px;background:#fff0f0;color:#a52a2a}.candidate{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;border:1px solid #e0e7ed;border-radius:11px;padding:14px;margin-bottom:10px}.candidate.best{border-color:#8bb0ed;background:#f7faff}.score{font-size:20px;font-weight:750}.reason{font-size:12px;color:#667887;margin-top:5px}.action{border:0;border-radius:9px;padding:10px 13px;background:#174f8a;color:#fff;font-weight:700;cursor:pointer}.action:disabled{background:#aab6c0;cursor:not-allowed}.selected{margin-top:16px;padding:13px;border-radius:10px;background:#eef7f1;color:#245c39;font-size:14px}.summary{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.pill{padding:9px 12px;background:#fff;border:1px solid #dce5ec;border-radius:9px;font-size:13px}.note{margin-top:18px;padding:12px;border-left:3px solid #7893ad;background:#f6f8fa;font-size:12px;color:#526572}
+  </style>
+</head>
+<body>
+<header class="top"><strong>Escala de Substituição</strong><span>MVP operacional</span></header>
+<main class="wrap">
+  <div class="summary"><div class="pill"><b>Hoje:</b> 3 ocorrências</div><div class="pill"><b>Resolvidas:</b> <span id="resolved">0</span></div><div class="pill"><b>Estado:</b> decisão humana</div></div>
+  <div class="grid">
+    <section class="card"><h1>Ocorrências</h1><p class="muted">Selecione a aula que precisa de cobertura.</p><div id="occurrences"></div></section>
+    <section class="card"><h2 id="detailTitle">Selecione uma ocorrência</h2><p id="detailMeta" class="muted">O sistema apresentará candidatos elegíveis e disponíveis.</p><div id="candidates"></div><div id="selected"></div></section>
+  </div>
+  <div class="note">Protótipo com dados sintéticos. A recomendação não constitui atribuição oficial: a confirmação permanece humana. A integração com a fonte SED continua bloqueada até homologação de artefato técnico oficial.</div>
+</main>
+<script>
+const data=[
+ {id:'O1',time:'14:20–15:10',className:'1º EM A',subject:'Física',teacher:'Prof. ausente',candidates:[['Prof. João',96,'Disponível · habilitado · sem conflito'],['Prof. Maria',89,'Disponível · habilitada'],['Prof. Carlos',0,'Conflito de horário']]},
+ {id:'O2',time:'16:10–17:00',className:'2º EM B',subject:'Matemática',teacher:'Prof. ausente',candidates:[['Prof. Maria',94,'Disponível · habilitada · sem conflito'],['Prof. Ana',87,'Disponível · habilitada'],['Prof. João',0,'Conflito de horário']]},
+ {id:'O3',time:'19:20–20:10',className:'3º EM A',subject:'Física',teacher:'Prof. ausente',candidates:[['Prof. Carlos',92,'Disponível · habilitado · sem conflito'],['Prof. João',84,'Disponível · habilitado'],['Prof. Ana',0,'Impedimento']]}
+];
+const chosen={};let current=null;
+function renderOccurrences(){document.getElementById('occurrences').innerHTML=data.map(o=>`<button class="occ ${current===o.id?'active':''}" onclick="selectOccurrence('${o.id}')"><b>${o.time} · ${o.className}<span class="badge">Falta</span></b><span class="meta">${o.subject} · ${o.teacher}</span></button>`).join('')}
+function selectOccurrence(id){current=id;renderOccurrences();const o=data.find(x=>x.id===id);document.getElementById('detailTitle').textContent=`${o.className} — ${o.subject}`;document.getElementById('detailMeta').textContent=`${o.time} · escolha uma recomendação para validação.`;document.getElementById('candidates').innerHTML=o.candidates.map((c,i)=>{const disabled=c[2].includes('Conflito')||c[2].includes('Impedimento');return `<div class="candidate ${i===0&&!disabled?'best':''}"><div><b>${c[0]}</b><div class="reason">${c[2]}</div></div><div>${disabled?'<button class="action" disabled>Bloqueado</button>':`<button class="action" onclick="confirmCandidate('${o.id}','${c[0]}')">${i===0?'Recomendar':'Selecionar'}</button>`}</div></div>`}).join('');document.getElementById('selected').innerHTML=chosen[id]?`<div class="selected">✓ Confirmado pelo gestor: <b>${chosen[id]}</b></div>`:''}
+function confirmCandidate(id,name){chosen[id]=name;document.getElementById('resolved').textContent=Object.keys(chosen).length;selectOccurrence(id)}
+renderOccurrences();
+</script>
+</body>
+</html>
