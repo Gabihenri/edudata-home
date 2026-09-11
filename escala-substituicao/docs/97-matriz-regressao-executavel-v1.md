@@ -23,6 +23,7 @@ Transformar a matriz conceitual de regressão em um mapa explícito entre invari
 | R09 | mesmo snapshot produz mesmo plano global | `tests/global-allocation-reproducibility-v1.sql` | explícita |
 | R10 | override preserva plano original | `tests/human-override-preservation-v1.sql` | explícita |
 | R11 | mudança material invalida validação e exige nova rodada | `tests/snapshot-reexecution-v1.sql` | explícita |
+| R12 | estado da mudança do snapshot controla confirmação/reexecução | `tests/snapshot-change-state-v1.sql` | explícita |
 
 ## 3. Evolução da matriz
 
@@ -32,9 +33,11 @@ R10 possui harness dedicado para preservar a distinção entre decisão algorít
 
 R11 amplia a regressão para o ciclo temporal: uma mudança material no snapshot não pode reutilizar silenciosamente uma recomendação anterior.
 
+R12 formaliza os estados observáveis dessa mudança: `UNCHANGED`, `MATERIALLY_CHANGED`, `SOURCE_UNCERTAIN` e `COMPARISON_FAILED`. Somente `UNCHANGED` pode permitir confirmação; os demais exigem reexecução ou bloqueio de segurança conforme o estado.
+
 ## 4. Regra de promoção
 
-Nenhuma implementação produtiva do motor deve ser considerada pronta enquanto uma alteração não puder ser submetida à matriz R01–R11.
+Nenhuma implementação produtiva do motor deve ser considerada pronta enquanto uma alteração não puder ser submetida à matriz R01–R12.
 
 Os casos dependentes de fonte oficial só poderão receber testes de integração depois do fechamento do GATE-FONTE-SED.
 
@@ -46,19 +49,19 @@ O runner deverá:
 2. executar cada harness;
 3. exigir resultados `PASS_*`;
 4. registrar falhas individualmente;
-5. calcular cobertura da matriz R01–R11;
+5. calcular cobertura da matriz R01–R12;
 6. impedir promoção quando uma invariante crítica falhar;
 7. preservar evidência da execução.
 
 ## 6. Critérios críticos
 
-Falhas em R01, R03, R04, R05, R06 ou R07 são críticas porque comprometem cobertura ou restrições duras.
+Falhas em R01, R03, R04, R05, R06, R07, R11 ou R12 são críticas porque comprometem cobertura, restrições duras ou segurança de reexecução.
 
 Falhas em R02 ou R09 comprometem determinismo/reprodutibilidade.
 
 Falhas em R08 ou R10 comprometem explicabilidade/governança.
 
-Falha em R11 compromete a segurança temporal da decisão e deve impedir confirmação de uma recomendação baseada em snapshot materialmente alterado.
+Falha em R11 ou R12 compromete a segurança temporal da decisão e deve impedir confirmação de uma recomendação baseada em snapshot materialmente alterado, incerto ou cuja comparação não possa ser concluída.
 
 ## 7. Limites
 
