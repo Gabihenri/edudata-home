@@ -4,18 +4,19 @@ set -euo pipefail
 # Escala de Substituição — runner da regressão v1
 # STATUS: SYNTHETIC / HARNESS-SAFE
 # GATE-FONTE-SED: RED/BLOCKED
-# Requer PostgreSQL client (psql) e DATABASE_URL apontando para um banco de teste.
+# Requer PostgreSQL client (psql) e DATABASE_URL apontando para banco de teste.
 # Nunca executar contra banco de produção.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PREFLIGHT="$ROOT_DIR/regression-preflight.sh"
 
-if ! command -v psql >/dev/null 2>&1; then
-  echo "ERROR: psql não encontrado." >&2
+if [[ ! -x "$PREFLIGHT" ]]; then
+  echo "ERROR: preflight ausente ou sem permissão de execução: $PREFLIGHT" >&2
   exit 2
 fi
 
-if [[ -z "${DATABASE_URL:-}" ]]; then
-  echo "ERROR: DATABASE_URL não definida." >&2
+if ! "$PREFLIGHT"; then
+  echo "REGRESSION_SUITE_STATUS=BLOCKED"
   exit 2
 fi
 
@@ -34,13 +35,8 @@ executed=0
 
 for file in "${HARNESS_FILES[@]}"; do
   path="$ROOT_DIR/$file"
-  if [[ ! -f "$path" ]]; then
-    echo "ERROR: harness ausente: $file" >&2
-    exit 2
-  fi
-
-  executed=$((executed + 1))
   output="$TMP_DIR/${file}.out"
+  executed=$((executed + 1))
 
   echo "==> Executando $file"
   if ! psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -At -f "$path" >"$output" 2>&1; then
@@ -53,7 +49,7 @@ for file in "${HARNESS_FILES[@]}"; do
   cat "$output"
 
   if grep -Eq '(^|[|[:space:]])FAIL_[A-Z0-9_]+($|[|[:space:]])' "$output"; then
-    echo "FAIL: uma ou mais asserções falharam em $file"
+    echo "FAIL: asserção falhou em $file"
     failures=$((failures + 1))
   else
     echo "PASS: $file"
