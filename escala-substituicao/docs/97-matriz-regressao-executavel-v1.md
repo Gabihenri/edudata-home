@@ -20,24 +20,21 @@ Transformar a matriz conceitual de regressão em um mapa explícito entre invari
 | R06 | ausência de candidato produz uncovered | mesmo harness Caso 5 | explícita |
 | R07 | peso não supera restrição dura | mesmo harness Caso 6 | explícita |
 | R08 | resultado parcial possui explicação | mesmo harness Caso 7 | explícita |
-| R09 | mesmo snapshot produz mesmo resultado | `tests/global-allocation-v1.sql` + execução repetida | requer execução automatizada futura |
-| R10 | override preserva plano original | contrato Audit 87/96 + teste dedicado futuro | requer harness dedicado |
+| R09 | mesmo snapshot produz mesmo plano global | `tests/global-allocation-reproducibility-v1.sql` | explícita |
+| R10 | override preserva plano original | `tests/human-override-preservation-v1.sql` | explícita |
+| R11 | mudança material invalida validação e exige nova rodada | `tests/snapshot-reexecution-v1.sql` | explícita |
 
-## 3. Lacunas identificadas
+## 3. Evolução da matriz
 
-A matriz atual possui duas propriedades que ainda não estão representadas por um teste sintético dedicado:
+R09 foi separado do teste anterior de ranking por ocorrência. O harness atual compara a assinatura do **plano global completo**, sua cobertura e sua qualidade entre duas execuções idênticas.
 
-### R09 — Reprodutibilidade
+R10 possui harness dedicado para preservar a distinção entre decisão algorítmica e decisão humana.
 
-É necessário executar exatamente o mesmo conjunto de entradas mais de uma vez e comparar a assinatura final do plano, não apenas um valor intermediário.
-
-### R10 — Override
-
-É necessário representar uma recomendação, uma alteração humana e verificar que o plano algorítmico original permanece preservado junto da decisão final.
+R11 amplia a regressão para o ciclo temporal: uma mudança material no snapshot não pode reutilizar silenciosamente uma recomendação anterior.
 
 ## 4. Regra de promoção
 
-Nenhuma implementação produtiva do motor deve ser considerada pronta enquanto uma alteração não puder ser submetida à matriz R01–R10.
+Nenhuma implementação produtiva do motor deve ser considerada pronta enquanto uma alteração não puder ser submetida à matriz R01–R11.
 
 Os casos dependentes de fonte oficial só poderão receber testes de integração depois do fechamento do GATE-FONTE-SED.
 
@@ -46,10 +43,10 @@ Os casos dependentes de fonte oficial só poderão receber testes de integraçã
 O runner deverá:
 
 1. preparar ambiente sintético;
-2. executar cada caso;
-3. exigir resultado `PASS_*`;
+2. executar cada harness;
+3. exigir resultados `PASS_*`;
 4. registrar falhas individualmente;
-5. calcular cobertura da matriz;
+5. calcular cobertura da matriz R01–R11;
 6. impedir promoção quando uma invariante crítica falhar;
 7. preservar evidência da execução.
 
@@ -59,7 +56,9 @@ Falhas em R01, R03, R04, R05, R06 ou R07 são críticas porque comprometem cober
 
 Falhas em R02 ou R09 comprometem determinismo/reprodutibilidade.
 
-Falha em R08 ou R10 compromete explicabilidade/governança.
+Falhas em R08 ou R10 comprometem explicabilidade/governança.
+
+Falha em R11 compromete a segurança temporal da decisão e deve impedir confirmação de uma recomendação baseada em snapshot materialmente alterado.
 
 ## 7. Limites
 
