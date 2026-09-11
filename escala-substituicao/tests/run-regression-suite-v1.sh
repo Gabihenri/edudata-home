@@ -25,6 +25,7 @@ HARNESS_FILES=(
   "global-allocation-adversarial-v1.sql"
   "global-allocation-reproducibility-v1.sql"
   "human-override-preservation-v1.sql"
+  "snapshot-reexecution-v1.sql"
 )
 
 TMP_DIR="$(mktemp -d)"
