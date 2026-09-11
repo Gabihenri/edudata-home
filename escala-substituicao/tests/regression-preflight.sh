@@ -18,10 +18,10 @@ case "${DATABASE_URL}" in
   *production*|*prod*) fail 'production_database_identifier_detected' ;;
 esac
 
+# Deve refletir exatamente os harnesses executados pelo runner atual.
 required_files=(
   'escala-substituicao/tests/global-allocation-v1.sql'
   'escala-substituicao/tests/global-allocation-adversarial-v1.sql'
-  'escala-substituicao/tests/global-allocation-determinism-v1.sql'
   'escala-substituicao/tests/global-allocation-reproducibility-v1.sql'
   'escala-substituicao/tests/human-override-preservation-v1.sql'
   'escala-substituicao/tests/snapshot-reexecution-v1.sql'
