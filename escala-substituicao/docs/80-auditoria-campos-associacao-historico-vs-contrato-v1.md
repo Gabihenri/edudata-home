@@ -52,6 +52,12 @@ Usar esta auditoria como checklist de homologação do export vigente. Quando o 
 - ambíguo;
 - dependente de regra de negócio.
 
+## Novo achado operacional
+
+A documentação oficial atual do Portal de Atendimento mantém artigos específicos para acesso à Associação do Professor à Classe, associação em mais de uma escola, associação em substituição e mensagens de substituições concomitantes. Isso confirma que o domínio continua sendo operacionalmente mantido, embora não exponha o contrato físico no conteúdo indexado.
+
+Um tutorial oficial de 2018 também demonstra que o sistema possui uma etapa de pesquisa/consulta da associação e uma visualização por agenda. Esse material pode orientar a futura coleta autorizada por export da própria interface, mas não deve ser usado como definição do layout atual.
+
 ## Gate
 
 **GATE-FONTE-SED permanece RED/BLOCKED.**
