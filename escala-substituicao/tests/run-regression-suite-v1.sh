@@ -23,7 +23,7 @@ fi
 HARNESS_FILES=(
   "global-allocation-v1.sql"
   "global-allocation-adversarial-v1.sql"
-  "global-allocation-determinism-v1.sql"
+  "global-allocation-reproducibility-v1.sql"
   "human-override-preservation-v1.sql"
 )
 
