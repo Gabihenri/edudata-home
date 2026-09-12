@@ -27,6 +27,7 @@ HARNESS_FILES=(
   "human-override-preservation-v1.sql"
   "snapshot-reexecution-v1.sql"
   "snapshot-change-state-v1.sql"
+  "round-persistence-v1.sql"
 )
 
 TMP_DIR="$(mktemp -d)"
