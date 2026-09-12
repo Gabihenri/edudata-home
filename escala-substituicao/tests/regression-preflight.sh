@@ -26,6 +26,7 @@ required_files=(
   'escala-substituicao/tests/human-override-preservation-v1.sql'
   'escala-substituicao/tests/snapshot-reexecution-v1.sql'
   'escala-substituicao/tests/snapshot-change-state-v1.sql'
+  'escala-substituicao/tests/round-persistence-v1.sql'
   'escala-substituicao/tests/regression-suite-v1.sql'
 )
 
