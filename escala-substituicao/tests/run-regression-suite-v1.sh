@@ -4,11 +4,13 @@ set -euo pipefail
 # Escala de Substituição — runner da regressão v1
 # STATUS: SYNTHETIC / HARNESS-SAFE
 # GATE-FONTE-SED: RED/BLOCKED
-# Requer PostgreSQL client (psql) e DATABASE_URL apontando para banco de teste.
-# Nunca executar contra banco de produção.
+# Requer PostgreSQL client (psql) e DATABASE_URL para os harnesses SQL.
+# A fixture JSON é validada separadamente, sem banco externo.
+# Nunca executar os harnesses SQL contra banco de produção.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PREFLIGHT="$ROOT_DIR/regression-preflight.sh"
+FIXTURE_CHECK="$ROOT_DIR/round-persistence-fixture-check-v1.sh"
 
 if [[ ! -x "$PREFLIGHT" ]]; then
   echo "ERROR: preflight ausente ou sem permissão de execução: $PREFLIGHT" >&2
@@ -19,6 +21,18 @@ if ! "$PREFLIGHT"; then
   echo "REGRESSION_SUITE_STATUS=BLOCKED"
   exit 2
 fi
+
+# A validação sintética já foi feita pelo preflight; mantemos a chamada explícita
+# para que o runner também possa ser auditado como responsável pelo artefato.
+if ! "$FIXTURE_CHECK"; then
+  echo "REGRESSION_SUITE_STATUS=BLOCKED"
+  echo "REASON=synthetic_fixture_check_failed"
+  exit 2
+fi
+
+echo "SYNTHETIC_FIXTURE_STATUS=PASS"
+
+echo
 
 HARNESS_FILES=(
   "global-allocation-v1.sql"
@@ -63,6 +77,7 @@ echo
 if [[ "$failures" -eq 0 ]]; then
   echo "REGRESSION_SUITE_STATUS=PASS"
   echo "HARNESS_FILES_EXECUTED=$executed"
+  echo "SYNTHETIC_FIXTURE_STATUS=PASS"
   echo "NOTA: PASS significa somente que os harnesses sintéticos executados não reportaram FAIL."
   echo "GATE-FONTE-SED=RED/BLOCKED"
   exit 0
@@ -71,5 +86,6 @@ fi
 echo "REGRESSION_SUITE_STATUS=FAIL"
 echo "HARNESS_FILES_EXECUTED=$executed"
 echo "HARNESS_FAILURES=$failures"
+echo "SYNTHETIC_FIXTURE_STATUS=PASS"
 echo "GATE-FONTE-SED=RED/BLOCKED"
 exit 1
