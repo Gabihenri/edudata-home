@@ -1,0 +1,84 @@
+{
+  "contract": "round-persistence-v1",
+  "purpose": "Synthetic persistence fixture for validating allocation-round reconstruction without an external database.",
+  "source_status": "SYNTHETIC_ONLY",
+  "sed_gate": "RED/BLOCKED",
+  "rounds": [
+    {
+      "round_id": "RUN-001-R01",
+      "round_version": 1,
+      "snapshot_id": "SNAP-001",
+      "algorithm_version": "allocation-v1",
+      "rule_version": "rules-synthetic-v1",
+      "temporal_reference": "2026-09-11T14:20:00-03:00",
+      "status": "RECOMMENDATION_READY",
+      "occurrences": [
+        {
+          "occurrence_id": "O1",
+          "recommendation": {
+            "candidate_id": "P1",
+            "score": 95,
+            "state": "RECOMMENDED"
+          },
+          "human_decision": null,
+          "validation_state": "HUMAN_VALIDATION_REQUIRED"
+        }
+      ]
+    },
+    {
+      "round_id": "RUN-001-R02",
+      "round_version": 2,
+      "snapshot_id": "SNAP-002",
+      "algorithm_version": "allocation-v1",
+      "rule_version": "rules-synthetic-v1",
+      "temporal_reference": "2026-09-11T14:20:00-03:00",
+      "status": "HUMAN_OVERRIDDEN",
+      "invalidated_previous_round": "RUN-001-R01",
+      "occurrences": [
+        {
+          "occurrence_id": "O1",
+          "recommendation": {
+            "candidate_id": "P1",
+            "score": 95,
+            "state": "RECOMMENDED"
+          },
+          "human_decision": {
+            "candidate_id": "P2",
+            "state": "OVERRIDDEN"
+          },
+          "validation_state": "HUMAN_OVERRIDDEN"
+        }
+      ]
+    },
+    {
+      "round_id": "RUN-001-R03",
+      "round_version": 3,
+      "snapshot_id": "SNAP-003",
+      "algorithm_version": "allocation-v1",
+      "rule_version": "rules-synthetic-v1",
+      "temporal_reference": "2026-09-11T14:20:00-03:00",
+      "status": "RECOMMENDATION_READY",
+      "invalidated_previous_round": "RUN-001-R02",
+      "occurrences": [
+        {
+          "occurrence_id": "O1",
+          "recommendation": {
+            "candidate_id": "P3",
+            "score": 88,
+            "state": "RECOMMENDED"
+          },
+          "human_decision": null,
+          "validation_state": "HUMAN_VALIDATION_REQUIRED"
+        }
+      ]
+    }
+  ],
+  "invariants": [
+    "Historical rounds are immutable records.",
+    "A human override never replaces the algorithmic recommendation.",
+    "A material snapshot change creates a new round.",
+    "An occurrence can be reconstructed across rounds by occurrence_id.",
+    "Round identity includes round_id and round_version.",
+    "Synthetic fixture does not establish production schema or SED integration."
+  ]
+}
