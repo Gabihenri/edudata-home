@@ -11,6 +11,7 @@ type Fixture = {
   correctedSource?: boolean;
   changedTeacher?: boolean;
   changedSchedule?: boolean;
+  teacherIdentityPresent?: boolean;
 };
 
 const worstMatch = (statuses: MatchStatus[]): MatchStatus =>
@@ -32,6 +33,7 @@ const classify = (fixture: Fixture) => {
     return "blocked" as const;
   }
   if (fixture.matching !== "resolved" || fixture.duplicate) return "review" as const;
+  if (fixture.teacherIdentityPresent === false) return "blocked" as const;
   return "publishable" as const;
 };
 
@@ -48,6 +50,7 @@ const fixtures: Fixture[] = [
   { id: "F10", expected: "blocked", matching: "resolved", structural: "valid", temporal: "invalid", duplicate: false },
   { id: "F11", expected: "new_version", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, changedTeacher: true },
   { id: "F12", expected: "new_version", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, changedSchedule: true },
+  { id: "F13", expected: "blocked", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, teacherIdentityPresent: false },
 ];
 
 // Self-contained contract suite. It intentionally has no framework dependency yet:
@@ -71,6 +74,21 @@ const classifyTextualMatch = (matching: MatchStatus): "review" | "blocked" =>
 assert.equal(classifyTextualMatch("resolved"), "review");
 assert.equal(classifyTextualMatch("ambiguous"), "review");
 assert.equal(classifyTextualMatch("unresolved"), "blocked");
+
+// ADP-04: absence of a teacher identity must block publication.
+// This is a synthetic behavioral guard only; it does not name or infer a SED ID.
+assert.equal(
+  classify({
+    id: "ADP-04",
+    expected: "blocked",
+    matching: "resolved",
+    structural: "valid",
+    temporal: "valid",
+    duplicate: false,
+    teacherIdentityPresent: false,
+  }),
+  "blocked",
+);
 
 // ADP-11/12: a teacher or schedule change is a new candidate version.
 // Historical versions must remain reconstructible; this guard models that
