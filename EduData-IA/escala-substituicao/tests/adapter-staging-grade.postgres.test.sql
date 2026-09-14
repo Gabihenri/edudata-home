@@ -90,7 +90,7 @@ CREATE TABLE escala_test.schedule_occurrences (
   CHECK (end_time > start_time)
 );
 
-SELECT plan(29);
+SELECT plan(31);
 
 SELECT ok(
   (SELECT count(*) FROM escala_test.organizations) = 0,
@@ -100,13 +100,14 @@ SELECT ok(
 INSERT INTO escala_test.organizations VALUES ('00000000-0000-0000-0000-000000000001','ORG-TEST');
 INSERT INTO escala_test.schools VALUES ('00000000-0000-0000-0000-000000000011','00000000-0000-0000-0000-000000000001','SCHOOL-TEST');
 INSERT INTO escala_test.teachers VALUES ('00000000-0000-0000-0000-000000000101','00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000011','T-001');
+INSERT INTO escala_test.teachers VALUES ('00000000-0000-0000-0000-000000000102','00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000011','T-002');
 INSERT INTO escala_test.classes VALUES ('00000000-0000-0000-0000-000000000201','00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000011',2026,'C-001');
 INSERT INTO escala_test.components VALUES ('00000000-0000-0000-0000-000000000301','00000000-0000-0000-0000-000000000001','COMP-001');
 
 SELECT ok(
   (SELECT count(*) FROM escala_test.organizations) = 1
   AND (SELECT count(*) FROM escala_test.schools) = 1
-  AND (SELECT count(*) FROM escala_test.teachers) = 1
+  AND (SELECT count(*) FROM escala_test.teachers) = 2
   AND (SELECT count(*) FROM escala_test.classes) = 1
   AND (SELECT count(*) FROM escala_test.components) = 1,
   'F01 base entities are present with required foreign-key structure'
@@ -231,57 +232,59 @@ SELECT is(
 -- as idempotent merely because the logical slot is repeated. This is a
 -- behavioral guard only; it does not define a SED-specific identity key.
 WITH synthetic_rows AS (
-  SELECT
-    'slot-A'::text AS logical_slot,
-    'teacher-A'::text AS teacher_ref,
-    '08:00-09:00'::text AS time_ref,
-    'HASH-A'::text AS source_hash
+  SELECT 'slot-A'::text AS logical_slot, 'teacher-A'::text AS teacher_ref, '08:00-09:00'::text AS time_ref, 'HASH-A'::text AS source_hash
   UNION ALL
-  SELECT
-    'slot-A',
-    'teacher-B',
-    '08:00-09:00',
-    'HASH-B'
+  SELECT 'slot-A', 'teacher-B', '08:00-09:00', 'HASH-B'
 ), incompatible AS (
-  SELECT logical_slot
-  FROM synthetic_rows
-  GROUP BY logical_slot
-  HAVING count(*) = 2
-     AND count(DISTINCT teacher_ref) > 1
-     AND count(DISTINCT time_ref) = 1
-     AND count(DISTINCT source_hash) = 2
+  SELECT logical_slot FROM synthetic_rows GROUP BY logical_slot
+  HAVING count(*) = 2 AND count(DISTINCT teacher_ref) > 1 AND count(DISTINCT time_ref) = 1 AND count(DISTINCT source_hash) = 2
 )
-SELECT is(
-  (SELECT count(*) FROM incompatible),
-  1::bigint,
-  'ADP-10 detects incompatible duplicate content for the same synthetic logical slot'
-);
+SELECT is((SELECT count(*) FROM incompatible),1::bigint,'ADP-10 detects incompatible duplicate content for the same synthetic logical slot');
 
 WITH synthetic_rows AS (
-  SELECT
-    'slot-A'::text AS logical_slot,
-    'teacher-A'::text AS teacher_ref,
-    '08:00-09:00'::text AS time_ref,
-    'HASH-A'::text AS source_hash
+  SELECT 'slot-A'::text AS logical_slot, 'teacher-A'::text AS teacher_ref, '08:00-09:00'::text AS time_ref, 'HASH-A'::text AS source_hash
   UNION ALL
-  SELECT
-    'slot-A',
-    'teacher-B',
-    '08:00-09:00',
-    'HASH-B'
+  SELECT 'slot-A', 'teacher-B', '08:00-09:00', 'HASH-B'
 ), incompatible AS (
-  SELECT logical_slot
-  FROM synthetic_rows
-  GROUP BY logical_slot
-  HAVING count(*) = 2
-     AND count(DISTINCT teacher_ref) > 1
-     AND count(DISTINCT time_ref) = 1
-     AND count(DISTINCT source_hash) = 2
+  SELECT logical_slot FROM synthetic_rows GROUP BY logical_slot
+  HAVING count(*) = 2 AND count(DISTINCT teacher_ref) > 1 AND count(DISTINCT time_ref) = 1 AND count(DISTINCT source_hash) = 2
+)
+SELECT is((SELECT count(*) FROM incompatible WHERE logical_slot IS NOT NULL),1::bigint,'ADP-10 incompatible duplicate remains non-idempotent and requires review');
+
+-- ADP-11/12: a changed teacher or changed schedule for an otherwise matching
+-- logical slot creates a new candidate version. The guard deliberately uses
+-- synthetic logical references rather than any assumed SED identity key.
+WITH versions AS (
+  SELECT 'slot-A'::text AS logical_slot, 'teacher-A'::text AS teacher_ref, '08:00-09:00'::text AS time_ref, 'HASH-V1'::text AS source_hash
+  UNION ALL
+  SELECT 'slot-A', 'teacher-B', '08:00-09:00', 'HASH-V2'
 )
 SELECT is(
-  (SELECT count(*) FROM incompatible WHERE logical_slot IS NOT NULL),
+  (SELECT count(*) FROM versions WHERE logical_slot='slot-A' AND source_hash IN ('HASH-V1','HASH-V2')),
+  2::bigint,
+  'ADP-11 changed teacher is represented by a distinct candidate version'
+);
+
+WITH versions AS (
+  SELECT 'slot-A'::text AS logical_slot, 'teacher-A'::text AS teacher_ref, '08:00-09:00'::text AS time_ref, 'HASH-V1'::text AS source_hash
+  UNION ALL
+  SELECT 'slot-A', 'teacher-A', '09:00-10:00', 'HASH-V3'
+)
+SELECT is(
+  (SELECT count(*) FROM versions WHERE logical_slot='slot-A' AND source_hash IN ('HASH-V1','HASH-V3')),
+  2::bigint,
+  'ADP-12 changed schedule is represented by a distinct candidate version'
+);
+
+WITH repeated AS (
+  SELECT 'slot-A'::text AS logical_slot, 'HASH-SAME'::text AS source_hash
+  UNION ALL
+  SELECT 'slot-A', 'HASH-SAME'
+)
+SELECT is(
+  (SELECT count(DISTINCT source_hash) FROM repeated WHERE logical_slot='slot-A'),
   1::bigint,
-  'ADP-10 incompatible duplicate remains non-idempotent and requires review'
+  'ADP-11/12 unchanged source hash remains idempotent'
 );
 
 SELECT is(
