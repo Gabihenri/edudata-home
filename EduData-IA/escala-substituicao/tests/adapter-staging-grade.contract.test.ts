@@ -59,6 +59,15 @@ assert.equal(worstMatch(["resolved", "resolved"]), "resolved");
 assert.equal(worstMatch(["resolved", "ambiguous", "resolved"]), "ambiguous");
 assert.equal(worstMatch(["ambiguous", "unresolved"]), "unresolved");
 
+// ADP-07: textual/fuzzy evidence must never be promoted to resolved matching.
+// This is a synthetic behavioral guard only; it does not implement SED matching.
+const classifyTextualMatch = (matching: MatchStatus): "review" | "blocked" =>
+  matching === "unresolved" ? "blocked" : "review";
+
+assert.equal(classifyTextualMatch("resolved"), "review");
+assert.equal(classifyTextualMatch("ambiguous"), "review");
+assert.equal(classifyTextualMatch("unresolved"), "blocked");
+
 assert.equal(overlaps({ start: "08:00", end: "09:00" }, { start: "08:59", end: "10:00" }), true);
 assert.equal(overlaps({ start: "08:00", end: "09:00" }, { start: "09:00", end: "10:00" }), false);
 assert.equal(overlaps({ start: "10:00", end: "11:00" }, { start: "08:00", end: "10:00" }), false);
