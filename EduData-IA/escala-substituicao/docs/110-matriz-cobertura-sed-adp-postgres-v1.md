@@ -48,13 +48,15 @@ Importante: 🟢 significa **cobertura do contrato sintético**, não homologaç
 | ADP-13 | ocorrência fora da vigência → bloqueada | Versionamento + ocorrência | ⚪ | 🟢 guarda temporal | 🟢 sintético | validar com ocorrência/versionamento reais após homologação |
 | ADP-14 | fonte desconhecida → rejeitada | SOURCE | ⚪ | ⚪ | 🔴 | depende de contrato de autoridade da fonte |
 | ADP-15 | raw preservado | RAW ROW | 🟢 | 🟢 | 🟢 | manter imutabilidade como requisito |
-| ADP-16 | somente versão publicada alimenta motor | Versionamento → Core | 🟡 | 🟡 | 🟡 | testar promoção/publicação isoladamente; não conectar ao motor ainda |
+| ADP-16 | somente versão publicada alimenta motor | Versionamento → Core | 🟢 guarda comportamental | 🟡 | 🟡 | concluir guard PostgreSQL isolado; não conectar ao motor ainda |
 | ADP-17 | Agenda não é grade oficial | Fonte + integração | ⚪ | ⚪ | 🔴 | validar na integração quando contrato da Agenda estiver homologado |
 | ADP-18 | auditoria central registrada | EIOS/Core | ⚪ | ⚪ | 🔴 | homologar ledger existente e RLS; não criar terceiro ledger |
 
 ## 5. Cobertura sintética atual
 
-O contrato TypeScript possui guards específicos para ausência de identidade de docente, turma e componente. O harness PostgreSQL mantém os estados de matching `ambiguous` e `unresolved`, mas ainda não cria restrições físicas específicas para ausência de identificador institucional, porque o identificador SED real ainda não foi homologado.
+O contrato TypeScript possui guards específicos para ausência de identidade de docente, turma e componente e, agora, para a regra de publicação: somente uma versão com estado `published` pode ser considerada consumível pela camada seguinte.
+
+O harness PostgreSQL mantém os estados de matching `ambiguous` e `unresolved`, mas ainda não cria restrições físicas específicas para ausência de identificador institucional, porque o identificador SED real ainda não foi homologado.
 
 O harness PostgreSQL também cobre sinteticamente duplicidade incompatível (ADP-10), mudança de professor/horário (ADP-11/12) e vigência temporal de ocorrência (ADP-13). Essas asserções são comportamentais e não representam o contrato físico da SED.
 
@@ -62,11 +64,11 @@ O harness PostgreSQL também cobre sinteticamente duplicidade incompatível (ADP
 
 ### 6.1 ADP-04..06 — PostgreSQL
 
-A guarda comportamental foi fechada no TypeScript, mas o banco sintético não reproduz ausência de identificador como uma coluna/restrição específica. Essa escolha é deliberada: criar um suposto `sed_teacher_id`, `sed_class_id` ou equivalente sem evidência seria inferência indevida.
+As guardas comportamentais foram fechadas no TypeScript, mas o banco sintético não reproduz ausência de identificador como uma coluna/restrição específica. Essa escolha é deliberada: criar um suposto `sed_teacher_id`, `sed_class_id` ou equivalente sem evidência seria inferência indevida.
 
-### 6.2 ADP-16 — publicação → motor
+### 6.2 ADP-16 — PostgreSQL
 
-Ainda falta demonstrar, em harness isolado, que somente uma versão efetivamente publicada pode alimentar a camada seguinte. A semântica de publicação institucional permanece dependente do artefato real.
+A regra comportamental está definida no contrato TypeScript, mas ainda falta uma asserção PostgreSQL isolada demonstrando que somente uma versão `published` é elegível para consumo pela camada seguinte. A semântica de publicação institucional permanece dependente do artefato real.
 
 ### 6.3 ADP-14, ADP-17 e ADP-18
 
@@ -75,6 +77,8 @@ Continuam deliberadamente bloqueados por dependência de autoridade de fonte, in
 ## 7. Decisão de engenharia
 
 Não aumentar o DDL sintético com campos específicos da SED apenas para produzir aparência de cobertura maior.
+
+Para ADP-16, a próxima guarda deve ser feita **somente no staging PostgreSQL sintético**, usando estados genéricos já presentes no contrato. Não deve haver conexão com o motor de produção nem promoção automática de versão.
 
 Sequência autorizada:
 
@@ -91,7 +95,7 @@ contrato comportamental
 
 ## 8. Próximos casos seguros
 
-1. ADP-16 — isolar a regra `validated/published → consumível pelo motor`, sem integração produtiva.
+1. ADP-16 — adicionar guard PostgreSQL isolado para `published → consumível`.
 2. Revisar cobertura após essa guarda.
 3. Manter ADP-14/17/18 bloqueados.
 4. Quando chegar o primeiro artefato real, iniciar homologação E3 conforme o protocolo de aquisição.
@@ -100,9 +104,10 @@ contrato comportamental
 
 **Contrato:** 🟢 definido.  
 **Modelo lógico:** 🟢 definido.  
-**Cobertura sintética PostgreSQL:** 🟢 ampliada.  
+**Cobertura sintética TypeScript:** 🟢 ampliada.  
+**Cobertura sintética PostgreSQL:** 🟢 ampliada, com lacuna ADP-16 de publicação.  
 **Execução PostgreSQL:** 🔴 não comprovada nesta etapa.  
 **Artefato operacional SED 2026:** 🔴 ausente.  
 **DDL de produção:** 🔴 bloqueado.
 
-**Conclusão:** ADP-04..06 possuem guards comportamentais no TypeScript; ADP-10..13 possuem cobertura sintética ampliada. O próximo avanço seguro é ADP-16, sem conexão ao motor de produção e sem criar chaves SED por inferência.
+**Conclusão:** ADP-04..07 e ADP-10..13 possuem guards comportamentais/sintéticos ampliados; ADP-16 está definido no contrato, mas ainda requer sua guarda PostgreSQL isolada. O próximo avanço seguro permanece restrito ao staging sintético, sem conexão ao motor de produção e sem criação de chaves SED por inferência.
