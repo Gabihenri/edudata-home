@@ -19,26 +19,26 @@ case "${DATABASE_URL}" in
   *production*|*prod*) fail 'production_database_identifier_detected' ;;
 esac
 
-# Deve refletir exatamente os oito harnesses executados pelo runner,
-# além do manifesto agregador. R14 é a prova sintética de optimalidade global.
+# Os caminhos abaixo são relativos ao diretório de trabalho do runner
+# (escala-substituicao). Isso evita duplicar o prefixo do diretório.
 required_files=(
-  'escala-substituicao/tests/global-allocation-v1.sql'
-  'escala-substituicao/tests/global-allocation-adversarial-v1.sql'
-  'escala-substituicao/tests/global-allocation-reproducibility-v1.sql'
-  'escala-substituicao/tests/human-override-preservation-v1.sql'
-  'escala-substituicao/tests/snapshot-reexecution-v1.sql'
-  'escala-substituicao/tests/snapshot-change-state-v1.sql'
-  'escala-substituicao/tests/round-persistence-v1.sql'
-  'escala-substituicao/tests/global-allocation-optimality-v1.sql'
-  'escala-substituicao/tests/regression-suite-v1.sql'
+  'tests/global-allocation-v1.sql'
+  'tests/global-allocation-adversarial-v1.sql'
+  'tests/global-allocation-reproducibility-v1.sql'
+  'tests/human-override-preservation-v1.sql'
+  'tests/snapshot-reexecution-v1.sql'
+  'tests/snapshot-change-state-v1.sql'
+  'tests/round-persistence-v1.sql'
+  'tests/global-allocation-optimality-v1.sql'
+  'tests/regression-suite-v1.sql'
 )
 
 for file in "${required_files[@]}"; do
   [ -f "$file" ] || fail "missing:$file"
 done
 
-fixture='escala-substituicao/tests/round-persistence-fixture-v1.json'
-fixture_check='escala-substituicao/tests/round-persistence-fixture-check-v1.sh'
+fixture='tests/round-persistence-fixture-v1.json'
+fixture_check='tests/round-persistence-fixture-check-v1.sh'
 [ -f "$fixture" ] || fail "missing:$fixture"
 [ -f "$fixture_check" ] || fail "missing:$fixture_check"
 
