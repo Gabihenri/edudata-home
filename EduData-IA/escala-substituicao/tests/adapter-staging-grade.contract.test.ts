@@ -1,4 +1,5 @@
 type MatchStatus = "resolved" | "ambiguous" | "unresolved";
+type PublicationStatus = "draft" | "validated" | "published" | "superseded" | "revoked";
 
 type Fixture = {
   id: string;
@@ -14,6 +15,7 @@ type Fixture = {
   teacherIdentityPresent?: boolean;
   classIdentityPresent?: boolean;
   componentIdentityPresent?: boolean;
+  publicationStatus?: PublicationStatus;
 };
 
 const worstMatch = (statuses: MatchStatus[]): MatchStatus =>
@@ -40,6 +42,9 @@ const classify = (fixture: Fixture) => {
     fixture.classIdentityPresent === false ||
     fixture.componentIdentityPresent === false
   ) return "blocked" as const;
+  if (fixture.publicationStatus !== undefined && fixture.publicationStatus !== "published") {
+    return "blocked" as const;
+  }
   return "publishable" as const;
 };
 
@@ -59,6 +64,10 @@ const fixtures: Fixture[] = [
   { id: "F13", expected: "blocked", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, teacherIdentityPresent: false },
   { id: "F14", expected: "blocked", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, classIdentityPresent: false },
   { id: "F15", expected: "blocked", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, componentIdentityPresent: false },
+  { id: "F16", expected: "publishable", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, publicationStatus: "published" },
+  { id: "F17", expected: "blocked", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, publicationStatus: "validated" },
+  { id: "F18", expected: "blocked", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, publicationStatus: "superseded" },
+  { id: "F19", expected: "blocked", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, publicationStatus: "revoked" },
 ];
 
 // Self-contained contract suite. It intentionally has no framework dependency yet:
@@ -105,6 +114,20 @@ assert.equal(classify({ id: "ADP-11", expected: "new_version", matching: "resolv
 assert.equal(classify({ id: "ADP-12", expected: "new_version", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, changedSchedule: true }), "new_version");
 assert.equal(classify({ id: "ADP-11/12-IDEMPOTENT", expected: "idempotent", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, sameSourceHash: true, changedTeacher: true }), "idempotent");
 
+// ADP-16: only a published version is consumable by the next layer.
+// This is a synthetic publication gate only; it does not publish anything
+// and does not define the SED's physical publication mechanism.
+assert.equal(
+  classify({ id: "ADP-16-PUBLISHED", expected: "publishable", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, publicationStatus: "published" }),
+  "publishable",
+);
+for (const status of ["draft", "validated", "superseded", "revoked"] as const) {
+  assert.equal(
+    classify({ id: `ADP-16-${status.toUpperCase()}`, expected: "blocked", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, publicationStatus: status }),
+    "blocked",
+  );
+}
+
 assert.equal(overlaps({ start: "08:00", end: "09:00" }, { start: "08:59", end: "10:00" }), true);
 assert.equal(overlaps({ start: "08:00", end: "09:00" }, { start: "09:00", end: "10:00" }), false);
 assert.equal(overlaps({ start: "10:00", end: "11:00" }, { start: "08:00", end: "10:00" }), false);
@@ -112,4 +135,4 @@ assert.equal(overlaps({ start: "10:00", end: "11:00" }, { start: "08:00", end: "
 assert.equal("2026-09-09T08:00" < "2026-09-09T09:00", true);
 assert.equal("2026-09-09T09:00" < "2026-09-09T08:00", false);
 
-console.log(`Escala adapter contract: ${fixtures.length} fixtures + temporal/matching assertions OK`);
+console.log(`Escala adapter contract: ${fixtures.length} fixtures + temporal/matching/publication assertions OK`);
