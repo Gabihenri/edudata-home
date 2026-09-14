@@ -6,7 +6,9 @@
 
 Este arquivo é um artefato de projeto e revisão. **Não deve ser executado no Supabase neste estado.**
 
-A migration somente poderá ser transformada em SQL executável depois da liberação formal da auditoria do schema Core, especialmente da fonte oficial de horários e das funções de autorização.
+A migration somente poderá ser transformada em SQL executável depois da liberação formal das auditorias do Core/EIOS **e da homologação da fonte oficial de grade/identidade operacional da SED**.
+
+A existência de harnesses PostgreSQL sintéticos não libera esta migration. Eles validam comportamentos contratuais genéricos e permanecem isolados.
 
 ## 2. Objetivo
 
@@ -63,7 +65,7 @@ Campos conceituais mínimos:
 - `engine_run_id UUID` → `substitution_engine_runs(id)`;
 - timestamps.
 
-O FK para `schedules(id)` não pode ser implementado até a reconciliação do schema de horários.
+O FK para `schedules(id)` não pode ser implementado até a reconciliação do schema de horários **e da identidade/versionamento da grade oficial**.
 
 ### 3.3 `substitution_rule_sets`
 
@@ -186,25 +188,52 @@ Resultados anteriores permanecem como histórico.
 
 `substitution_vacancies.schedule_id` depende de `schedules(id)`, mas a definição de `schedules` não foi localizada no SQL versionado auditado. O Core possui referências e índices que pressupõem essa tabela, portanto é necessário reconciliar o schema efetivamente aplicado no Supabase com o repositório.
 
-### BLOQUEADOR 02 — autorização administrativa
+Além disso, a grade operacional precisa ser vinculada a uma fonte oficial publicada/versionada. Nenhum `schedule_id`, identificador de professor, turma ou componente curricular da SED será inferido a partir de nomes, CPF, posição de linha, dados históricos ou telas/tutorials.
+
+### BLOQUEADOR 02 — identidade acadêmica e associação
+
+Ainda falta um artefato técnico operacional atual que permita homologar os identificadores e a relação entre professor, classe/subturma e componente curricular, incluindo validade temporal e chave de associação.
+
+Sem essa evidência, `teacher_id`, `class_id` e `subject_id` permanecem referências conceituais ao Core, não uma autorização para mapear campos físicos da SED.
+
+### BLOQUEADOR 03 — autorização administrativa
 
 O Core/EIOS possui funções de autorização específicas para registros da Agenda, mas ainda não foi demonstrado que elas expressam exatamente o papel/permissão necessário para administrar e confirmar a Escala.
 
 A policy final não será escrita até essa verificação.
 
+### BLOQUEADOR 04 — proveniência e publicação
+
+A entrada que alimenta o motor deverá preservar fonte, lote, versão/hash, origem, momento de captura/publicação e estado de publicação. A regra sintética de que somente `published` é consumível já possui guarda isolada, mas a semântica institucional real da publicação ainda depende do artefato SED homologado.
+
 ## 10. Ordem de implementação após desbloqueio
 
-1. confirmar `schedules` e seus tipos;
-2. confirmar funções/papéis de autorização;
-3. revisar este draft contra o schema confirmado;
-4. converter o draft em migration SQL executável;
-5. auditar a migration;
-6. criar testes de integridade/RLS;
-7. somente então executar no Supabase;
-8. auditar o resultado pós-migration.
+1. obter e preservar o primeiro artefato técnico operacional atual da SED;
+2. registrar proveniência, estrutura/dicionário e versão/hash;
+3. homologar identificadores de professor, turma/subturma e componente;
+4. confirmar `schedules` e seus tipos;
+5. confirmar validade/versionamento e relação Associação ↔ Grade;
+6. confirmar funções/papéis de autorização;
+7. revisar este draft contra o schema e os contratos homologados;
+8. converter o draft em migration SQL executável;
+9. auditar a migration;
+10. criar testes de integridade/RLS;
+11. somente então executar no Supabase;
+12. auditar o resultado pós-migration.
 
-## 11. Status
+## 11. Status e gate
 
 **NÃO EXECUTAR.**
 
-Este documento existe para permitir avanço de engenharia sem transformar uma hipótese de schema em alteração física prematura.
+Estado atual:
+
+- arquitetura e modelo lógico: consolidados;
+- contratos de staging: cobertos sinteticamente;
+- guards PostgreSQL: isolados e sintéticos;
+- execução PostgreSQL: não comprovada;
+- artefato operacional SED 2026: ausente;
+- identidade acadêmica/grade oficial: não homologada;
+- RLS de produção: não finalizado;
+- migration de produção: bloqueada.
+
+Este documento existe para permitir avanço de engenharia sem transformar uma hipótese de schema em alteração física prematura. O próximo desbloqueio material é a aquisição autorizada do artefato técnico SED E3 e sua homologação.
