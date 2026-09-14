@@ -14,6 +14,8 @@ Definir o pacote mínimo que deve ser obtido de uma fonte oficial da SED antes d
 
 Deve representar a Associação e/ou Grade utilizadas operacionalmente no período alvo, preferencialmente em exportação autorizada, arquivo institucional, API documentada ou outro meio técnico oficial.
 
+Um recorte pequeno e representativo pode iniciar a homologação. Não é necessário obter a base integral da escola na primeira etapa, desde que o recorte preserve contexto suficiente para verificar identidade, relacionamento e temporalidade.
+
 ### B. Dicionário/estrutura
 
 Deve permitir identificar:
@@ -56,13 +58,45 @@ Registrar:
 
 - órgão/sistema responsável;
 - URL ou localização oficial;
+- módulo e operação/tela de origem;
+- perfil/contexto de acesso, quando aplicável;
+- escola e ano letivo;
 - data/hora de obtenção;
 - versão;
 - hash do artefato bruto, quando tecnicamente possível;
 - autorização ou contexto de acesso;
 - evidência documental que sustenta sua autoridade.
 
-## 3. O que não é suficiente
+## 3. Níveis de evidência
+
+Para evitar promoção indevida de documentação para contrato técnico, classificar a evidência recebida:
+
+- **E1 — documental:** regra ou semântica sustentada por documentação oficial;
+- **E2 — observável:** estrutura ou comportamento observado em tela/relatório/tutorial oficial;
+- **E3 — técnico atual:** artefato operacional atual acompanhado de estrutura/dicionário ou evidência técnica suficiente para homologação.
+
+E1 e E2 podem orientar o modelo e a reconciliação, mas não autorizam, isoladamente, parser produtivo ou definição de chave técnica.
+
+E3 é o nível necessário para promover campos críticos a **HOMOLOGATED**.
+
+## 4. Recorte mínimo recomendado para a primeira homologação
+
+Quando a fonte permitir, priorizar um recorte real e atual contendo, no mínimo:
+
+- uma escola;
+- ano letivo 2026;
+- uma turma/subturma;
+- um componente curricular;
+- um professor associado;
+- um ou mais horários;
+- a vigência correspondente;
+- uma substituição, se disponível.
+
+Preferir XLSX/CSV. PDF oficial também pode ser aceito como evidência inicial de estrutura observável, mas não como prova automática de chave técnica.
+
+O recorte deve ser preservado sem alteração antes de qualquer sanitização.
+
+## 5. O que não é suficiente
 
 Não desbloqueiam o gate, isoladamente:
 
@@ -73,11 +107,12 @@ Não desbloqueiam o gate, isoladamente:
 - nomes de campos observados na tela;
 - CPF/DI encontrados em documentos;
 - endpoint descoberto por inspeção não autorizada;
-- suposição de que API do portal de Dados Abertos seja a API operacional da SED.
+- suposição de que API do portal de Dados Abertos seja a API operacional da SED;
+- arquivo atual sem contexto de origem, vigência ou autoridade suficiente.
 
 Essas evidências podem sustentar semântica, mas não contrato técnico produtivo.
 
-## 4. Procedimento de homologação
+## 6. Procedimento de homologação
 
 Quando o pacote chegar:
 
@@ -85,14 +120,15 @@ Quando o pacote chegar:
 2. registrar proveniência;
 3. comparar artefato e dicionário;
 4. verificar versão e vigência;
-5. homologar identificadores;
-6. documentar cardinalidades e regras;
-7. construir fixture sanitizada;
-8. executar R01–R12;
-9. testar reconciliação temporal;
-10. somente então autorizar especificação física.
+5. classificar cada campo como `HOMOLOGATED`, `OBSERVED_ONLY`, `AMBIGUOUS` ou `REJECTED`;
+6. homologar identificadores;
+7. documentar cardinalidades e regras;
+8. construir fixture sanitizada;
+9. executar R01–R14 no ambiente sintético/regressivo disponível;
+10. testar reconciliação temporal;
+11. somente então autorizar especificação física.
 
-## 5. Critério de desbloqueio
+## 7. Critério de desbloqueio
 
 O **GATE-FONTE-SED** somente passa para GREEN quando houver evidência suficiente para todos os seguintes pontos:
 
@@ -107,10 +143,12 @@ O **GATE-FONTE-SED** somente passa para GREEN quando houver evidência suficient
 - proveniência registrada;
 - contrato de atualização conhecido.
 
-## 6. Regra de não inferência
+## 8. Regra de não inferência
 
 Se qualquer campo crítico permanecer ambíguo, a implementação deve permanecer bloqueada. A ausência de informação técnica é tratada como uma condição explícita do sistema, não como convite para heurística.
 
-## 7. Estado atual
+## 9. Estado atual
 
-O projeto possui motor, contratos, explicabilidade, snapshot, reexecução e regressão sintética preparados. O próximo avanço externo depende exclusivamente da obtenção do pacote técnico homologável descrito neste documento.
+O projeto possui motor, contratos, explicabilidade, snapshot, reexecução e regressão sintética preparados. A documentação oficial e os materiais operacionais já sustentam o modelo funcional e temporal, mas ainda não substituem o artefato técnico operacional atual.
+
+O próximo avanço externo depende da obtenção do pacote técnico homologável descrito neste documento. Um primeiro recorte real já é suficiente para iniciar a matriz campo → significado → evidência → confiança → status, sem exigir a base integral.
