@@ -12,6 +12,8 @@ type Fixture = {
   changedTeacher?: boolean;
   changedSchedule?: boolean;
   teacherIdentityPresent?: boolean;
+  classIdentityPresent?: boolean;
+  componentIdentityPresent?: boolean;
 };
 
 const worstMatch = (statuses: MatchStatus[]): MatchStatus =>
@@ -33,7 +35,11 @@ const classify = (fixture: Fixture) => {
     return "blocked" as const;
   }
   if (fixture.matching !== "resolved" || fixture.duplicate) return "review" as const;
-  if (fixture.teacherIdentityPresent === false) return "blocked" as const;
+  if (
+    fixture.teacherIdentityPresent === false ||
+    fixture.classIdentityPresent === false ||
+    fixture.componentIdentityPresent === false
+  ) return "blocked" as const;
   return "publishable" as const;
 };
 
@@ -51,6 +57,8 @@ const fixtures: Fixture[] = [
   { id: "F11", expected: "new_version", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, changedTeacher: true },
   { id: "F12", expected: "new_version", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, changedSchedule: true },
   { id: "F13", expected: "blocked", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, teacherIdentityPresent: false },
+  { id: "F14", expected: "blocked", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, classIdentityPresent: false },
+  { id: "F15", expected: "blocked", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, componentIdentityPresent: false },
 ];
 
 // Self-contained contract suite. It intentionally has no framework dependency yet:
@@ -75,18 +83,18 @@ assert.equal(classifyTextualMatch("resolved"), "review");
 assert.equal(classifyTextualMatch("ambiguous"), "review");
 assert.equal(classifyTextualMatch("unresolved"), "blocked");
 
-// ADP-04: absence of a teacher identity must block publication.
-// This is a synthetic behavioral guard only; it does not name or infer a SED ID.
+// ADP-04..06: missing institutional identity must block publication.
+// These are synthetic behavioral guards only; they do not name or infer SED IDs.
 assert.equal(
-  classify({
-    id: "ADP-04",
-    expected: "blocked",
-    matching: "resolved",
-    structural: "valid",
-    temporal: "valid",
-    duplicate: false,
-    teacherIdentityPresent: false,
-  }),
+  classify({ id: "ADP-04", expected: "blocked", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, teacherIdentityPresent: false }),
+  "blocked",
+);
+assert.equal(
+  classify({ id: "ADP-05", expected: "blocked", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, classIdentityPresent: false }),
+  "blocked",
+);
+assert.equal(
+  classify({ id: "ADP-06", expected: "blocked", matching: "resolved", structural: "valid", temporal: "valid", duplicate: false, componentIdentityPresent: false }),
   "blocked",
 );
 
