@@ -22,8 +22,6 @@ if ! "$PREFLIGHT"; then
   exit 2
 fi
 
-# A validação sintética já foi feita pelo preflight; mantemos a chamada explícita
-# para que o runner também possa ser auditado como responsável pelo artefato.
 if ! "$FIXTURE_CHECK"; then
   echo "REGRESSION_SUITE_STATUS=BLOCKED"
   echo "REASON=synthetic_fixture_check_failed"
@@ -31,9 +29,9 @@ if ! "$FIXTURE_CHECK"; then
 fi
 
 echo "SYNTHETIC_FIXTURE_STATUS=PASS"
-
 echo
 
+# A lista deve permanecer alinhada ao manifesto regression-suite-v1.sql.
 HARNESS_FILES=(
   "global-allocation-v1.sql"
   "global-allocation-adversarial-v1.sql"
@@ -42,6 +40,7 @@ HARNESS_FILES=(
   "snapshot-reexecution-v1.sql"
   "snapshot-change-state-v1.sql"
   "round-persistence-v1.sql"
+  "global-allocation-optimality-v1.sql"
 )
 
 TMP_DIR="$(mktemp -d)"
