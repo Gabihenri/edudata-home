@@ -1,1 +1,45 @@
+name: EduData IA — Escala Regression
 
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  escala-synthetic-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Regression preflight
+        working-directory: escala-substituicao
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/escala_test
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          python3 --version
+          psql --version
+          bash tests/regression-preflight.sh
+
+      - name: Execute R09 reproducibility harness
+        working-directory: escala-substituicao
+        run: |
+          docker run --rm \
+            --network host \
+            -v "$PWD:/workspace" \
+            -w /workspace \
+            -e PGPASSWORD=postgres \
+            postgres:16 \
+            psql "postgresql://postgres@localhost:5432/escala_test" \
+              -v ON_ERROR_STOP=1 \
+              -f tests/global-allocation-reproducibility-v1.sql
