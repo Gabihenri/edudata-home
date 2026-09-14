@@ -12,14 +12,15 @@ fail() {
 
 command -v psql >/dev/null 2>&1 || fail 'psql_not_found'
 command -v python3 >/dev/null 2>&1 || fail 'python3_not_found'
-
 [ -n "${DATABASE_URL:-}" ] || fail 'DATABASE_URL_missing'
 
+# Bloqueio conservador contra identificadores explícitos de produção.
 case "${DATABASE_URL}" in
   *production*|*prod*) fail 'production_database_identifier_detected' ;;
 esac
 
-# Deve refletir exatamente os harnesses executados pelo runner atual.
+# Deve refletir exatamente os oito harnesses executados pelo runner,
+# além do manifesto agregador. R14 é a prova sintética de optimalidade global.
 required_files=(
   'escala-substituicao/tests/global-allocation-v1.sql'
   'escala-substituicao/tests/global-allocation-adversarial-v1.sql'
@@ -28,6 +29,7 @@ required_files=(
   'escala-substituicao/tests/snapshot-reexecution-v1.sql'
   'escala-substituicao/tests/snapshot-change-state-v1.sql'
   'escala-substituicao/tests/round-persistence-v1.sql'
+  'escala-substituicao/tests/global-allocation-optimality-v1.sql'
   'escala-substituicao/tests/regression-suite-v1.sql'
 )
 
