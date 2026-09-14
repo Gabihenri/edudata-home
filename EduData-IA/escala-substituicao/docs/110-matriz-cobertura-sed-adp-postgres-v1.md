@@ -18,7 +18,7 @@ Esta matriz **não transforma ausência de teste em autorização de implementa�
 - Contrato TypeScript: `tests/adapter-staging-grade.contract.test.ts`.
 - Harness PostgreSQL: `tests/adapter-staging-grade.postgres.test.sql`.
 
-O contrato define os 18 comportamentos mínimos do adaptador. fileciteturn119file0 O modelo de staging mantém explicitamente a separação entre fonte, lote, linha bruta, matching, versão e ocorrência. fileciteturn151file0
+O contrato define os 18 comportamentos mínimos do adaptador. O modelo de staging mantém explicitamente a separação entre fonte, lote, linha bruta, matching, versão e ocorrência. fileciteturn119file0 fileciteturn201file0
 
 ## 3. Legenda
 
@@ -39,20 +39,20 @@ Importante: 🟢 significa **cobertura do contrato sintético**, não homologaç
 | ADP-04 | docente sem ID → unresolved | Matching | 🟢 conceito | 🟡 | 🟡 | adicionar somente regra comportamental, sem inventar ID SED |
 | ADP-05 | turma sem ID → unresolved | Matching | 🟢 conceito | 🟡 | 🟡 | idem |
 | ADP-06 | componente sem ID → unresolved | Matching | 🟢 conceito | 🟡 | 🟡 | idem |
-| ADP-07 | nome/fuzzy nunca promove | Matching | 🟡 | ⚪ | 🟡 | testar explicitamente bloqueio de fuzzy no contrato, sem matching SED real |
+| ADP-07 | nome/fuzzy nunca promove | Matching | 🟢 guarda comportamental | ⚪ | 🟢 sintético | manter bloqueio; homologar somente com regra real de matching |
 | ADP-08 | horário inválido → rejeitado | Staging | 🟢 | 🟢 | 🟢 | manter regra `end > start` |
 | ADP-09 | versão nova preserva anterior | Versionamento | 🟡 | 🟢 | 🟢 sintético | validar semântica de publicação com fonte real |
-| ADP-10 | duplicidade incompatível → bloqueado | Staging + versionamento | 🟡 | 🟡 | 🟡 | distinguir idempotência de duplicidade incompatível |
-| ADP-11 | mudança de professor → nova evidência/versionamento | Versionamento | ⚪ | ⚪ | 🟡 | fixture sintético específico antes de produção |
-| ADP-12 | alteração de horário → nova evidência/versionamento | Versionamento | ⚪ | ⚪ | 🟡 | fixture sintético específico antes de produção |
-| ADP-13 | ocorrência fora da vigência → bloqueada | Versionamento + ocorrência | ⚪ | 🟡 | 🟡 | teste temporal explícito no staging |
+| ADP-10 | duplicidade incompatível → bloqueado | Staging + versionamento | 🟡 | 🟡 | 🟡 | distinguir duas linhas incompatíveis de repetição/idempotência |
+| ADP-11 | mudança de professor → nova evidência/versionamento | Versionamento | 🟢 guarda comportamental | 🟡 | 🟡 | adicionar assert específico no PostgreSQL sem criar chave SED |
+| ADP-12 | alteração de horário → nova evidência/versionamento | Versionamento | 🟢 guarda comportamental | 🟡 | 🟡 | adicionar assert específico no PostgreSQL sem criar chave SED |
+| ADP-13 | ocorrência fora da vigência → bloqueada | Versionamento + ocorrência | ⚪ | 🟢 guarda temporal | 🟢 sintético | validar com ocorrência/versionamento reais após homologação |
 | ADP-14 | fonte desconhecida → rejeitada | SOURCE | ⚪ | ⚪ | 🔴 | depende de contrato de autoridade da fonte |
 | ADP-15 | raw preservado | RAW ROW | 🟢 | 🟢 | 🟢 | manter imutabilidade como requisito |
 | ADP-16 | somente versão publicada alimenta motor | Versionamento → Core | 🟡 | 🟡 | 🟡 | testar promoção/publicação isoladamente; não conectar ao motor ainda |
 | ADP-17 | Agenda não é grade oficial | Fonte + integração | ⚪ | ⚪ | 🔴 | validar na integração quando contrato da Agenda estiver homologado |
 | ADP-18 | auditoria central registrada | EIOS/Core | ⚪ | ⚪ | 🔴 | homologar ledger existente e RLS; não criar terceiro ledger |
 
-Os comportamentos ADP-01..18 são os definidos no contrato original; em particular, o contrato separa idempotência, versionamento, raw, publicação, Agenda e auditoria. fileciteturn133file0 fileciteturn147file0
+Os comportamentos ADP-01..18 são os definidos no contrato original; em particular, o contrato separa idempotência, versionamento, raw, publicação, Agenda e auditoria. fileciteturn202file0
 
 ## 5. O que o PostgreSQL já comprova sinteticamente
 
@@ -71,41 +71,40 @@ O harness atual materializa:
 11. coerência de vigência;
 12. separação `raw_payload`/`normalized_payload`;
 13. ausência de conflito temporal no fixture;
-14. hashes distintos identificando versões sintéticas distintas.
+14. hashes distintos identificando versões sintéticas distintas;
+15. identificação e exclusão de ocorrência fora da vigência, por regra temporal sintética.
 
-O harness está deliberadamente isolado no schema `escala_test`, usa UUIDs sintéticos e encerra com `ROLLBACK`. Ele ainda **não foi executado** em PostgreSQL nesta auditoria. fileciteturn125file0
+O harness está deliberadamente isolado no schema `escala_test`, usa UUIDs sintéticos e encerra com `ROLLBACK`. Ele ainda **não foi executado** em PostgreSQL nesta auditoria.
 
-## 6. Lacunas que não devem ser mascaradas
+## 6. Lacunas remanescentes
 
 ### 6.1 ADP-04..06 — IDs ausentes
 
 A estrutura atual permite estados de matching, mas o banco sintético não reproduz ainda cada ausência de identificador como uma restrição específica.
 
-Isso não autoriza criar colunas chamadas como supostos IDs da SED. O contrato exige identificadores institucionais confirmados, e o modelo de homologação proíbe inferência. fileciteturn151file0
+Isso não autoriza criar colunas chamadas como supostos IDs da SED. O contrato exige identificadores institucionais confirmados, e o modelo de homologação proíbe inferência. fileciteturn201file0
 
-### 6.2 ADP-07 — fuzzy
-
-O TypeScript possui precedência de matching, mas ainda não existe uma asserção específica demonstrando que uma correspondência textual/fuzzy é rejeitada como mecanismo de publicação.
-
-A próxima alteração segura pode ser apenas comportamental e sintética.
-
-### 6.3 ADP-10 — duplicidade incompatível
+### 6.2 ADP-10 — duplicidade incompatível
 
 O harness já rejeita repetição da mesma referência de linha dentro do lote e trata hash repetido como idempotência. Isso não é suficiente para afirmar que **duas linhas diferentes, porém incompatíveis**, foram corretamente bloqueadas.
 
-Essa distinção deve ser testada separadamente.
+Essa distinção continua pendente.
 
-### 6.4 ADP-11..12 — alterações
+### 6.3 ADP-11/12 — alterações
 
-A criação de uma segunda versão está coberta, mas ainda não existe uma prova específica de que a alteração do professor ou do horário seja a causa da criação da nova evidência/versionamento.
+O contrato TypeScript agora possui guards explícitos para mudança de professor e mudança de horário, classificando ambas como `new_version`. Ainda falta uma asserção PostgreSQL equivalente que demonstre essa causalidade no staging sintético.
 
-### 6.5 ADP-13 — vigência da ocorrência
+Não há, portanto, homologação institucional dessas alterações.
 
-Existe coerência de intervalo da versão, mas ainda falta uma asserção explícita de ocorrência fora da vigência publicada.
+### 6.4 ADP-13 — vigência da ocorrência
 
-### 6.6 ADP-14, ADP-17 e ADP-18
+A regra temporal agora possui duas asserções sintéticas explícitas: a ocorrência fora da vigência é identificada e não pertence ao conjunto publicável.
 
-São deliberadamente dependentes de autoridade de fonte, integração com Agenda e infraestrutura de auditoria/EIOS. O modelo atual reconhece essas dependências e não permite preenchê-las por convenção. fileciteturn143file0
+Isso fecha a lacuna comportamental do harness, mas não substitui a validação com artefato SED real.
+
+### 6.5 ADP-14, ADP-17 e ADP-18
+
+São deliberadamente dependentes de autoridade de fonte, integração com Agenda e infraestrutura de auditoria/EIOS. O modelo atual reconhece essas dependências e não permite preenchê-las por convenção. fileciteturn201file0
 
 ## 7. Decisão de engenharia
 
@@ -124,26 +123,25 @@ contrato comportamental
 → DDL físico somente quando justificado
 ```
 
-O contrato de produção continua condicionado a arquivo/exportação real, dicionário, identificadores institucionais, regra de publicação, versionamento, matching, testes e RLS/permissionamento. fileciteturn134file0
+O contrato de produção continua condicionado a arquivo/exportação real, dicionário, identificadores institucionais, regra de publicação, versionamento, matching, testes e RLS/permissionamento. fileciteturn202file0
 
 ## 8. Próximos casos seguros
 
 A ordem recomendada para continuar o trabalho sem tocar na produção é:
 
-1. criar teste sintético explícito para **ADP-07**;
-2. separar **ADP-10** de idempotência;
-3. criar cenários sintéticos para **ADP-11/12**;
-4. criar validação explícita de **ADP-13**;
-5. depois revisar a cobertura novamente;
-6. manter ADP-14/17/18 bloqueados até as respectivas fontes/camadas serem homologadas.
+1. separar **ADP-10** de idempotência;
+2. criar asserções PostgreSQL específicas para **ADP-11/12**;
+3. revisar novamente a cobertura;
+4. manter ADP-14/17/18 bloqueados até as respectivas fontes/camadas serem homologadas;
+5. quando chegar o primeiro artefato real, iniciar homologação E3 conforme o protocolo de aquisição.
 
 ## 9. Gate atual
 
 **Contrato:** 🟢 definido.  
 **Modelo lógico:** 🟢 definido.  
-**Cobertura sintética PostgreSQL:** 🟡 parcial.  
+**Cobertura sintética PostgreSQL:** 🟡 ampliada.  
 **Execução PostgreSQL:** 🔴 não comprovada nesta etapa.  
 **Artefato operacional SED 2026:** 🔴 ausente.  
 **DDL de produção:** 🔴 bloqueado.
 
-**Conclusão:** a lacuna agora está mensurada por caso, sem confundir cobertura sintética com homologação institucional.
+**Conclusão:** ADP-13 deixou de ser uma lacuna comportamental no harness sintético. ADP-10 e a materialização PostgreSQL específica de ADP-11/12 permanecem como próximos avanços seguros; a homologação institucional continua bloqueada pela ausência do artefato técnico operacional real.
