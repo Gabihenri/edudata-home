@@ -90,7 +90,7 @@ CREATE TABLE escala_test.schedule_occurrences (
   CHECK (end_time > start_time)
 );
 
-SELECT plan(25);
+SELECT plan(27);
 
 SELECT ok(
   (SELECT count(*) FROM escala_test.organizations) = 0,
@@ -197,6 +197,33 @@ SELECT ok(
    FROM escala_test.schedule_versions
    WHERE id='00000000-0000-0000-0000-000000000602'),
   'F10 valid version has coherent validity interval'
+);
+
+-- ADP-13: an occurrence outside the published version validity must be excluded
+-- from the publishable set. This is a synthetic temporal rule only; it does not
+-- infer or implement any SED-specific physical key or publication mechanism.
+WITH synthetic_occurrence AS (
+  SELECT DATE '2027-01-01' AS scheduled_date
+), synthetic_validity AS (
+  SELECT DATE '2026-02-01' AS valid_from, DATE '2026-12-31' AS valid_until
+)
+SELECT is(
+  (SELECT count(*) FROM synthetic_occurrence o, synthetic_validity v
+   WHERE o.scheduled_date NOT BETWEEN v.valid_from AND v.valid_until),
+  1::bigint,
+  'ADP-13 identifies an occurrence outside version validity'
+);
+
+WITH synthetic_occurrence AS (
+  SELECT DATE '2027-01-01' AS scheduled_date
+), synthetic_validity AS (
+  SELECT DATE '2026-02-01' AS valid_from, DATE '2026-12-31' AS valid_until
+)
+SELECT is(
+  (SELECT count(*) FROM synthetic_occurrence o, synthetic_validity v
+   WHERE o.scheduled_date BETWEEN v.valid_from AND v.valid_until),
+  0::bigint,
+  'ADP-13 occurrence outside validity is excluded from the publishable set'
 );
 
 SELECT is(
