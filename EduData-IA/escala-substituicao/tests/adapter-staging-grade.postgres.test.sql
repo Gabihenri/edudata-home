@@ -90,7 +90,7 @@ CREATE TABLE escala_test.schedule_occurrences (
   CHECK (end_time > start_time)
 );
 
-SELECT plan(27);
+SELECT plan(29);
 
 SELECT ok(
   (SELECT count(*) FROM escala_test.organizations) = 0,
@@ -224,6 +224,64 @@ SELECT is(
    WHERE o.scheduled_date BETWEEN v.valid_from AND v.valid_until),
   0::bigint,
   'ADP-13 occurrence outside validity is excluded from the publishable set'
+);
+
+-- ADP-10: two normalized rows may represent the same synthetic logical slot
+-- while carrying incompatible teacher/time payloads. They must not be treated
+-- as idempotent merely because the logical slot is repeated. This is a
+-- behavioral guard only; it does not define a SED-specific identity key.
+WITH synthetic_rows AS (
+  SELECT
+    'slot-A'::text AS logical_slot,
+    'teacher-A'::text AS teacher_ref,
+    '08:00-09:00'::text AS time_ref,
+    'HASH-A'::text AS source_hash
+  UNION ALL
+  SELECT
+    'slot-A',
+    'teacher-B',
+    '08:00-09:00',
+    'HASH-B'
+), incompatible AS (
+  SELECT logical_slot
+  FROM synthetic_rows
+  GROUP BY logical_slot
+  HAVING count(*) = 2
+     AND count(DISTINCT teacher_ref) > 1
+     AND count(DISTINCT time_ref) = 1
+     AND count(DISTINCT source_hash) = 2
+)
+SELECT is(
+  (SELECT count(*) FROM incompatible),
+  1::bigint,
+  'ADP-10 detects incompatible duplicate content for the same synthetic logical slot'
+);
+
+WITH synthetic_rows AS (
+  SELECT
+    'slot-A'::text AS logical_slot,
+    'teacher-A'::text AS teacher_ref,
+    '08:00-09:00'::text AS time_ref,
+    'HASH-A'::text AS source_hash
+  UNION ALL
+  SELECT
+    'slot-A',
+    'teacher-B',
+    '08:00-09:00',
+    'HASH-B'
+), incompatible AS (
+  SELECT logical_slot
+  FROM synthetic_rows
+  GROUP BY logical_slot
+  HAVING count(*) = 2
+     AND count(DISTINCT teacher_ref) > 1
+     AND count(DISTINCT time_ref) = 1
+     AND count(DISTINCT source_hash) = 2
+)
+SELECT is(
+  (SELECT count(*) FROM incompatible WHERE logical_slot IS NOT NULL),
+  1::bigint,
+  'ADP-10 incompatible duplicate remains non-idempotent and requires review'
 );
 
 SELECT is(
