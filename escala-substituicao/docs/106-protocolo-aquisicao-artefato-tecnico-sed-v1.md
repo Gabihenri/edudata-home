@@ -124,7 +124,7 @@ Quando o pacote chegar:
 6. homologar identificadores;
 7. documentar cardinalidades e regras;
 8. construir fixture sanitizada;
-9. executar R01–R14 no ambiente sintético/regressivo disponível;
+9. executar **R01–R16** no ambiente sintético/regressivo disponível;
 10. testar reconciliação temporal;
 11. somente então autorizar especificação física.
 
