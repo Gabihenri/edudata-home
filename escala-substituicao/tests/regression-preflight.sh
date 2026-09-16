@@ -31,6 +31,7 @@ required_files=(
   'tests/round-persistence-v1.sql'
   'tests/global-allocation-optimality-v1.sql'
   'tests/regression-suite-v1.sql'
+  'tests/regression-consistency-v1.sh'
 )
 
 for file in "${required_files[@]}"; do
@@ -46,7 +47,11 @@ fixture_check='tests/round-persistence-fixture-check-v1.sh'
 # Isso não substitui a regressão PostgreSQL; apenas valida o artefato local.
 bash "$fixture_check" | grep -q '^FIXTURE_CHECK=PASS$' || fail 'round_persistence_fixture_check_failed'
 
-printf 'REGRESSION_PREFLIGHT=PASS\nFILES=%s\nSYNTHETIC_FIXTURE_CHECK=PASS\n' "${#required_files[@]}"
+# A consistência estrutural deve ser verificada antes de qualquer conexão
+# efetiva do runner aos harnesses PostgreSQL.
+bash tests/regression-consistency-v1.sh | grep -q '^REGRESSION_CONSISTENCY=PASS$' || fail 'regression_consistency_failed'
+
+printf 'REGRESSION_PREFLIGHT=PASS\nFILES=%s\nSYNTHETIC_FIXTURE_CHECK=PASS\nREGRESSION_CONSISTENCY_CHECK=PASS\n' "${#required_files[@]}"
 
 # Este preflight não executa os harnesses PostgreSQL e não conecta a fontes SED.
 # O runner deve abortar se este preflight falhar.
