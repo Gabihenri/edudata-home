@@ -40,11 +40,21 @@ A orientação oficial de 2025 registra que a grade horária pode ser alterada d
 
 Conclusão: mudanças de grade possuem impacto temporal real e reforçam os contratos já definidos para snapshot, vigência, detecção de mudança e reexecução.
 
+## 5.1 Evidência adicional — cardinalidade de horários na Associação
+
+A base oficial de conhecimento da SED mantém orientações específicas para **“Incluir mais de um horário na 1ª aba da Associação do professor na classe”**, inclusive uma orientação específica para **PEI**, e também mantém uma orientação separada para **“Edição – Cadastro de Horário do Professor à Classe (3º Passo da Associação)”**. O catálogo oficial também lista procedimentos para associações em substituição e situações de substituições concomitantes. citeturn0search0
+
+Essas entradas permitem uma conclusão funcional limitada: uma associação professor-classe pode estar relacionada a **mais de um registro/horário de aula**, e o cadastro/edição do horário constitui uma dimensão operacional própria da associação. Isso é compatível com o modelo da Escala, no qual uma associação não deve ser reduzida a uma única janela temporal.
+
+**Limitação:** os títulos e descrições do catálogo não homologam cardinalidade física, nomes de colunas, chaves ou estrutura de banco. Portanto, a implementação deve representar essa possibilidade apenas no contrato conceitual/sintético até que um artefato técnico atual seja obtido.
+
 ## 6. Impacto no modelo da Escala
 
 A evidência atual fortalece o seguinte encadeamento:
 
 `Matriz homologada → classes/turmas → quadro de aulas → associação professor-classe → grade horária → ocorrência temporal → ausência → necessidade de cobertura → candidatos → alocação → validação humana`
+
+Além disso, a evidência adicional reforça que a camada temporal da associação deve admitir múltiplos horários sem assumir uma cardinalidade física ainda não homologada.
 
 Nenhuma dessas evidências, porém, fornece o artefato técnico necessário para determinar as chaves internas, endpoints, payloads ou contratos de integração da SED.
 
@@ -77,6 +87,8 @@ Não é permitido, com base apenas nestas páginas:
 ## 9. Conclusão
 
 A documentação oficial de 2026/2025 confirma com maior precisão que a Associação e a Grade Horária participam da cadeia operacional que habilita os registros de aula e frequência. Também confirma que a vigência e as alterações de grade possuem efeito operacional.
+
+A documentação oficial adicional sobre inclusão de mais de um horário e edição do horário do professor fortalece especificamente o modelo temporal da associação, sem autorizar inferência sobre o esquema físico da SED.
 
 Isso fortalece o desenho do motor de substituição e, principalmente, a necessidade de snapshots temporais e reexecução diante de mudanças.
 
