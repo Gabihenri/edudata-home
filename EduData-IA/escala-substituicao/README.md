@@ -36,7 +36,7 @@ Já estão consolidados no repositório:
 - motor conceitual de alocação global com restrições duras antes do score;
 - explicabilidade da recomendação e preservação de decisão humana;
 - snapshots imutáveis, rodadas de cálculo, invalidação por mudança material e reconstrução histórica;
-- suíte de regressão R01–R14 e fixtures sintéticos;
+- suíte de regressão **R01–R16** e fixtures sintéticos;
 - guards comportamentais TypeScript e harnesses PostgreSQL sintéticos isolados;
 - matriz de reconciliação entre entidades físicas do Core e as entidades acadêmicas que ainda dependem de homologação SED.
 
@@ -67,7 +67,7 @@ Quando o artefato técnico E3 estiver disponível:
 ```text
 Artefato SED → preservação/hash → dicionário → IDs/chaves
 → vigência/versionamento → matching → fixture sanitizado
-→ reconciliação temporal → R01–R14 → especificação física/DDL
+→ reconciliação temporal → R01–R16 → especificação física/DDL
 ```
 
 Até esse desbloqueio, o trabalho permanece concentrado em contratos, modelagem, auditoria, fixtures e preparação segura da integração, sem promover dados sintéticos ou históricos a dados oficiais.
