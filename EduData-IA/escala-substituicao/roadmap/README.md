@@ -2,7 +2,7 @@
 
 ## Estado atual
 
-O projeto já ultrapassou a etapa de concepção inicial e possui arquitetura, contratos, modelo operacional, motor sintético de alocação global, suíte de regressão R01–R14, modelo de snapshots/rodadas, contrato de staging e matriz de reconciliação entre o Core e a fonte acadêmica SED.
+O projeto já ultrapassou a etapa de concepção inicial e possui arquitetura, contratos, modelo operacional, motor sintético de alocação global, suíte de regressão **R01–R16**, modelo de snapshots/rodadas, contrato de staging e matriz de reconciliação entre o Core e a fonte acadêmica SED.
 
 O principal bloqueio atual é externo ao motor: **GATE-FONTE-SED = RED/BLOCKED**. Ainda não foi homologado um artefato técnico operacional atual da SED que permita confirmar as identidades acadêmicas, a Associação do Professor à Classe, a Grade Horária, suas chaves, vigências, versionamento e semântica de publicação.
 
@@ -11,7 +11,7 @@ Portanto:
 - desenvolvimento conceitual e sintético: avançado;
 - contratos e regras: consolidados;
 - reconciliação Core × Grade SED: documentada;
-- testes sintéticos R01–R14: estruturados;
+- testes sintéticos R01–R16: estruturados;
 - execução PostgreSQL dos harnesses: não comprovada;
 - integração operacional SED: bloqueada;
 - DDL de produção: bloqueado;
@@ -111,7 +111,7 @@ Fixture sanitizado
   ↓
 Reconciliação temporal
   ↓
-R01–R14
+R01–R16
   ↓
 Especificação física
   ↓
