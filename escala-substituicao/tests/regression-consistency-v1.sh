@@ -26,7 +26,7 @@ m = manifest.read_text(encoding="utf-8")
 r = runner.read_text(encoding="utf-8")
 p = preflight.read_text(encoding="utf-8")
 
-manifest_files = re.findall(r"'R(?:0[1-9]|1[0-4])','([^']+)'", m)
+manifest_files = re.findall(r"'R(?:0[1-9]|1[0-6])','([^']+)'", m)
 runner_files = re.findall(r'\s+"([^"]+\.sql)"\s*$', r, re.MULTILINE)
 preflight_paths = re.findall(r"'escala-substituicao/tests/([^']+\.sql)'", p)
 
@@ -34,7 +34,7 @@ expected = sorted(set(manifest_files))
 runner_set = sorted(set(runner_files))
 preflight_set = sorted(set(preflight_paths))
 
-if len(manifest_files) != 14:
+if len(manifest_files) != 16:
     raise SystemExit("FAIL_MANIFEST_CASE_COUNT")
 if len(expected) != 8:
     raise SystemExit("FAIL_MANIFEST_HARNESS_COUNT")
@@ -43,7 +43,7 @@ if runner_set != expected:
 if preflight_set != sorted(expected + ["regression-suite-v1.sql"]):
     raise SystemExit("FAIL_PREFLIGHT_HARNESS_ALIGNMENT")
 
-print("PASS_MANIFEST_R01_R14")
+print("PASS_MANIFEST_R01_R16")
 print("PASS_8_HARNESSES")
 print("PASS_RUNNER_ALIGNMENT")
 print("PASS_PREFLIGHT_ALIGNMENT")
