@@ -26,9 +26,10 @@ m = manifest.read_text(encoding="utf-8")
 r = runner.read_text(encoding="utf-8")
 p = preflight.read_text(encoding="utf-8")
 
+# O manifesto registra R01–R16; cada caso pode apontar para o mesmo harness.
 manifest_files = re.findall(r"'R(?:0[1-9]|1[0-6])','([^']+)'", m)
 runner_files = re.findall(r'\s+"([^"]+\.sql)"\s*$', r, re.MULTILINE)
-preflight_paths = re.findall(r"'escala-substituicao/tests/([^']+\.sql)'", p)
+preflight_paths = re.findall(r"'tests/([^']+\.sql)'", p)
 
 expected = sorted(set(manifest_files))
 runner_set = sorted(set(runner_files))
