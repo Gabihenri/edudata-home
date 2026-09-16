@@ -1,6 +1,6 @@
 # Auditoria da Suite de Testes do Adaptador/Staging da Grade v1
 
-**Data:** 2026-09-14  
+**Data:** 2026-09-16  
 **Status:** 🟡 AUDITORIA ATUALIZADA — CONTRATO E HOMOLOGAÇÃO SINTÉTICA AVANÇADOS, HOMOLOGAÇÃO OPERACIONAL BLOQUEADA
 
 ## 1. Objetivo
@@ -108,7 +108,13 @@ Os guards correspondentes estão representados na suíte TypeScript e no harness
 
 Existe harness PostgreSQL específico para comprovar que apenas `published` entra no conjunto consumível e que `draft`, `validated`, `superseded` e `revoked` permanecem fora dele. Isso não constitui homologação da semântica de publicação da SED.
 
-## 6. Auditoria de segurança
+## 6. Relação com a regressão da Escala
+
+A suíte de adaptação/staging permanece separada da suíte de alocação global. A regressão funcional da Escala está atualmente registrada em **R01–R16**, distribuída em 8 harnesses, incluindo os cenários adversariais R15 e R16 sobre multiplicidade de ocorrências e multiplicidade contextual de associações.
+
+R15 e R16 não transformam a suíte do adaptador em homologação SED: são guardas sintéticos do comportamento do domínio e permanecem subordinados ao `GATE-FONTE-SED`.
+
+## 7. Auditoria de segurança
 
 - Nenhum dado real da SED foi incluído nos fixtures.
 - Nenhuma tabela de produção foi criada ou alterada pela Escala nesta etapa.
@@ -118,7 +124,7 @@ Existe harness PostgreSQL específico para comprovar que apenas `published` entr
 - Nenhuma versão `validated` foi tratada como publicação oficial.
 - O harness de publicação é isolado do runner geral.
 
-## 7. Limites conhecidos
+## 8. Limites conhecidos
 
 Continuam fora da homologação operacional:
 
@@ -134,7 +140,7 @@ Continuam fora da homologação operacional:
 10. execução PostgreSQL comprovada do conjunto de harnesses;
 11. integração do artefato homologado ao motor de substituição.
 
-## 8. Gate atual
+## 9. Gate atual
 
 **NÃO LIBERAR DDL DE PRODUÇÃO.**
 
@@ -142,7 +148,7 @@ O contrato e os harnesses sintéticos avançaram, mas o banco real não deve rec
 
 O schema físico atual do Core fornece identidade institucional, escolas, perfis, calendário, governança e Agenda, mas não comprova as entidades canônicas de Grade necessárias à Escala. `agenda_classes`, `agenda_lessons` e `agenda_schedule_templates` não devem ser reinterpretadas como Grade SED por inferência.
 
-## 9. Próximo avanço autorizado
+## 10. Próximo avanço autorizado
 
 Obter um pequeno artefato técnico operacional atual da SED, preferencialmente XLSX/CSV de:
 
@@ -154,9 +160,9 @@ acompanhado do contexto de aquisição e, quando disponível, dicionário/layout
 
 Ao receber o artefato:
 
-`preservar original → registrar proveniência/hash → mapear campos → homologar IDs/chaves → validar vigência → gerar fixture sanitizado → reconciliar temporalmente → executar R01–R14 → especificar DDL físico`
+`preservar original → registrar proveniência/hash → mapear campos → homologar IDs/chaves → validar vigência → gerar fixture sanitizado → reconciliar temporalmente → executar R01–R16 → especificar DDL físico`
 
-## 10. Regra permanente
+## 11. Regra permanente
 
 `Definir → Implementar → Auditar → Corrigir → Validar → Registrar → Avançar`
 
