@@ -1,6 +1,6 @@
 # Auditoria do Schema Core × Escala v1
 
-**Data da auditoria:** 2026-09-14  
+**Data da auditoria:** 2026-09-16  
 **Projeto Supabase:** EduData IA (`ihchzfndmdwtoabttkil`)  
 **Status:** OBSERVAÇÃO DE SCHEMA — NÃO EXECUTAR DDL DA ESCALA
 
@@ -193,10 +193,12 @@ FIXTURE SANITIZADO
    ↓
 RECONCILIAÇÃO TEMPORAL
    ↓
-R01–R14
+R01–R16
    ↓
 ESPECIFICAÇÃO FÍSICA
 ```
+
+A execução de R01–R16 sobre um artefato real não transforma a fonte em oficial por si só; o `GATE-FONTE-SED` permanece condicionado à homologação de identidade, chaves, vigência, publicação e proveniência.
 
 ## 11. Decisão
 
