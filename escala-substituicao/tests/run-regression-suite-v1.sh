@@ -32,6 +32,7 @@ echo "SYNTHETIC_FIXTURE_STATUS=PASS"
 echo
 
 # A lista deve permanecer alinhada ao manifesto regression-suite-v1.sql.
+# R15 e R16 vivem no harness adversarial e ampliam os cenários de multiplicidade.
 HARNESS_FILES=(
   "global-allocation-v1.sql"
   "global-allocation-adversarial-v1.sql"
