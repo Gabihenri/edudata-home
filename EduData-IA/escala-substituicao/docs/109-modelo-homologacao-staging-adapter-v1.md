@@ -1,6 +1,6 @@
 # 109 — Modelo de Homologação Staging do Adapter SED v1
 
-**Data:** 2026-09-14  
+**Data:** 2026-09-16  
 **Status:** modelo lógico de homologação — sintético, sem produção  
 **Gate:** `GATE-FONTE-SED = RED/BLOCKED`
 
@@ -194,8 +194,10 @@ Um pequeno recorte atual e autorizado é suficiente para iniciar a homologação
 5. homologar identificadores e validade;
 6. gerar fixture sanitizado;
 7. executar reconciliação temporal;
-8. executar R01–R14;
+8. executar R01–R16;
 9. somente depois definir o DDL físico necessário.
+
+A execução de R01–R16 sobre um artefato real não transforma a fonte em oficial por si só; o `GATE-FONTE-SED` permanece condicionado à homologação de identidade, chaves, vigência, publicação e proveniência.
 
 ## 14. Gate
 
