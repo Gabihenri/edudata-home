@@ -48,13 +48,32 @@ Essas entradas permitem uma conclusão funcional limitada: uma associação prof
 
 **Limitação:** os títulos e descrições do catálogo não homologam cardinalidade física, nomes de colunas, chaves ou estrutura de banco. Portanto, a implementação deve representar essa possibilidade apenas no contrato conceitual/sintético até que um artefato técnico atual seja obtido.
 
+## 5.2 Evidência adicional — multiplicidade de aulas e de professores
+
+O catálogo oficial também mantém orientações específicas sobre **mais de duas aulas de uma mesma disciplina na mesma data**, sobre a associação de **mais de um professor** em determinadas disciplinas de escolas PEI e sobre situações de dois professores em uma mesma eletiva. citeturn1search0
+
+A conclusão funcional permitida é que a Escala não deve assumir, antes da homologação técnica, uma relação simplificada de `1 professor × 1 disciplina × 1 horário` por ocorrência. O domínio precisa comportar, pelo menos conceitualmente, múltiplas aulas na mesma data e contextos em que mais de um docente possa estar associado à mesma disciplina/turma, sempre respeitando a situação específica e as regras oficiais aplicáveis.
+
+Isso reforça três decisões do motor:
+
+1. **ocorrência temporal é entidade própria** e não pode ser reconstruída apenas pelo nome da disciplina;
+2. **associação professor-classe não equivale automaticamente à responsabilidade efetiva naquela ocorrência**;
+3. **candidatos e conflitos devem ser avaliados por intervalo temporal e contexto da ocorrência**, não apenas por professor, disciplina ou turma isoladamente.
+
+**Limitação:** essas orientações são evidência funcional/documental. Não definem chaves, cardinalidades físicas, relacionamento relacional, regra de publicação ou identificadores técnicos da SED.
+
 ## 6. Impacto no modelo da Escala
 
 A evidência atual fortalece o seguinte encadeamento:
 
 `Matriz homologada → classes/turmas → quadro de aulas → associação professor-classe → grade horária → ocorrência temporal → ausência → necessidade de cobertura → candidatos → alocação → validação humana`
 
-Além disso, a evidência adicional reforça que a camada temporal da associação deve admitir múltiplos horários sem assumir uma cardinalidade física ainda não homologada.
+Além disso, a evidência adicional reforça que:
+
+- a camada temporal da associação deve admitir múltiplos horários;
+- a ocorrência deve admitir múltiplas aulas na mesma data;
+- o modelo não deve presumir unicidade de professor por disciplina/turma sem verificar o contexto homologado;
+- conflitos devem ser calculados sobre intervalos e ocorrência, não apenas sobre atributos textuais.
 
 Nenhuma dessas evidências, porém, fornece o artefato técnico necessário para determinar as chaves internas, endpoints, payloads ou contratos de integração da SED.
 
@@ -88,7 +107,7 @@ Não é permitido, com base apenas nestas páginas:
 
 A documentação oficial de 2026/2025 confirma com maior precisão que a Associação e a Grade Horária participam da cadeia operacional que habilita os registros de aula e frequência. Também confirma que a vigência e as alterações de grade possuem efeito operacional.
 
-A documentação oficial adicional sobre inclusão de mais de um horário e edição do horário do professor fortalece especificamente o modelo temporal da associação, sem autorizar inferência sobre o esquema físico da SED.
+A documentação adicional sobre múltiplos horários, múltiplas aulas na mesma data e contextos com mais de um professor fortalece o modelo temporal e a necessidade de não presumir unicidade antes da homologação técnica.
 
 Isso fortalece o desenho do motor de substituição e, principalmente, a necessidade de snapshots temporais e reexecução diante de mudanças.
 
