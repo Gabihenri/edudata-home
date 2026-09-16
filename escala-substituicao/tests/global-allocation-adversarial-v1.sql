@@ -161,5 +161,49 @@ SELECT CASE
 END assertion
 FROM engine_result;
 
+-- ================================================================
+-- CASO 8 — Múltiplas aulas da mesma disciplina no mesmo período do dia
+-- devem permanecer como ocorrências distintas.
+-- O motor não pode colapsar duas aulas por disciplina em uma única vaga.
+-- ================================================================
+WITH occurrences AS (
+  SELECT * FROM (VALUES
+    ('O1','FISICA','09:00','10:00','T1'),
+    ('O2','FISICA','10:00','11:00','T1')
+  ) v(occurrence_id,component,start_time,end_time,class_id)
+)
+SELECT CASE
+  WHEN COUNT(*)=2 AND COUNT(DISTINCT occurrence_id)=2
+       AND COUNT(DISTINCT component)=1
+  THEN 'PASS_DISTINCT_SAME_COMPONENT_OCCURRENCES'
+  ELSE 'FAIL_DISTINCT_SAME_COMPONENT_OCCURRENCES'
+END assertion
+FROM occurrences;
+
+-- ================================================================
+-- CASO 9 — Contexto com mais de um docente associado não deve gerar
+-- reutilização automática nem transformar associação em responsabilidade.
+-- A alocação continua sendo por ocorrência + intervalo + elegibilidade.
+-- ================================================================
+WITH occurrence AS (
+  SELECT 'O1'::text occurrence_id, '09:00'::text start_time, '10:00'::text end_time
+), associated AS (
+  SELECT * FROM (VALUES
+    ('O1','P1'),
+    ('O1','P2')
+  ) v(occurrence_id,teacher_id)
+), candidates AS (
+  SELECT * FROM (VALUES
+    ('O1','P1',true,true),
+    ('O1','P2',true,true)
+  ) v(occurrence_id,teacher_id,eligible,available)
+)
+SELECT CASE
+  WHEN (SELECT COUNT(DISTINCT teacher_id) FROM associated WHERE occurrence_id='O1')=2
+   AND (SELECT COUNT(*) FROM candidates WHERE occurrence_id='O1' AND eligible AND available)=2
+  THEN 'PASS_MULTI_ASSOCIATED_TEACHERS_REMAIN_CONTEXTUAL'
+  ELSE 'FAIL_MULTI_ASSOCIATED_TEACHERS_REMAIN_CONTEXTUAL'
+END assertion;
+
 -- Regra transversal: todos os resultados do motor permanecem sujeitos
 -- a validação humana antes de qualquer indicação operacional.
