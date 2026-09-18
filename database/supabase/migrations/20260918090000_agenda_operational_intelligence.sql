@@ -334,7 +334,7 @@ SELECT
 
   date_trunc(
     'week',
-    event.start_at
+    event.start_at AT TIME ZONE 'America/Sao_Paulo'
   )::date AS week_reference,
 
   COUNT(*)::integer AS event_count,
@@ -442,7 +442,7 @@ AS $$
       requested_start_date::timestamptz,
       (
         requested_start_date
-        + GREATEST(requested_days, 1) - 1
+        + LEAST(GREATEST(requested_days, 1), 30) - 1
       )::timestamptz,
       interval '1 day'
     ) day_value
@@ -501,6 +501,9 @@ AS $$
     END AS explanation
   FROM source_event source
   CROSS JOIN slots slot
+  WHERE slot.candidate_start_at
+      + make_interval(mins => source.duration_minutes)
+    <= slot.candidate_start_at::date + time '20:00'
   ORDER BY
     slot.candidate_start_at;
 $$;
@@ -532,7 +535,7 @@ SELECT
 
   date_trunc(
     'week',
-    event.start_at
+    event.start_at AT TIME ZONE 'America/Sao_Paulo'
   )::date AS week_reference,
 
   COUNT(*)::integer AS planned_events,
