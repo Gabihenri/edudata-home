@@ -95,11 +95,11 @@ SELECT
   'O evento está agendado para sábado ou domingo e merece revisão contextual.'::text,
   event.start_at,
   jsonb_build_object(
-    'day_of_week', EXTRACT(ISODOW FROM event.start_at)
+    'day_of_week', EXTRACT(ISODOW FROM event.start_at AT TIME ZONE 'America/Sao_Paulo')
   )
 FROM public.agenda_events event
 WHERE event.deleted_at IS NULL
-  AND EXTRACT(ISODOW FROM event.start_at) IN (6, 7)
+  AND EXTRACT(ISODOW FROM event.start_at AT TIME ZONE 'America/Sao_Paulo') IN (6, 7)
 
 UNION ALL
 
@@ -130,10 +130,10 @@ WHERE event.deleted_at IS NULL
       AND hours.deleted_at IS NULL
       AND hours.status = 'active'
       AND hours.is_operating_day = true
-      AND hours.weekday = EXTRACT(ISODOW FROM event.start_at)::integer
-      AND (event.start_at::time >= hours.start_time)
+      AND hours.weekday = EXTRACT(ISODOW FROM event.start_at AT TIME ZONE 'America/Sao_Paulo')::integer
+      AND ((event.start_at AT TIME ZONE 'America/Sao_Paulo')::time >= hours.start_time)
       AND (
-        COALESCE(event.end_at, event.start_at + interval '1 hour')::time
+        (COALESCE(event.end_at, event.start_at + interval '1 hour') AT TIME ZONE 'America/Sao_Paulo')::time
         <= hours.end_time
       )
   )
@@ -165,8 +165,8 @@ JOIN LATERAL (
   WHERE calendar.deleted_at IS NULL
     AND calendar.status IN ('active', 'published')
     AND calendar.suspends_classes = true
-    AND calendar.start_date <= event.start_at::date
-    AND COALESCE(calendar.end_date, calendar.start_date) >= event.start_at::date
+    AND calendar.start_date <= (event.start_at AT TIME ZONE 'America/Sao_Paulo')::date
+    AND COALESCE(calendar.end_date, calendar.start_date) >= (event.start_at AT TIME ZONE 'America/Sao_Paulo')::date
     AND (calendar.school_id IS NULL OR calendar.school_id = event.school_id)
     AND (calendar.organization_id IS NULL OR calendar.organization_id = event.organization_id)
 ) calendar_context ON jsonb_array_length(COALESCE(calendar_context.event_ids, '[]'::jsonb)) > 0
