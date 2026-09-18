@@ -5,7 +5,7 @@
 
 WITH test_registry AS (
   SELECT * FROM (VALUES
-    ('R01','tests/global-allocation-adversarial-v1.sql','CASO 1','critical','coverage'),
+    ('R01','tests/global-allocation-v1.sql','principal','critical','coverage'),
     ('R02','tests/global-allocation-adversarial-v1.sql','CASO 2','high','determinism'),
     ('R03','tests/global-allocation-adversarial-v1.sql','CASO 3','critical','temporal_conflict'),
     ('R04','tests/global-allocation-adversarial-v1.sql','CASO 4','critical','eligibility'),
