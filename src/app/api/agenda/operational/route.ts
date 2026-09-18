@@ -70,7 +70,8 @@ async function readView<T>(
     | 'agenda_operational_event_state'
     | 'agenda_operational_pending'
     | 'agenda_operational_workload'
-    | 'agenda_operational_coverage',
+    | 'agenda_operational_coverage'
+    | 'agenda_edi_rule_evaluations',
   userId: string | null,
 ): Promise<T[]> {
   let query = client
@@ -116,12 +117,14 @@ export async function GET(
       pending,
       workload,
       coverage,
+      rules,
     ] = await Promise.all([
       readView(client, 'agenda_operational_conflicts', null),
       readView(client, 'agenda_operational_event_state', user.id),
       readView(client, 'agenda_operational_pending', user.id),
       readView(client, 'agenda_operational_workload', user.id),
       readView(client, 'agenda_operational_coverage', user.id),
+      readView(client, 'agenda_edi_rule_evaluations', user.id),
     ])
 
     const summary = {
@@ -141,6 +144,10 @@ export async function GET(
           ),
         0,
       ),
+      ruleAlerts: rules.length,
+      criticalRules: rules.filter(
+        item => (item as { severity?: string }).severity === 'critical',
+      ).length,
       coveragePercent:
         coverage.length > 0
           ? Math.round(
@@ -167,6 +174,7 @@ export async function GET(
         pending,
         workload,
         coverage,
+        rules,
       },
       {
         status: 200,
