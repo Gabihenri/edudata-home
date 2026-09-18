@@ -127,9 +127,60 @@ export async function GET(
       readView(client, 'agenda_edi_rule_evaluations', user.id),
     ])
 
+    const orderedPending = [...pending].sort((left, right) => {
+      const leftItem = left as {
+        due_at?: string | null
+        pending_reason?: string
+      }
+      const rightItem = right as {
+        due_at?: string | null
+        pending_reason?: string
+      }
+
+      const priority = (reason?: string) =>
+        reason === 'overdue' ? 0 :
+        reason === 'high_priority' ? 1 : 2
+
+      const priorityDifference =
+        priority(leftItem.pending_reason) -
+        priority(rightItem.pending_reason)
+
+      if (priorityDifference !== 0) {
+        return priorityDifference
+      }
+
+      if (!leftItem.due_at && !rightItem.due_at) return 0
+      if (!leftItem.due_at) return 1
+      if (!rightItem.due_at) return -1
+
+      return (
+        new Date(leftItem.due_at).getTime() -
+        new Date(rightItem.due_at).getTime()
+      )
+    })
+
+    const coverageTotals = coverage.reduce(
+      (totals, item) => {
+        const row = item as {
+          planned_events?: number
+          evidenced_events?: number
+        }
+
+        return {
+          planned:
+            totals.planned +
+            Number(row.planned_events ?? 0),
+          evidenced:
+            totals.evidenced +
+            Number(row.evidenced_events ?? 0),
+        }
+      },
+      { planned: 0, evidenced: 0 },
+    )
+
     const summary = {
       conflicts: conflicts.length,
-      pending: pending.length,
+      pending: orderedPending.length,
       evidencePending: eventStates.filter(
         item =>
           (item as { operational_state?: string })
@@ -149,18 +200,11 @@ export async function GET(
         item => (item as { severity?: string }).severity === 'critical',
       ).length,
       coveragePercent:
-        coverage.length > 0
+        coverageTotals.planned > 0
           ? Math.round(
-              coverage.reduce(
-                (total, item) =>
-                  total +
-                  Number(
-                    (item as {
-                      evidence_coverage_percent?: number
-                    }).evidence_coverage_percent ?? 0,
-                  ),
-                0,
-              ) / coverage.length,
+              (coverageTotals.evidenced /
+                coverageTotals.planned) *
+                100,
             )
           : 0,
     }
@@ -171,7 +215,7 @@ export async function GET(
         generatedAt: new Date().toISOString(),
         summary,
         conflicts,
-        pending,
+        pending: orderedPending,
         workload,
         coverage,
         rules,
