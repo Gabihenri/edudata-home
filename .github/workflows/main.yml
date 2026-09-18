@@ -57,3 +57,16 @@ jobs:
             psql "postgresql://postgres@localhost:5432/escala_test" \
               -v ON_ERROR_STOP=1 \
               -f tests/global-allocation-reproducibility-v1.sql
+
+      - name: Execute adversarial harness
+        working-directory: escala-substituicao
+        run: |
+          docker run --rm \
+            --network host \
+            -v "$PWD:/workspace" \
+            -w /workspace \
+            -e PGPASSWORD=postgres \
+            postgres:16 \
+            psql "postgresql://postgres@localhost:5432/escala_test" \
+              -v ON_ERROR_STOP=1 \
+              -f tests/global-allocation-adversarial-v1.sql
