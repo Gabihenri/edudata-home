@@ -12,7 +12,21 @@ type OperationalSummary = {
   evidencePending: number
   workloadHours: number
   coveragePercent: number
+  ruleAlerts: number
+  criticalRules: number
 }
+
+type RuleEvaluation = {
+  rule_code: string
+  severity: 'critical' | 'high' | 'medium'
+  resource_id: string
+  title: string
+  rule_name: string
+  explanation: string
+  reference_at: string | null
+  context: Record<string, unknown>
+}
+
 
 type OperationalResponse = {
   success: boolean
@@ -48,6 +62,7 @@ type OperationalResponse = {
     evidenced_events: number
     evidence_coverage_percent: number
   }>
+  rules: RuleEvaluation[]
 }
 
 function formatDate(value: string | null): string {
@@ -170,6 +185,54 @@ export function AgendaOperationalIntelligencePanel() {
 
       {data && (
         <>
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold uppercase tracking-[0.16em] text-[#081C2E]">
+                  Central de Alertas EDI
+                </h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  {data.summary.ruleAlerts} sinal(is) operacional(is) · {data.summary.criticalRules} crítico(s)
+                </p>
+              </div>
+              <span className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                Apoio à decisão
+              </span>
+            </div>
+
+            {data.rules.length > 0 ? (
+              <ul className="mt-4 space-y-3">
+                {data.rules.slice(0, 6).map(rule => (
+                  <li
+                    key={rule.rule_code + '-' + rule.resource_id}
+                    className="rounded-2xl border border-slate-200 bg-white p-4"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p className="font-semibold text-slate-900">
+                          {rule.rule_name}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-600">
+                          {rule.title}
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-slate-200 px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-slate-600">
+                        {rule.severity}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs leading-5 text-slate-500">
+                      {rule.explanation}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
+                Nenhum alerta operacional encontrado no contexto visível.
+              </p>
+            )}
+          </div>
+
           <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <Metric
               label="Conflitos"
