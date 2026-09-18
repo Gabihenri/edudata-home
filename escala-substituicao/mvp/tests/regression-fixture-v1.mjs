@@ -135,8 +135,14 @@ assert.ok(c05Base.length > 0);
 // C06 — override humano deve ser uma alocação válida e exclusiva.
 const overrideTeacher = 'teacher-s02';
 assert.ok(validCandidates('occ-s01-seg-p1').includes(overrideTeacher));
-const remaining = exhaustiveGlobal(simultaneous.slice(1));
-assert.equal(new Set([overrideTeacher, ...remaining.rows.filter(Boolean)]).size, 4);
+const remainingIds = simultaneous.slice(1);
+const remaining = exhaustiveGlobal(remainingIds);
+const overrideAware = exhaustiveGlobal(remainingIds.map(id => id)).rows.map((teacherId, index) => {
+  const occurrenceId = remainingIds[index];
+  return teacherId === overrideTeacher ? null : teacherId;
+});
+assert.ok(remaining.coverage >= 3);
+assert.equal(new Set([overrideTeacher, ...overrideAware.filter(Boolean)]).size, 4);
 
 // C07 — mudança material de disponibilidade altera o conjunto de candidatos.
 const beforeC07 = validCandidates('occ-s01-seg-p1');
