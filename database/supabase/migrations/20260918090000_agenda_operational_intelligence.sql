@@ -100,11 +100,11 @@ JOIN public.agenda_events right_event
  AND right_event.deleted_at IS NULL
  AND left_event.start_at < COALESCE(
    right_event.end_at,
-   right_event.start_at + interval '1 minute'
+   right_event.start_at + interval '1 hour'
  )
  AND right_event.start_at < COALESCE(
    left_event.end_at,
-   left_event.start_at + interval '1 minute'
+   left_event.start_at + interval '1 hour'
  )
  AND (
    left_event.user_id = right_event.user_id
