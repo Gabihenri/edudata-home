@@ -25,6 +25,30 @@ const NO_CACHE_HEADERS = {
   'Cache-Control': 'no-store, no-cache, must-revalidate',
 }
 
+function getCurrentAgendaWeekReference(): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date())
+
+  const year = parts.find(part => part.type === 'year')?.value
+  const month = parts.find(part => part.type === 'month')?.value
+  const day = parts.find(part => part.type === 'day')?.value
+
+  if (!year || !month || !day) {
+    throw new Error('Não foi possível determinar a semana operacional.')
+  }
+
+  const localDate = new Date(`${year}-${month}-${day}T00:00:00Z`)
+  const dayOfWeek = localDate.getUTCDay()
+  const daysFromMonday = (dayOfWeek + 6) % 7
+  localDate.setUTCDate(localDate.getUTCDate() - daysFromMonday)
+
+  return localDate.toISOString().slice(0, 10)
+}
+
 function getAccessToken(request: NextRequest): string {
   const token =
     request.cookies.get('sb-access-token')?.value ??
@@ -187,12 +211,16 @@ export async function GET(
             .operational_state === 'evidence_pending',
       ).length,
       workloadHours: workload.reduce(
-        (total, item) =>
-          total +
-          Number(
-            (item as { estimated_hours?: number })
-              .estimated_hours ?? 0,
-          ),
+        (total, item) => {
+          const row = item as {
+            week_reference?: string
+            estimated_hours?: number
+          }
+
+          return row.week_reference === getCurrentAgendaWeekReference()
+            ? total + Number(row.estimated_hours ?? 0)
+            : total
+        },
         0,
       ),
       ruleAlerts: rules.length,
