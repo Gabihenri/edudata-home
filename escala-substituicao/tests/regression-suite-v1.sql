@@ -33,6 +33,10 @@ SELECT
        ELSE 'FAIL_REGRESSION_REGISTRY_COMPLETE' END AS assertion
 FROM test_registry;
 
+-- BASELINE_HARNESS='tests/global-allocation-v1.sql'
+-- O harness baseline é executado pelo runner e integra a cadeia estrutural,
+-- embora não seja um caso R01–R16 do manifesto adversarial.
+
 -- O runner deve executar os oito harnesses referenciados e registrar evidência
 -- de cada caso. Esta suite, isoladamente, é um manifesto e não declara PASS
 -- da execução dos harnesses.
