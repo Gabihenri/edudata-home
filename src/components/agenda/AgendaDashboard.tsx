@@ -10,6 +10,10 @@ import {
   AgendaPageShell,
 } from '@/components/agenda/AgendaPageShell'
 
+
+import {
+  AgendaOperationalIntelligencePanel,
+} from '@/components/agenda/AgendaOperationalIntelligencePanel'
 import {
   useEvidences,
 } from '@/lib/agenda/hooks/useEvidences'
@@ -1281,6 +1285,7 @@ export function AgendaDashboard() {
       description="Acompanhe execução, cobertura, pendências e próximos passos do ciclo pedagógico da Agenda Inteligente EDI."
     >
       <div className="space-y-6 sm:space-y-8">
+        <AgendaOperationalIntelligencePanel />
         {
           errors.length >
             0 && (
