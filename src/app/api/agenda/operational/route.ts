@@ -71,12 +71,17 @@ async function readView<T>(
     | 'agenda_operational_pending'
     | 'agenda_operational_workload'
     | 'agenda_operational_coverage',
-  userId: string,
+  userId: string | null,
 ): Promise<T[]> {
-  const { data, error } = await client
+  let query = client
     .from(viewName)
     .select('*')
-    .eq('user_id', userId)
+
+  if (userId) {
+    query = query.eq('user_id', userId)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     throw new Error(
@@ -112,7 +117,7 @@ export async function GET(
       workload,
       coverage,
     ] = await Promise.all([
-      readView(client, 'agenda_operational_conflicts', user.id),
+      readView(client, 'agenda_operational_conflicts', null),
       readView(client, 'agenda_operational_event_state', user.id),
       readView(client, 'agenda_operational_pending', user.id),
       readView(client, 'agenda_operational_workload', user.id),
