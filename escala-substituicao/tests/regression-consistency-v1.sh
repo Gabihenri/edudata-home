@@ -26,12 +26,12 @@ m = manifest.read_text(encoding="utf-8")
 r = runner.read_text(encoding="utf-8")
 p = preflight.read_text(encoding="utf-8")
 
-# O manifesto registra R01–R16; cada caso pode apontar para o mesmo harness.
 manifest_files = re.findall(r"'R(?:0[1-9]|1[0-6])','([^']+)'", m)
 runner_files = re.findall(r'\s+"([^"]+\.sql)"\s*$', r, re.MULTILINE)
 preflight_paths = re.findall(r"'tests/([^']+\.sql)'", p)
 
 expected = sorted(set(manifest_files))
+expected_basenames = sorted(Path(item).name for item in expected)
 runner_set = sorted(set(runner_files))
 preflight_set = sorted(set(preflight_paths))
 
@@ -39,9 +39,9 @@ if len(manifest_files) != 16:
     raise SystemExit("FAIL_MANIFEST_CASE_COUNT")
 if len(expected) != 8:
     raise SystemExit("FAIL_MANIFEST_HARNESS_COUNT")
-if runner_set != expected:
+if runner_set != expected_basenames:
     raise SystemExit("FAIL_RUNNER_HARNESS_ALIGNMENT")
-if preflight_set != sorted(expected + ["regression-suite-v1.sql"]):
+if preflight_set != sorted(expected_basenames + ["regression-suite-v1.sql"]):
     raise SystemExit("FAIL_PREFLIGHT_HARNESS_ALIGNMENT")
 
 print("PASS_MANIFEST_R01_R16")
