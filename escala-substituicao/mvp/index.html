@@ -328,8 +328,7 @@ function generatePlan(){
   const best=findBestPlan(humanChoices);
   if(!best)return;
   const previous=currentPlan;
-  const wasStale=snapshotState==='MATERIALLY_CHANGED';
-  if(!originalPlan||wasStale)originalPlan=findBestPlan({});
+  if(!originalPlan)originalPlan=findBestPlan({});
   currentPlan=best;
   snapshotVersion=Math.max(snapshotVersion,calculatedSnapshot)+1;
   calculatedSnapshot=snapshotVersion;
