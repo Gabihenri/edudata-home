@@ -35,17 +35,21 @@ expected_basenames = sorted(Path(item).name for item in expected)
 runner_set = sorted(set(runner_files))
 preflight_set = sorted(set(preflight_paths))
 
+baseline = "global-allocation-v1.sql"
+expected_runner = sorted(set(expected_basenames + [baseline]))
+expected_preflight = sorted(set(expected_basenames + ["regression-suite-v1.sql", baseline]))
+
 if len(manifest_files) != 16:
     raise SystemExit("FAIL_MANIFEST_CASE_COUNT")
-if len(expected) != 8:
+if len(expected) != 7:
     raise SystemExit("FAIL_MANIFEST_HARNESS_COUNT")
-if runner_set != expected_basenames:
+if runner_set != expected_runner:
     raise SystemExit("FAIL_RUNNER_HARNESS_ALIGNMENT")
-if preflight_set != sorted(expected_basenames + ["regression-suite-v1.sql"]):
+if preflight_set != expected_preflight:
     raise SystemExit("FAIL_PREFLIGHT_HARNESS_ALIGNMENT")
 
 print("PASS_MANIFEST_R01_R16")
-print("PASS_8_HARNESSES")
+print("PASS_7_MANIFEST_HARNESSES_PLUS_BASELINE")
 print("PASS_RUNNER_ALIGNMENT")
 print("PASS_PREFLIGHT_ALIGNMENT")
 print("REGRESSION_CONSISTENCY=PASS")
