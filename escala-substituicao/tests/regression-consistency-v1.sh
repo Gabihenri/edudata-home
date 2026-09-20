@@ -26,7 +26,22 @@ m = manifest.read_text(encoding="utf-8")
 r = runner.read_text(encoding="utf-8")
 p = preflight.read_text(encoding="utf-8")
 
-manifest_files = re.findall(r"'R(?:0[1-9]|1[0-6])','([^']+)'", m)
+# Ler somente as linhas da tabela test_registry evita confundir referências
+# documentais, como BASELINE_HARNESS, com casos R01–R16.
+registry_match = re.search(
+    r"SELECT \* FROM \(VALUES(?P<rows>.*?)\) v\(test_id,test_case,harness,severity,invariant\)",
+    m,
+    re.DOTALL,
+)
+if not registry_match:
+    raise SystemExit("FAIL_MANIFEST_REGISTRY_NOT_FOUND")
+
+registry_rows = registry_match.group("rows")
+manifest_files = re.findall(
+    r"\('R(?:0[1-9]|1[0-6])','([^']+)'",
+    registry_rows,
+)
+
 runner_files = re.findall(r'\s+"([^"]+\.sql)"\s*$', r, re.MULTILINE)
 preflight_paths = re.findall(r"'tests/([^']+\.sql)'", p)
 
