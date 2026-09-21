@@ -71,7 +71,7 @@ function greedyLocal(occurrenceIds) {
   });
 }
 
-function exhaustiveGlobal(occurrenceIds) {
+function exhaustiveGlobal(occurrenceIds, blockedTeacherIds = new Set()) {
   let best = null;
 
   function walk(index, used, rows, coverage, quality) {
@@ -90,7 +90,7 @@ function exhaustiveGlobal(occurrenceIds) {
     const id = occurrenceIds[index];
     const occurrence = occurrences.get(id);
     for (const teacherId of validCandidates(id)) {
-      if (used.has(teacherId)) continue;
+      if (used.has(teacherId) || blockedTeacherIds.has(teacherId)) continue;
       walk(
         index + 1,
         new Set([...used, teacherId]),
@@ -148,13 +148,9 @@ for (const [teacherId, availability] of originalAvailabilityC05) {
 const overrideTeacher = 'teacher-s02';
 assert.ok(validCandidates('occ-s01-seg-p1').includes(overrideTeacher));
 const remainingIds = simultaneous.slice(1);
-const remaining = exhaustiveGlobal(remainingIds);
-const overrideAware = exhaustiveGlobal(remainingIds.map(id => id)).rows.map((teacherId, index) => {
-  const occurrenceId = remainingIds[index];
-  return teacherId === overrideTeacher ? null : teacherId;
-});
-assert.ok(remaining.coverage >= 3);
-assert.equal(new Set([overrideTeacher, ...overrideAware.filter(Boolean)]).size, 4);
+const remaining = exhaustiveGlobal(remainingIds, new Set([overrideTeacher]));
+assert.equal(remaining.coverage, 3);
+assert.equal(new Set([overrideTeacher, ...remaining.rows]).size, 4);
 
 // C07 — mudança material de disponibilidade altera o conjunto de candidatos.
 const beforeC07 = validCandidates('occ-s01-seg-p1');
