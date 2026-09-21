@@ -9,87 +9,661 @@
     "shift": "integral"
   },
   "periods": [
-    {"id":"p1","start":"07:00","end":"07:50"},
-    {"id":"p2","start":"07:50","end":"08:40"},
-    {"id":"p3","start":"08:40","end":"09:30"},
-    {"id":"p4","start":"09:50","end":"10:40"},
-    {"id":"p5","start":"10:40","end":"11:30"},
-    {"id":"p6","start":"13:20","end":"14:10"},
-    {"id":"p7","start":"14:10","end":"15:00"}
+    {
+      "id": "p1",
+      "start": "07:00",
+      "end": "07:50"
+    },
+    {
+      "id": "p2",
+      "start": "07:50",
+      "end": "08:40"
+    },
+    {
+      "id": "p3",
+      "start": "08:40",
+      "end": "09:30"
+    },
+    {
+      "id": "p4",
+      "start": "09:50",
+      "end": "10:40"
+    },
+    {
+      "id": "p5",
+      "start": "10:40",
+      "end": "11:30"
+    },
+    {
+      "id": "p6",
+      "start": "13:20",
+      "end": "14:10"
+    },
+    {
+      "id": "p7",
+      "start": "14:10",
+      "end": "15:00"
+    }
   ],
   "teachers": [
-    {"id":"teacher-s01","display_name":"Professor Sintético 01","subjects":["Física","Matemática"],"eligible_for_substitution":true,"availability":["seg-p1","seg-p2","ter-p1","ter-p2","qua-p1","qua-p2","qui-p1","qui-p2","sex-p1","sex-p2"],"commitments":[],"assignments":[]},
-    {"id":"teacher-s02","display_name":"Professor Sintético 02","subjects":["Matemática","Física"],"eligible_for_substitution":true,"availability":["seg-p1","seg-p2","seg-p3","ter-p1","ter-p2","ter-p3","qua-p1","qua-p2","qua-p3","qui-p1","qui-p2","qui-p3","sex-p1","sex-p2","sex-p3"],"commitments":[],"assignments":[]},
-    {"id":"teacher-s03","display_name":"Professor Sintético 03","subjects":["Física"],"eligible_for_substitution":true,"availability":["seg-p1","seg-p2","seg-p3","ter-p1","ter-p2","qua-p1","qua-p2","qui-p1","qui-p2","sex-p1","sex-p2"],"commitments":[],"assignments":[]},
-    {"id":"teacher-s04","display_name":"Professor Sintético 04","subjects":["Química","Ciências"],"eligible_for_substitution":true,"availability":["seg-p1","seg-p2","seg-p3","ter-p1","ter-p2","ter-p3","qua-p1","qua-p2","qui-p1","qui-p2","sex-p1","sex-p2"],"commitments":[],"assignments":[]},
-    {"id":"teacher-s05","display_name":"Professor Sintético 05","subjects":["Biologia","Ciências"],"eligible_for_substitution":true,"availability":["seg-p1","seg-p2","seg-p3","ter-p1","ter-p2","ter-p3","qua-p1","qua-p2","qua-p3","qui-p1","qui-p2","qui-p3","sex-p1","sex-p2","sex-p3"],"commitments":[],"assignments":[]},
-    {"id":"teacher-s06","display_name":"Professor Sintético 06","subjects":["Língua Portuguesa"],"eligible_for_substitution":true,"availability":["seg-p1","seg-p2","seg-p3","ter-p1","ter-p2","ter-p3","qua-p1","qua-p2","qui-p1","qui-p2","sex-p1","sex-p2"],"commitments":[],"assignments":[]},
-    {"id":"teacher-s07","display_name":"Professor Sintético 07","subjects":["História","Geografia"],"eligible_for_substitution":true,"availability":["seg-p1","seg-p2","ter-p1","ter-p2","qua-p1","qua-p2","qui-p1","qui-p2","sex-p1","sex-p2"],"commitments":[],"assignments":[]},
-    {"id":"teacher-s08","display_name":"Professor Sintético 08","subjects":["Matemática"],"eligible_for_substitution":true,"availability":["seg-p1","seg-p2","seg-p3","ter-p1","ter-p2","ter-p3","qua-p1","qua-p2","qua-p3","qui-p1","qui-p2","qui-p3","sex-p1","sex-p2","sex-p3"],"commitments":[],"assignments":[]},
-    {"id":"teacher-s09","display_name":"Professor Sintético 09","subjects":["Física","Química"],"eligible_for_substitution":true,"availability":["seg-p1","seg-p2","seg-p3","ter-p1","ter-p2","qua-p1","qua-p2","qui-p1","qui-p2","sex-p1","sex-p2"],"commitments":[],"assignments":[]},
-    {"id":"teacher-s10","display_name":"Professor Sintético 10","subjects":["Artes","Língua Portuguesa"],"eligible_for_substitution":true,"availability":["seg-p1","seg-p2","seg-p3","ter-p1","ter-p2","ter-p3","qua-p1","qua-p2","qui-p1","qui-p2","sex-p1","sex-p2"],"commitments":[],"assignments":[]},
-    {"id":"teacher-s11","display_name":"Professor Sintético 11","subjects":["Educação Física"],"eligible_for_substitution":true,"availability":["seg-p1","seg-p2","seg-p3","ter-p1","ter-p2","ter-p3","qua-p1","qua-p2","qui-p1","qui-p2","sex-p1","sex-p2"],"commitments":[],"assignments":[]},
-    {"id":"teacher-s12","display_name":"Professor Sintético 12","subjects":["Matemática","Ciências"],"eligible_for_substitution":true,"availability":["seg-p1","seg-p2","seg-p3","ter-p1","ter-p2","ter-p3","qua-p1","qua-p2","qua-p3","qui-p1","qui-p2","qui-p3","sex-p1","sex-p2","sex-p3"],"commitments":[],"assignments":[]}
+    {
+      "id": "teacher-s01",
+      "display_name": "Professor Sintético 01",
+      "subjects": [
+        "Física",
+        "Matemática"
+      ],
+      "eligible_for_substitution": true,
+      "availability": [
+        "seg-p1",
+        "seg-p2",
+        "ter-p1",
+        "ter-p2",
+        "qua-p1",
+        "qua-p2",
+        "qui-p1",
+        "qui-p2",
+        "sex-p1",
+        "sex-p2"
+      ],
+      "commitments": [],
+      "assignments": []
+    },
+    {
+      "id": "teacher-s02",
+      "display_name": "Professor Sintético 02",
+      "subjects": [
+        "Matemática",
+        "Física"
+      ],
+      "eligible_for_substitution": true,
+      "availability": [
+        "seg-p1",
+        "seg-p2",
+        "seg-p3",
+        "ter-p1",
+        "ter-p2",
+        "ter-p3",
+        "qua-p1",
+        "qua-p2",
+        "qua-p3",
+        "qui-p1",
+        "qui-p2",
+        "qui-p3",
+        "sex-p1",
+        "sex-p2",
+        "sex-p3"
+      ],
+      "commitments": [],
+      "assignments": []
+    },
+    {
+      "id": "teacher-s03",
+      "display_name": "Professor Sintético 03",
+      "subjects": [
+        "Física"
+      ],
+      "eligible_for_substitution": true,
+      "availability": [
+        "seg-p1",
+        "seg-p2",
+        "seg-p3",
+        "ter-p1",
+        "ter-p2",
+        "qua-p1",
+        "qua-p2",
+        "qui-p1",
+        "qui-p2",
+        "sex-p1",
+        "sex-p2"
+      ],
+      "commitments": [],
+      "assignments": []
+    },
+    {
+      "id": "teacher-s04",
+      "display_name": "Professor Sintético 04",
+      "subjects": [
+        "Química",
+        "Ciências"
+      ],
+      "eligible_for_substitution": true,
+      "availability": [
+        "seg-p1",
+        "seg-p2",
+        "seg-p3",
+        "ter-p1",
+        "ter-p2",
+        "ter-p3",
+        "qua-p1",
+        "qua-p2",
+        "qui-p1",
+        "qui-p2",
+        "sex-p1",
+        "sex-p2"
+      ],
+      "commitments": [],
+      "assignments": []
+    },
+    {
+      "id": "teacher-s05",
+      "display_name": "Professor Sintético 05",
+      "subjects": [
+        "Biologia",
+        "Ciências"
+      ],
+      "eligible_for_substitution": true,
+      "availability": [
+        "seg-p1",
+        "seg-p2",
+        "seg-p3",
+        "ter-p1",
+        "ter-p2",
+        "ter-p3",
+        "qua-p1",
+        "qua-p2",
+        "qua-p3",
+        "qui-p1",
+        "qui-p2",
+        "qui-p3",
+        "sex-p1",
+        "sex-p2",
+        "sex-p3"
+      ],
+      "commitments": [],
+      "assignments": []
+    },
+    {
+      "id": "teacher-s06",
+      "display_name": "Professor Sintético 06",
+      "subjects": [
+        "Língua Portuguesa"
+      ],
+      "eligible_for_substitution": true,
+      "availability": [
+        "seg-p1",
+        "seg-p2",
+        "seg-p3",
+        "ter-p1",
+        "ter-p2",
+        "ter-p3",
+        "qua-p1",
+        "qua-p2",
+        "qui-p1",
+        "qui-p2",
+        "sex-p1",
+        "sex-p2"
+      ],
+      "commitments": [],
+      "assignments": []
+    },
+    {
+      "id": "teacher-s07",
+      "display_name": "Professor Sintético 07",
+      "subjects": [
+        "História",
+        "Geografia"
+      ],
+      "eligible_for_substitution": true,
+      "availability": [
+        "seg-p1",
+        "seg-p2",
+        "ter-p1",
+        "ter-p2",
+        "qua-p1",
+        "qua-p2",
+        "qui-p1",
+        "qui-p2",
+        "sex-p1",
+        "sex-p2"
+      ],
+      "commitments": [],
+      "assignments": []
+    },
+    {
+      "id": "teacher-s08",
+      "display_name": "Professor Sintético 08",
+      "subjects": [
+        "Matemática"
+      ],
+      "eligible_for_substitution": true,
+      "availability": [
+        "seg-p1",
+        "seg-p2",
+        "seg-p3",
+        "ter-p1",
+        "ter-p2",
+        "ter-p3",
+        "qua-p1",
+        "qua-p2",
+        "qua-p3",
+        "qui-p1",
+        "qui-p2",
+        "qui-p3",
+        "sex-p1",
+        "sex-p2",
+        "sex-p3"
+      ],
+      "commitments": [],
+      "assignments": []
+    },
+    {
+      "id": "teacher-s09",
+      "display_name": "Professor Sintético 09",
+      "subjects": [
+        "Física",
+        "Química"
+      ],
+      "eligible_for_substitution": true,
+      "availability": [
+        "seg-p1",
+        "seg-p2",
+        "seg-p3",
+        "ter-p1",
+        "ter-p2",
+        "qua-p1",
+        "qua-p2",
+        "qui-p1",
+        "qui-p2",
+        "sex-p1",
+        "sex-p2"
+      ],
+      "commitments": [],
+      "assignments": []
+    },
+    {
+      "id": "teacher-s10",
+      "display_name": "Professor Sintético 10",
+      "subjects": [
+        "Artes",
+        "Língua Portuguesa"
+      ],
+      "eligible_for_substitution": true,
+      "availability": [
+        "seg-p1",
+        "seg-p2",
+        "seg-p3",
+        "ter-p1",
+        "ter-p2",
+        "ter-p3",
+        "qua-p1",
+        "qua-p2",
+        "qui-p1",
+        "qui-p2",
+        "sex-p1",
+        "sex-p2"
+      ],
+      "commitments": [],
+      "assignments": []
+    },
+    {
+      "id": "teacher-s11",
+      "display_name": "Professor Sintético 11",
+      "subjects": [
+        "Educação Física"
+      ],
+      "eligible_for_substitution": true,
+      "availability": [
+        "seg-p1",
+        "seg-p2",
+        "seg-p3",
+        "ter-p1",
+        "ter-p2",
+        "ter-p3",
+        "qua-p1",
+        "qua-p2",
+        "qui-p1",
+        "qui-p2",
+        "sex-p1",
+        "sex-p2"
+      ],
+      "commitments": [],
+      "assignments": []
+    },
+    {
+      "id": "teacher-s12",
+      "display_name": "Professor Sintético 12",
+      "subjects": [
+        "Matemática",
+        "Ciências"
+      ],
+      "eligible_for_substitution": true,
+      "availability": [
+        "seg-p1",
+        "seg-p2",
+        "seg-p3",
+        "ter-p1",
+        "ter-p2",
+        "ter-p3",
+        "qua-p1",
+        "qua-p2",
+        "qua-p3",
+        "qui-p1",
+        "qui-p2",
+        "qui-p3",
+        "sex-p1",
+        "sex-p2",
+        "sex-p3"
+      ],
+      "commitments": [],
+      "assignments": []
+    }
   ],
   "classes": [
-    {"id":"class-s01","display_name":"1º EM A","grade_level":"1º EM"},
-    {"id":"class-s02","display_name":"1º EM B","grade_level":"1º EM"},
-    {"id":"class-s03","display_name":"2º EM A","grade_level":"2º EM"},
-    {"id":"class-s04","display_name":"2º EM B","grade_level":"2º EM"},
-    {"id":"class-s05","display_name":"3º EM A","grade_level":"3º EM"},
-    {"id":"class-s06","display_name":"3º EM B","grade_level":"3º EM"}
+    {
+      "id": "class-s01",
+      "display_name": "1º EM A",
+      "grade_level": "1º EM"
+    },
+    {
+      "id": "class-s02",
+      "display_name": "1º EM B",
+      "grade_level": "1º EM"
+    },
+    {
+      "id": "class-s03",
+      "display_name": "2º EM A",
+      "grade_level": "2º EM"
+    },
+    {
+      "id": "class-s04",
+      "display_name": "2º EM B",
+      "grade_level": "2º EM"
+    },
+    {
+      "id": "class-s05",
+      "display_name": "3º EM A",
+      "grade_level": "3º EM"
+    },
+    {
+      "id": "class-s06",
+      "display_name": "3º EM B",
+      "grade_level": "3º EM"
+    }
   ],
   "occurrences": [
-    {"id":"occ-s01-seg-p1","date":"2026-09-21","day":"seg","period":"p1","start_time":"07:00","end_time":"07:50","class_id":"class-s01","subject":"Física","teacher_id":"teacher-s03"},
-    {"id":"occ-s02-seg-p1","date":"2026-09-21","day":"seg","period":"p1","start_time":"07:00","end_time":"07:50","class_id":"class-s02","subject":"Matemática","teacher_id":"teacher-s08"},
-    {"id":"occ-s03-seg-p1","date":"2026-09-21","day":"seg","period":"p1","start_time":"07:00","end_time":"07:50","class_id":"class-s03","subject":"Química","teacher_id":"teacher-s04"},
-    {"id":"occ-s04-seg-p1","date":"2026-09-21","day":"seg","period":"p1","start_time":"07:00","end_time":"07:50","class_id":"class-s04","subject":"Matemática","teacher_id":"teacher-s12"},
-    {"id":"occ-s05-ter-p2","date":"2026-09-22","day":"ter","period":"p2","start_time":"07:50","end_time":"08:40","class_id":"class-s05","subject":"Física","teacher_id":"teacher-s09"},
-    {"id":"occ-s06-qua-p3","date":"2026-09-23","day":"qua","period":"p3","start_time":"08:40","end_time":"09:30","class_id":"class-s06","subject":"Matemática","teacher_id":"teacher-s02"}
+    {
+      "id": "occ-s01-seg-p1",
+      "date": "2026-09-21",
+      "day": "seg",
+      "period": "p1",
+      "start_time": "07:00",
+      "end_time": "07:50",
+      "class_id": "class-s01",
+      "subject": "Física",
+      "teacher_id": "teacher-s03"
+    },
+    {
+      "id": "occ-s02-seg-p1",
+      "date": "2026-09-21",
+      "day": "seg",
+      "period": "p1",
+      "start_time": "07:00",
+      "end_time": "07:50",
+      "class_id": "class-s02",
+      "subject": "Matemática",
+      "teacher_id": "teacher-s08"
+    },
+    {
+      "id": "occ-s03-seg-p1",
+      "date": "2026-09-21",
+      "day": "seg",
+      "period": "p1",
+      "start_time": "07:00",
+      "end_time": "07:50",
+      "class_id": "class-s03",
+      "subject": "Química",
+      "teacher_id": "teacher-s04"
+    },
+    {
+      "id": "occ-s04-seg-p1",
+      "date": "2026-09-21",
+      "day": "seg",
+      "period": "p1",
+      "start_time": "07:00",
+      "end_time": "07:50",
+      "class_id": "class-s04",
+      "subject": "Matemática",
+      "teacher_id": "teacher-s12"
+    },
+    {
+      "id": "occ-s05-ter-p2",
+      "date": "2026-09-22",
+      "day": "ter",
+      "period": "p2",
+      "start_time": "07:50",
+      "end_time": "08:40",
+      "class_id": "class-s05",
+      "subject": "Física",
+      "teacher_id": "teacher-s09"
+    },
+    {
+      "id": "occ-s06-qua-p3",
+      "date": "2026-09-23",
+      "day": "qua",
+      "period": "p3",
+      "start_time": "08:40",
+      "end_time": "09:30",
+      "class_id": "class-s06",
+      "subject": "Matemática",
+      "teacher_id": "teacher-s02"
+    }
   ],
   "commitments": [
-    {"id":"commit-s01","teacher_id":"teacher-s02","day":"seg","period":"p1","type":"ATPCA","description":"Compromisso pedagógico sintético"},
-    {"id":"commit-s02","teacher_id":"teacher-s05","day":"seg","period":"p1","type":"reuniao","description":"Reunião institucional sintética"},
-    {"id":"commit-s03","teacher_id":"teacher-s10","day":"ter","period":"p2","type":"atendimento","description":"Atendimento pedagógico sintético"}
+    {
+      "id": "commit-s02",
+      "teacher_id": "teacher-s05",
+      "day": "seg",
+      "period": "p1",
+      "type": "reuniao",
+      "description": "Reunião institucional sintética"
+    },
+    {
+      "id": "commit-s03",
+      "teacher_id": "teacher-s10",
+      "day": "ter",
+      "period": "p2",
+      "type": "atendimento",
+      "description": "Atendimento pedagógico sintético"
+    }
   ],
   "assignments": [
-    {"id":"assign-s01","teacher_id":"teacher-s01","day":"seg","period":"p1","class_id":"class-s06","subject":"Matemática"},
-    {"id":"assign-s02","teacher_id":"teacher-s08","day":"seg","period":"p1","class_id":"class-s02","subject":"Matemática"},
-    {"id":"assign-s03","teacher_id":"teacher-s12","day":"seg","period":"p1","class_id":"class-s04","subject":"Matemática"},
-    {"id":"assign-s04","teacher_id":"teacher-s04","day":"seg","period":"p1","class_id":"class-s03","subject":"Química"}
+    {
+      "id": "assign-s02",
+      "teacher_id": "teacher-s08",
+      "day": "seg",
+      "period": "p1",
+      "class_id": "class-s02",
+      "subject": "Matemática"
+    },
+    {
+      "id": "assign-s03",
+      "teacher_id": "teacher-s12",
+      "day": "seg",
+      "period": "p1",
+      "class_id": "class-s04",
+      "subject": "Matemática"
+    },
+    {
+      "id": "assign-s04",
+      "teacher_id": "teacher-s04",
+      "day": "seg",
+      "period": "p1",
+      "class_id": "class-s03",
+      "subject": "Química"
+    }
   ],
   "absences": [
-    {"id":"absence-s01","occurrence_id":"occ-s01-seg-p1","reason_code":"AUSENCIA_DOCENTE","reported_at":"2026-09-21T06:35:00-03:00","status":"OPEN"},
-    {"id":"absence-s02","occurrence_id":"occ-s02-seg-p1","reason_code":"AUSENCIA_DOCENTE","reported_at":"2026-09-21T06:36:00-03:00","status":"OPEN"},
-    {"id":"absence-s03","occurrence_id":"occ-s03-seg-p1","reason_code":"AUSENCIA_DOCENTE","reported_at":"2026-09-21T06:37:00-03:00","status":"OPEN"},
-    {"id":"absence-s04","occurrence_id":"occ-s04-seg-p1","reason_code":"AUSENCIA_DOCENTE","reported_at":"2026-09-21T06:38:00-03:00","status":"OPEN"}
+    {
+      "id": "absence-s01",
+      "occurrence_id": "occ-s01-seg-p1",
+      "reason_code": "AUSENCIA_DOCENTE",
+      "reported_at": "2026-09-21T06:35:00-03:00",
+      "status": "OPEN"
+    },
+    {
+      "id": "absence-s02",
+      "occurrence_id": "occ-s02-seg-p1",
+      "reason_code": "AUSENCIA_DOCENTE",
+      "reported_at": "2026-09-21T06:36:00-03:00",
+      "status": "OPEN"
+    },
+    {
+      "id": "absence-s03",
+      "occurrence_id": "occ-s03-seg-p1",
+      "reason_code": "AUSENCIA_DOCENTE",
+      "reported_at": "2026-09-21T06:37:00-03:00",
+      "status": "OPEN"
+    },
+    {
+      "id": "absence-s04",
+      "occurrence_id": "occ-s04-seg-p1",
+      "reason_code": "AUSENCIA_DOCENTE",
+      "reported_at": "2026-09-21T06:38:00-03:00",
+      "status": "OPEN"
+    }
   ],
   "vacancies": [
-    {"id":"vacancy-s01","absence_id":"absence-s01","occurrence_id":"occ-s01-seg-p1","status":"OPEN"},
-    {"id":"vacancy-s02","absence_id":"absence-s02","occurrence_id":"occ-s02-seg-p1","status":"OPEN"},
-    {"id":"vacancy-s03","absence_id":"absence-s03","occurrence_id":"occ-s03-seg-p1","status":"OPEN"},
-    {"id":"vacancy-s04","absence_id":"absence-s04","occurrence_id":"occ-s04-seg-p1","status":"OPEN"}
+    {
+      "id": "vacancy-s01",
+      "absence_id": "absence-s01",
+      "occurrence_id": "occ-s01-seg-p1",
+      "status": "OPEN"
+    },
+    {
+      "id": "vacancy-s02",
+      "absence_id": "absence-s02",
+      "occurrence_id": "occ-s02-seg-p1",
+      "status": "OPEN"
+    },
+    {
+      "id": "vacancy-s03",
+      "absence_id": "absence-s03",
+      "occurrence_id": "occ-s03-seg-p1",
+      "status": "OPEN"
+    },
+    {
+      "id": "vacancy-s04",
+      "absence_id": "absence-s04",
+      "occurrence_id": "occ-s04-seg-p1",
+      "status": "OPEN"
+    }
   ],
   "scenarios": {
-    "C01": {"type":"single_absence","vacancy_ids":["vacancy-s01"]},
-    "C02": {"type":"hard_temporal_conflict","vacancy_ids":["vacancy-s02"],"blocked_teacher_ids":["teacher-s08"]},
-    "C03": {"type":"multiple_simultaneous_absences","vacancy_ids":["vacancy-s01","vacancy-s02","vacancy-s03","vacancy-s04"]},
-    "C04": {"type":"global_optimization","vacancy_ids":["vacancy-s01","vacancy-s02","vacancy-s03","vacancy-s04"]},
-    "C05": {"type":"uncovered","vacancy_ids":["vacancy-s03"]},
-    "C06": {"type":"human_override","vacancy_ids":["vacancy-s01","vacancy-s02","vacancy-s03","vacancy-s04"],"override_teacher_id":"teacher-s02"},
-    "C07": {"type":"material_state_change","change":{"teacher_id":"teacher-s02","day":"seg","period":"p1","available":false}},
-    "C08": {"type":"history_rounds","vacancy_ids":["vacancy-s01","vacancy-s02","vacancy-s03","vacancy-s04"]}
+    "C01": {
+      "type": "single_absence",
+      "vacancy_ids": [
+        "vacancy-s01"
+      ]
+    },
+    "C02": {
+      "type": "hard_temporal_conflict",
+      "vacancy_ids": [
+        "vacancy-s02"
+      ],
+      "blocked_teacher_ids": [
+        "teacher-s08"
+      ]
+    },
+    "C03": {
+      "type": "multiple_simultaneous_absences",
+      "vacancy_ids": [
+        "vacancy-s01",
+        "vacancy-s02",
+        "vacancy-s03",
+        "vacancy-s04"
+      ]
+    },
+    "C04": {
+      "type": "global_optimization",
+      "vacancy_ids": [
+        "vacancy-s01",
+        "vacancy-s02",
+        "vacancy-s03",
+        "vacancy-s04"
+      ]
+    },
+    "C05": {
+      "type": "forced_uncovered",
+      "vacancy_ids": [
+        "vacancy-s03"
+      ],
+      "blocked_teacher_ids": [
+        "teacher-s04",
+        "teacher-s09",
+        "teacher-s02"
+      ],
+      "mutation": "temporarily_remove_availability_for_blocked_teacher_ids"
+    },
+    "C06": {
+      "type": "human_override",
+      "vacancy_ids": [
+        "vacancy-s01",
+        "vacancy-s02",
+        "vacancy-s03",
+        "vacancy-s04"
+      ],
+      "override_teacher_id": "teacher-s02",
+      "requirement": "override_teacher_must_be_eligible"
+    },
+    "C07": {
+      "type": "material_state_change",
+      "change": {
+        "teacher_id": "teacher-s02",
+        "day": "seg",
+        "period": "p1",
+        "available": false
+      }
+    },
+    "C08": {
+      "type": "history_rounds",
+      "vacancy_ids": [
+        "vacancy-s01",
+        "vacancy-s02",
+        "vacancy-s03",
+        "vacancy-s04"
+      ]
+    }
   },
   "scoring": {
-    "Física":{"teacher-s01":96,"teacher-s03":94,"teacher-s09":92,"teacher-s02":90},
-    "Matemática":{"teacher-s01":95,"teacher-s02":94,"teacher-s08":93,"teacher-s12":92},
-    "Química":{"teacher-s04":96,"teacher-s09":90,"teacher-s02":84},
-    "Ciências":{"teacher-s05":95,"teacher-s12":91,"teacher-s04":88},
-    "Língua Portuguesa":{"teacher-s06":95,"teacher-s10":88},
-    "História":{"teacher-s07":95},
-    "Geografia":{"teacher-s07":94},
-    "Artes":{"teacher-s10":94},
-    "Educação Física":{"teacher-s11":95}
+    "Física": {
+      "teacher-s01": 96,
+      "teacher-s03": 94,
+      "teacher-s09": 92,
+      "teacher-s02": 90
+    },
+    "Matemática": {
+      "teacher-s01": 95,
+      "teacher-s02": 94,
+      "teacher-s08": 93,
+      "teacher-s12": 92
+    },
+    "Química": {
+      "teacher-s04": 96,
+      "teacher-s09": 90,
+      "teacher-s02": 84
+    },
+    "Ciências": {
+      "teacher-s05": 95,
+      "teacher-s12": 91,
+      "teacher-s04": 88
+    },
+    "Língua Portuguesa": {
+      "teacher-s06": 95,
+      "teacher-s10": 88
+    },
+    "História": {
+      "teacher-s07": 95
+    },
+    "Geografia": {
+      "teacher-s07": 94
+    },
+    "Artes": {
+      "teacher-s10": 94
+    },
+    "Educação Física": {
+      "teacher-s11": 95
+    }
   },
   "expected_rules": {
     "hard_constraints_before_score": true,
@@ -97,6 +671,9 @@
     "deterministic_tiebreak": true,
     "human_override_recalculates_remaining": true,
     "material_change_invalidates_snapshot": true,
-    "previous_round_preserved": true
+    "previous_round_preserved": true,
+    "exclude_occurrence_teacher": true,
+    "c05_must_construct_uncovered_state": true,
+    "human_override_respects_hard_constraints": true
   }
 }
