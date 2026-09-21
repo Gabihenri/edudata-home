@@ -26,10 +26,10 @@ m = manifest.read_text(encoding="utf-8")
 r = runner.read_text(encoding="utf-8")
 p = preflight.read_text(encoding="utf-8")
 
-# Ler somente as linhas da tabela test_registry evita confundir referências
-# documentais, como BASELINE_HARNESS, com casos R01–R16.
+# Ler somente a tabela test_registry evita confundir referências documentais,
+# como BASELINE_HARNESS, com os casos R01–R16.
 registry_match = re.search(
-    r"SELECT \* FROM \(VALUES(?P<rows>.*?)\) v\(test_id,test_case,harness,severity,invariant\)",
+    r"SELECT \* FROM \(VALUES(?P<rows>.*?)\) v\(test_id,harness,test_case,severity,invariant\)",
     m,
     re.DOTALL,
 )
