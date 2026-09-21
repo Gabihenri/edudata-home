@@ -136,7 +136,7 @@ WITH candidates AS (
   SELECT * FROM (VALUES
     ('P1',100,false,true,10,100),
     ('P2',10,true,true,10,100),
-    ('P3',5,true,true,100,10)
+    ('P3',5,true,true,10,300)
   ) v(teacher_id,base_score,eligible,available,weight_a,weight_b)
 ), scored AS (
   SELECT teacher_id,
