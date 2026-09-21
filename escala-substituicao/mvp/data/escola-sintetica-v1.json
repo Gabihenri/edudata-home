@@ -424,7 +424,7 @@
       "end_time": "07:50",
       "class_id": "class-s04",
       "subject": "Matemática",
-      "teacher_id": "teacher-s12"
+      "teacher_id": "teacher-s08"
     },
     {
       "id": "occ-s05-ter-p2",
@@ -474,14 +474,6 @@
       "day": "seg",
       "period": "p1",
       "class_id": "class-s02",
-      "subject": "Matemática"
-    },
-    {
-      "id": "assign-s03",
-      "teacher_id": "teacher-s12",
-      "day": "seg",
-      "period": "p1",
-      "class_id": "class-s04",
       "subject": "Matemática"
     },
     {
