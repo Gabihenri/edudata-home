@@ -70,3 +70,9 @@ jobs:
             psql "postgresql://postgres@localhost:5432/escala_test" \
               -v ON_ERROR_STOP=1 \
               -f tests/global-allocation-adversarial-v1.sql
+
+      - name: Execute Node synthetic harnesses
+        run: |
+          node --version
+          node escala-substituicao/mvp/tests/regression-fixture-v1.mjs
+          node escala-substituicao/mvp/tests/round-persistence-v1.mjs
