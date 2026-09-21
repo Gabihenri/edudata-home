@@ -44,6 +44,7 @@ function eligible(teacherId, occurrence) {
   const teacher = teachers.get(teacherId);
   return Boolean(
     teacher?.eligible_for_substitution === true &&
+    teacherId !== occurrence.teacher_id &&
     isAvailable(teacherId, occurrence) &&
     !hasAssignmentConflict(teacherId, occurrence) &&
     !hasCommitmentConflict(teacherId, occurrence) &&
@@ -108,7 +109,7 @@ function exhaustiveGlobal(occurrenceIds) {
 // C01 — ausência individual com candidatos válidos.
 const c01 = validCandidates('occ-s01-seg-p1');
 assert.ok(c01.includes('teacher-s01'));
-assert.ok(c01.includes('teacher-s03'));
+assert.ok(!c01.includes('teacher-s03'));
 assert.ok(c01.includes('teacher-s09'));
 
 // C02 — conflito temporal deve excluir o titular de Matemática que já está em aula.
@@ -128,9 +129,20 @@ assert.equal(local.filter(Boolean).length, 3);
 assert.equal(global.coverage, 4);
 assert.ok(global.coverage > local.filter(Boolean).length);
 
-// C05 — cenário de ausência de Química ainda deve possuir candidatos na fixture base.
-const c05Base = validCandidates('occ-s03-seg-p1');
-assert.ok(c05Base.length > 0);
+// C05 — cenário "uncovered" precisa ser construído por mutação controlada da fixture.
+const c05TeacherIds = fixture.scenarios.C05.blocked_teacher_ids;
+const originalAvailabilityC05 = new Map(
+  c05TeacherIds.map(id => [id, [...teachers.get(id).availability]])
+);
+for (const teacherId of c05TeacherIds) {
+  const teacher = teachers.get(teacherId);
+  teacher.availability = teacher.availability.filter(v => v !== 'seg-p1');
+}
+const c05Uncovered = validCandidates('occ-s03-seg-p1');
+assert.equal(c05Uncovered.length, 0);
+for (const [teacherId, availability] of originalAvailabilityC05) {
+  teachers.get(teacherId).availability = availability;
+}
 
 // C06 — override humano deve ser uma alocação válida e exclusiva.
 const overrideTeacher = 'teacher-s02';
