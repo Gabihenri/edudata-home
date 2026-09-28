@@ -53,16 +53,10 @@ INSERT INTO e3_harness_responsibility VALUES
 ('E3-H14','DI-A','DI-A','SCHOOL-C','T-A','ASS-C','GRADE-C','2026-02-02','2026-12-18','2026-02-02','2026-12-18','2026-08-20',true,false,true,null,false,'CTX-C','RESOLVED'),
 ('E3-H15','DI-A','DI-A','SCHOOL-A','T-A','ASS-A','GRADE-A','2026-02-02','2026-06-30','2026-02-02','2026-12-18','2026-08-20',true,false,true,null,false,'CTX-A','BLOCKED'),
 ('E3-H16','DI-A','DI-A','SCHOOL-A','T-A','ASS-A','GRADE-A','2026-02-02','2026-12-18','2026-02-02','2026-06-30','2026-08-20',true,false,true,null,false,'CTX-A','BLOCKED'),
-('E3-H17','DI-A','DI-A','SCHOOL-A','T-A','ASS-B','GRADE-B','2026-02-02','2026-12-18','2026-02-02','2026-12-18','2026-08-20',true,false,true,null,false,'CTX-B','RESOLVED'),
+('E3-H17','DI-A','DI-A','SCHOOL-A','T-A','ASS-B','GRADE-B','2026-02-02','2026-12-18','2026-02-02','2026-12-18','2026-08-20',true,false,true,null,false,'CTX-A','RESOLVED'),
 ('E3-H18','DI-A','DI-A','SCHOOL-A','T-A','ASS-A','GRADE-A','2026-02-02','2026-12-18','2026-02-02','2026-12-18','2026-08-20',true,false,false,null,false,'CTX-A','BLOCKED');
 
-WITH duplicate_contexts AS (
-  SELECT association_context_key
-  FROM e3_harness_responsibility
-  GROUP BY association_context_key
-  HAVING count(DISTINCT association_id) > 1
-),
-evaluated AS (
+WITH evaluated AS (
   SELECT h.case_id,
     CASE
       WHEN h.occurrence_homologated = false THEN 'BLOCKED'
