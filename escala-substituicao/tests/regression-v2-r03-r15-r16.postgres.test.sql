@@ -117,6 +117,8 @@ END AS assertion;
 
 CREATE TEMP TABLE r15_occurrences (
   occurrence_id text PRIMARY KEY,
+  source_occurrence_key text NOT NULL,
+  source_version text NOT NULL,
   organization_key text NOT NULL,
   school_key text NOT NULL,
   school_year integer NOT NULL,
@@ -128,13 +130,13 @@ CREATE TEMP TABLE r15_occurrences (
 ) ON COMMIT DROP;
 
 INSERT INTO r15_occurrences VALUES
-  ('O1','ORG1','SCHOOL1',2026,'T1','FISICA',
+  ('O1','SED-OCC-001','SED-V1','ORG1','SCHOOL1',2026,'T1','FISICA',
    '2026-09-28 09:00','2026-09-28 10:00'),
-  ('O2','ORG1','SCHOOL1',2026,'T1','FISICA',
+  ('O2','SED-OCC-002','SED-V1','ORG1','SCHOOL1',2026,'T1','FISICA',
    '2026-09-28 10:00','2026-09-28 11:00'),
-  ('O3','ORG1','SCHOOL1',2026,'T1','FISICA',
+  ('O3','SED-OCC-003','SED-V1','ORG1','SCHOOL1',2026,'T1','FISICA',
    '2026-09-28 09:00','2026-09-28 10:00'),
-  ('O4','ORG1','SCHOOL1',2026,'T2','FISICA',
+  ('O4','SED-OCC-004','SED-V1','ORG1','SCHOOL1',2026,'T2','FISICA',
    '2026-09-28 09:00','2026-09-28 10:00');
 
 -- O1/O2: mesma turma + mesmo componente, mas intervalos distintos.
@@ -149,14 +151,17 @@ END AS assertion
 FROM r15_occurrences
 WHERE occurrence_id IN ('O1','O2');
 
--- O1/O3 possuem o mesmo contexto sintético e o mesmo intervalo, mas são
--- identificadores de ocorrência diferentes. A identidade da ocorrência não
--- pode ser derivada apenas de component_key + class_key + horário.
+-- O1/O3 possuem o mesmo contexto sintético e o mesmo intervalo, mas carregam
+-- chaves de ocorrência distintas e provenientes da mesma versão-fonte. A
+-- identidade operacional preserva a chave da ocorrência e não a deriva apenas
+-- de component_key + class_key + horário.
 SELECT CASE
   WHEN COUNT(*) = 2
    AND COUNT(DISTINCT occurrence_id) = 2
    AND COUNT(DISTINCT component_key) = 1
    AND COUNT(DISTINCT class_key) = 1
+  AND COUNT(DISTINCT source_occurrence_key) = 2
+  AND COUNT(DISTINCT source_version) = 1
   THEN 'PASS_R15_OCCURRENCE_IDENTITY_PRESERVED'
   ELSE 'FAIL_R15_OCCURRENCE_IDENTITY_PRESERVED'
 END AS assertion
@@ -255,6 +260,7 @@ SELECT CASE
 END AS assertion;
 
 -- Segundo cenário: associação múltipla sem responsabilidade homologada.
+-- O resultado deve ser indeterminado/revisável; não pode escolher P1 ou P2.
 CREATE TEMP TABLE r16_unresolved (
   occurrence_id text PRIMARY KEY,
   responsibility_state text NOT NULL,
@@ -264,9 +270,14 @@ CREATE TEMP TABLE r16_unresolved (
 INSERT INTO r16_unresolved VALUES
   ('O2','SOURCE_UNCERTAIN',NULL);
 
+INSERT INTO r16_associations VALUES
+  ('O2','P1','ACTIVE'),
+  ('O2','P2','ACTIVE');
+
 SELECT CASE
   WHEN responsibility_state = 'SOURCE_UNCERTAIN'
    AND responsible_teacher_id IS NULL
+   AND (SELECT COUNT(*) FROM r16_associations WHERE occurrence_id='O2') = 2
   THEN 'PASS_R16_UNRESOLVED_REQUIRES_REVIEW'
   ELSE 'FAIL_R16_UNRESOLVED_REQUIRES_REVIEW'
 END AS assertion
