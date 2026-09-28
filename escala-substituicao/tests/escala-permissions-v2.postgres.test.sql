@@ -88,6 +88,7 @@ INSERT INTO audit_requirements VALUES
   ('escala.manage_teacher_identity_links',true,true);
 
 INSERT INTO core_memberships VALUES
+  ('U_OVERRIDE','ORG_A','SCHOOL_A','principal',true,'2026-01-01','2026-12-31'),
   ('U_TEACHER','ORG_A','SCHOOL_A','teacher',true,'2026-01-01','2026-12-31'),
   ('U_COORD','ORG_A','SCHOOL_A','coordinator',true,'2026-01-01','2026-12-31'),
   ('U_MULTI','ORG_A','SCHOOL_A','teacher',true,'2026-01-01','2026-12-31'),
@@ -98,6 +99,7 @@ INSERT INTO core_memberships VALUES
   ('U_REVOKED','ORG_A','SCHOOL_A','coordinator',true,'2026-01-01','2026-12-31');
 
 INSERT INTO core_scopes VALUES
+  ('S_OVERRIDE_A','U_OVERRIDE','ORG_A','SCHOOL_A',true,'2026-01-01','2026-12-31'),
   ('S_COORD_A','U_COORD','ORG_A','SCHOOL_A',true,'2026-01-01','2026-12-31'),
   ('S_MULTI_A','U_MULTI','ORG_A','SCHOOL_A',true,'2026-01-01','2026-12-31'),
   ('S_MULTI_B','U_MULTI','ORG_B','SCHOOL_B',true,'2026-01-01','2026-12-31'),
@@ -349,15 +351,15 @@ END AS assertion;
 -- AUTH-20 — override sem justificativa é bloqueado.
 -- ================================================================
 INSERT INTO core_scopes VALUES
-  ('S_PRINCIPAL_A','U_MULTI','ORG_A','SCHOOL_A',true,'2026-01-01','2026-12-31');
+  ('S_PRINCIPAL_A','U_OVERRIDE','ORG_A','SCHOOL_A',true,'2026-01-01','2026-12-31');
 
 SELECT CASE
   WHEN NOT can_operate(
-    'U_MULTI','ORG_A','SCHOOL_A',
+    'U_OVERRIDE','ORG_A','SCHOOL_A',
     'escala.override_decision','V_A1','2026-09-28',NULL
   )
   AND can_operate(
-    'U_MULTI','ORG_A','SCHOOL_A',
+    'U_OVERRIDE','ORG_A','SCHOOL_A',
     'escala.override_decision','V_A1','2026-09-28',
     'MATERIAL_CHANGE_REVIEW'
   )
