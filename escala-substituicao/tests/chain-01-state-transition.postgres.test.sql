@@ -130,7 +130,7 @@ END AS assertion;
 INSERT INTO chain_state
 (entity_type,entity_id,state,round_id,changed_at)
 VALUES
-('VACANCY','V1','RECOMMENDED','R1','2026-09-28 08:06');
+('VACANCY','V1','RECOMMENDED','R1',2,'2026-09-28 08:06');
 
 INSERT INTO chain_events
 (entity_type,entity_id,event_type,previous_state,new_state,round_id,actor,reason_code,event_at)
@@ -200,7 +200,7 @@ END AS assertion;
 INSERT INTO chain_state
 (entity_type,entity_id,state,round_id,changed_at)
 VALUES
-('VACANCY','V1','ALLOCATED','R1','2026-09-28 08:10');
+('VACANCY','V1','ALLOCATED','R1',3,'2026-09-28 08:10');
 
 INSERT INTO chain_events
 (entity_type,entity_id,event_type,previous_state,new_state,round_id,actor,reason_code,event_at)
