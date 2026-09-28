@@ -128,7 +128,7 @@ END AS assertion;
 -- 4. Motor conclui e gera recomendação.
 -- ------------------------------------------------
 INSERT INTO chain_state
-(entity_type,entity_id,state,round_id,changed_at)
+(entity_type,entity_id,state,round_id,version,changed_at)
 VALUES
 ('VACANCY','V1','RECOMMENDED','R1',2,'2026-09-28 08:06');
 
@@ -198,7 +198,7 @@ END AS assertion;
 -- 7. Confirmação resolve a vaga: ALLOCATED.
 -- ------------------------------------------------
 INSERT INTO chain_state
-(entity_type,entity_id,state,round_id,changed_at)
+(entity_type,entity_id,state,round_id,version,changed_at)
 VALUES
 ('VACANCY','V1','ALLOCATED','R1',3,'2026-09-28 08:10');
 
