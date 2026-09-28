@@ -110,7 +110,7 @@ INSERT INTO core_scopes VALUES
 
 INSERT INTO resource_assignments VALUES
   ('V_A1','ORG_A','SCHOOL_A','U_TEACHER','U_TEACHER'),
-  ('V_A2','ORG_A','SCHOOL_A','U_TEACHER','U_OTHER_SCHOOL'),
+  ('V_A2','ORG_A','SCHOOL_A','U_OTHER_SCHOOL','U_OTHER_SCHOOL'),
   ('V_B1','ORG_B','SCHOOL_B','U_OTHER_ORG','U_OTHER_ORG');
 
 INSERT INTO auth_metadata VALUES
@@ -166,6 +166,18 @@ AS $$
       AND (
         ar.requires_justification=false
         OR NULLIF(BTRIM(p_justification),'') IS NOT NULL
+      )
+      AND (
+        (
+          m.role_code <> 'teacher'
+          OR p_operation NOT IN (
+            'escala.view_candidates',
+            'escala.view_vacancies',
+            'escala.view_explanations'
+          )
+          OR r.assigned_user_id=p_user
+          OR r.owner_user_id=p_user
+        )
       )
       AND (
         p_operation NOT IN (
@@ -246,11 +258,11 @@ SELECT CASE
 END AS assertion;
 
 -- ================================================================
--- AUTH-13 — professor não acessa vaga atribuída a outro professor.
+-- AUTH-13 — professor não visualiza vaga atribuída a outro professor.
 -- ================================================================
 SELECT CASE
   WHEN NOT can_operate('U_TEACHER','ORG_A','SCHOOL_A',
-                       'escala.confirm_substitution','V_A2','2026-09-28')
+                       'escala.view_candidates','V_A2','2026-09-28')
   THEN 'PASS_AUTH13_RESOURCE_NOT_ASSIGNED'
   ELSE 'FAIL_AUTH13_RESOURCE_NOT_ASSIGNED'
 END AS assertion;
