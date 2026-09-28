@@ -86,3 +86,22 @@ A aprovação estática é verde.
 A aprovação de execução PostgreSQL continua pendente e não será simulada.
 
 Nenhuma alteração de produção foi realizada.
+
+## Atualização pós-auditoria — 28/09/2026
+
+Foi identificada e corrigida uma lacuna semântica no harness v3:
+
+- **E3-H10** declarava testar não retroatividade, mas o avaliador não verificava a data de efetivação da substituição. O fixture agora registra `substitution_effective_date` e o avaliador bloqueia uma substituição de docente diferente quando sua efetivação é ausente ou não posterior à ocorrência original.
+- **E3-H13** declarava múltiplos DIs, mas a fixture representava apenas uma divergência simples. Foi acrescentado `di_context_count`; o caso H13 agora possui dois contextos de DI e resulta em `SOURCE_UNCERTAIN`.
+- Todas as 18 fixtures possuem agora a mesma aridade estrutural da tabela temporária.
+- O arquivo continua sendo **fixture sintética isolada** e não contém identificadores reais da SED.
+
+Commit do harness corrigido: `9fb4d30e3aae6ad14a12c852b60330d67b873d5f`.
+
+### Estado de validação
+
+**PASS estrutural/estático:** 18 casos previstos, sem inconsistência de aridade após a correção.
+
+**PostgreSQL real:** ainda **PENDENTE**. O ambiente local desta etapa não possui cliente/servidor PostgreSQL disponível; portanto não há declaração de execução real para esta revisão.
+
+A correção não altera o gate E3: fonte operacional SED, chaves, Associação ↔ Grade, vigência, publicação e proveniência continuam não homologadas para produção.
