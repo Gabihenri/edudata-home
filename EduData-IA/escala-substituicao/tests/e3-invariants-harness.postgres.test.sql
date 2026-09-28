@@ -51,7 +51,7 @@ INSERT INTO e3_harness_responsibility VALUES
 ('E3-H10','DI-A','DI-A','SCHOOL-A','T-A','ASS-A','GRADE-A','2026-02-02','2026-12-18','2026-02-02','2026-12-18','2026-08-20',true,false,true,'T-B','2026-08-21',1,false,'CTX-A','RESOLVED'),
 ('E3-H11','DI-A','DI-A','SCHOOL-A','T-A','ASS-A','GRADE-A','2026-02-02','2026-12-18','2026-02-02','2026-12-18','2026-08-20',true,true,true,null,false,1,'CTX-A','BLOCKED'),
 ('E3-H12','DI-A','DI-A','SCHOOL-A','T-A','ASS-A','GRADE-A','2026-02-02','2026-12-18','2026-02-02','2026-12-18','2026-08-20',false,false,true,null,false,1,'CTX-A','BLOCKED'),
-('E3-H13','DI-A','DI-B','SCHOOL-A','T-A','ASS-A','GRADE-A','2026-02-02','2026-12-18','2026-02-02','2026-12-18','2026-08-20',true,false,true,null,2,false,'CTX-A','SOURCE_UNCERTAIN'),
+('E3-H13','DI-A','DI-B','SCHOOL-A','T-A','ASS-A','GRADE-A','2026-02-02','2026-12-18','2026-02-02','2026-12-18','2026-08-20',true,false,true,null,2,null,false,'CTX-A','SOURCE_UNCERTAIN'),
 ('E3-H14','DI-A','DI-A','SCHOOL-C','T-A','ASS-C','GRADE-C','2026-02-02','2026-12-18','2026-02-02','2026-12-18','2026-08-20',true,false,true,null,false,1,'CTX-C','RESOLVED'),
 ('E3-H15','DI-A','DI-A','SCHOOL-A','T-A','ASS-A','GRADE-A','2026-02-02','2026-06-30','2026-02-02','2026-12-18','2026-08-20',true,false,true,null,false,1,'CTX-A','BLOCKED'),
 ('E3-H16','DI-A','DI-A','SCHOOL-A','T-A','ASS-A','GRADE-A','2026-02-02','2026-12-18','2026-02-02','2026-06-30','2026-08-20',true,false,true,null,false,1,'CTX-A','BLOCKED'),
