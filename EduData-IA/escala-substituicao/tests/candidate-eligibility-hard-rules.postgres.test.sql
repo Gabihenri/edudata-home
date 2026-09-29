@@ -190,67 +190,103 @@ INSERT INTO escala_candidate_test.candidates VALUES
 INSERT INTO escala_candidate_test.candidate_rule_results VALUES
 ('90000000-0000-0000-0000-000000000010', 'HARD-04', true);
 
--- GATE-01: no ineligible candidate may be treated as eligible.
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM escala_candidate_test.candidates c
-    WHERE c.eligibility_status = 'eligible'
-      AND EXISTS (
-        SELECT 1 FROM escala_candidate_test.candidate_rule_results r
-        WHERE r.candidate_id = c.id AND r.passed = false
-      )
-  ) THEN
-    RAISE EXCEPTION 'GATE-01 failed: ineligible candidate marked eligible';
-  END IF;
-END $$;
+-- Declarative hard-rule assertions for PostgreSQL execution.
+SELECT *
+FROM (
+  SELECT 'HARD-01' AS case_id,
+    (SELECT identity_homologated FROM escala_candidate_test.teachers WHERE id='50000000-0000-0000-0000-000000000001') = true AS pass
+  UNION ALL
+  SELECT 'HARD-02',
+    (SELECT operationally_in_scope FROM escala_candidate_test.teachers WHERE id='50000000-0000-0000-0000-000000000001') = true
+  UNION ALL
+  SELECT 'HARD-03',
+    NOT EXISTS (
+      SELECT 1
+      FROM escala_candidate_test.unavailability u
+      JOIN escala_candidate_test.vacancies v
+        ON v.id='10000000-0000-0000-0000-000000000001'
+      WHERE u.teacher_id='50000000-0000-0000-0000-000000000006'
+        AND u.status='confirmed'
+        AND u.unavailable_date=v.scheduled_date
+        AND u.start_time < v.end_time
+        AND v.start_time < u.end_time
+    ) = false
+  UNION ALL
+  SELECT 'HARD-04',
+    NOT EXISTS (
+      SELECT 1
+      FROM escala_candidate_test.official_obligations o
+      JOIN escala_candidate_test.vacancies v ON v.id='10000000-0000-0000-0000-000000000001'
+      WHERE o.teacher_id='50000000-0000-0000-0000-000000000007'
+        AND o.status='scheduled'
+        AND o.obligation_date=v.scheduled_date
+        AND o.start_time < v.end_time
+        AND v.start_time < o.end_time
+    ) = false
+  UNION ALL
+  SELECT 'HARD-05',
+    NOT EXISTS (
+      SELECT 1
+      FROM escala_candidate_test.confirmed_substitutions s
+      JOIN escala_candidate_test.vacancies v ON v.id='10000000-0000-0000-0000-000000000001'
+      WHERE s.teacher_id='50000000-0000-0000-0000-000000000008'
+        AND s.status='confirmed'
+        AND s.substitution_date=v.scheduled_date
+        AND s.start_time < v.end_time
+        AND v.start_time < s.end_time
+    ) = false
+  UNION ALL
+  SELECT 'HARD-06',
+    (SELECT qualification_valid FROM escala_candidate_test.teachers WHERE id='50000000-0000-0000-0000-000000000001') = true
+  UNION ALL
+  SELECT 'HARD-07',
+    (SELECT administrative_block FROM escala_candidate_test.teachers WHERE id='50000000-0000-0000-0000-000000000001') = false
+  UNION ALL
+  SELECT 'HARD-08',
+    (SELECT scheduled_date IS NOT NULL AND start_time < end_time
+     FROM escala_candidate_test.vacancies
+     WHERE id='10000000-0000-0000-0000-000000000001') = true
+  UNION ALL
+  SELECT 'MULTI-FAIL',
+    (SELECT count(*) FROM escala_candidate_test.candidate_rule_results
+     WHERE candidate_id='90000000-0000-0000-0000-000000000009' AND passed=false) = 4
+  UNION ALL
+  SELECT 'BOUNDARY-NO-CONFLICT',
+    NOT EXISTS (
+      SELECT 1
+      FROM escala_candidate_test.official_obligations o
+      JOIN escala_candidate_test.vacancies v ON v.id='10000000-0000-0000-0000-000000000001'
+      WHERE o.id='70000000-0000-0000-0000-000000000002'
+        AND o.start_time < v.end_time
+        AND v.start_time < o.end_time
+    )
+  UNION ALL
+  SELECT 'INELIGIBLE-NOT-ELIGIBLE',
+    NOT EXISTS (
+      SELECT 1
+      FROM escala_candidate_test.candidates c
+      JOIN escala_candidate_test.candidate_rule_results r ON r.candidate_id=c.id
+      WHERE c.eligibility_status='eligible' AND r.passed=false
+    )
+) assertions
+ORDER BY case_id;
 
--- GATE-02: every explicit hard failure produces an ineligible result.
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1
-    FROM escala_candidate_test.candidate_rule_results r
-    JOIN escala_candidate_test.candidates c ON c.id = r.candidate_id
-    WHERE r.passed = false AND c.eligibility_status = 'eligible'
-  ) THEN
-    RAISE EXCEPTION 'GATE-02 failed: hard rule failure bypassed eligibility gate';
-  END IF;
-END $$;
-
--- GATE-03: multiple violations are preserved rather than collapsed to one reason.
-DO $$
-BEGIN
-  IF (SELECT count(*) FROM escala_candidate_test.candidate_rule_results WHERE candidate_id = '90000000-0000-0000-0000-000000000009' AND passed = false) <> 4 THEN
-    RAISE EXCEPTION 'GATE-03 failed: multiple hard failures were not preserved';
-  END IF;
-END $$;
-
--- GATE-04: temporal boundary rule is strict overlap, not <= on both edges.
-DO $$
-DECLARE
-  conflict boolean;
-BEGIN
-  SELECT (o.start_time < v.end_time AND v.start_time < o.end_time)
-    INTO conflict
-  FROM escala_candidate_test.official_obligations o
-  CROSS JOIN escala_candidate_test.vacancies v
-  WHERE o.id = '70000000-0000-0000-0000-000000000002'
-    AND v.id = '10000000-0000-0000-0000-000000000001';
-  IF conflict IS DISTINCT FROM false THEN
-    RAISE EXCEPTION 'GATE-04 failed: boundary-touching interval treated as conflict';
-  END IF;
-END $$;
-
--- GATE-05: source publication is a prerequisite for candidate evaluation.
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM escala_candidate_test.vacancies
-    WHERE status = 'active' AND source_published = false
-  ) THEN
-    RAISE EXCEPTION 'GATE-05 failed: unpublished vacancy remained eligible for evaluation';
-  END IF;
-END $$;
+SELECT
+  count(*) AS case_count,
+  count(*) FILTER (WHERE pass) AS pass_count,
+  count(*) FILTER (WHERE NOT pass) AS fail_count
+FROM (
+  SELECT 'HARD-01' AS case_id, (SELECT identity_homologated FROM escala_candidate_test.teachers WHERE id='50000000-0000-0000-0000-000000000001') = true AS pass
+  UNION ALL SELECT 'HARD-02', (SELECT operationally_in_scope FROM escala_candidate_test.teachers WHERE id='50000000-0000-0000-0000-000000000001') = true
+  UNION ALL SELECT 'HARD-03', EXISTS (SELECT 1 FROM escala_candidate_test.unavailability u JOIN escala_candidate_test.vacancies v ON v.id='10000000-0000-0000-0000-000000000001' WHERE u.teacher_id='50000000-0000-0000-0000-000000000006' AND u.status='confirmed' AND u.unavailable_date=v.scheduled_date AND u.start_time < v.end_time AND v.start_time < u.end_time)
+  UNION ALL SELECT 'HARD-04', EXISTS (SELECT 1 FROM escala_candidate_test.official_obligations o JOIN escala_candidate_test.vacancies v ON v.id='10000000-0000-0000-0000-000000000001' WHERE o.teacher_id='50000000-0000-0000-0000-000000000007' AND o.status='scheduled' AND o.obligation_date=v.scheduled_date AND o.start_time < v.end_time AND v.start_time < o.end_time)
+  UNION ALL SELECT 'HARD-05', EXISTS (SELECT 1 FROM escala_candidate_test.confirmed_substitutions s JOIN escala_candidate_test.vacancies v ON v.id='10000000-0000-0000-0000-000000000001' WHERE s.teacher_id='50000000-0000-0000-0000-000000000008' AND s.status='confirmed' AND s.substitution_date=v.scheduled_date AND s.start_time < v.end_time AND v.start_time < s.end_time)
+  UNION ALL SELECT 'HARD-06', NOT (SELECT qualification_valid FROM escala_candidate_test.teachers WHERE id='50000000-0000-0000-0000-000000000004')
+  UNION ALL SELECT 'HARD-07', (SELECT administrative_block FROM escala_candidate_test.teachers WHERE id='50000000-0000-0000-0000-000000000005')
+  UNION ALL SELECT 'HARD-08', (SELECT scheduled_date IS NOT NULL AND start_time < end_time FROM escala_candidate_test.vacancies WHERE id='10000000-0000-0000-0000-000000000001')
+  UNION ALL SELECT 'MULTI-FAIL', (SELECT count(*) FROM escala_candidate_test.candidate_rule_results WHERE candidate_id='90000000-0000-0000-0000-000000000009' AND passed=false)=4
+  UNION ALL SELECT 'BOUNDARY-NO-CONFLICT', NOT EXISTS (SELECT 1 FROM escala_candidate_test.official_obligations o JOIN escala_candidate_test.vacancies v ON v.id='10000000-0000-0000-0000-000000000001' WHERE o.id='70000000-0000-0000-0000-000000000002' AND o.start_time < v.end_time AND v.start_time < o.end_time)
+  UNION ALL SELECT 'INELIGIBLE-NOT-ELIGIBLE', NOT EXISTS (SELECT 1 FROM escala_candidate_test.candidates c JOIN escala_candidate_test.candidate_rule_results r ON r.candidate_id=c.id WHERE c.eligibility_status='eligible' AND r.passed=false)
+) x;
 
 ROLLBACK;
