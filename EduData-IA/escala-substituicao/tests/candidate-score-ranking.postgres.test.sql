@@ -83,7 +83,7 @@ RETURNS numeric LANGUAGE sql AS $$
   FROM candidates WHERE id=p_candidate_id;
 $$;
 
-CREATE OR REPLACE FUNCTION pg_temp.calculate_score(p_candidate_id uuid, p_rule_set_version text)
+CREATE OR REPLACE FUNCTION pg_temp.pg_temp.calculate_score(p_candidate_id uuid, p_rule_set_version text)
 RETURNS numeric LANGUAGE sql AS $$
   SELECT round(c.component_match*w.component_weight+c.area_match*w.area_weight+c.availability_fit*w.availability_weight+c.continuity*w.continuity_weight+c.distribution_balance*w.distribution_weight+pg_temp.effective_proximity(c.id)*w.proximity_weight+c.institutional_preference*w.preference_weight,3)
   FROM candidates c JOIN weights w ON w.rule_set_version=p_rule_set_version
@@ -92,7 +92,7 @@ $$;
 
 -- v1: only eligible candidates enter scoring/ranking.
 WITH calculated AS (
- SELECT c.id AS candidate_id, c.*, calculate_score(c.id,'score-v1') score FROM candidates c WHERE c.eligibility_status='eligible'
+ SELECT c.id AS candidate_id, c.*, pg_temp.calculate_score(c.id,'score-v1') score FROM candidates c WHERE c.eligibility_status='eligible'
 ), ranked AS (
  SELECT *, row_number() OVER (ORDER BY score DESC,component_match DESC,area_match DESC,continuity DESC,valid_substitutions_count ASC,teacher_id ASC) rank_position FROM calculated
 )
@@ -116,7 +116,7 @@ CREATE TEMP TABLE v1_history AS SELECT candidate_id,score,ranking_status,rank_po
 
 -- v2: same source snapshot, controlled weight change, detailed explanation preserved.
 WITH calculated AS (
- SELECT c.id AS candidate_id, c.*, calculate_score(c.id,'score-v2') score FROM candidates c WHERE c.eligibility_status='eligible'
+ SELECT c.id AS candidate_id, c.*, pg_temp.calculate_score(c.id,'score-v2') score FROM candidates c WHERE c.eligibility_status='eligible'
 ), ranked AS (
  SELECT *, row_number() OVER (ORDER BY score DESC,component_match DESC,area_match DESC,continuity DESC,valid_substitutions_count ASC,teacher_id ASC) rank_position FROM calculated
 )
@@ -155,12 +155,12 @@ FROM (
     )
   UNION ALL
   SELECT 'GATE-05',
-    calculate_score('10000000-0000-0000-0000-000000000002','score-v1')
-      > calculate_score('10000000-0000-0000-0000-000000000003','score-v1')
+    pg_temp.calculate_score('10000000-0000-0000-0000-000000000002','score-v1')
+      > pg_temp.calculate_score('10000000-0000-0000-0000-000000000003','score-v1')
   UNION ALL
   SELECT 'GATE-06',
-    calculate_score('10000000-0000-0000-0000-000000000007','score-v1')
-      < calculate_score('10000000-0000-0000-0000-000000000001','score-v1')
+    pg_temp.calculate_score('10000000-0000-0000-0000-000000000007','score-v1')
+      < pg_temp.calculate_score('10000000-0000-0000-0000-000000000001','score-v1')
     AND (SELECT proximity_contribution FROM scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND candidate_id='10000000-0000-0000-0000-000000000007') = 0
     AND (SELECT score FROM scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND candidate_id='10000000-0000-0000-0000-000000000007') = 95
   UNION ALL
@@ -179,8 +179,8 @@ FROM (
     NOT EXISTS (SELECT 1 FROM scores WHERE score_breakdown IS NOT NULL AND jsonb_array_length(score_breakdown->'criteria') <> 7)
   UNION ALL
   SELECT 'GATE-10',
-    calculate_score('10000000-0000-0000-0000-000000000008','score-v1')
-      <> calculate_score('10000000-0000-0000-0000-000000000008','score-v2')
+    pg_temp.calculate_score('10000000-0000-0000-0000-000000000008','score-v1')
+      <> pg_temp.calculate_score('10000000-0000-0000-0000-000000000008','score-v2')
   UNION ALL
   SELECT 'GATE-11',
     NOT EXISTS (
@@ -213,12 +213,12 @@ FROM (
   UNION ALL SELECT 'GATE-02', NOT EXISTS (SELECT 1 FROM scores WHERE score IS NOT NULL AND (score<0 OR score>100))
   UNION ALL SELECT 'GATE-03', NOT EXISTS (SELECT 1 FROM scores s JOIN candidates c ON c.id=s.candidate_id WHERE c.eligibility_status<>'eligible' AND (s.score IS NOT NULL OR s.rank_position IS NOT NULL OR s.ranking_status IN ('scored','ranked')))
   UNION ALL SELECT 'GATE-04', NOT EXISTS (SELECT 1 FROM scores WHERE score IS NOT NULL AND score<>component_contribution+area_contribution+availability_contribution+continuity_contribution+distribution_contribution+proximity_contribution+preference_contribution)
-  UNION ALL SELECT 'GATE-05', calculate_score('10000000-0000-0000-0000-000000000002','score-v1')>calculate_score('10000000-0000-0000-0000-000000000003','score-v1')
-  UNION ALL SELECT 'GATE-06', calculate_score('10000000-0000-0000-0000-000000000007','score-v1')<calculate_score('10000000-0000-0000-0000-000000000001','score-v1') AND (SELECT proximity_contribution FROM scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND candidate_id='10000000-0000-0000-0000-000000000007')=0 AND (SELECT score FROM scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND candidate_id='10000000-0000-0000-0000-000000000007')=95
+  UNION ALL SELECT 'GATE-05', pg_temp.calculate_score('10000000-0000-0000-0000-000000000002','score-v1')>pg_temp.calculate_score('10000000-0000-0000-0000-000000000003','score-v1')
+  UNION ALL SELECT 'GATE-06', pg_temp.calculate_score('10000000-0000-0000-0000-000000000007','score-v1')<pg_temp.calculate_score('10000000-0000-0000-0000-000000000001','score-v1') AND (SELECT proximity_contribution FROM scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND candidate_id='10000000-0000-0000-0000-000000000007')=0 AND (SELECT score FROM scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND candidate_id='10000000-0000-0000-0000-000000000007')=95
   UNION ALL SELECT 'GATE-07', (SELECT candidate_id FROM scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND rank_position=(SELECT min(rank_position) FROM scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND candidate_id IN ('10000000-0000-0000-0000-000000000005','10000000-0000-0000-0000-000000000006')))='10000000-0000-0000-0000-000000000005'
   UNION ALL SELECT 'GATE-08', (SELECT count(*) FROM score_runs WHERE rule_set_version='score-v1' AND snapshot_reference='snapshot-2026-09-10-v1')=1 AND (SELECT count(*) FROM score_runs WHERE rule_set_version='score-v2' AND snapshot_reference='snapshot-2026-09-10-v2')=1
   UNION ALL SELECT 'GATE-09', NOT EXISTS (SELECT 1 FROM scores WHERE score_breakdown IS NOT NULL AND jsonb_array_length(score_breakdown->'criteria')<>7)
-  UNION ALL SELECT 'GATE-10', calculate_score('10000000-0000-0000-0000-000000000008','score-v1')<>calculate_score('10000000-0000-0000-0000-000000000008','score-v2')
+  UNION ALL SELECT 'GATE-10', pg_temp.calculate_score('10000000-0000-0000-0000-000000000008','score-v1')<>pg_temp.calculate_score('10000000-0000-0000-0000-000000000008','score-v2')
   UNION ALL SELECT 'GATE-11', NOT EXISTS (SELECT 1 FROM v1_history h JOIN scores s ON s.run_id='90000000-0000-0000-0000-000000000001' AND s.candidate_id=h.candidate_id WHERE h.score IS DISTINCT FROM s.score OR h.ranking_status IS DISTINCT FROM s.ranking_status OR h.rank_position IS DISTINCT FROM s.rank_position OR h.score_breakdown IS DISTINCT FROM s.score_breakdown)
   UNION ALL SELECT 'GATE-12', (SELECT score_breakdown #>> '{criteria,5,reason_code}' FROM scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND candidate_id='10000000-0000-0000-0000-000000000007')='PROXIMITY_NOT_AVAILABLE'
   UNION ALL SELECT 'GATE-13', NOT EXISTS (SELECT 1 FROM scores GROUP BY run_id,candidate_id HAVING count(*)>1) AND (SELECT count(*) FROM scores WHERE candidate_id='10000000-0000-0000-0000-000000000008')=2
