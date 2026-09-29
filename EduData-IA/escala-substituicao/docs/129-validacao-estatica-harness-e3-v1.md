@@ -123,3 +123,20 @@ Correção aplicada no harness:
 Commit do harness: `ed748e77a7c0ee3adc5467ceb7787e274b6e1e5a`.
 
 A decisão é deliberadamente conservadora: **múltiplas associações válidas sem regra de origem/seleção homologada não podem alimentar responsabilidade docente resolvida**.
+
+
+## Correção de sintaxe — 28/09/2026
+
+A revisão posterior à alteração H17 detectou um erro de fechamento no `INSERT` final do harness, introduzido durante a edição. O trecho terminava com parêntese duplicado e poderia impedir a execução PostgreSQL.
+
+Correção aplicada:
+
+- fechamento do `INSERT INTO e3_harness_responsibility VALUES` normalizado;
+- CTE `evaluated` preservada;
+- `SELECT` final preservado;
+- 18 casos permanecem presentes;
+- `association_context_count` permanece no contrato sintético.
+
+Commit corretivo: `0e31be9f5590280e8148942308adde3861a76e7b`.
+
+Esta correção é estrutural; **não constitui execução PostgreSQL real**.
