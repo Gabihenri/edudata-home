@@ -65,3 +65,18 @@ Esta matriz é a referência consolidada de estado atual para os gates técnicos
 Desde aquelas auditorias, foram obtidas evidências reais em PostgreSQL para os principais harnesses de comportamento listados nesta matriz. Isso não altera os gates independentes de integração: E3/SED, Core operacional, identidade acadêmica, RLS físico, governança física e concorrência multi-sessão permanecem pendentes.
 
 **Regra de precedência documental:** para status atual, utilizar esta matriz e as auditorias posteriores numeradas 116–138; para reconstrução histórica, preservar o texto original das auditorias anteriores.
+## Atualização de cobertura documental — 29/09/2026
+
+Documentos 133–138 verificados fisicamente no repositório e incorporados ao estado consolidado:
+
+| Documento | Cobertura | Estado |
+|---|---|---|
+| 133 | E3 H01–H22 / vigência | 🟢 22/22 PostgreSQL real |
+| 134 | Staging → Publication | 🟢 prova isolada PostgreSQL real |
+| 135 | Core × identidade | 🔴 dados operacionais ausentes |
+| 136 | Pacote de entrada E3 | 🟢 especificação fechada / artefato pendente |
+| 137 | Decisão de homologação E3 | 🟢 protocolo fechado / aplicação pendente |
+| 138 | Coerência documental E3 | 🟢 sem contradição material |
+
+A cobertura documental 133–138 está consistente com o gate consolidado: o avanço comportamental continua permitido em harness; o avanço físico permanece bloqueado até E3 SED e Core operacional homologados.
+
