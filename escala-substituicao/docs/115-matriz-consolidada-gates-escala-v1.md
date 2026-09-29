@@ -57,3 +57,11 @@ Ainda ausentes: memberships reais; responsibility scopes reais; teacher profiles
 A Escala possui maturidade elevada no núcleo lógico e comportamental, mas permanece bloqueada para integração produtiva por E3/SED e pela ausência de dados operacionais homologados do Core.
 
 **Estado global: 🟠 PRONTO NO COMPORTAMENTO / 🔴 BLOQUEADO NA INTEGRAÇÃO PRODUTIVA.**
+
+## Nota de atualização documental — 29/09/2026
+
+Esta matriz é a referência consolidada de estado atual para os gates técnicos. Auditorias anteriores que registram execução PostgreSQL como “pendente” devem ser interpretadas como registros do estado na data de sua emissão, não como estado atual.
+
+Desde aquelas auditorias, foram obtidas evidências reais em PostgreSQL para os principais harnesses de comportamento listados nesta matriz. Isso não altera os gates independentes de integração: E3/SED, Core operacional, identidade acadêmica, RLS físico, governança física e concorrência multi-sessão permanecem pendentes.
+
+**Regra de precedência documental:** para status atual, utilizar esta matriz e as auditorias posteriores numeradas 116–138; para reconstrução histórica, preservar o texto original das auditorias anteriores.
