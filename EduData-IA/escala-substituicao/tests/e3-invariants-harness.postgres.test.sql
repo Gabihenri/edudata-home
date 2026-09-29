@@ -57,7 +57,7 @@ INSERT INTO e3_harness_responsibility VALUES
 ('E3-H15','DI-A','DI-A','SCHOOL-A','T-A','ASS-A','GRADE-A','2026-02-02','2026-06-30','2026-02-02','2026-12-18','2026-08-20',true,false,true,null,false,null,1,'CTX-A',1,'BLOCKED'),
 ('E3-H16','DI-A','DI-A','SCHOOL-A','T-A','ASS-A','GRADE-A','2026-02-02','2026-12-18','2026-02-02','2026-06-30','2026-08-20',true,false,true,null,false,null,1,'CTX-A',1,'BLOCKED'),
 ('E3-H17','DI-A','DI-A','SCHOOL-A','T-A','ASS-B','GRADE-B','2026-02-02','2026-12-18','2026-02-02','2026-12-18','2026-08-20',true,false,true,null,false,null,1,'CTX-A',2,'SOURCE_UNCERTAIN'),
-('E3-H18','DI-A','DI-A','SCHOOL-A','T-A','ASS-A','GRADE-A','2026-02-02','2026-12-18','2026-02-02','2026-12-18','2026-08-20',true,false,false,null,false,null,1,'CTX-A',1,'BLOCKED')
+('E3-H18','DI-A','DI-A','SCHOOL-A','T-A','ASS-A','GRADE-A','2026-02-02','2026-12-18','2026-02-02','2026-12-18','2026-08-20',true,false,false,null,false,null,1,'CTX-A',1,'BLOCKED');
 
 WITH evaluated AS (
   SELECT h.case_id,
