@@ -40,7 +40,7 @@ CREATE TEMP TABLE e3_harness_result (
 );
 
 INSERT INTO e3_harness_responsibility VALUES
-('E3-H01','DI-A','DI-A','SCHOOL-A','T-A','ASS-A','GRADE-A','2026-02-02','2026-12-18','2026-02-02','2026-12-18','2026-08-20',true,false,true,null,null,null,false,'CTX-A',1,'RESOLVED'),
+('E3-H01','DI-A','DI-A','SCHOOL-A','T-A','ASS-A','GRADE-A','2026-02-02','2026-12-18','2026-02-02','2026-12-18','2026-08-20',true,false,true,null,null,1,false,'CTX-A',1,'RESOLVED'),
 ('E3-H02','DI-A','DI-B','SCHOOL-A','T-A','ASS-A','GRADE-A','2026-02-02','2026-12-18','2026-02-02','2026-12-18','2026-08-20',true,false,true,null,null,1,false,'CTX-A',1,'SOURCE_UNCERTAIN'),
 ('E3-H03',null,'DI-A','SCHOOL-A','T-A','ASS-A','GRADE-A','2026-02-02','2026-12-18','2026-02-02','2026-12-18','2026-08-20',true,false,true,null,null,1,false,'CTX-A',1,'UNRESOLVED'),
 ('E3-H04','DI-A','DI-A',null,'T-A','ASS-A','GRADE-A','2026-02-02','2026-12-18','2026-02-02','2026-12-18','2026-08-20',true,false,true,null,null,1,false,'CTX-A',1,'BLOCKED'),
