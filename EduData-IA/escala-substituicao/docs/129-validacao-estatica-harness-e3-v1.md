@@ -105,3 +105,21 @@ Commit do harness corrigido: `9fb4d30e3aae6ad14a12c852b60330d67b873d5f`.
 **PostgreSQL real:** ainda **PENDENTE**. O ambiente local desta etapa não possui cliente/servidor PostgreSQL disponível; portanto não há declaração de execução real para esta revisão.
 
 A correção não altera o gate E3: fonte operacional SED, chaves, Associação ↔ Grade, vigência, publicação e proveniência continuam não homologadas para produção.
+
+
+## Atualização adicional — auditoria H17 — 28/09/2026
+
+Nova revisão identificou que **E3-H17** ainda não comprovava a regra declarada para múltiplas associações: a fixture possuía uma associação alternativa, mas o avaliador podia tratá-la como resolvida.
+
+Correção aplicada no harness:
+
+- novo campo sintético `association_context_count`;
+- H17 representa duas associações candidatas no mesmo contexto;
+- ausência de regra homologada para selecionar uma associação produz `SOURCE_UNCERTAIN`;
+- o harness não escolhe automaticamente `ASS-A` ou `ASS-B`;
+- as demais 17 fixtures permanecem com contexto unitário;
+- total permanece em 18 casos, todos com aridade estrutural uniforme.
+
+Commit do harness: `ed748e77a7c0ee3adc5467ceb7787e274b6e1e5a`.
+
+A decisão é deliberadamente conservadora: **múltiplas associações válidas sem regra de origem/seleção homologada não podem alimentar responsabilidade docente resolvida**.
