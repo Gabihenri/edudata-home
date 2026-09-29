@@ -12,10 +12,30 @@ Portanto:
 - contratos e regras: consolidados;
 - reconciliação Core × Grade SED: documentada;
 - testes sintéticos R01–R16: estruturados;
-- execução PostgreSQL dos harnesses: não comprovada;
+- múltiplos harnesses de regressão executados em **PostgreSQL real** com resultados aprovados;
+- concorrência física em múltiplas sessões: ainda pendente;
 - integração operacional SED: bloqueada;
 - DDL de produção: bloqueado;
 - atribuição oficial automática: não permitida.
+
+## Evidências já validadas
+
+Foram obtidas evidências reais em PostgreSQL para:
+
+- R03/R15/R16;
+- ocorrência → vaga;
+- HARD rules de elegibilidade;
+- score/ranking;
+- alocação global;
+- persistência de rodada;
+- atomicidade;
+- transições/invalidação;
+- Authorization Resolver em harness Core;
+- contrato RLS/governança;
+- invariantes E3 H01–H22;
+- staging/publication boundary.
+
+Essas execuções comprovam **comportamentos específicos dos contratos e harnesses**. Elas não equivalem à homologação da fonte SED, ao Core operacional populado ou à execução ponta a ponta em produção.
 
 ## Fase 1 — Concepção e fundação
 
