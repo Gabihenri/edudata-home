@@ -94,7 +94,7 @@ $$;
 
 -- v1: only eligible candidates enter scoring/ranking.
 WITH calculated AS (
- SELECT c.*, escala_score_test.calculate_score(c.id,'score-v1') score FROM escala_score_test.candidates c WHERE c.eligibility_status='eligible'
+ SELECT c.id AS candidate_id, c.*, escala_score_test.calculate_score(c.id,'score-v1') score FROM escala_score_test.candidates c WHERE c.eligibility_status='eligible'
 ), ranked AS (
  SELECT *, row_number() OVER (ORDER BY score DESC,component_match DESC,area_match DESC,continuity DESC,valid_substitutions_count ASC,teacher_id ASC) rank_position FROM calculated
 )
@@ -118,7 +118,7 @@ CREATE TEMP TABLE escala_score_test.v1_history AS SELECT candidate_id,score,rank
 
 -- v2: same source snapshot, controlled weight change, detailed explanation preserved.
 WITH calculated AS (
- SELECT c.*, escala_score_test.calculate_score(c.id,'score-v2') score FROM escala_score_test.candidates c WHERE c.eligibility_status='eligible'
+ SELECT c.id AS candidate_id, c.*, escala_score_test.calculate_score(c.id,'score-v2') score FROM escala_score_test.candidates c WHERE c.eligibility_status='eligible'
 ), ranked AS (
  SELECT *, row_number() OVER (ORDER BY score DESC,component_match DESC,area_match DESC,continuity DESC,valid_substitutions_count ASC,teacher_id ASC) rank_position FROM calculated
 )
