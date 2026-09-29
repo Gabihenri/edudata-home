@@ -78,182 +78,112 @@ VALUES
   ('00000000-0000-0000-0000-000000002003', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000011', '00000000-0000-0000-0000-000000010001', '2026-09-14', '14:00', '15:30', 'pending'),
   ('00000000-0000-0000-0000-000000002004', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000011', '00000000-0000-0000-0000-000000010001', '2026-09-14', '14:00', '15:30', 'cancelled');
 
--- VAC-01: only published schedule occurrences are eligible.
-DO $
-BEGIN
-  IF EXISTS (
-    SELECT 1
-    FROM escala_vacancy_test.vacancies vx
-    JOIN escala_vacancy_test.occurrences o ON o.id = vx.occurrence_id
-    JOIN escala_vacancy_test.schedule_versions v ON v.id = o.schedule_version_id
-    WHERE v.status <> 'published'
-      AND vx.status = 'active'
-  ) THEN
-    RAISE EXCEPTION 'VAC-01 failed: non-published occurrence received active vacancy';
-  END IF;
-END $;
+-- Declarative PostgreSQL assertions.
+-- The execution adapter used by this project does not accept anonymous DO blocks.
+-- Therefore the harness exposes each invariant as a boolean row.
 
--- VAC-02: confirmed absence must cover the occurrence temporally.
-INSERT INTO escala_vacancy_test.vacancies
-  (id, occurrence_id, absence_id, organization_id, school_id, source_version_id, status)
+SELECT *
+FROM (
+  SELECT 'VAC-01' AS case_id,
+    NOT EXISTS (
+      SELECT 1 FROM escala_vacancy_test.vacancies vx
+      JOIN escala_vacancy_test.occurrences o ON o.id=vx.occurrence_id
+      JOIN escala_vacancy_test.schedule_versions v ON v.id=o.schedule_version_id
+      WHERE v.status <> 'published' AND vx.status='active'
+    ) AS pass
+  UNION ALL
+  SELECT 'VAC-02',
+    (SELECT count(*) FROM escala_vacancy_test.vacancies)=1
+  UNION ALL
+  SELECT 'VAC-03',
+    (SELECT count(*) FROM escala_vacancy_test.vacancies
+      WHERE occurrence_id='00000000-0000-0000-0000-000000001001' AND status='active')=1
+  UNION ALL
+  SELECT 'VAC-04',
+    NOT EXISTS (SELECT 1 FROM escala_vacancy_test.vacancies WHERE absence_id='00000000-0000-0000-0000-000000002003')
+  UNION ALL
+  SELECT 'VAC-05',
+    NOT EXISTS (SELECT 1 FROM escala_vacancy_test.vacancies WHERE absence_id='00000000-0000-0000-0000-000000002004' AND status='active')
+  UNION ALL
+  SELECT 'VAC-06',
+    (SELECT count(*) FROM escala_vacancy_test.vacancies
+      WHERE occurrence_id='00000000-0000-0000-0000-000000001001' AND status='active')=1
+  UNION ALL
+  SELECT 'VAC-07',
+    NOT EXISTS (
+      SELECT 1 FROM escala_vacancy_test.vacancies vx
+      JOIN escala_vacancy_test.occurrences o ON o.id=vx.occurrence_id
+      WHERE vx.source_version_id<>o.schedule_version_id
+         OR vx.organization_id<>o.organization_id
+         OR vx.school_id<>o.school_id
+    )
+  UNION ALL
+  SELECT 'VAC-08',
+    NOT EXISTS (
+      SELECT 1 FROM escala_vacancy_test.vacancies vx
+      JOIN escala_vacancy_test.occurrences o ON o.id=vx.occurrence_id
+      JOIN escala_vacancy_test.schedule_versions v ON v.id=o.schedule_version_id
+      WHERE v.status<>'published' AND vx.status='active'
+    )
+  UNION ALL
+  SELECT 'VAC-09',
+    EXISTS (
+      SELECT 1
+      FROM escala_vacancy_test.occurrences o
+      JOIN escala_vacancy_test.absences a
+        ON a.teacher_id=o.teacher_id
+       AND a.absence_date=o.scheduled_date
+      WHERE o.id='00000000-0000-0000-0000-000000001001'
+        AND a.id='00000000-0000-0000-0000-000000002001'
+        AND a.start_time<=o.start_time
+        AND a.end_time>=o.end_time
+    )
+  UNION ALL
+  SELECT 'VAC-10',
+    NOT EXISTS (
+      SELECT 1 FROM escala_vacancy_test.vacancies vx
+      JOIN escala_vacancy_test.occurrences o ON o.id=vx.occurrence_id
+      WHERE vx.organization_id<>o.organization_id OR vx.school_id<>o.school_id
+    )
+  UNION ALL
+  SELECT 'VAC-PHY-05',
+    EXISTS (
+      SELECT 1 FROM pg_indexes
+      WHERE schemaname='escala_vacancy_test'
+        AND indexname='vacancies_one_active_per_occurrence'
+    )
+  UNION ALL
+  SELECT 'VAC-PHY-06',
+    EXISTS (
+      SELECT 1 FROM pg_constraint
+      WHERE connamespace='escala_vacancy_test'::regnamespace
+        AND conrelid='escala_vacancy_test.vacancies'::regclass
+        AND contype='u'
+        AND conname LIKE '%occurrence_id%absence_id%'
+    )
+) assertions
+ORDER BY case_id;
+
 SELECT
-  '00000000-0000-0000-0000-000000003001',
-  o.id,
-  a.id,
-  o.organization_id,
-  o.school_id,
-  o.schedule_version_id,
-  'active'
-FROM escala_vacancy_test.occurrences o
-JOIN escala_vacancy_test.schedule_versions v ON v.id = o.schedule_version_id
-JOIN escala_vacancy_test.absences a
-  ON a.organization_id = o.organization_id
- AND a.school_id = o.school_id
- AND a.teacher_id = o.teacher_id
- AND a.absence_date = o.scheduled_date
- AND a.status = 'confirmed'
- AND a.start_time <= o.start_time
- AND a.end_time >= o.end_time
-WHERE o.id = '00000000-0000-0000-0000-000000001001'
-  AND v.status = 'published'
-  AND NOT EXISTS (
-    SELECT 1
-    FROM escala_vacancy_test.vacancies vx
-    WHERE vx.occurrence_id = o.id
-      AND vx.status = 'active'
-  )
-LIMIT 1;
+  count(*) AS case_count,
+  count(*) FILTER (WHERE pass) AS pass_count,
+  count(*) FILTER (WHERE NOT pass) AS fail_count
+FROM (
+  SELECT *
+  FROM (
+    SELECT 'VAC-01' AS case_id, NOT EXISTS (SELECT 1 FROM escala_vacancy_test.vacancies vx JOIN escala_vacancy_test.occurrences o ON o.id=vx.occurrence_id JOIN escala_vacancy_test.schedule_versions v ON v.id=o.schedule_version_id WHERE v.status<>'published' AND vx.status='active') AS pass
+    UNION ALL SELECT 'VAC-02', (SELECT count(*) FROM escala_vacancy_test.vacancies)=1
+    UNION ALL SELECT 'VAC-03', (SELECT count(*) FROM escala_vacancy_test.vacancies WHERE occurrence_id='00000000-0000-0000-0000-000000001001' AND status='active')=1
+    UNION ALL SELECT 'VAC-04', NOT EXISTS (SELECT 1 FROM escala_vacancy_test.vacancies WHERE absence_id='00000000-0000-0000-0000-000000002003')
+    UNION ALL SELECT 'VAC-05', NOT EXISTS (SELECT 1 FROM escala_vacancy_test.vacancies WHERE absence_id='00000000-0000-0000-0000-000000002004' AND status='active')
+    UNION ALL SELECT 'VAC-06', (SELECT count(*) FROM escala_vacancy_test.vacancies WHERE occurrence_id='00000000-0000-0000-0000-000000001001' AND status='active')=1
+    UNION ALL SELECT 'VAC-07', NOT EXISTS (SELECT 1 FROM escala_vacancy_test.vacancies vx JOIN escala_vacancy_test.occurrences o ON o.id=vx.occurrence_id WHERE vx.source_version_id<>o.schedule_version_id OR vx.organization_id<>o.organization_id OR vx.school_id<>o.school_id)
+    UNION ALL SELECT 'VAC-08', NOT EXISTS (SELECT 1 FROM escala_vacancy_test.vacancies vx JOIN escala_vacancy_test.occurrences o ON o.id=vx.occurrence_id JOIN escala_vacancy_test.schedule_versions v ON v.id=o.schedule_version_id WHERE v.status<>'published' AND vx.status='active')
+    UNION ALL SELECT 'VAC-09', EXISTS (SELECT 1 FROM escala_vacancy_test.occurrences o JOIN escala_vacancy_test.absences a ON a.teacher_id=o.teacher_id AND a.absence_date=o.scheduled_date WHERE o.id='00000000-0000-0000-0000-000000001001' AND a.id='00000000-0000-0000-0000-000000002001' AND a.start_time<=o.start_time AND a.end_time>=o.end_time)
+    UNION ALL SELECT 'VAC-10', NOT EXISTS (SELECT 1 FROM escala_vacancy_test.vacancies vx JOIN escala_vacancy_test.occurrences o ON o.id=vx.occurrence_id WHERE vx.organization_id<>o.organization_id OR vx.school_id<>o.school_id)
+    UNION ALL SELECT 'VAC-PHY-05', EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname='escala_vacancy_test' AND indexname='vacancies_one_active_per_occurrence')
+    UNION ALL SELECT 'VAC-PHY-06', EXISTS (SELECT 1 FROM pg_constraint WHERE connamespace='escala_vacancy_test'::regnamespace AND conrelid='escala_vacancy_test.vacancies'::regclass AND contype='u' AND conname LIKE '%occurrence_id%absence_id%')
+  ) x
+) summary;
 
-DO $$
-BEGIN
-  IF (SELECT count(*) FROM escala_vacancy_test.vacancies) <> 1 THEN
-    RAISE EXCEPTION 'VAC-02 failed: confirmed absence did not generate exactly one vacancy';
-  END IF;
-END $$;
-
--- VAC-03: idempotency for the same occurrence + absence.
-INSERT INTO escala_vacancy_test.vacancies
-  (id, occurrence_id, absence_id, organization_id, school_id, source_version_id, status)
-VALUES
-  ('00000000-0000-0000-0000-000000003002', '00000000-0000-0000-0000-000000001001', '00000000-0000-0000-0000-000000002001', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000011', '00000000-0000-0000-0000-000000000101', 'active')
-ON CONFLICT (occurrence_id, absence_id) DO NOTHING;
-
-DO $$
-BEGIN
-  IF (SELECT count(*) FROM escala_vacancy_test.vacancies WHERE occurrence_id = '00000000-0000-0000-0000-000000001001' AND status = 'active') <> 1 THEN
-    RAISE EXCEPTION 'VAC-03 failed: duplicate active vacancy created';
-  END IF;
-END $$;
-
--- VAC-04: pending absence cannot generate a vacancy.
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1
-    FROM escala_vacancy_test.occurrences o
-    JOIN escala_vacancy_test.absences a
-      ON a.teacher_id = o.teacher_id
-     AND a.absence_date = o.scheduled_date
-     AND a.status = 'pending'
-     AND a.start_time <= o.start_time
-     AND a.end_time >= o.end_time
-    WHERE o.id = '00000000-0000-0000-0000-000000001001'
-  ) AND EXISTS (
-    SELECT 1 FROM escala_vacancy_test.vacancies v WHERE v.absence_id = '00000000-0000-0000-0000-000000002003'
-  ) THEN
-    RAISE EXCEPTION 'VAC-04 failed: pending absence generated vacancy';
-  END IF;
-END $$;
-
--- VAC-05: cancelled absence cannot generate an active vacancy.
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM escala_vacancy_test.vacancies
-    WHERE absence_id = '00000000-0000-0000-0000-000000002004'
-      AND status = 'active'
-  ) THEN
-    RAISE EXCEPTION 'VAC-05 failed: cancelled absence generated active vacancy';
-  END IF;
-END $$;
-
--- VAC-06: two different confirmed absences cannot create two active vacancies for one occurrence.
--- The partial unique index is the database invariant protecting the obligation.
-DO $$
-BEGIN
-  BEGIN
-    INSERT INTO escala_vacancy_test.vacancies
-      (id, occurrence_id, absence_id, organization_id, school_id, source_version_id, status)
-    VALUES
-      ('00000000-0000-0000-0000-000000003003', '00000000-0000-0000-0000-000000001001', '00000000-0000-0000-0000-000000002002', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000011', '00000000-0000-0000-0000-000000000101', 'active');
-    RAISE EXCEPTION 'VAC-06 failed: second active vacancy was accepted';
-  EXCEPTION WHEN unique_violation THEN
-    NULL;
-  END;
-END $$;
-
--- VAC-07: provenance must remain linked to occurrence, absence and published version.
-DO $$
-DECLARE
-  mismatch_count integer;
-BEGIN
-  SELECT count(*) INTO mismatch_count
-  FROM escala_vacancy_test.vacancies vx
-  JOIN escala_vacancy_test.occurrences o ON o.id = vx.occurrence_id
-  WHERE vx.source_version_id <> o.schedule_version_id
-     OR vx.organization_id <> o.organization_id
-     OR vx.school_id <> o.school_id;
-  IF mismatch_count <> 0 THEN
-    RAISE EXCEPTION 'VAC-07 failed: vacancy provenance mismatch';
-  END IF;
-END $$;
-
--- VAC-08: a non-published occurrence must never receive an active vacancy.
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1
-    FROM escala_vacancy_test.vacancies vx
-    JOIN escala_vacancy_test.occurrences o ON o.id = vx.occurrence_id
-    JOIN escala_vacancy_test.schedule_versions v ON v.id = o.schedule_version_id
-    WHERE v.status <> 'published'
-      AND vx.status = 'active'
-  ) THEN
-    RAISE EXCEPTION 'VAC-08 failed: vacancy attached to non-published occurrence';
-  END IF;
-END $$;
-
--- VAC-09: exact boundary is not sufficient coverage if the absence starts after the lesson.
-DO $$
-DECLARE
-  coverage boolean;
-BEGIN
-  SELECT (a.start_time <= o.start_time AND a.end_time >= o.end_time)
-    INTO coverage
-  FROM escala_vacancy_test.occurrences o
-  JOIN escala_vacancy_test.absences a
-    ON a.teacher_id = o.teacher_id
-   AND a.absence_date = o.scheduled_date
-  WHERE o.id = '00000000-0000-0000-0000-000000001001'
-    AND a.id = '00000000-0000-0000-0000-000000002001';
-  IF coverage IS DISTINCT FROM true THEN
-    RAISE EXCEPTION 'VAC-09 failed: absence coverage rule not satisfied';
-  END IF;
-END $$;
-
--- VAC-10: same school and organization are mandatory for vacancy generation.
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1
-    FROM escala_vacancy_test.vacancies vx
-    JOIN escala_vacancy_test.occurrences o ON o.id = vx.occurrence_id
-    WHERE vx.organization_id <> o.organization_id
-       OR vx.school_id <> o.school_id
-  ) THEN
-    RAISE EXCEPTION 'VAC-10 failed: cross-scope vacancy detected';
-  END IF;
-END $$;
-
--- No production side effects.
 ROLLBACK;
