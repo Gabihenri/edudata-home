@@ -80,3 +80,17 @@ Documentos 133–138 verificados fisicamente no repositório e incorporados ao e
 
 A cobertura documental 133–138 está consistente com o gate consolidado: o avanço comportamental continua permitido em harness; o avanço físico permanece bloqueado até E3 SED e Core operacional homologados.
 
+## Auditoria de integridade do gate E3 — 29/09/2026
+
+Foi realizada busca adicional no repositório por artefatos operacionais, fixtures ou parsers que pudessem ser confundidos com fonte SED real.
+
+Resultado:
+
+- não foi localizado XLSX/CSV operacional SED da Grade Horária;
+- não foi localizado XLSX/CSV operacional SED da Associação Professor–Classe;
+- não foi localizado parser produtivo autorizado para essas fontes;
+- os arquivos encontrados relacionados a Grade/Associação permanecem contratos, auditorias, harnesses ou evidências documentais;
+- não foi identificada evidência de promoção de fixture sintética/histórica a fonte operacional.
+
+**Conclusão:** o GATE-FONTE-SED permanece corretamente **RED/BLOCKED**. A ausência do artefato real continua sendo um bloqueio externo e explícito, não uma lacuna documental interna.
+
