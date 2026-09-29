@@ -79,17 +79,19 @@ VALUES
   ('00000000-0000-0000-0000-000000002004', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000011', '00000000-0000-0000-0000-000000010001', '2026-09-14', '14:00', '15:30', 'cancelled');
 
 -- VAC-01: only published schedule occurrences are eligible.
-DO $$
+DO $
 BEGIN
   IF EXISTS (
     SELECT 1
-    FROM escala_vacancy_test.occurrences o
+    FROM escala_vacancy_test.vacancies vx
+    JOIN escala_vacancy_test.occurrences o ON o.id = vx.occurrence_id
     JOIN escala_vacancy_test.schedule_versions v ON v.id = o.schedule_version_id
     WHERE v.status <> 'published'
+      AND vx.status = 'active'
   ) THEN
-    RAISE EXCEPTION 'VAC-01 failed: non-published occurrence considered eligible';
+    RAISE EXCEPTION 'VAC-01 failed: non-published occurrence received active vacancy';
   END IF;
-END $$;
+END $;
 
 -- VAC-02: confirmed absence must cover the occurrence temporally.
 INSERT INTO escala_vacancy_test.vacancies
