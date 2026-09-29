@@ -140,3 +140,31 @@ Correção aplicada:
 Commit corretivo: `0e31be9f5590280e8148942308adde3861a76e7b`.
 
 Esta correção é estrutural; **não constitui execução PostgreSQL real**.
+
+
+## Execução PostgreSQL real — 28/09/2026
+
+Após as correções estruturais e de aridade, o harness E3 foi executado no PostgreSQL real do projeto Supabase `ihchzfndmdwtoabttkil` usando somente tabelas temporárias da sessão.
+
+Resultado:
+
+- **18 casos executados**;
+- **18 PASS**;
+- **0 FAIL**;
+- H01–H18 cobertos;
+- H17 com múltiplas associações no mesmo contexto permaneceu `SOURCE_UNCERTAIN`;
+- H18 sem ocorrência homologada permaneceu `BLOCKED`;
+- H10 não retroatividade foi validado com `substitution_effective_date`;
+- H13 múltiplos contextos de DI permaneceu `SOURCE_UNCERTAIN`.
+
+Foi realizada verificação posterior no catálogo persistente do PostgreSQL para `e3_harness_result` e `e3_harness_responsibility`, sem qualquer tabela persistente encontrada. O teste, portanto, não alterou o schema de produção.
+
+Correções anteriores consolidadas antes da execução:
+
+- `0e31be9f5590280e8148942308adde3861a76e7b` — correção inicial do terminador estrutural;
+- `1c41e60aa971c7b8fab3a841d7b2bc28582a19b6` — encerramento do INSERT;
+- `a425c9605f032208b8eadc8d32d9067ec0afb1b1` — normalização das 18 fixtures para 22 colunas;
+- `a53e2aca620672682bf78fe80cb1844a15b1f68c` — delimitador do INSERT;
+- `5824f9abe739e57725828d195a2071b2cf2e329a` — correção da fixture H01.
+
+**Conclusão:** o harness E3 possui agora evidência de execução PostgreSQL real com 18/18 casos aprovados. Isso valida o contrato sintético e sua lógica de fail-closed, mas **não homologa os dados SED nem libera DDL, parser, importador ou motor de produção**.
