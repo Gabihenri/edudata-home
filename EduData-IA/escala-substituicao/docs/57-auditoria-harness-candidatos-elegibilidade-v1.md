@@ -75,3 +75,30 @@ Mesmo após a correção do harness, permanecem críticos:
 9. versão final do motor de regras.
 
 **Conclusão:** a camada de elegibilidade está conceitualmente bem estruturada, mas permanece **RED/BLOCKED** até a correção de T07 e posterior validação.
+
+## Validação PostgreSQL real — 28/09/2026
+
+O harness `tests/candidate-eligibility-hard-rules.postgres.test.sql` foi convertido para asserções declarativas compatíveis com o executor PostgreSQL utilizado no projeto, preservando as fixtures e as invariantes HARD-01 a HARD-08.
+
+Resultado:
+
+- **11 controles executados**;
+- **11 PASS**;
+- **0 FAIL**;
+- identidade não homologada bloqueada;
+- escopo operacional inválido bloqueado;
+- indisponibilidade temporal conflitante detectada;
+- obrigação oficial conflitante detectada;
+- substituição confirmada conflitante detectada;
+- qualificação inválida bloqueada;
+- impedimento administrativo bloqueado;
+- contexto temporal válido;
+- múltiplas violações preservadas;
+- intervalo que apenas encosta na borda não tratado como conflito;
+- candidato com falha HARD não permanece `eligible`.
+
+A execução foi transacional e terminou em `ROLLBACK`, sem criação de estrutura persistente de produção.
+
+Commit da adaptação do harness: `54ffa52ed97963768ce92882b2af701269d69a29`.
+
+**Conclusão:** as restrições duras possuem agora evidência de execução PostgreSQL real. A camada de score/ranking continua condicionada à elegibilidade e deve ser auditada separadamente.
