@@ -85,7 +85,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION pg_temp.calculate_score(p_candidate_id uuid, p_rule_set_version text)
 RETURNS numeric LANGUAGE sql AS $$
-  SELECT round(c.component_match*w.component_weight+c.area_match*w.area_weight+c.availability_fit*w.availability_weight+c.continuity*w.continuity_weight+c.distribution_balance*w.distribution_weight+pg_temp.effective_proximity(c.id)*w.proximity_weight+c.institutional_preference*w.preference_weight,3)
+  SELECT round(c.component_match*w.component_weight+c.area_match*w.area_weight+c.availability_fit*w.availability_weight+c.continuity*w.continuity_weight+c.distribution_balance*w.distribution_weight+pg_temp.pg_temp.effective_proximity(c.id)*w.proximity_weight+c.institutional_preference*w.preference_weight,3)
   FROM candidates c JOIN weights w ON w.rule_set_version=p_rule_set_version
   WHERE c.id=p_candidate_id AND c.eligibility_status='eligible';
 $$;
@@ -98,14 +98,14 @@ WITH calculated AS (
 )
 INSERT INTO scores
 SELECT '90000000-0000-0000-0000-000000000001',candidate_id,score,'ranked',rank_position,
- round(component_match*w.component_weight,3),round(area_match*w.area_weight,3),round(availability_fit*w.availability_weight,3),round(continuity*w.continuity_weight,3),round(distribution_balance*w.distribution_weight,3),round(effective_proximity(candidate_id)*w.proximity_weight,3),round(institutional_preference*w.preference_weight,3),
+ round(component_match*w.component_weight,3),round(area_match*w.area_weight,3),round(availability_fit*w.availability_weight,3),round(continuity*w.continuity_weight,3),round(distribution_balance*w.distribution_weight,3),round(pg_temp.effective_proximity(candidate_id)*w.proximity_weight,3),round(institutional_preference*w.preference_weight,3),
  jsonb_build_object('rule_set_version','score-v1','criteria',jsonb_build_array(
  jsonb_build_object('code','SCORE-01','weight',w.component_weight,'normalized_value',component_match),
  jsonb_build_object('code','SCORE-02','weight',w.area_weight,'normalized_value',area_match),
  jsonb_build_object('code','SCORE-03','weight',w.availability_weight,'normalized_value',availability_fit),
  jsonb_build_object('code','SCORE-04','weight',w.continuity_weight,'normalized_value',continuity),
  jsonb_build_object('code','SCORE-05','weight',w.distribution_weight,'normalized_value',distribution_balance),
- jsonb_build_object('code','SCORE-06','weight',w.proximity_weight,'normalized_value',effective_proximity(candidate_id),'evidence_status',proximity_evidence_status,'reason_code',CASE WHEN proximity_evidence_status<>'homologated' THEN 'PROXIMITY_NOT_AVAILABLE' ELSE NULL END),
+ jsonb_build_object('code','SCORE-06','weight',w.proximity_weight,'normalized_value',pg_temp.effective_proximity(candidate_id),'evidence_status',proximity_evidence_status,'reason_code',CASE WHEN proximity_evidence_status<>'homologated' THEN 'PROXIMITY_NOT_AVAILABLE' ELSE NULL END),
  jsonb_build_object('code','SCORE-07','weight',w.preference_weight,'normalized_value',institutional_preference)))
 FROM ranked r JOIN weights w ON w.rule_set_version='score-v1';
 
@@ -122,9 +122,9 @@ WITH calculated AS (
 )
 INSERT INTO scores
 SELECT '90000000-0000-0000-0000-000000000002',candidate_id,score,'ranked',rank_position,
- round(component_match*w.component_weight,3),round(area_match*w.area_weight,3),round(availability_fit*w.availability_weight,3),round(continuity*w.continuity_weight,3),round(distribution_balance*w.distribution_weight,3),round(effective_proximity(candidate_id)*w.proximity_weight,3),round(institutional_preference*w.preference_weight,3),
+ round(component_match*w.component_weight,3),round(area_match*w.area_weight,3),round(availability_fit*w.availability_weight,3),round(continuity*w.continuity_weight,3),round(distribution_balance*w.distribution_weight,3),round(pg_temp.effective_proximity(candidate_id)*w.proximity_weight,3),round(institutional_preference*w.preference_weight,3),
  jsonb_build_object('rule_set_version','score-v2','criteria',jsonb_build_array(
- jsonb_build_object('code','SCORE-01','weight',w.component_weight,'normalized_value',component_match),jsonb_build_object('code','SCORE-02','weight',w.area_weight,'normalized_value',area_match),jsonb_build_object('code','SCORE-03','weight',w.availability_weight,'normalized_value',availability_fit),jsonb_build_object('code','SCORE-04','weight',w.continuity_weight,'normalized_value',continuity),jsonb_build_object('code','SCORE-05','weight',w.distribution_weight,'normalized_value',distribution_balance),jsonb_build_object('code','SCORE-06','weight',w.proximity_weight,'normalized_value',effective_proximity(candidate_id),'evidence_status',proximity_evidence_status,'reason_code',CASE WHEN proximity_evidence_status<>'homologated' THEN 'PROXIMITY_NOT_AVAILABLE' ELSE NULL END),jsonb_build_object('code','SCORE-07','weight',w.preference_weight,'normalized_value',institutional_preference)))
+ jsonb_build_object('code','SCORE-01','weight',w.component_weight,'normalized_value',component_match),jsonb_build_object('code','SCORE-02','weight',w.area_weight,'normalized_value',area_match),jsonb_build_object('code','SCORE-03','weight',w.availability_weight,'normalized_value',availability_fit),jsonb_build_object('code','SCORE-04','weight',w.continuity_weight,'normalized_value',continuity),jsonb_build_object('code','SCORE-05','weight',w.distribution_weight,'normalized_value',distribution_balance),jsonb_build_object('code','SCORE-06','weight',w.proximity_weight,'normalized_value',pg_temp.effective_proximity(candidate_id),'evidence_status',proximity_evidence_status,'reason_code',CASE WHEN proximity_evidence_status<>'homologated' THEN 'PROXIMITY_NOT_AVAILABLE' ELSE NULL END),jsonb_build_object('code','SCORE-07','weight',w.preference_weight,'normalized_value',institutional_preference)))
 FROM ranked r JOIN weights w ON w.rule_set_version='score-v2';
 
 -- Declarative score/ranking assertions.
