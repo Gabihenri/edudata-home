@@ -85,7 +85,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION pg_temp.calculate_score(p_candidate_id uuid, p_rule_set_version text)
 RETURNS numeric LANGUAGE sql AS $$
-  SELECT round(c.component_match*w.component_weight+c.area_match*w.area_weight+c.availability_fit*w.availability_weight+c.continuity*w.continuity_weight+c.distribution_balance*w.distribution_weight+effective_proximity(c.id)*w.proximity_weight+c.institutional_preference*w.preference_weight,3)
+  SELECT round(c.component_match*w.component_weight+c.area_match*w.area_weight+c.availability_fit*w.availability_weight+c.continuity*w.continuity_weight+c.distribution_balance*w.distribution_weight+pg_temp.effective_proximity(c.id)*w.proximity_weight+c.institutional_preference*w.preference_weight,3)
   FROM candidates c JOIN weights w ON w.rule_set_version=p_rule_set_version
   WHERE c.id=p_candidate_id AND c.eligibility_status='eligible';
 $$;
