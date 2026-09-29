@@ -61,7 +61,7 @@ INSERT INTO allocation_results
 SELECT 'A07', NOT EXISTS(SELECT 1 FROM c WHERE o='O1' AND e AND a), 'explicit uncovered';
 
 -- A08: partial plan when only one teacher exists.
-WITH c AS (
+WITH RECURSIVE c AS (
  SELECT * FROM (VALUES ('O1','P1',95),('O2','P1',93),('O3','P1',96)) v(o,t,s)
 ), choices AS (
  SELECT o,NULL::text t,0 s FROM (VALUES('O1'),('O2'),('O3')) x(o)
