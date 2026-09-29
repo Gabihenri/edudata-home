@@ -30,7 +30,7 @@ O harness é sintético, isolado em `escala_vacancy_test` e termina com `ROLLBAC
 | VAC-AUD-07 | Vaga preserva proveniência da ocorrência, ausência e versão | 🟢 | `VAC-07` |
 | VAC-AUD-08 | Organização e escola permanecem no mesmo escopo | 🟢 | `VAC-10` |
 | VAC-AUD-09 | Harness é não destrutivo | 🟢 | schema sintético + `ROLLBACK` |
-| VAC-AUD-10 | Execução real em PostgreSQL | 🔴 | não executada neste ambiente |
+| VAC-AUD-10 | Execução real em PostgreSQL | 🟢 | 12/12 controles declarativos aprovados em PostgreSQL real |
 | VAC-AUD-11 | Integração com tabela/contrato físico de vagas de produção | 🔴 | ainda inexistente/homologação pendente |
 | VAC-AUD-12 | Integração com ocorrência oficial real da SEDUC-SP | 🔴 | fonte técnica operacional ainda não homologada |
 
@@ -85,9 +85,28 @@ Também não resolve:
 9. ausências parciais, múltiplos intervalos no mesmo dia e regras administrativas excepcionais;
 10. integração com o motor de candidatos, pontuação e alocação.
 
+## 5. Validação PostgreSQL real — 28/09/2026
+
+O harness foi adaptado para asserções declarativas porque o executor SQL utilizado no projeto não aceita blocos anônimos `DO $...$`. A etapa de materialização da vaga e o reprocessamento idempotente foram preservados explicitamente.
+
+Resultado no PostgreSQL real do projeto Supabase `ihchzfndmdwtoabttkil`:
+
+- 12 controles executados;
+- 12 PASS;
+- 0 FAIL;
+- ocorrência `published` elegível;
+- ocorrência `draft` sem vaga ativa;
+- ausência `confirmed` cobrindo integralmente a ocorrência;
+- ausência `pending`/`cancelled` sem vaga ativa;
+- reprocessamento `(occurrence_id, absence_id)` idempotente;
+- unicidade de vaga ativa por ocorrência presente;
+- proveniência e escopo organizacional coerentes.
+
+A execução foi transacional e terminou com `ROLLBACK`; nenhuma tabela persistente do harness foi criada.
+
 ## 5. Gate
 
-**STATUS: 🔴 RED / BLOCKED**
+**STATUS: 🟢 HARNESS VALIDADO / PRODUÇÃO AINDA BLOQUEADA**
 
 O contrato lógico `ocorrência oficial → ausência confirmada → vaga` está estruturalmente coberto por harness sintético, mas não deve ser promovido a produção.
 
@@ -106,3 +125,14 @@ Avançar para a especificação/auditoria do **contrato físico da vaga de subst
 `ocorrência oficial → ausência → vaga → candidatos → alocação`
 
 Sem criar DDL de produção até que os bloqueios críticos sejam fechados.
+
+
+## 7. Atualização da auditoria — 28/09/2026
+
+Correção do harness: `5f77a273acc881a0aedb3f1d24178cb53f969796` corrigiu VAC-01 para verificar geração indevida de vaga, e não a mera existência de uma ocorrência não publicada.
+
+A adaptação declarativa e restauração da fixture de materialização foram consolidadas em `30b122318d6af620e49ec2e2f3a122894031d2b1` e `4b6e0314884227280a888c36b0dc27b78321e090`.
+
+Execução real final: **12/12 PASS**.
+
+Isso valida o contrato sintético ocorrência → vaga no PostgreSQL, mas não homologa a origem SED nem libera DDL de produção.
