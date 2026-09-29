@@ -78,6 +78,48 @@ VALUES
   ('00000000-0000-0000-0000-000000002003', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000011', '00000000-0000-0000-0000-000000010001', '2026-09-14', '14:00', '15:30', 'pending'),
   ('00000000-0000-0000-0000-000000002004', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000011', '00000000-0000-0000-0000-000000010001', '2026-09-14', '14:00', '15:30', 'cancelled');
 
+-- Materialization fixture: one published occurrence + one covering confirmed absence.
+INSERT INTO escala_vacancy_test.vacancies
+  (id, occurrence_id, absence_id, organization_id, school_id, source_version_id, status)
+SELECT
+  '00000000-0000-0000-0000-000000003001',
+  o.id,
+  a.id,
+  o.organization_id,
+  o.school_id,
+  o.schedule_version_id,
+  'active'
+FROM escala_vacancy_test.occurrences o
+JOIN escala_vacancy_test.schedule_versions v ON v.id=o.schedule_version_id
+JOIN escala_vacancy_test.absences a
+  ON a.organization_id=o.organization_id
+ AND a.school_id=o.school_id
+ AND a.teacher_id=o.teacher_id
+ AND a.absence_date=o.scheduled_date
+ AND a.status='confirmed'
+ AND a.start_time<=o.start_time
+ AND a.end_time>=o.end_time
+WHERE o.id='00000000-0000-0000-0000-000000001001'
+  AND v.status='published'
+  AND NOT EXISTS (
+    SELECT 1 FROM escala_vacancy_test.vacancies vx
+    WHERE vx.occurrence_id=o.id AND vx.status='active'
+  )
+LIMIT 1;
+
+-- Reprocessing the same source pair must be idempotent.
+INSERT INTO escala_vacancy_test.vacancies
+  (id, occurrence_id, absence_id, organization_id, school_id, source_version_id, status)
+VALUES
+  ('00000000-0000-0000-0000-000000003002',
+   '00000000-0000-0000-0000-000000001001',
+   '00000000-0000-0000-0000-000000002001',
+   '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000011',
+   '00000000-0000-0000-0000-000000000101',
+   'active')
+ON CONFLICT (occurrence_id, absence_id) DO NOTHING;
+
 -- Declarative PostgreSQL assertions.
 -- The execution adapter used by this project does not accept anonymous DO blocks.
 -- Therefore the harness exposes each invariant as a boolean row.
