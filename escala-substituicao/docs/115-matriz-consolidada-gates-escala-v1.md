@@ -94,3 +94,19 @@ Resultado:
 
 **Conclusão:** o GATE-FONTE-SED permanece corretamente **RED/BLOCKED**. A ausência do artefato real continua sendo um bloqueio externo e explícito, não uma lacuna documental interna.
 
+## Auditoria de localização documental — 29/09/2026
+
+A auditoria 139 identificou uma divergência de raiz documental que precisa ser considerada na interpretação da cobertura 133–138.
+
+- A matriz atual está em `escala-substituicao/docs/`.
+- O documento 138 foi localizado em `EduData-IA/escala-substituicao/docs/`, e não no caminho atual da matriz.
+- O documento 133 não foi localizado no caminho atual `escala-substituicao/docs/`; há referência histórica dele em `EduData-IA/escala-substituicao/docs/`.
+- O harness R03/R15/R16 está no caminho atual `escala-substituicao/tests/`.
+
+Portanto, a tabela 133–138 deve ser interpretada como **cobertura documental histórica/consolidada**, e não como prova de que todos esses arquivos estejam hoje na mesma raiz canônica.
+
+A divergência não altera os resultados dos harnesses nem qualquer gate produtivo. Até a reconciliação das raízes, não mover, duplicar ou excluir documentação automaticamente.
+
+**Regra atualizada:** arquivos presentes no `main` no caminho canônico têm precedência operacional; arquivos encontrados somente em histórico servem para reconstrução histórica e não devem ser tratados como artefatos atuais.
+
+Auditoria detalhada: `escala-substituicao/docs/139-auditoria-localizacao-documental-integridade-gate-v1.md`.
