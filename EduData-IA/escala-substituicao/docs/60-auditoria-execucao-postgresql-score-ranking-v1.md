@@ -65,3 +65,31 @@ A mesma regra deve ser aplicada ao breakdown e à contribuição armazenada, evi
 A evidência PostgreSQL real confirmou um defeito semântico relevante. A próxima alteração deve ser limitada ao arquivo do harness, corrigindo a neutralização da proximidade sem evidência e preservando a rastreabilidade do breakdown.
 
 Nenhum DDL de produção deve ser criado nesta etapa.
+
+
+## Validação PostgreSQL real — 28/09/2026
+
+O harness `tests/candidate-score-ranking.postgres.test.sql` foi adaptado para isolamento transacional por tabelas temporárias e asserções declarativas, mantendo a lógica do contrato de score/ranking.
+
+Resultado final:
+
+- **13 gates executados**;
+- **13 PASS**;
+- **0 FAIL**;
+- pesos somam 100;
+- score permanece entre 0 e 100;
+- candidatos inelegíveis não recebem score/ranking operacional;
+- contribuições dos sete critérios reconstruíveis;
+- correspondência de componente influencia o ranking conforme o peso;
+- desempate determinístico por menor número de substituições;
+- proximidade sem evidência não gera pontuação;
+- alteração de rule-set gera nova execução;
+- histórico v1 permanece preservado após v2;
+- `PROXIMITY_NOT_AVAILABLE` é registrado na explicação;
+- unicidade por `run_id + candidate_id` é preservada.
+
+A execução foi transacional e terminou com `ROLLBACK`; não foram criadas estruturas persistentes de produção.
+
+Correções técnicas realizadas durante a execução real incluíram: exposição explícita de `candidate_id` nas CTEs, isolamento por tabelas temporárias e qualificação das funções temporárias no `pg_temp`.
+
+**Conclusão:** Score/Ranking possui evidência de execução PostgreSQL real com 13/13 gates aprovados. Isso não libera produção: a fonte SED, identidade acadêmica, permissões/RLS e entidades físicas continuam sendo gates independentes.
