@@ -129,22 +129,101 @@ SELECT '90000000-0000-0000-0000-000000000002',candidate_id,score,'ranked',rank_p
  jsonb_build_object('code','SCORE-01','weight',w.component_weight,'normalized_value',component_match),jsonb_build_object('code','SCORE-02','weight',w.area_weight,'normalized_value',area_match),jsonb_build_object('code','SCORE-03','weight',w.availability_weight,'normalized_value',availability_fit),jsonb_build_object('code','SCORE-04','weight',w.continuity_weight,'normalized_value',continuity),jsonb_build_object('code','SCORE-05','weight',w.distribution_weight,'normalized_value',distribution_balance),jsonb_build_object('code','SCORE-06','weight',w.proximity_weight,'normalized_value',escala_score_test.effective_proximity(candidate_id),'evidence_status',proximity_evidence_status,'reason_code',CASE WHEN proximity_evidence_status<>'homologated' THEN 'PROXIMITY_NOT_AVAILABLE' ELSE NULL END),jsonb_build_object('code','SCORE-07','weight',w.preference_weight,'normalized_value',institutional_preference)))
 FROM ranked r JOIN escala_score_test.weights w ON w.rule_set_version='score-v2';
 
-DO $$ BEGIN
- IF EXISTS (SELECT 1 FROM escala_score_test.weights WHERE component_weight+area_weight+availability_weight+continuity_weight+distribution_weight+proximity_weight+preference_weight<>100) THEN RAISE EXCEPTION 'GATE-01 failed'; END IF;
- IF EXISTS (SELECT 1 FROM escala_score_test.scores WHERE score IS NOT NULL AND (score<0 OR score>100)) THEN RAISE EXCEPTION 'GATE-02 failed'; END IF;
- IF EXISTS (SELECT 1 FROM escala_score_test.scores s JOIN escala_score_test.candidates c ON c.id=s.candidate_id WHERE c.eligibility_status<>'eligible' AND (s.score IS NOT NULL OR s.rank_position IS NOT NULL OR s.ranking_status IN ('scored','ranked'))) THEN RAISE EXCEPTION 'GATE-03 failed'; END IF;
- IF EXISTS (SELECT 1 FROM escala_score_test.scores WHERE score IS NOT NULL AND score<>component_contribution+area_contribution+availability_contribution+continuity_contribution+distribution_contribution+proximity_contribution+preference_contribution) THEN RAISE EXCEPTION 'GATE-04 failed'; END IF;
- IF escala_score_test.calculate_score('10000000-0000-0000-0000-000000000002','score-v1')<=escala_score_test.calculate_score('10000000-0000-0000-0000-000000000003','score-v1') THEN RAISE EXCEPTION 'GATE-05 failed'; END IF;
- IF escala_score_test.calculate_score('10000000-0000-0000-0000-000000000007','score-v1')>=escala_score_test.calculate_score('10000000-0000-0000-0000-000000000001','score-v1') THEN RAISE EXCEPTION 'GATE-06 failed'; END IF;
- IF (SELECT proximity_contribution FROM escala_score_test.scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND candidate_id='10000000-0000-0000-0000-000000000007')<>0 THEN RAISE EXCEPTION 'GATE-06 contribution failed'; END IF;
- IF (SELECT score FROM escala_score_test.scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND candidate_id='10000000-0000-0000-0000-000000000007')<>95 THEN RAISE EXCEPTION 'GATE-06 expected score 95'; END IF;
- IF (SELECT candidate_id FROM escala_score_test.scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND rank_position=(SELECT min(rank_position) FROM escala_score_test.scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND candidate_id IN ('10000000-0000-0000-0000-000000000005','10000000-0000-0000-0000-000000000006')))<>'10000000-0000-0000-0000-000000000005' THEN RAISE EXCEPTION 'GATE-07 failed: fewer valid substitutions must win tie'; END IF;
- IF NOT EXISTS (SELECT 1 FROM escala_score_test.score_runs WHERE id='90000000-0000-0000-0000-000000000001' AND rule_set_version='score-v1' AND snapshot_reference='snapshot-2026-09-10-v1') OR NOT EXISTS (SELECT 1 FROM escala_score_test.score_runs WHERE id='90000000-0000-0000-0000-000000000002' AND rule_set_version='score-v2' AND snapshot_reference='snapshot-2026-09-10-v2') THEN RAISE EXCEPTION 'GATE-08 failed'; END IF;
- IF EXISTS (SELECT 1 FROM escala_score_test.scores WHERE score_breakdown IS NOT NULL AND jsonb_array_length(score_breakdown->'criteria')<>7) THEN RAISE EXCEPTION 'GATE-04 explanation failed'; END IF;
- IF escala_score_test.calculate_score('10000000-0000-0000-0000-000000000008','score-v1')=escala_score_test.calculate_score('10000000-0000-0000-0000-000000000008','score-v2') THEN RAISE EXCEPTION 'GATE-10 failed'; END IF;
- IF EXISTS (SELECT 1 FROM escala_score_test.v1_history h JOIN escala_score_test.scores s ON s.run_id='90000000-0000-0000-0000-000000000001' AND s.candidate_id=h.candidate_id WHERE h.score IS DISTINCT FROM s.score OR h.ranking_status IS DISTINCT FROM s.ranking_status OR h.rank_position IS DISTINCT FROM s.rank_position OR h.score_breakdown IS DISTINCT FROM s.score_breakdown) THEN RAISE EXCEPTION 'GATE-11 failed'; END IF;
- IF (SELECT score_breakdown #>> '{criteria,5,reason_code}' FROM escala_score_test.scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND candidate_id='10000000-0000-0000-0000-000000000007')<>'PROXIMITY_NOT_AVAILABLE' THEN RAISE EXCEPTION 'GATE-12 failed'; END IF;
- IF EXISTS (SELECT run_id,candidate_id,count(*) FROM escala_score_test.scores GROUP BY run_id,candidate_id HAVING count(*)>1) OR (SELECT count(*) FROM escala_score_test.scores WHERE candidate_id='10000000-0000-0000-0000-000000000008')<>2 THEN RAISE EXCEPTION 'GATE-13 failed'; END IF;
-END $$;
+-- Declarative score/ranking assertions.
+SELECT *
+FROM (
+  SELECT 'GATE-01' AS case_id,
+    NOT EXISTS (
+      SELECT 1 FROM escala_score_test.weights
+      WHERE component_weight+area_weight+availability_weight+continuity_weight+distribution_weight+proximity_weight+preference_weight <> 100
+    ) AS pass
+  UNION ALL
+  SELECT 'GATE-02',
+    NOT EXISTS (SELECT 1 FROM escala_score_test.scores WHERE score IS NOT NULL AND (score < 0 OR score > 100))
+  UNION ALL
+  SELECT 'GATE-03',
+    NOT EXISTS (
+      SELECT 1 FROM escala_score_test.scores s
+      JOIN escala_score_test.candidates c ON c.id=s.candidate_id
+      WHERE c.eligibility_status <> 'eligible'
+        AND (s.score IS NOT NULL OR s.rank_position IS NOT NULL OR s.ranking_status IN ('scored','ranked'))
+    )
+  UNION ALL
+  SELECT 'GATE-04',
+    NOT EXISTS (
+      SELECT 1 FROM escala_score_test.scores
+      WHERE score IS NOT NULL
+        AND score <> component_contribution+area_contribution+availability_contribution+continuity_contribution+distribution_contribution+proximity_contribution+preference_contribution
+    )
+  UNION ALL
+  SELECT 'GATE-05',
+    escala_score_test.calculate_score('10000000-0000-0000-0000-000000000002','score-v1')
+      > escala_score_test.calculate_score('10000000-0000-0000-0000-000000000003','score-v1')
+  UNION ALL
+  SELECT 'GATE-06',
+    escala_score_test.calculate_score('10000000-0000-0000-0000-000000000007','score-v1')
+      < escala_score_test.calculate_score('10000000-0000-0000-0000-000000000001','score-v1')
+    AND (SELECT proximity_contribution FROM escala_score_test.scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND candidate_id='10000000-0000-0000-0000-000000000007') = 0
+    AND (SELECT score FROM escala_score_test.scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND candidate_id='10000000-0000-0000-0000-000000000007') = 95
+  UNION ALL
+  SELECT 'GATE-07',
+    (SELECT candidate_id
+     FROM escala_score_test.scores
+     WHERE run_id='90000000-0000-0000-0000-000000000001'
+       AND rank_position=(SELECT min(rank_position) FROM escala_score_test.scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND candidate_id IN ('10000000-0000-0000-0000-000000000005','10000000-0000-0000-0000-000000000006')))
+      = '10000000-0000-0000-0000-000000000005'
+  UNION ALL
+  SELECT 'GATE-08',
+    (SELECT count(*) FROM escala_score_test.score_runs WHERE rule_set_version='score-v1' AND snapshot_reference='snapshot-2026-09-10-v1')=1
+    AND (SELECT count(*) FROM escala_score_test.score_runs WHERE rule_set_version='score-v2' AND snapshot_reference='snapshot-2026-09-10-v2')=1
+  UNION ALL
+  SELECT 'GATE-09',
+    NOT EXISTS (SELECT 1 FROM escala_score_test.scores WHERE score_breakdown IS NOT NULL AND jsonb_array_length(score_breakdown->'criteria') <> 7)
+  UNION ALL
+  SELECT 'GATE-10',
+    escala_score_test.calculate_score('10000000-0000-0000-0000-000000000008','score-v1')
+      <> escala_score_test.calculate_score('10000000-0000-0000-0000-000000000008','score-v2')
+  UNION ALL
+  SELECT 'GATE-11',
+    NOT EXISTS (
+      SELECT 1
+      FROM escala_score_test.v1_history h
+      JOIN escala_score_test.scores s
+        ON s.run_id='90000000-0000-0000-0000-000000000001'
+       AND s.candidate_id=h.candidate_id
+      WHERE h.score IS DISTINCT FROM s.score
+         OR h.ranking_status IS DISTINCT FROM s.ranking_status
+         OR h.rank_position IS DISTINCT FROM s.rank_position
+         OR h.score_breakdown IS DISTINCT FROM s.score_breakdown
+    )
+  UNION ALL
+  SELECT 'GATE-12',
+    (SELECT score_breakdown #>> '{criteria,5,reason_code}'
+     FROM escala_score_test.scores
+     WHERE run_id='90000000-0000-0000-0000-000000000001'
+       AND candidate_id='10000000-0000-0000-0000-000000000007')='PROXIMITY_NOT_AVAILABLE'
+  UNION ALL
+  SELECT 'GATE-13',
+    NOT EXISTS (SELECT 1 FROM escala_score_test.scores GROUP BY run_id,candidate_id HAVING count(*)>1)
+    AND (SELECT count(*) FROM escala_score_test.scores WHERE candidate_id='10000000-0000-0000-0000-000000000008')=2
+) assertions
+ORDER BY case_id;
+
+SELECT count(*) AS case_count, count(*) FILTER (WHERE pass) AS pass_count, count(*) FILTER (WHERE NOT pass) AS fail_count
+FROM (
+  SELECT 'GATE-01' AS case_id, NOT EXISTS (SELECT 1 FROM escala_score_test.weights WHERE component_weight+area_weight+availability_weight+continuity_weight+distribution_weight+proximity_weight+preference_weight<>100) AS pass
+  UNION ALL SELECT 'GATE-02', NOT EXISTS (SELECT 1 FROM escala_score_test.scores WHERE score IS NOT NULL AND (score<0 OR score>100))
+  UNION ALL SELECT 'GATE-03', NOT EXISTS (SELECT 1 FROM escala_score_test.scores s JOIN escala_score_test.candidates c ON c.id=s.candidate_id WHERE c.eligibility_status<>'eligible' AND (s.score IS NOT NULL OR s.rank_position IS NOT NULL OR s.ranking_status IN ('scored','ranked')))
+  UNION ALL SELECT 'GATE-04', NOT EXISTS (SELECT 1 FROM escala_score_test.scores WHERE score IS NOT NULL AND score<>component_contribution+area_contribution+availability_contribution+continuity_contribution+distribution_contribution+proximity_contribution+preference_contribution)
+  UNION ALL SELECT 'GATE-05', escala_score_test.calculate_score('10000000-0000-0000-0000-000000000002','score-v1')>escala_score_test.calculate_score('10000000-0000-0000-0000-000000000003','score-v1')
+  UNION ALL SELECT 'GATE-06', escala_score_test.calculate_score('10000000-0000-0000-0000-000000000007','score-v1')<escala_score_test.calculate_score('10000000-0000-0000-0000-000000000001','score-v1') AND (SELECT proximity_contribution FROM escala_score_test.scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND candidate_id='10000000-0000-0000-0000-000000000007')=0 AND (SELECT score FROM escala_score_test.scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND candidate_id='10000000-0000-0000-0000-000000000007')=95
+  UNION ALL SELECT 'GATE-07', (SELECT candidate_id FROM escala_score_test.scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND rank_position=(SELECT min(rank_position) FROM escala_score_test.scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND candidate_id IN ('10000000-0000-0000-0000-000000000005','10000000-0000-0000-0000-000000000006')))='10000000-0000-0000-0000-000000000005'
+  UNION ALL SELECT 'GATE-08', (SELECT count(*) FROM escala_score_test.score_runs WHERE rule_set_version='score-v1' AND snapshot_reference='snapshot-2026-09-10-v1')=1 AND (SELECT count(*) FROM escala_score_test.score_runs WHERE rule_set_version='score-v2' AND snapshot_reference='snapshot-2026-09-10-v2')=1
+  UNION ALL SELECT 'GATE-09', NOT EXISTS (SELECT 1 FROM escala_score_test.scores WHERE score_breakdown IS NOT NULL AND jsonb_array_length(score_breakdown->'criteria')<>7)
+  UNION ALL SELECT 'GATE-10', escala_score_test.calculate_score('10000000-0000-0000-0000-000000000008','score-v1')<>escala_score_test.calculate_score('10000000-0000-0000-0000-000000000008','score-v2')
+  UNION ALL SELECT 'GATE-11', NOT EXISTS (SELECT 1 FROM escala_score_test.v1_history h JOIN escala_score_test.scores s ON s.run_id='90000000-0000-0000-0000-000000000001' AND s.candidate_id=h.candidate_id WHERE h.score IS DISTINCT FROM s.score OR h.ranking_status IS DISTINCT FROM s.ranking_status OR h.rank_position IS DISTINCT FROM s.rank_position OR h.score_breakdown IS DISTINCT FROM s.score_breakdown)
+  UNION ALL SELECT 'GATE-12', (SELECT score_breakdown #>> '{criteria,5,reason_code}' FROM escala_score_test.scores WHERE run_id='90000000-0000-0000-0000-000000000001' AND candidate_id='10000000-0000-0000-0000-000000000007')='PROXIMITY_NOT_AVAILABLE'
+  UNION ALL SELECT 'GATE-13', NOT EXISTS (SELECT 1 FROM escala_score_test.scores GROUP BY run_id,candidate_id HAVING count(*)>1) AND (SELECT count(*) FROM escala_score_test.scores WHERE candidate_id='10000000-0000-0000-0000-000000000008')=2
+) x;
 
 ROLLBACK;
