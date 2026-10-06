@@ -9,7 +9,7 @@ WITH test_registry AS (
     ('R02','tests/global-allocation-adversarial-v1.sql','CASO 2','high','determinism'),
     ('R03','tests/global-allocation-adversarial-v1.sql','CASO 3','critical','temporal_conflict'),
     ('R04','tests/global-allocation-adversarial-v1.sql','CASO 4','critical','eligibility'),
-    ('R05','tests/global-allocation-adversarial-v1.sql','CASO 4','critical','availability'),
+    ('R05','tests/r05-availability-v1.sql','principal','critical','availability'),
     ('R06','tests/global-allocation-adversarial-v1.sql','CASO 5','critical','uncovered'),
     ('R07','tests/global-allocation-adversarial-v1.sql','CASO 6','critical','hard_constraints'),
     ('R08','tests/global-allocation-adversarial-v1.sql','CASO 7','high','explainability'),
@@ -49,6 +49,10 @@ FROM test_registry;
 -- 5. não reutilização global em ocorrências simultâneas;
 -- 6. representação explícita de planos parcialmente descobertos.
 
+-- R04 verifica elegibilidade independentemente da disponibilidade.
+-- R05 verifica disponibilidade temporal com cobertura integral da ocorrência;
+-- janelas parciais ou apenas coincidentes no limite não tornam o docente disponível.
+-- A evidência R05 é mantida em harness próprio para não compartilhar o CASO 4 de R04.
 -- R15 cobre a preservação de ocorrências distintas quando o mesmo componente
 -- aparece em mais de uma aula no mesmo dia.
 -- R16 cobre a preservação de contexto quando há mais de um docente associado,
