@@ -12,8 +12,8 @@ A matriz R01–R16 possui cobertura comportamental observável nos harnesses sin
 | R01 | Desempate determinístico | PASS_DETERMINISTIC_TIEBREAK | 🟢 |
 | R02 | Máxima cobertura global | PASS_3_OCCURRENCES_2_TEACHERS | 🟢 |
 | R03 | Conflito temporal bloqueia reutilização | PASS_CONFLICT_BLOCKS_REUSE + R03 v2 | 🟢 |
-| R04 | Indisponibilidade parcial | PASS_PARTIAL_UNAVAILABILITY | 🟢 |
-| R05 | Indisponibilidade parcial / filtro de candidatos | PASS_PARTIAL_UNAVAILABILITY | 🟢 |
+| R04 | Elegibilidade filtra candidato antes da disponibilidade/score | PASS_R04_INELIGIBILITY_FILTER | 🟢 |
+| R05 | Disponibilidade temporal cobre integralmente a ocorrência | PASS_R05_FULL_WINDOW_REQUIRED + PASS_R05_PARTIAL_AND_BOUNDARY_AVAILABILITY | 🟢 |
 | R06 | Nenhum candidato → uncovered explícito | PASS_NO_CANDIDATE_UNCOVERED | 🟢 |
 | R07 | Mudança de pesos não viola hard constraints | PASS_CONTROLLED_WEIGHT_CHANGE_HARD_CONSTRAINT | 🟢 |
 | R08 | Uncovered explicável | PASS_EXPLAINABLE_UNCOVERED | 🟢 |
@@ -26,11 +26,14 @@ A matriz R01–R16 possui cobertura comportamental observável nos harnesses sin
 | R15 | Ocorrências distintas do mesmo componente | PASS_R15_DISTINCT_TEMPORAL_OCCURRENCES / IDENTITY_PRESERVED / SAME_COMPONENT_NOT_MERGED | 🟢 |
 | R16 | Associação ≠ responsabilidade efetiva | PASS_R16_ASSOCIATION_NOT_RESPONSIBILITY_P2 / HOMOLOGATED / UNRESOLVED_REQUIRES_REVIEW | 🟢 |
 
-## Observação importante sobre R04/R05
+## Separação técnica R04/R05
 
-O manifesto atual associa ambos ao mesmo cenário adversarial de indisponibilidade parcial. Isso é uma duplicação deliberada da matriz de cobertura, não dois cenários independentes no arquivo atual.
+A duplicação anterior foi eliminada.
 
-**Decisão:** não inventar um segundo comportamento para R05. A matriz registra explicitamente que R04 e R05 compartilham a mesma evidência até que a especificação formal de R05 seja refinada.
+- **R04 — elegibilidade:** verifica que candidatos inelegíveis são removidos mesmo quando estão disponíveis, mantendo candidatos elegíveis para avaliação.
+- **R05 — disponibilidade:** verifica cobertura temporal integral da ocorrência; janelas parciais e disponibilidade iniciando apenas na fronteira final não qualificam o docente.
+
+O R05 possui harness próprio em `tests/r05-availability-v1.sql` e foi executado diretamente no PostgreSQL real do projeto, com resultado PASS nos dois critérios.
 
 ## R03, R15 e R16
 
