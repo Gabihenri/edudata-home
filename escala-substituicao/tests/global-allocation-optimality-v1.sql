@@ -49,7 +49,8 @@ WITH plans AS (
     ('P1','P2',180,2),
     ('P2','P1',180,2),
     ('P1','P3',180,2)
-  ) v(first_teacher,second_teacher,quality,coverage), best AS (
+  ) v(first_teacher,second_teacher,quality,coverage)
+), best AS (
   SELECT * FROM plans
   ORDER BY coverage DESC, quality DESC,
            first_teacher||'|'||second_teacher ASC
@@ -67,7 +68,8 @@ WITH candidates AS (
   SELECT * FROM (VALUES
     ('P1',999,false,true),
     ('P2',1,true,true)
-  ) v(teacher_id,score,eligible,available), valid AS (
+  ) v(teacher_id,score,eligible,available)
+), valid AS (
     SELECT * FROM candidates WHERE eligible AND available
 ), best AS (
     SELECT * FROM valid ORDER BY score DESC, teacher_id ASC LIMIT 1
@@ -85,7 +87,8 @@ WITH plans AS (
     ('P1','P2',180,2),
     ('P2','P1',180,2),
     ('P2','P3',170,2)
-  ) v(first_teacher,second_teacher,quality,coverage), valid AS (
+  ) v(first_teacher,second_teacher,quality,coverage)
+), valid AS (
     SELECT * FROM plans WHERE first_teacher<>second_teacher
 ), best AS (
     SELECT * FROM valid
@@ -105,7 +108,8 @@ WITH plans AS (
   SELECT * FROM (VALUES
     ('P1','UNCOVERED',1,1),
     ('UNCOVERED','UNCOVERED',0,0)
-  ) v(first_teacher,second_teacher,quality,coverage), best AS (
+  ) v(first_teacher,second_teacher,quality,coverage)
+), best AS (
     SELECT * FROM plans
     ORDER BY coverage DESC, quality DESC,
              first_teacher||'|'||second_teacher ASC
