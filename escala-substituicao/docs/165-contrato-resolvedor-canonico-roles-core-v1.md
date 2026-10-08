@@ -50,6 +50,20 @@ O resolvedor deve produzir uma resolução determinística por contexto.
 
 Não é permitido escolher aleatoriamente, depender da ordem física sem ORDER BY, misturar permissões de duas memberships ou elevar role por membership de outra organização.
 
+## 7.1 Ambiguidade de contexto
+
+Quando duas ou mais memberships válidas permanecem indistinguíveis após todos os critérios determinísticos homologados, o resolvedor deve retornar:
+
+- `resolved = false`;
+- `role_code = NULL`;
+- `resolution_code = MULTIPLE_CONTEXTS_AMBIGUOUS`;
+- nenhuma permissão deve ser inferida a partir de qualquer uma das memberships.
+
+É proibido criar desempate artificial por ordem física, UUID, nome, e-mail ou qualquer atributo não homologado.
+
+A ambiguidade deve ser resolvida pelo contexto explicitamente fornecido ou por homologação no Core.
+
+
 ## 8. Role desconhecido
 Qualquer role não resolvido inequivocamente resulta em ROLE_UNRESOLVED.
 
