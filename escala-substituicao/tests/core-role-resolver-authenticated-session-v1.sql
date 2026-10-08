@@ -1,0 +1,32 @@
+-- H37–H48 — authenticated-session gate for Core canonical role resolver
+-- Purpose: execute ONLY in a controlled authenticated PostgREST/Supabase session.
+-- This file intentionally contains no fixture INSERT/UPDATE/DELETE.
+--
+-- Required session setup outside this file:
+--   authenticated JWT whose sub = a dedicated test auth.users id
+--   matching temporary organization_members fixture
+--
+-- Run as the authenticated test user:
+-- select * from public.resolve_canonical_role(auth.uid());
+-- select public.current_identity_role();
+-- select public.can_access_identity_product('agenda_edi');
+-- select public.can_access_identity_product('escala');
+-- select public.current_user_is_academic_calendar_platform_admin();
+--
+-- H37 professor -> teacher
+-- H38 coordinator -> coordinator
+-- H39 director -> principal
+-- H40 administrator -> institution_admin
+-- H41 unknown role -> ROLE_UNRESOLVED
+-- H42 suspended membership -> NO_VALID_MEMBERSHIP
+-- H43 expired membership -> NO_VALID_MEMBERSHIP
+-- H44 future membership -> NO_VALID_MEMBERSHIP
+-- H45 super_admin precedence
+-- H46 platform_admin precedence
+-- H47 profile role cannot elevate non-platform membership
+-- H48 indistinguishable memberships -> MULTIPLE_CONTEXTS_AMBIGUOUS
+--
+-- Evidence rule:
+-- Results are production-grade only when executed through an authenticated
+-- client session with auth.uid() equal to the fixture user.
+-- Administrative SQL without auth.uid() is not accepted as equivalent evidence.
