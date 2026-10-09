@@ -24,6 +24,7 @@ esac
 required_files=(
   'tests/global-allocation-v1.sql'
   'tests/global-allocation-adversarial-v1.sql'
+  'tests/r05-availability-v1.sql'
   'tests/global-allocation-reproducibility-v1.sql'
   'tests/human-override-preservation-v1.sql'
   'tests/snapshot-reexecution-v1.sql'
