@@ -9,7 +9,7 @@ on:
 jobs:
   escala-synthetic-regression:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     services:
       postgres:
@@ -34,42 +34,18 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Regression preflight
-        working-directory: escala-substituicao
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/escala_test
+      - name: Install PostgreSQL client
         run: |
           sudo apt-get update
           sudo apt-get install -y postgresql-client
           python3 --version
           psql --version
-          bash tests/regression-preflight.sh
 
-      - name: Execute R09 reproducibility harness
+      - name: Execute complete synthetic SQL regression suite
         working-directory: escala-substituicao
-        run: |
-          docker run --rm \
-            --network host \
-            -v "$PWD:/workspace" \
-            -w /workspace \
-            -e PGPASSWORD=postgres \
-            postgres:16 \
-            psql "postgresql://postgres@localhost:5432/escala_test" \
-              -v ON_ERROR_STOP=1 \
-              -f tests/global-allocation-reproducibility-v1.sql
-
-      - name: Execute adversarial harness
-        working-directory: escala-substituicao
-        run: |
-          docker run --rm \
-            --network host \
-            -v "$PWD:/workspace" \
-            -w /workspace \
-            -e PGPASSWORD=postgres \
-            postgres:16 \
-            psql "postgresql://postgres@localhost:5432/escala_test" \
-              -v ON_ERROR_STOP=1 \
-              -f tests/global-allocation-adversarial-v1.sql
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/escala_test
+        run: bash tests/run-regression-suite-v1.sh
 
       - name: Execute Node synthetic harnesses
         run: |
