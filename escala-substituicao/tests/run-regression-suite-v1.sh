@@ -12,17 +12,17 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PREFLIGHT="$ROOT_DIR/regression-preflight.sh"
 FIXTURE_CHECK="$ROOT_DIR/round-persistence-fixture-check-v1.sh"
 
-if [[ ! -x "$PREFLIGHT" ]]; then
-  echo "ERROR: preflight ausente ou sem permissão de execução: $PREFLIGHT" >&2
+if [[ ! -f "$PREFLIGHT" ]]; then
+  echo "ERROR: preflight ausente: $PREFLIGHT" >&2
   exit 2
 fi
 
-if ! "$PREFLIGHT"; then
+if ! bash "$PREFLIGHT"; then
   echo "REGRESSION_SUITE_STATUS=BLOCKED"
   exit 2
 fi
 
-if ! "$FIXTURE_CHECK"; then
+if ! bash "$FIXTURE_CHECK"; then
   echo "REGRESSION_SUITE_STATUS=BLOCKED"
   echo "REASON=synthetic_fixture_check_failed"
   exit 2
