@@ -1,11 +1,12 @@
 """Regression tests for the Agenda temporal contract.
 
-These tests mock persistence and never connect to Supabase or mutate data.
+Persistence is mocked; these tests never connect to Supabase or mutate data.
 Run from backend/: python -m unittest discover -s tests -v
 """
 import os
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+from types import SimpleNamespace
 from unittest.mock import patch
 
 # The service module constructs a Supabase client at import time. Supply
@@ -14,6 +15,7 @@ os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_KEY", "test-only-key")
 
 from app.core.exceptions.exceptions import ValidationException
+from app.repositories.agenda_repository import AgendaRepository
 from app.services.agenda_service import AgendaService
 
 
@@ -105,6 +107,22 @@ class AgendaTemporalContractTests(unittest.TestCase):
     def test_update_allows_partial_temporal_payload(self):
         AgendaService.validate_update({"start_at": "2026-10-13T10:00:00Z"})
 
+    def test_period_query_accepts_mixed_naive_and_aware_bounds(self):
+        start = datetime(2026, 10, 13, 10, 0)
+        end = datetime(2026, 10, 13, 14, 0, tzinfo=timezone.utc)
+        with patch.object(AgendaService.repository, "events_between", return_value=[]) as query:
+            self.assertEqual(AgendaService.events_between("school-a", start, end), [])
+
+        self.assertEqual(query.call_args.kwargs["school_id"], "school-a")
+        self.assertIsNotNone(query.call_args.kwargs["start"].tzinfo)
+        self.assertIsNotNone(query.call_args.kwargs["end"].tzinfo)
+
+    def test_period_query_rejects_reversed_instants_across_offsets(self):
+        start = datetime.fromisoformat("2026-10-13T10:00:00-03:00")
+        end = datetime.fromisoformat("2026-10-13T12:30:00+00:00")
+        with self.assertRaises(ValidationException):
+            AgendaService.events_between("school-a", start, end)
+
     def test_dashboard_summary_uses_start_at_and_ignores_invalid_dates(self):
         events = [
             {"status": "planned", "start_at": "2999-01-01T00:00:00Z"},
@@ -128,6 +146,48 @@ class AgendaTemporalContractTests(unittest.TestCase):
         parsed = AgendaService._parse_datetime("2026-10-13T10:00:00", "start_at")
         self.assertIsNotNone(parsed.tzinfo)
         self.assertEqual(parsed.utcoffset(), datetime.now().astimezone().utcoffset())
+
+
+class AgendaRepositoryTemporalContractTests(unittest.TestCase):
+    def setUp(self):
+        self.query = unittest.mock.Mock()
+        self.query.select.return_value = self.query
+        self.query.eq.return_value = self.query
+        self.query.gte.return_value = self.query
+        self.query.lte.return_value = self.query
+        self.query.order.return_value = self.query
+        self.query.limit.return_value = self.query
+        self.query.execute.return_value = SimpleNamespace(data=[])
+
+        self.table_patch = patch(
+            "app.repositories.agenda_repository.supabase.table",
+            return_value=self.query,
+        )
+        self.table_patch.start()
+        self.addCleanup(self.table_patch.stop)
+
+    def test_school_listing_orders_by_start_at(self):
+        AgendaRepository.list_by_school("school-a")
+        self.query.order.assert_called_once_with("start_at")
+
+    def test_teacher_listing_orders_by_start_at(self):
+        AgendaRepository.list_by_teacher("teacher-a")
+        self.query.order.assert_called_once_with("start_at")
+
+    def test_period_listing_filters_and_orders_by_database_temporal_fields(self):
+        start = datetime(2026, 10, 13, 10, tzinfo=timezone.utc)
+        end = datetime(2026, 10, 13, 11, tzinfo=timezone(timedelta(hours=-3)))
+        AgendaRepository.events_between("school-a", start, end)
+
+        self.query.gte.assert_called_once_with("start_at", start.isoformat())
+        self.query.lte.assert_called_once_with("end_at", end.isoformat())
+        self.query.order.assert_called_once_with("start_at")
+
+    def test_upcoming_listing_filters_and_orders_by_start_at(self):
+        AgendaRepository.upcoming_events("school-a")
+        self.query.gte.assert_called_once()
+        self.assertEqual(self.query.gte.call_args.args[0], "start_at")
+        self.query.order.assert_called_once_with("start_at")
 
 
 if __name__ == "__main__":
