@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from app.core.database.base_repository import BaseRepository
 from app.services.supabase_service import supabase
@@ -39,7 +39,7 @@ class AgendaRepository(BaseRepository):
             supabase.table(cls.table_name)
             .select("*")
             .eq("user_id", teacher_id)
-            .order("start_datetime")
+            .order("start_at")
             .limit(limit)
             .execute()
         )
@@ -59,7 +59,7 @@ class AgendaRepository(BaseRepository):
             .eq("school_id", school_id)
             .gte("start_at", start.isoformat())
             .lte("end_at", end.isoformat())
-            .order("start_datetime")
+            .order("start_at")
             .execute()
         )
 
@@ -76,7 +76,7 @@ class AgendaRepository(BaseRepository):
             .select("*")
             .eq("school_id", school_id)
             .gte("start_at", datetime.now().astimezone().isoformat())
-            .order("start_datetime")
+            .order("start_at")
             .limit(limit)
             .execute()
         )
