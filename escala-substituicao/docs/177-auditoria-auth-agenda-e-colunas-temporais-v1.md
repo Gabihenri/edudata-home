@@ -68,3 +68,24 @@ Antes de alterar o repositório, adicionar teste unitário que valide os nomes d
 - [Cliente Supabase](https://github.com/Gabihenri/edudata-home/blob/main/backend/app/services/supabase_service.py)
 - [Configuração](https://github.com/Gabihenri/edudata-home/blob/main/backend/app/core/config.py)
 - [Repositório da Agenda](https://github.com/Gabihenri/edudata-home/blob/main/backend/app/repositories/agenda_repository.py)
+
+
+## Atualização de execução — 2026-10-13
+
+### Correção isolada aplicada ao repositório de consultas
+
+O arquivo `backend/app/repositories/agenda_repository.py` foi atualizado no commit `993c35f20b9910822858bf371253a9efcc3b8f89` para usar `start_at` e `end_at` nos filtros/ordenação e um instante atual com fuso local explícito em `upcoming_events`.
+
+Foi adicionado o teste unitário `backend/tests/test_agenda_repository_timestamps.py` para cobrir os quatro métodos de consulta. Arquivos:
+- [Implementação corrigida](https://github.com/Gabihenri/edudata-home/blob/main/backend/app/repositories/agenda_repository.py)
+- [Testes de contrato temporal](https://github.com/Gabihenri/edudata-home/blob/main/backend/tests/test_agenda_repository_timestamps.py)
+
+**Status dos testes:** os testes foram adicionados, mas não foi possível confirmar sua execução nesta etapa. Não declarar a correção como validada em runtime até executar o conjunto de testes em ambiente Python com as dependências do backend.
+
+### Bloqueio residual descoberto no caminho de escrita
+
+A leitura de `backend/app/services/agenda_service.py` e `backend/app/core/services/base_service.py` confirmou que a criação exige `start_datetime` e `end_datetime`, e que o serviço-base envia o dicionário diretamente ao repositório sem tradução. O schema remoto de `agenda_events` expõe `start_at` e `end_at`, e `end_at` aceita nulo.
+
+Além disso, `dashboard_summary` ainda procura `start_datetime` nas linhas retornadas. Portanto, a correção do repositório resolve apenas as consultas específicas descritas acima; **não resolve ainda a compatibilidade de criação/atualização nem o resumo do dashboard**. O próximo ajuste deve estabelecer um contrato explícito de entrada/saída entre a API e o schema persistido, preservando compatibilidade com os clientes existentes e adicionando testes antes de modificar o serviço.
+
+Nenhum DDL ou dado de produção foi alterado.
