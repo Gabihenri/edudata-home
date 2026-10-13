@@ -137,11 +137,20 @@ class AgendaService(BaseService):
         end: datetime,
     ) -> list[dict[str, Any]]:
         Validator.required(school_id, "school_id")
-        if end <= start:
+        # Normalize both bounds before comparison: comparing a naive datetime
+        # with an aware datetime raises TypeError. Naive inputs are interpreted
+        # in the server's local timezone by _parse_datetime.
+        start_at = cls._parse_datetime(start, "start")
+        end_at = cls._parse_datetime(end, "end")
+        if end_at <= start_at:
             raise ValidationException(
                 "A data final deve ser maior que a data inicial."
             )
-        return cls.repository.events_between(school_id=school_id, start=start, end=end)
+        return cls.repository.events_between(
+            school_id=school_id,
+            start=start_at,
+            end=end_at,
+        )
 
     @classmethod
     def upcoming_events(
