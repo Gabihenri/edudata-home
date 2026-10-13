@@ -89,3 +89,21 @@ A leitura de `backend/app/services/agenda_service.py` e `backend/app/core/servic
 Além disso, `dashboard_summary` ainda procura `start_datetime` nas linhas retornadas. Portanto, a correção do repositório resolve apenas as consultas específicas descritas acima; **não resolve ainda a compatibilidade de criação/atualização nem o resumo do dashboard**. O próximo ajuste deve estabelecer um contrato explícito de entrada/saída entre a API e o schema persistido, preservando compatibilidade com os clientes existentes e adicionando testes antes de modificar o serviço.
 
 Nenhum DDL ou dado de produção foi alterado.
+
+
+## Comparação com a implementação Next.js da Agenda
+
+A inspeção posterior de `src/app/api/agenda/events/route.ts` encontrou um caminho distinto do router FastAPI legado:
+- As rotas Next.js de GET/POST chamam `requireSessionUser()`.
+- Verificam acesso ao recurso por `requireFeatureAccess`.
+- No POST, definem `user_id` a partir do usuário autenticado, em vez de confiar no identificador enviado pelo navegador.
+- `src/lib/agenda/repository/events.repository.ts` usa os nomes físicos `start_at` e `end_at`.
+
+Isso indica que o frontend atual possui controles locais relevantes no caminho Next.js analisado. **Não comprova** a segurança da API FastAPI, nem confirma o tipo de chave Supabase em produção. O cliente TypeScript prefere `SUPABASE_SERVICE_ROLE_KEY` quando presente; por isso, as verificações de sessão e autorização do servidor Next.js são especialmente importantes e precisam ser validadas nos demais endpoints.
+
+## Status corrigido
+
+- **Next.js Agenda Events:** caminho de GET/POST inspecionado com sessão e controle de feature; segue pendente teste real de autorização/RLS.
+- **FastAPI Agenda:** rotas inspecionadas sem dependência local de autenticação; tratar como API legada potencialmente exposta até confirmar gateway ou restringir acesso.
+- **Consultas temporais FastAPI:** os quatro métodos do repositório foram alinhados a `start_at/end_at`; testes adicionados, execução ainda não confirmada.
+- **Escrita FastAPI e resumo:** ainda pendente mapear os nomes de entrada antigos para as colunas físicas e atualizar o resumo para `start_at`. Não considerar o contrato completo corrigido.
