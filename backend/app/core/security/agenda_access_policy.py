@@ -59,8 +59,10 @@ def can_access_agenda_event(
     if not _same_nonempty(organization_id, event.get("organization_id")):
         return False
 
-    # A school-bound membership cannot authorize another school's data.
-    if school_id is not None and not _same_nonempty(school_id, event.get("school_id")):
+    # A school event requires an exact school-scoped membership. Network-level
+    # membership alone is not a resolved authorization scope for that record.
+    event_school_id = event.get("school_id")
+    if event_school_id is not None and not _same_nonempty(school_id, event_school_id):
         return False
 
     is_owner = _same_nonempty(user_id, event.get("user_id"))
