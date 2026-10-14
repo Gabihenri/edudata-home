@@ -1,44 +1,38 @@
-# Diagnóstico e plano seguro: migrações locais do Supabase
+# Diagnóstico e correção: migrações locais do Supabase
 
-## Estado observado
+## Estado confirmado em 14/10/2026
 
-O workflow `EDI-QI Local Database` falha no comando `supabase start`, antes de executar os testes SQL. O log do run 38539235430 registra:
+O workflow `EDI-QI Local Database` falhava ao aplicar `018_institutional_intelligence_governance.sql`, porque `public.organizations` não existia no banco local. A migração 018 também depende de `public.organization_members`.
 
-```
-Applying migration 017_agenda_class_roster_and_attendance.sql...
-Applying migration 018_institutional_intelligence_governance.sql...
-ERROR: relation "public.organizations" does not exist
-```
+Foi adicionada a migração-base `016_institutional_identity_base.sql`, com `CREATE TABLE IF NOT EXISTS` para as estruturas mínimas requeridas. Ela não normaliza dados nem tenta evoluir tabelas já existentes.
 
-A migração 018 cria tabelas de governança institucional com FK para `public.organizations` e políticas RLS que consultam `public.organization_members`.
+Também foi criado `supabase/tests/edi_qi_rls.test.sql`, arquivo já referenciado pelo workflow. O teste contém 15 verificações estruturais de tabelas, colunas, RLS habilitado e existência de policies.
 
-O diretório `supabase/migrations/` contém 017, 018 e duas migrações com versão timestamp. Não há, nesse fluxo, uma migração anterior que estabeleça as tabelas institucionais exigidas.
+## Evidência de CI
 
-## Fontes existentes e risco
+No commit `49a24097e546c1de31d99b782291da547b782522`, os jobs abaixo concluíram com sucesso:
 
-- `database/01_organizations.sql` contém uma versão legada e mínima da tabela `organizations`.
-- `database/14_organizations.sql` evolui a tabela existente, normaliza dados, adiciona constraints e cria índices/triggers.
-- `database/supabase/migrations/006_agenda_governance_audit.sql` lista `organization_members` como pré-requisito e depende de outras tabelas/funções de governança.
-- O banco remoto já contém `organizations` e `organization_members`, mas a existência remota não prova que o bootstrap local reproduz o schema remoto.
+- [EDI-QI Local Database](https://github.com/Gabihenri/edudata-home/actions/runs/38542726423): sucesso nos passos `Start local Supabase` e `Run EDI-QI database tests`.
+- [Agenda Temporal Contract Tests](https://github.com/Gabihenri/edudata-home/actions/runs/38542726336): sucesso.
+- [EduData IA — Escala Regression](https://github.com/Gabihenri/edudata-home/actions/runs/38542726283): sucesso.
 
-Não copiar ou executar automaticamente os scripts legados no remoto: podem modificar dados e pressupõem outras estruturas. Também não editar silenciosamente a migração 018, pois ela pode já ter sido aplicada em ambientes existentes.
+Isso confirma que a cadeia local usada pelo workflow inicia e que os testes SQL estruturais executam. **Não** demonstra, por si só, que todos os cenários negativos de autorização entre usuários e escolas foram testados em runtime.
 
-## Correção recomendada
+## Risco e limites
 
-1. Identificar e versionar uma definição-base canônica de `organizations` e `organization_members`, com colunas e constraints necessárias às FKs e políticas da migração 018.
-2. Confirmar se a solução deve ser uma migração histórica nova, um baseline de teste isolado ou uma reorganização controlada do conjunto de migrações. Não inserir uma versão antiga em produção sem avaliar o histórico de migrações.
-3. Executar `supabase start` e os testes SQL em ambiente descartável; conferir a ordem completa e as políticas criadas.
-4. Comparar o resultado com o schema remoto por leitura, sem aplicar DDL remoto nesta correção.
-5. Só então integrar o fluxo no CI e registrar os resultados.
+- `database/01_organizations.sql` e `database/14_organizations.sql` são scripts legados com pressupostos próprios; não devem ser executados automaticamente no banco remoto.
+- A migração-base 016 é um bootstrap mínimo para banco local limpo. Antes de promovê-la para qualquer ambiente compartilhado, comparar o contrato com o schema canônico e o histórico remoto.
+- O projeto remoto já possui `organizations` e `organization_members`; não foi aplicado DDL remoto nem alterado histórico, dados, policies ou secrets.
+- O deploy Render observado permanece `update_failed` no commit de 13/10/2026, com erro `supabase_key is required`. Os logs disponíveis são dessa implantação anterior; nenhum deploy novo foi disparado nesta etapa.
 
-## Critério de aceite
+## Próximos critérios de liberação
 
-- `supabase start` completa sem erro.
-- A migração 018 aplica com as tabelas e colunas esperadas.
-- `supabase test db supabase/tests/edi_qi_rls.test.sql` executa.
-- Os testes de autorização continuam negando acesso entre usuários/escolas.
-- Nenhum dado, migration history, segredo ou política do banco remoto é alterado como parte do diagnóstico.
+1. Comparar o contrato mínimo com o schema remoto em modo somente leitura.
+2. Acrescentar testes comportamentais RLS com usuários/contextos distintos, além das verificações estruturais atuais.
+3. Resolver a configuração ausente do Supabase no Render sem expor ou registrar valores secretos.
+4. Implementar autenticação e autorização por operação nas rotas Agenda/Users, derivando identidade do token validado e aplicando escopo no recurso consultado.
+5. Só considerar merge/deploy após validação dos itens acima.
 
-## Limitações atuais
+## Princípio de segurança
 
-O endpoint de consulta SQL read-only do Supabase foi bloqueado pela configuração de segurança em tentativas anteriores. Por isso, este documento não afirma que todas as policies remotas foram inspecionadas, nem que o bootstrap proposto já foi validado.
+Não usar service-role para contornar RLS, não confiar em `organization_id`, `school_id`, `user_id` ou `role` enviados pelo cliente como prova de autorização, e não promover a migração-base sem verificar sua compatibilidade com o histórico remoto.
