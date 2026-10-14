@@ -59,18 +59,17 @@ def can_access_agenda_event(
     if not _same_nonempty(organization_id, event.get("organization_id")):
         return False
 
-    # A membership bound to a school cannot authorize another school's data.
+    # A school-bound membership cannot authorize another school's data.
     if school_id is not None and not _same_nonempty(school_id, event.get("school_id")):
         return False
 
-    owner_id = event.get("user_id")
-    is_owner = _same_nonempty(user_id, owner_id)
+    is_owner = _same_nonempty(user_id, event.get("user_id"))
     if action in WRITE_ACTIONS:
-        # Management write permissions are intentionally not inferred from
-        # can_view_* flags or role names.
-        return is_owner and (
-            school_id is None
-            or _same_nonempty(school_id, event.get("school_id"))
+        # Writes require an exact school scope; a network-level membership
+        # cannot create or mutate school records without a separate policy.
+        return (
+            is_owner
+            and _same_nonempty(school_id, event.get("school_id"))
         )
 
     if is_owner:
