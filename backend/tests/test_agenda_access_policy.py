@@ -103,6 +103,14 @@ class AgendaAccessPolicyTests(unittest.TestCase):
             )
         )
 
+    def test_network_membership_cannot_read_school_event_without_resolved_scope(self):
+        self.assertFalse(
+            self.allowed(
+                member=membership(school_id=None),
+                record=event(),
+            )
+        )
+
     def test_school_mismatch_is_denied_even_for_owner(self):
         self.assertFalse(
             self.allowed(record=event(school_id="school-2"), action="read")
