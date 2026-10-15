@@ -48,9 +48,15 @@ def can_access_agenda_event(
         return False
     if not isinstance(membership, Mapping) or not isinstance(event, Mapping):
         return False
+    if not isinstance(action, str):
+        return False
     if action not in READ_ACTIONS and action not in WRITE_ACTIONS:
         return False
 
+    # A membership for another identity must never be reusable, even if its
+    # organization, school, status, and permissions otherwise look valid.
+    if not _same_nonempty(user_id, membership.get("user_id")):
+        return False
     if str(membership.get("status", "")).strip().lower() != "active":
         return False
 
