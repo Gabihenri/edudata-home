@@ -67,6 +67,11 @@ class AgendaAccessPolicyTests(unittest.TestCase):
     def test_inactive_membership_is_denied(self):
         self.assertFalse(self.allowed(member=membership(status="revoked")))
 
+    def test_membership_for_another_identity_is_denied(self):
+        self.assertFalse(
+            self.allowed(member=membership(user_id="user-2"))
+        )
+
     def test_role_name_alone_does_not_grant_school_read(self):
         self.assertFalse(
             self.allowed(
@@ -118,6 +123,9 @@ class AgendaAccessPolicyTests(unittest.TestCase):
 
     def test_unknown_action_is_denied(self):
         self.assertFalse(self.allowed(action="export_all"))
+
+    def test_non_string_action_is_denied_without_exception(self):
+        self.assertFalse(self.allowed(action=[]))
 
     def test_missing_identity_or_scope_is_denied(self):
         self.assertFalse(self.allowed(user_id=""))
