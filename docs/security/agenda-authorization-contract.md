@@ -53,3 +53,14 @@ Impedir que um usuário leia ou altere registros de outra escola/organização a
 ## Fora de escopo desta proposta
 
 Nenhum segredo, variável de ambiente, dado remoto, RLS, migration aplicada ou deploy deve ser alterado como parte apenas deste contrato. Não realizar merge enquanto os bloqueadores de autorização, migrações e inicialização do serviço persistirem.
+
+## Atualização de implementação — 2026-10-15
+
+- Foi criado `backend/app/core/security/supabase_user.py` para validar o bearer token no Supabase Auth; a dependência ainda não está aplicada às rotas de Agenda/Users.
+- Foi criado `backend/app/core/security/membership_context.py` para selecionar um único vínculo ativo e vigente, sem conceder permissões.
+- Foi criado `backend/app/core/security/agenda_access_policy.py` como política pura e fail-closed. Ela exige correspondência entre a identidade autenticada e `membership.user_id`, organização compatível, escola exata para eventos escolares e `can_view_school` explícito para leitura de evento de outra pessoa. Escritas ficam limitadas ao proprietário no escopo escolar exato. A política não é proteção efetiva enquanto não for chamada por cada endpoint com dados persistidos confiáveis.
+- Foram adicionados testes em `backend/tests/test_agenda_access_policy.py`; o workflow atual descobre a suíte com `python -m unittest discover -s tests -v`. A execução CI dos commits mais recentes ainda precisa ser confirmada.
+- **Incompatibilidade a resolver antes de integrar:** a migração local mínima `016_institutional_identity_base.sql` cria `organization_members` sem `school_id`, `access_starts_at`, `access_ends_at`, `can_view_school`, `can_view_team`, `can_view_network` e outros campos usados pelo contrato/helper. Não presumir que o esquema remoto contenha esses campos nem acrescentá-los remotamente sem inventário e migração revisada. A implementação de membership precisa alinhar-se ao esquema canônico e à cadeia de migrações reproduzível.
+- O repositório da Agenda ainda usa um cliente Supabase compartilhado criado com `SUPABASE_KEY`; não propagar esse cliente para endpoints protegidos nem tratá-lo como substituto de autorização/RLS.
+
+Nenhuma rota foi declarada protegida por esta etapa. Nenhum segredo, variável de ambiente, RLS remoto, DDL remoto, merge ou deploy foi alterado.
