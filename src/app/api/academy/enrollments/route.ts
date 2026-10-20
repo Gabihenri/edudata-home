@@ -64,6 +64,10 @@ async function requireAcademyAdmin() {
   return supabase
 }
 
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
 export async function GET() {
   try {
     const supabase = await requireAcademyAdmin()
@@ -98,23 +102,36 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const body: unknown = await request.json()
 
-    if (!body.fullName && !body.nome && !body.name) {
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
       return NextResponse.json(
-        { success: false, error: 'Nome é obrigatório.' },
+        { success: false, error: 'Corpo da requisição inválido.' },
         { status: 400 },
       )
     }
 
-    if (!body.email) {
+    const input = body as Record<string, unknown>
+    const rawName = input.fullName ?? input.nome ?? input.name
+    const rawEmail = input.email
+    const name = typeof rawName === 'string' ? rawName.trim() : ''
+    const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : ''
+
+    if (name.length < 2 || name.length > 120) {
       return NextResponse.json(
-        { success: false, error: 'E-mail é obrigatório.' },
+        { success: false, error: 'Informe um nome entre 2 e 120 caracteres.' },
         { status: 400 },
       )
     }
 
-    if (!body.lgpd) {
+    if (email.length > 254 || !isValidEmail(email)) {
+      return NextResponse.json(
+        { success: false, error: 'Informe um endereço de e-mail válido.' },
+        { status: 400 },
+      )
+    }
+
+    if (input.lgpd !== true) {
       return NextResponse.json(
         {
           success: false,
@@ -126,16 +143,37 @@ export async function POST(request: NextRequest) {
 
     const supabase = getServiceRoleSupabase()
 
+    const courseValue = input.courseSlug ?? input.curso ?? input.courseId
+    const phoneValue = input.whatsapp ?? input.telefone ?? input.phone
+    const schoolValue = input.school ?? input.escola
+    const roleValue = input.role ?? input.cargo
+    const notesValue = input.notes
+
     const payload = {
-      course_slug: body.courseSlug || body.curso || body.courseId || 'professor-digital',
-      name: body.fullName || body.nome || body.name,
-      email: body.email,
-      phone: body.whatsapp || body.telefone || body.phone || null,
-      school_name: body.school || body.escola || null,
-      role: body.role || body.cargo || null,
+      course_slug:
+        typeof courseValue === 'string' && courseValue.trim()
+          ? courseValue.trim().slice(0, 160)
+          : 'professor-digital',
+      name,
+      email,
+      phone:
+        typeof phoneValue === 'string' && phoneValue.trim()
+          ? phoneValue.trim().slice(0, 40)
+          : null,
+      school_name:
+        typeof schoolValue === 'string' && schoolValue.trim()
+          ? schoolValue.trim().slice(0, 180)
+          : null,
+      role:
+        typeof roleValue === 'string' && roleValue.trim()
+          ? roleValue.trim().slice(0, 120)
+          : null,
       status: 'novo',
       source: 'academy',
-      notes: body.notes || null,
+      notes:
+        typeof notesValue === 'string' && notesValue.trim()
+          ? notesValue.trim().slice(0, 2000)
+          : null,
     }
 
     const { error } = await supabase
@@ -153,14 +191,11 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Inscrição realizada com sucesso.',
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Erro interno ao processar inscrição.',
+        error: 'Erro interno ao processar inscrição.',
       },
       { status: 500 },
     )
