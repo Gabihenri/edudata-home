@@ -31,6 +31,19 @@ create policy organizations_read_active_membership
     )
   );
 
+
+-- Institutional governance tables: grant only operations supported by their
+-- RLS policies. The audit log has no UPDATE/DELETE policy by design.
+revoke all on table public.eios_institutional_policies from anon;
+revoke all on table public.eios_score_governance from anon;
+revoke all on table public.eios_policy_audit_events from anon;
+grant select, insert, update, delete on table public.eios_institutional_policies to authenticated;
+grant select, insert, update, delete on table public.eios_score_governance to authenticated;
+grant select, insert on table public.eios_policy_audit_events to authenticated;
+grant all on table public.eios_institutional_policies to service_role;
+grant all on table public.eios_score_governance to service_role;
+grant all on table public.eios_policy_audit_events to service_role;
+
 -- Agenda tasks are directly used by signed-in users and are protected by
 -- owner-only RLS policies in 202608280001_agenda_tasks_governance.sql.
 alter table public.agenda_tasks enable row level security;
