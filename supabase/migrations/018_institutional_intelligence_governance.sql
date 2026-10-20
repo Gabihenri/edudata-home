@@ -128,7 +128,7 @@ create policy "institution_governors_manage_policies"
         and (
           member.can_manage_products = true
           or member.can_audit = true
-          or member.role in ('principal','manager','institution_admin','super_admin')
+          or member.role in ('coordenador','diretor','administrador')
         )
     )
   )
@@ -142,7 +142,7 @@ create policy "institution_governors_manage_policies"
         and (
           member.can_manage_products = true
           or member.can_audit = true
-          or member.role in ('principal','manager','institution_admin','super_admin')
+          or member.role in ('coordenador','diretor','administrador')
         )
     )
   );
@@ -169,7 +169,7 @@ create policy "institution_governors_manage_score_governance"
         and (
           member.can_manage_products = true
           or member.can_audit = true
-          or member.role in ('principal','manager','institution_admin','super_admin')
+          or member.role in ('coordenador','diretor','administrador')
         )
     )
   )
@@ -182,7 +182,7 @@ create policy "institution_governors_manage_score_governance"
         and (
           member.can_manage_products = true
           or member.can_audit = true
-          or member.role in ('principal','manager','institution_admin','super_admin')
+          or member.role in ('coordenador','diretor','administrador')
         )
     )
   );
@@ -195,7 +195,7 @@ create policy "institution_members_read_policy_audit"
       where member.organization_id = eios_policy_audit_events.organization_id
         and member.user_id = auth.uid()
         and member.status = 'active'
-        and (member.can_audit = true or member.role in ('principal','manager','institution_admin','super_admin'))
+        and (member.can_audit = true or member.role in ('coordenador','diretor','administrador'))
     )
   );
 
@@ -211,7 +211,7 @@ create policy "institution_governors_insert_policy_audit"
         and (
           member.can_manage_products = true
           or member.can_audit = true
-          or member.role in ('principal','manager','institution_admin','super_admin')
+          or member.role in ('coordenador','diretor','administrador')
         )
     )
   );
