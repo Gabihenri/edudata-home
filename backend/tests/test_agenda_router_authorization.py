@@ -103,6 +103,32 @@ class AgendaRouterAuthorizationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 403)
         update.assert_not_called()
 
+    def test_status_change_denies_before_mutating_unauthorized_event(self):
+        client = TestClient(make_app())
+        existing = {
+            "id": "event-1",
+            "user_id": "user-2",
+            "organization_id": "org-1",
+            "school_id": "school-1",
+            "title": "Private event",
+            "status": "planned",
+        }
+        with (
+            patch.object(agenda_router.AgendaService, "find_by_id", return_value=existing),
+            patch.object(
+                agenda_router,
+                "authorize_event",
+                side_effect=HTTPException(status_code=403, detail="forbidden"),
+            ),
+            patch.object(agenda_router.AgendaService, "change_status") as change_status,
+        ):
+            response = client.patch(
+                "/api/v1/agenda/event-1/status",
+                params={"status": "completed"},
+            )
+
+        self.assertEqual(response.status_code, 403)
+        change_status.assert_not_called()
 
     def test_application_registers_only_one_agenda_handler_per_method_and_path(self):
         from main import app as application
