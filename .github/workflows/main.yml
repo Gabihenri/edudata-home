@@ -1,1 +1,54 @@
+name: EduData IA — Escala Regression
 
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  escala-synthetic-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: escala_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d escala_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          python3 --version
+          psql --version
+
+      - name: Execute complete synthetic SQL regression suite
+        working-directory: escala-substituicao
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/escala_test
+        run: bash tests/run-regression-suite-v1.sh
+
+      - name: Execute Node synthetic harnesses
+        run: |
+          node --version
+          node escala-substituicao/mvp/tests/regression-fixture-v1.mjs
+          node escala-substituicao/mvp/tests/round-persistence-v1.mjs
