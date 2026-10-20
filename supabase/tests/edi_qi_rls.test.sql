@@ -1,6 +1,6 @@
 begin;
 
-select plan(15);
+select plan(19);
 
 select has_table('public', 'organizations', 'institutional organizations table exists');
 select has_table('public', 'organization_members', 'institutional membership table exists');
@@ -12,6 +12,10 @@ select has_column('public', 'organization_members', 'user_id', 'membership is li
 select has_column('public', 'organization_members', 'status', 'membership status is available');
 select has_column('public', 'organization_members', 'can_manage_products', 'product governance permission is available');
 select has_column('public', 'organization_members', 'can_audit', 'audit permission is available');
+select has_column('public', 'organization_members', 'school_id', 'membership has an explicit school scope');
+select has_column('public', 'organization_members', 'access_starts_at', 'membership start validity is available');
+select has_column('public', 'organization_members', 'access_ends_at', 'membership end validity is available');
+select has_column('public', 'organization_members', 'can_view_school', 'school-level read permission is explicit');
 
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.eios_institutional_policies'::regclass),
