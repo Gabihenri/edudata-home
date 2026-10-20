@@ -104,5 +104,27 @@ class AgendaRouterAuthorizationTests(unittest.TestCase):
         update.assert_not_called()
 
 
+    def test_application_registers_only_one_agenda_handler_per_method_and_path(self):
+        from main import app as application
+
+        agenda_routes = [
+            route
+            for route in application.routes
+            if getattr(route, "path", "").startswith("/api/v1/agenda")
+            and hasattr(route, "methods")
+        ]
+        route_keys = [
+            (route.path, method)
+            for route in agenda_routes
+            for method in route.methods
+            if method not in {"HEAD", "OPTIONS"}
+        ]
+        self.assertEqual(
+            len(route_keys),
+            len(set(route_keys)),
+            "Duplicate Agenda routes can shadow the authenticated router.",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
