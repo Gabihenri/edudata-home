@@ -23,18 +23,14 @@ function getServiceRoleSupabase() {
   })
 }
 
-function isAdminRole(role: unknown): boolean {
+function isPlatformAdminRole(role: unknown): boolean {
   if (typeof role !== 'string') return false
 
   return [
-    'admin',
-    'administrator',
     'platform_admin',
     'super_admin',
-    'diretor',
-    'director',
-    'coordenador',
-    'coordinator',
+    'admin_plataforma',
+    'administrador_plataforma',
   ].includes(role.trim().toLowerCase())
 }
 
@@ -57,7 +53,7 @@ async function requireAcademyAdmin() {
     throw new Error('Não foi possível validar as permissões administrativas.')
   }
 
-  if (profile?.status !== 'active' || !isAdminRole(profile?.role)) {
+  if (profile?.status !== 'active' || !isPlatformAdminRole(profile?.role)) {
     throw new Error('Usuário não autorizado.')
   }
 
