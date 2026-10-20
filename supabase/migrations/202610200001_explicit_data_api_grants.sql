@@ -32,6 +32,20 @@ create policy organizations_read_active_membership
   );
 
 
+
+-- Agenda classroom roster and attendance; owner-only RLS limits row visibility.
+revoke all on table public.agenda_class_students from anon;
+revoke all on table public.agenda_attendance_entries from anon;
+grant select, insert, update on table public.agenda_class_students to authenticated;
+grant select, insert, update on table public.agenda_attendance_entries to authenticated;
+grant all on table public.agenda_class_students to service_role;
+grant all on table public.agenda_attendance_entries to service_role;
+
+-- Adaptive-learning feedback is append-only for browser clients.
+revoke all on table public.agenda_learning_events from anon;
+grant select, insert on table public.agenda_learning_events to authenticated;
+grant all on table public.agenda_learning_events to service_role;
+
 -- Institutional governance tables: grant only operations supported by their
 -- RLS policies. The audit log has no UPDATE/DELETE policy by design.
 revoke all on table public.eios_institutional_policies from anon;
