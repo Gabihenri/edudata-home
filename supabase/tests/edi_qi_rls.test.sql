@@ -71,8 +71,11 @@ select ok(
 select ok(
   has_table_privilege('authenticated', 'public.agenda_tasks', 'SELECT')
   and has_table_privilege('authenticated', 'public.agenda_tasks', 'INSERT')
-  and has_table_privilege('authenticated', 'public.agenda_tasks', 'UPDATE'),
-  'authenticated users have only the declared agenda task operations'
+  and has_table_privilege('authenticated', 'public.agenda_tasks', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.agenda_tasks', 'DELETE')
+  and not has_table_privilege('authenticated', 'public.agenda_task_status_history', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.agenda_task_status_history', 'DELETE'),
+  'authenticated users have only the declared agenda task and history operations'
 );
 select ok(
   not has_table_privilege('anon', 'public.agenda_tasks', 'SELECT'),
@@ -108,9 +111,11 @@ select ok(
   has_table_privilege('authenticated', 'public.agenda_class_students', 'SELECT')
   and has_table_privilege('authenticated', 'public.agenda_class_students', 'INSERT')
   and has_table_privilege('authenticated', 'public.agenda_class_students', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.agenda_class_students', 'DELETE')
   and has_table_privilege('authenticated', 'public.agenda_attendance_entries', 'SELECT')
   and has_table_privilege('authenticated', 'public.agenda_attendance_entries', 'INSERT')
   and has_table_privilege('authenticated', 'public.agenda_attendance_entries', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.agenda_attendance_entries', 'DELETE')
   and not has_table_privilege('anon', 'public.agenda_class_students', 'SELECT')
   and not has_table_privilege('anon', 'public.agenda_attendance_entries', 'SELECT'),
   'class roster and attendance have explicit authenticated grants without anonymous access'
