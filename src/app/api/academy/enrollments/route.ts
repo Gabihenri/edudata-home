@@ -166,6 +166,9 @@ export async function POST(request: NextRequest) {
           : null,
       status: 'novo',
       source: 'academy',
+      lgpd_consent: true,
+      privacy_consent_at: new Date().toISOString(),
+      privacy_notice_version: null,
       notes:
         typeof notesValue === 'string' && notesValue.trim()
           ? notesValue.trim().slice(0, 2000)
