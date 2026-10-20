@@ -31,8 +31,8 @@ create index if not exists organization_members_user_org_idx
 alter table public.organizations enable row level security;
 alter table public.organization_members enable row level security;
 
-revoke all on table public.organizations from anon;
-revoke all on table public.organization_members from anon;
+revoke all on table public.organizations from anon, authenticated;
+revoke all on table public.organization_members from anon, authenticated;
 grant select on table public.organizations to authenticated;
 grant select on table public.organization_members to authenticated;
 grant select, insert, update, delete on table public.organizations to service_role;
