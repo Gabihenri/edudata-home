@@ -4,8 +4,8 @@
 alter table public.organizations enable row level security;
 alter table public.organization_members enable row level security;
 
-revoke all on table public.organizations from anon;
-revoke all on table public.organization_members from anon;
+revoke all on table public.organizations from anon, authenticated;
+revoke all on table public.organization_members from anon, authenticated;
 grant select on table public.organizations to authenticated;
 grant select on table public.organization_members to authenticated;
 grant select, insert, update, delete on table public.organizations to service_role;
@@ -34,23 +34,23 @@ create policy organizations_read_active_membership
 
 
 -- Agenda classroom roster and attendance; owner-only RLS limits row visibility.
-revoke all on table public.agenda_class_students from anon;
-revoke all on table public.agenda_attendance_entries from anon;
+revoke all on table public.agenda_class_students from anon, authenticated;
+revoke all on table public.agenda_attendance_entries from anon, authenticated;
 grant select, insert, update on table public.agenda_class_students to authenticated;
 grant select, insert, update on table public.agenda_attendance_entries to authenticated;
 grant all on table public.agenda_class_students to service_role;
 grant all on table public.agenda_attendance_entries to service_role;
 
 -- Adaptive-learning feedback is append-only for browser clients.
-revoke all on table public.agenda_learning_events from anon;
+revoke all on table public.agenda_learning_events from anon, authenticated;
 grant select, insert on table public.agenda_learning_events to authenticated;
 grant all on table public.agenda_learning_events to service_role;
 
 -- Institutional governance tables: grant only operations supported by their
 -- RLS policies. The audit log has no UPDATE/DELETE policy by design.
-revoke all on table public.eios_institutional_policies from anon;
-revoke all on table public.eios_score_governance from anon;
-revoke all on table public.eios_policy_audit_events from anon;
+revoke all on table public.eios_institutional_policies from anon, authenticated;
+revoke all on table public.eios_score_governance from anon, authenticated;
+revoke all on table public.eios_policy_audit_events from anon, authenticated;
 grant select, insert, update, delete on table public.eios_institutional_policies to authenticated;
 grant select, insert, update, delete on table public.eios_score_governance to authenticated;
 grant select, insert on table public.eios_policy_audit_events to authenticated;
@@ -63,8 +63,8 @@ grant all on table public.eios_policy_audit_events to service_role;
 alter table public.agenda_tasks enable row level security;
 alter table public.agenda_task_status_history enable row level security;
 
-revoke all on table public.agenda_tasks from anon;
-revoke all on table public.agenda_task_status_history from anon;
+revoke all on table public.agenda_tasks from anon, authenticated;
+revoke all on table public.agenda_task_status_history from anon, authenticated;
 grant select, insert, update on table public.agenda_tasks to authenticated;
 grant select, insert on table public.agenda_task_status_history to authenticated;
 grant all on table public.agenda_tasks to service_role;
