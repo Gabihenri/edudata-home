@@ -68,6 +68,33 @@ BEGIN
     RAISE EXCEPTION 'EDI-QI schema test failed: missing RLS policies: %',
       array_to_string(missing_policies, ', ');
   END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint c
+    WHERE c.conrelid = 'public.organization_members'::regclass
+      AND c.conname = 'organization_members_role_check'
+      AND pg_get_constraintdef(c.oid) LIKE '%coordenador%'
+      AND pg_get_constraintdef(c.oid) LIKE '%diretor%'
+      AND pg_get_constraintdef(c.oid) LIKE '%administrador%'
+  ) THEN
+    RAISE EXCEPTION 'EDI-QI schema test failed: organization membership role constraint is not aligned with institutional roles';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND policyname IN (
+        'institution_governors_manage_policies',
+        'institution_governors_manage_score_governance',
+        'institution_members_read_policy_audit',
+        'institution_governors_insert_policy_audit'
+      )
+      AND concat_ws(' ', qual, with_check) ~ '(principal|manager|institution_admin|super_admin)'
+  ) THEN
+    RAISE EXCEPTION 'EDI-QI schema test failed: EIOS RLS policy contains a role outside the institutional membership constraint';
+  END IF;
 END;
 $$;
 
