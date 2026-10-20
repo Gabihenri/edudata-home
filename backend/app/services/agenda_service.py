@@ -105,9 +105,14 @@ class AgendaService(BaseService):
         cls,
         school_id: str,
         limit: int = 100,
+        organization_id: str | None = None,
     ) -> list[dict[str, Any]]:
         Validator.required(school_id, "school_id")
-        return cls.repository.list_by_school(school_id=school_id, limit=limit)
+        if organization_id is not None:
+            Validator.required(organization_id, "organization_id")
+        return cls.repository.list_by_school(
+            school_id=school_id, limit=limit, organization_id=organization_id
+        )
 
     @classmethod
     def list_by_teacher(
@@ -135,8 +140,11 @@ class AgendaService(BaseService):
         school_id: str,
         start: datetime,
         end: datetime,
+        organization_id: str | None = None,
     ) -> list[dict[str, Any]]:
         Validator.required(school_id, "school_id")
+        if organization_id is not None:
+            Validator.required(organization_id, "organization_id")
         # Normalize both bounds before comparison: comparing a naive datetime
         # with an aware datetime raises TypeError. Naive inputs are interpreted
         # in the server's local timezone by _parse_datetime.
@@ -150,6 +158,7 @@ class AgendaService(BaseService):
             school_id=school_id,
             start=start_at,
             end=end_at,
+            organization_id=organization_id,
         )
 
     @classmethod
@@ -157,9 +166,14 @@ class AgendaService(BaseService):
         cls,
         school_id: str,
         limit: int = 10,
+        organization_id: str | None = None,
     ) -> list[dict[str, Any]]:
         Validator.required(school_id, "school_id")
-        return cls.repository.upcoming_events(school_id=school_id, limit=limit)
+        if organization_id is not None:
+            Validator.required(organization_id, "organization_id")
+        return cls.repository.upcoming_events(
+            school_id=school_id, limit=limit, organization_id=organization_id
+        )
 
     @classmethod
     def dashboard_summary(cls) -> dict[str, Any]:
