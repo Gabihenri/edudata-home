@@ -117,16 +117,19 @@ select ok(
   and has_table_privilege('authenticated', 'public.agenda_attendance_entries', 'UPDATE')
   and not has_table_privilege('authenticated', 'public.agenda_attendance_entries', 'DELETE')
   and not has_table_privilege('anon', 'public.agenda_class_students', 'SELECT')
-  and not has_table_privilege('anon', 'public.agenda_attendance_entries', 'SELECT'),
-  'class roster and attendance have explicit authenticated grants without anonymous access'
+  and not has_table_privilege('anon', 'public.agenda_attendance_entries', 'SELECT')
+  and (select relrowsecurity from pg_class where oid = 'public.agenda_class_students'::regclass)
+  and (select relrowsecurity from pg_class where oid = 'public.agenda_attendance_entries'::regclass),
+  'class roster and attendance have explicit grants, RLS, and no anonymous access'
 );
 select ok(
   has_table_privilege('authenticated', 'public.agenda_learning_events', 'SELECT')
   and has_table_privilege('authenticated', 'public.agenda_learning_events', 'INSERT')
   and not has_table_privilege('authenticated', 'public.agenda_learning_events', 'UPDATE')
   and not has_table_privilege('authenticated', 'public.agenda_learning_events', 'DELETE')
-  and not has_table_privilege('anon', 'public.agenda_learning_events', 'SELECT'),
-  'learning feedback grants preserve append-only behavior and block anonymous access'
+  and not has_table_privilege('anon', 'public.agenda_learning_events', 'SELECT')
+  and (select relrowsecurity from pg_class where oid = 'public.agenda_learning_events'::regclass),
+  'learning feedback grants preserve append-only behavior, RLS, and no anonymous access'
 );
 
 select * from finish();
