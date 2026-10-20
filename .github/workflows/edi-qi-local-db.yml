@@ -3,8 +3,6 @@ name: EDI-QI Local Database
 on:
   push:
     branches: ['feat/**']
-  pull_request:
-    branches: ['main']
 
 permissions:
   contents: read
