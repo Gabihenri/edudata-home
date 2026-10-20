@@ -46,6 +46,10 @@ select ok(
 
 select ok(
   has_table_privilege('authenticated', 'public.organizations', 'SELECT')
+  and not has_table_privilege('anon', 'public.organizations', 'SELECT')
+  and not has_table_privilege('authenticated', 'public.organizations', 'INSERT')
+  and not has_table_privilege('authenticated', 'public.organizations', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.organizations', 'DELETE')
   and (select relrowsecurity from pg_class where oid = 'public.organizations'::regclass)
   and exists (
     select 1 from pg_policies
@@ -56,6 +60,10 @@ select ok(
 );
 select ok(
   has_table_privilege('authenticated', 'public.organization_members', 'SELECT')
+  and not has_table_privilege('anon', 'public.organization_members', 'SELECT')
+  and not has_table_privilege('authenticated', 'public.organization_members', 'INSERT')
+  and not has_table_privilege('authenticated', 'public.organization_members', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.organization_members', 'DELETE')
   and (select relrowsecurity from pg_class where oid = 'public.organization_members'::regclass)
   and exists (
     select 1 from pg_policies
