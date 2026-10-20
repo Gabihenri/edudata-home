@@ -1,6 +1,6 @@
 begin;
 
-select plan(25);
+select plan(27);
 
 select has_table('public', 'organizations', 'institutional organizations table exists');
 select has_table('public', 'organization_members', 'institutional membership table exists');
@@ -82,6 +82,25 @@ select ok(
   has_function_privilege('authenticated', 'public.set_agenda_task_status(uuid,text,text)', 'EXECUTE')
   and not has_function_privilege('anon', 'public.set_agenda_task_status(uuid,text,text)', 'EXECUTE'),
   'agenda status function is executable only by authenticated users and trusted backend'
+);
+
+
+select ok(
+  has_table_privilege('authenticated', 'public.eios_institutional_policies', 'SELECT')
+  and has_table_privilege('authenticated', 'public.eios_score_governance', 'SELECT')
+  and has_table_privilege('authenticated', 'public.eios_policy_audit_events', 'SELECT')
+  and not has_table_privilege('anon', 'public.eios_institutional_policies', 'SELECT')
+  and not has_table_privilege('anon', 'public.eios_score_governance', 'SELECT')
+  and not has_table_privilege('anon', 'public.eios_policy_audit_events', 'SELECT'),
+  'governance Data API grants exclude anonymous access and permit authenticated reads'
+);
+select ok(
+  has_table_privilege('service_role', 'public.eios_institutional_policies', 'SELECT')
+  and has_table_privilege('service_role', 'public.eios_score_governance', 'SELECT')
+  and has_table_privilege('service_role', 'public.eios_policy_audit_events', 'SELECT')
+  and not has_table_privilege('authenticated', 'public.eios_policy_audit_events', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.eios_policy_audit_events', 'DELETE'),
+  'governance service role and append-only audit privileges are explicit'
 );
 
 select * from finish();
