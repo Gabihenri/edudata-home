@@ -70,7 +70,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from('matriculas_na_academia')
-      .select('*')
+      .select('id, course_slug, name, email, phone, school_name, role, status, source, notes, created_at')
       .order('created_at', { ascending: false })
 
     if (error) {
