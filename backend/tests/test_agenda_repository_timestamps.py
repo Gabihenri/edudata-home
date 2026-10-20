@@ -116,5 +116,31 @@ class AgendaRepositoryTimestampContractTests(unittest.TestCase):
         self.assertUsesStartAtOrdering()
 
 
+    def test_school_queries_apply_organization_filter_before_limit(self) -> None:
+        AgendaRepository.list_by_school(
+            "school-1", limit=7, organization_id="org-1"
+        )
+        self.assertIn(("eq", "school_id", "school-1"), self.query.calls)
+        self.assertIn(("eq", "organization_id", "org-1"), self.query.calls)
+        self.assertLess(
+            self.query.calls.index(("eq", "organization_id", "org-1")),
+            self.query.calls.index(("limit", 7)),
+        )
+
+    def test_period_and_upcoming_queries_apply_organization_filter(self) -> None:
+        start = datetime(2026, 10, 1, tzinfo=timezone.utc)
+        end = datetime(2026, 10, 31, tzinfo=timezone.utc)
+        AgendaRepository.events_between(
+            "school-1", start, end, organization_id="org-1"
+        )
+        self.assertIn(("eq", "organization_id", "org-1"), self.query.calls)
+
+        self.query.calls.clear()
+        AgendaRepository.upcoming_events(
+            "school-1", limit=5, organization_id="org-1"
+        )
+        self.assertIn(("eq", "organization_id", "org-1"), self.query.calls)
+
+
 if __name__ == "__main__":
     unittest.main()
