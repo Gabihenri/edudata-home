@@ -1,13 +1,35 @@
 -- Explicit Data API privileges for existing deployments.
--- Keep institutional identity tables backend-only: they currently have no
--- row-scoped browser policies, so do not grant anon/authenticated access.
+-- Authenticated users may read only their own membership and organizations
+-- where they have a currently valid active membership. Writes remain backend-only.
 alter table public.organizations enable row level security;
 alter table public.organization_members enable row level security;
 
-revoke all on table public.organizations from anon, authenticated;
-revoke all on table public.organization_members from anon, authenticated;
+revoke all on table public.organizations from anon;
+revoke all on table public.organization_members from anon;
+grant select on table public.organizations to authenticated;
+grant select on table public.organization_members to authenticated;
 grant select, insert, update, delete on table public.organizations to service_role;
 grant select, insert, update, delete on table public.organization_members to service_role;
+
+drop policy if exists organization_members_read_own on public.organization_members;
+create policy organization_members_read_own
+  on public.organization_members for select to authenticated
+  using (user_id = (select auth.uid()));
+
+drop policy if exists organizations_read_active_membership on public.organizations;
+create policy organizations_read_active_membership
+  on public.organizations for select to authenticated
+  using (
+    exists (
+      select 1
+      from public.organization_members member
+      where member.organization_id = organizations.id
+        and member.user_id = (select auth.uid())
+        and member.status = 'active'
+        and (member.access_starts_at is null or member.access_starts_at <= now())
+        and (member.access_ends_at is null or member.access_ends_at >= now())
+    )
+  );
 
 -- Agenda tasks are directly used by signed-in users and are protected by
 -- owner-only RLS policies in 202608280001_agenda_tasks_governance.sql.
