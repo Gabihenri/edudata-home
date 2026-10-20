@@ -131,9 +131,17 @@ class AgendaTemporalContractTests(unittest.TestCase):
             {"status": "planned", "start_datetime": "2999-01-01T00:00:00Z"},
             {"status": "planned"},
         ]
-        with patch.object(AgendaService.repository, "list", return_value=events):
-            summary = AgendaService.dashboard_summary()
+        with patch.object(AgendaService.repository, "list_by_school", return_value=events) as query:
+            summary = AgendaService.dashboard_summary(
+                school_id="school-a",
+                organization_id="org-a",
+            )
 
+        query.assert_called_once_with(
+            school_id="school-a",
+            organization_id="org-a",
+            limit=500,
+        )
         self.assertEqual(summary, {
             "total_events": 5,
             "planned": 3,
