@@ -24,3 +24,14 @@ create table if not exists public.organization_members (
 
 create index if not exists organization_members_user_org_idx
   on public.organization_members(user_id, organization_id);
+
+
+-- These are internal identity/authorization tables. They are accessed by the
+-- trusted backend using service_role, not directly by browser roles.
+alter table public.organizations enable row level security;
+alter table public.organization_members enable row level security;
+
+revoke all on table public.organizations from anon, authenticated;
+revoke all on table public.organization_members from anon, authenticated;
+grant select, insert, update, delete on table public.organizations to service_role;
+grant select, insert, update, delete on table public.organization_members to service_role;
