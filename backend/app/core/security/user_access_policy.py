@@ -71,8 +71,11 @@ def can_access_user(
     if not _same_nonempty(target_user.get("organization_id"), membership.get("organization_id")):
         return False
 
+    # User-management permission is school-scoped: missing scope on either
+    # persisted record must deny access rather than widen the authorization.
     target_school = target_user.get("school_id")
-    if target_school is not None and not _same_nonempty(target_school, membership.get("school_id")):
+    membership_school = membership.get("school_id")
+    if not _same_nonempty(target_school, membership_school):
         return False
     if action in MANAGE_ACTIONS and is_self:
         return False
