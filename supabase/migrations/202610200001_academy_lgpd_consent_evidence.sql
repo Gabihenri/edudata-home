@@ -28,3 +28,9 @@ comment on column public.matriculas_na_academia.privacy_consent_at is
   'Server-side timestamp when explicit privacy consent was recorded.';
 comment on column public.matriculas_na_academia.privacy_notice_version is
   'Identifier of the privacy notice version shown at consent time; nullable until a governed version is defined.';
+
+-- The table is accessed by the server-side API with the service-role key.
+-- Do not expose enrollment PII directly through the Data API to client roles.
+alter table public.matriculas_na_academia enable row level security;
+revoke all on table public.matriculas_na_academia from anon, authenticated;
+grant all on table public.matriculas_na_academia to service_role;
