@@ -10,6 +10,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
 from app.routers import agenda as agenda_router
+from app.core.security import agenda_authorization
 
 
 def make_app(authenticated=True):
@@ -129,6 +130,71 @@ class AgendaRouterAuthorizationTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 403)
         change_status.assert_not_called()
+
+
+    def test_create_denies_when_no_active_membership_exists(self):
+        client = TestClient(make_app())
+        payload = {
+            "organization_id": "org-1",
+            "school_id": "school-1",
+            "title": "Planejamento",
+        }
+        with (
+            patch.object(agenda_authorization, "_load_memberships", return_value=[]),
+            patch.object(agenda_router.AgendaService, "create") as create,
+        ):
+            response = client.post("/api/v1/agenda/", json=payload)
+
+        self.assertEqual(response.status_code, 403)
+        create.assert_not_called()
+
+    def test_create_denies_membership_from_another_school(self):
+        client = TestClient(make_app())
+        payload = {
+            "organization_id": "org-1",
+            "school_id": "school-1",
+            "title": "Planejamento",
+        }
+        other_school_membership = {
+            "user_id": "user-1",
+            "organization_id": "org-1",
+            "school_id": "school-2",
+            "status": "active",
+            "role": "teacher",
+            "can_view_school": True,
+        }
+        with (
+            patch.object(
+                agenda_authorization,
+                "_load_memberships",
+                return_value=[other_school_membership],
+            ),
+            patch.object(agenda_router.AgendaService, "create") as create,
+        ):
+            response = client.post("/api/v1/agenda/", json=payload)
+
+        self.assertEqual(response.status_code, 403)
+        create.assert_not_called()
+
+    def test_create_fails_closed_when_membership_database_errors(self):
+        client = TestClient(make_app())
+        payload = {
+            "organization_id": "org-1",
+            "school_id": "school-1",
+            "title": "Planejamento",
+        }
+        with (
+            patch.object(
+                agenda_authorization.supabase,
+                "table",
+                side_effect=RuntimeError("simulated database outage"),
+            ),
+            patch.object(agenda_router.AgendaService, "create") as create,
+        ):
+            response = client.post("/api/v1/agenda/", json=payload)
+
+        self.assertEqual(response.status_code, 503)
+        create.assert_not_called()
 
     def test_application_registers_only_one_agenda_handler_per_method_and_path(self):
         from main import app as application
