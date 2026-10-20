@@ -75,6 +75,32 @@ def _authorize_events(
     return events
 
 
+def _engine_payload(
+    original_payload: Mapping[str, Any],
+    safe_event_payload: Mapping[str, Any],
+    event: dict[str, Any],
+) -> dict[str, Any]:
+    untrusted_context_fields = {
+        "id", "user_id", "organization_id", "school_id",
+        "role", "metadata", "created_by", "created_at", "updated_at",
+    }
+    result = {
+        key: value
+        for key, value in original_payload.items()
+        if key not in untrusted_context_fields
+    }
+    result.update(safe_event_payload)
+    result["agenda_events"] = [event]
+    result["evidences"] = original_payload.get("evidences", [])
+    result["trainings"] = original_payload.get("trainings", [])
+    result["users"] = original_payload.get("users", [])
+    result["interactions"] = original_payload.get("interactions", [])
+    result["accepted_recommendations"] = original_payload.get(
+        "accepted_recommendations", 0
+    )
+    return result
+
+
 def _summary(events: list[dict[str, Any]]) -> dict[str, int]:
     now = datetime.now().astimezone()
     upcoming = 0
@@ -304,15 +330,7 @@ def create_event(
         event = AgendaService.create(safe_payload)
         engine_result = PipelineEngine.execute(
             context=build_engine_context(safe_payload, authenticated_user, membership),
-            payload={
-                **safe_payload,
-                "agenda_events": [event],
-                "evidences": safe_payload.get("evidences", []),
-                "trainings": safe_payload.get("trainings", []),
-                "users": safe_payload.get("users", []),
-                "interactions": safe_payload.get("interactions", []),
-                "accepted_recommendations": safe_payload.get("accepted_recommendations", 0),
-            },
+            payload=_engine_payload(payload, safe_payload, event),
         )
         return ApiResponse.created(
             data={"event": event, "engine": engine_result},
