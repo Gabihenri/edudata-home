@@ -175,7 +175,9 @@ def dashboard_summary(
             organization_id=organization_id,
             school_id=school_id,
         )
-        events = AgendaService.list_by_school(school_id=school_id, limit=500)
+        events = AgendaService.list_by_school(
+            school_id=school_id, limit=500, organization_id=organization_id
+        )
         events = _filter_organization(events, organization_id)
         _authorize_events(events, authenticated_user)
         return ApiResponse.success(
@@ -216,7 +218,9 @@ def list_school_events(
             organization_id=organization_id,
             school_id=school_id,
         )
-        events = AgendaService.list_by_school(school_id=school_id, limit=limit)
+        events = AgendaService.list_by_school(
+            school_id=school_id, limit=limit, organization_id=organization_id
+        )
         events = _filter_organization(events, organization_id)
         _authorize_events(events, authenticated_user)
         return ApiResponse.success(
@@ -240,7 +244,9 @@ def upcoming_events(
             organization_id=organization_id,
             school_id=school_id,
         )
-        events = AgendaService.upcoming_events(school_id=school_id, limit=limit)
+        events = AgendaService.upcoming_events(
+            school_id=school_id, limit=limit, organization_id=organization_id
+        )
         events = _filter_organization(events, organization_id)
         _authorize_events(events, authenticated_user)
         return ApiResponse.success(
@@ -269,6 +275,7 @@ def events_between(
             school_id=school_id,
             start=start,
             end=end,
+            organization_id=organization_id,
         )
         events = _filter_organization(events, organization_id)
         _authorize_events(events, authenticated_user)
