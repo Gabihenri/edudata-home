@@ -17,11 +17,17 @@ class AgendaRepository(BaseRepository):
         cls,
         school_id: str,
         limit: int = 100,
+        organization_id: str | None = None,
     ) -> list[dict[str, Any]]:
-        response = (
+        query = (
             supabase.table(cls.table_name)
             .select("*")
             .eq("school_id", school_id)
+        )
+        if organization_id is not None:
+            query = query.eq("organization_id", organization_id)
+        response = (
+            query
             .order("start_at")
             .limit(limit)
             .execute()
@@ -52,11 +58,17 @@ class AgendaRepository(BaseRepository):
         school_id: str,
         start: datetime,
         end: datetime,
+        organization_id: str | None = None,
     ) -> list[dict[str, Any]]:
-        response = (
+        query = (
             supabase.table(cls.table_name)
             .select("*")
             .eq("school_id", school_id)
+        )
+        if organization_id is not None:
+            query = query.eq("organization_id", organization_id)
+        response = (
+            query
             .gte("start_at", start.isoformat())
             .lte("end_at", end.isoformat())
             .order("start_at")
@@ -70,11 +82,17 @@ class AgendaRepository(BaseRepository):
         cls,
         school_id: str,
         limit: int = 10,
+        organization_id: str | None = None,
     ) -> list[dict[str, Any]]:
-        response = (
+        query = (
             supabase.table(cls.table_name)
             .select("*")
             .eq("school_id", school_id)
+        )
+        if organization_id is not None:
+            query = query.eq("organization_id", organization_id)
+        response = (
+            query
             .gte("start_at", datetime.now().astimezone().isoformat())
             .order("start_at")
             .limit(limit)
