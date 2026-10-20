@@ -1,0 +1,45 @@
+name: Agenda Temporal Contract Tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/agenda-temporal-tests.yml"
+  push:
+    branches:
+      - "fix/agenda-service-temporal-contract"
+    paths:
+      - "backend/**"
+      - ".github/workflows/agenda-temporal-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  agenda-temporal-tests:
+    name: Agenda temporal contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_KEY: test-only-key
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run backend unit tests
+        run: python -m unittest discover -s tests -v
