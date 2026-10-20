@@ -85,3 +85,10 @@ comment on column public.agenda_learning_events.outcome is
 
 comment on column public.agenda_learning_events.result is
   'Resultado observado: positive, neutral ou negative.';
+
+
+-- Explicit Data API grants. Events are append-only for authenticated users;
+-- RLS limits both reads and inserts to the event owner.
+revoke all on table public.agenda_learning_events from anon;
+grant select, insert on table public.agenda_learning_events to authenticated;
+grant all on table public.agenda_learning_events to service_role;
