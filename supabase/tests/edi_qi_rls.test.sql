@@ -1,6 +1,6 @@
 begin;
 
-select plan(19);
+select plan(25);
 
 select has_table('public', 'organizations', 'institutional organizations table exists');
 select has_table('public', 'organization_members', 'institutional membership table exists');
@@ -41,6 +41,35 @@ select ok(
 select ok(
   exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'eios_policy_audit_events' and policyname = 'institution_members_read_policy_audit'),
   'audit access has an explicit membership policy'
+);
+
+
+select ok(
+  not has_table_privilege('authenticated', 'public.organizations', 'SELECT'),
+  'institutional organizations are not directly exposed to authenticated clients'
+);
+select ok(
+  not has_table_privilege('authenticated', 'public.organization_members', 'SELECT'),
+  'institutional memberships are not directly exposed to authenticated clients'
+);
+select ok(
+  has_table_privilege('service_role', 'public.organization_members', 'SELECT'),
+  'trusted backend can read institutional memberships'
+);
+select ok(
+  has_table_privilege('authenticated', 'public.agenda_tasks', 'SELECT')
+  and has_table_privilege('authenticated', 'public.agenda_tasks', 'INSERT')
+  and has_table_privilege('authenticated', 'public.agenda_tasks', 'UPDATE'),
+  'authenticated users have only the declared agenda task operations'
+);
+select ok(
+  not has_table_privilege('anon', 'public.agenda_tasks', 'SELECT'),
+  'anonymous clients cannot query agenda tasks'
+);
+select ok(
+  has_function_privilege('authenticated', 'public.set_agenda_task_status(uuid,text,text)', 'EXECUTE')
+  and not has_function_privilege('anon', 'public.set_agenda_task_status(uuid,text,text)', 'EXECUTE'),
+  'agenda status function is executable only by authenticated users and trusted backend'
 );
 
 select * from finish();
