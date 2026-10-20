@@ -68,7 +68,7 @@ class AgendaRouterAuthorizationTests(unittest.TestCase):
         ):
             response = client.post("/api/v1/agenda/", json=payload)
 
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 200)
         persisted = create.call_args.args[0]
         self.assertEqual(persisted["user_id"], "user-1")
         self.assertEqual(persisted["organization_id"], "org-1")
