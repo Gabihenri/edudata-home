@@ -367,15 +367,7 @@ def update_event(
 
         engine_result = PipelineEngine.execute(
             context=build_engine_context(safe_payload, authenticated_user, membership),
-            payload={
-                **safe_payload,
-                "agenda_events": [event],
-                "evidences": safe_payload.get("evidences", []),
-                "trainings": safe_payload.get("trainings", []),
-                "users": safe_payload.get("users", []),
-                "interactions": safe_payload.get("interactions", []),
-                "accepted_recommendations": safe_payload.get("accepted_recommendations", 0),
-            },
+            payload=_engine_payload(payload, safe_payload, event),
         )
         return ApiResponse.updated(
             data={"event": event, "engine": engine_result},
