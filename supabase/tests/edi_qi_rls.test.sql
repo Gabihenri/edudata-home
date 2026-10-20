@@ -45,12 +45,24 @@ select ok(
 
 
 select ok(
-  not has_table_privilege('authenticated', 'public.organizations', 'SELECT'),
-  'institutional organizations are not directly exposed to authenticated clients'
+  has_table_privilege('authenticated', 'public.organizations', 'SELECT')
+  and (select relrowsecurity from pg_class where oid = 'public.organizations'::regclass)
+  and exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'organizations'
+      and policyname = 'organizations_read_active_membership'
+  ),
+  'organization reads have explicit privileges and active-membership RLS'
 );
 select ok(
-  not has_table_privilege('authenticated', 'public.organization_members', 'SELECT'),
-  'institutional memberships are not directly exposed to authenticated clients'
+  has_table_privilege('authenticated', 'public.organization_members', 'SELECT')
+  and (select relrowsecurity from pg_class where oid = 'public.organization_members'::regclass)
+  and exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'organization_members'
+      and policyname = 'organization_members_read_own'
+  ),
+  'membership reads have explicit privileges and self-only RLS'
 );
 select ok(
   has_table_privilege('service_role', 'public.organization_members', 'SELECT'),
