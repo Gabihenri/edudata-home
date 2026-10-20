@@ -53,7 +53,5 @@ create policy organizations_read_active_membership
       where member.organization_id = organizations.id
         and member.user_id = (select auth.uid())
         and member.status = 'active'
-        and (member.access_starts_at is null or member.access_starts_at <= now())
-        and (member.access_ends_at is null or member.access_ends_at >= now())
     )
   );
