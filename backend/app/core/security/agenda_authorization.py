@@ -84,9 +84,7 @@ def authorize_event(
         raise HTTPException(status_code=401, detail="Identidade autenticada inválida.")
     if not isinstance(organization_id, str) or not organization_id.strip():
         raise HTTPException(status_code=403, detail="Evento sem escopo institucional válido.")
-    if school_id is not None and (
-        not isinstance(school_id, str) or not school_id.strip()
-    ):
+    if not isinstance(school_id, str) or not school_id.strip():
         raise HTTPException(status_code=403, detail="Evento sem escopo escolar válido.")
 
     membership = require_membership(
