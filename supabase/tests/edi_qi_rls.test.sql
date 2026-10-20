@@ -1,6 +1,6 @@
 begin;
 
-select plan(27);
+select plan(29);
 
 select has_table('public', 'organizations', 'institutional organizations table exists');
 select has_table('public', 'organization_members', 'institutional membership table exists');
@@ -101,6 +101,27 @@ select ok(
   and not has_table_privilege('authenticated', 'public.eios_policy_audit_events', 'UPDATE')
   and not has_table_privilege('authenticated', 'public.eios_policy_audit_events', 'DELETE'),
   'governance service role and append-only audit privileges are explicit'
+);
+
+
+select ok(
+  has_table_privilege('authenticated', 'public.agenda_class_students', 'SELECT')
+  and has_table_privilege('authenticated', 'public.agenda_class_students', 'INSERT')
+  and has_table_privilege('authenticated', 'public.agenda_class_students', 'UPDATE')
+  and has_table_privilege('authenticated', 'public.agenda_attendance_entries', 'SELECT')
+  and has_table_privilege('authenticated', 'public.agenda_attendance_entries', 'INSERT')
+  and has_table_privilege('authenticated', 'public.agenda_attendance_entries', 'UPDATE')
+  and not has_table_privilege('anon', 'public.agenda_class_students', 'SELECT')
+  and not has_table_privilege('anon', 'public.agenda_attendance_entries', 'SELECT'),
+  'class roster and attendance have explicit authenticated grants without anonymous access'
+);
+select ok(
+  has_table_privilege('authenticated', 'public.agenda_learning_events', 'SELECT')
+  and has_table_privilege('authenticated', 'public.agenda_learning_events', 'INSERT')
+  and not has_table_privilege('authenticated', 'public.agenda_learning_events', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.agenda_learning_events', 'DELETE')
+  and not has_table_privilege('anon', 'public.agenda_learning_events', 'SELECT'),
+  'learning feedback grants preserve append-only behavior and block anonymous access'
 );
 
 select * from finish();
