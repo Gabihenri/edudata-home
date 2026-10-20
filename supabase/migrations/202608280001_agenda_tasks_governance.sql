@@ -116,3 +116,16 @@ create policy "agenda_tasks_owner_update" on public.agenda_tasks for update usin
 
 create policy "agenda_task_status_history_owner_select" on public.agenda_task_status_history for select using (auth.uid() = user_id);
 create policy "agenda_task_status_history_owner_insert" on public.agenda_task_status_history for insert with check (auth.uid() = user_id and auth.uid() = changed_by);
+
+
+-- Explicit Data API privileges. RLS policies above remain the row-level guard.
+revoke all on table public.agenda_tasks from anon;
+revoke all on table public.agenda_task_status_history from anon;
+grant select, insert, update on table public.agenda_tasks to authenticated;
+grant select, insert on table public.agenda_task_status_history to authenticated;
+grant all on table public.agenda_tasks to service_role;
+grant all on table public.agenda_task_status_history to service_role;
+
+-- Do not leave the status-changing function executable by PUBLIC by default.
+revoke all on function public.set_agenda_task_status(uuid, text, text) from public, anon;
+grant execute on function public.set_agenda_task_status(uuid, text, text) to authenticated, service_role;
