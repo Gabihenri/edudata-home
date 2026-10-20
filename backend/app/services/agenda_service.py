@@ -176,8 +176,21 @@ class AgendaService(BaseService):
         )
 
     @classmethod
-    def dashboard_summary(cls) -> dict[str, Any]:
-        events = cls.repository.list(limit=500)
+    def dashboard_summary(
+        cls,
+        *,
+        school_id: str,
+        organization_id: str,
+    ) -> dict[str, Any]:
+        # Summary queries must always carry a server-authorized institutional
+        # scope. Never fall back to an unfiltered repository.list() query.
+        Validator.required(school_id, "school_id")
+        Validator.required(organization_id, "organization_id")
+        events = cls.repository.list_by_school(
+            school_id=school_id,
+            organization_id=organization_id,
+            limit=500,
+        )
         now = datetime.now().astimezone()
 
         def is_upcoming(event: dict[str, Any]) -> bool:
