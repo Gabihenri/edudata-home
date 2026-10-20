@@ -179,6 +179,40 @@ class AgendaRouterAuthorizationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 403)
         delete.assert_not_called()
 
+    def test_teacher_list_denies_other_users_events_without_school_permission(self):
+        client = TestClient(make_app())
+        other_teacher_event = {
+            "id": "event-1",
+            "user_id": "user-2",
+            "organization_id": "org-1",
+            "school_id": "school-1",
+            "title": "Private event",
+        }
+        active_membership = {
+            "user_id": "user-1",
+            "organization_id": "org-1",
+            "school_id": "school-1",
+            "status": "active",
+            "role": "teacher",
+            "can_view_school": False,
+        }
+        with (
+            patch.object(
+                agenda_router.AgendaService,
+                "list_by_teacher",
+                return_value=[other_teacher_event],
+            ),
+            patch.object(
+                agenda_authorization,
+                "_load_memberships",
+                return_value=[active_membership],
+            ),
+        ):
+            response = client.get("/api/v1/agenda/teacher/user-2")
+
+        self.assertEqual(response.status_code, 403)
+        self.assertNotIn("Private event", response.text)
+
     def test_create_denies_when_no_active_membership_exists(self):
         client = TestClient(make_app())
         payload = {
