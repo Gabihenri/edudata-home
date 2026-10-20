@@ -26,12 +26,34 @@ create index if not exists organization_members_user_org_idx
   on public.organization_members(user_id, organization_id);
 
 
--- These are internal identity/authorization tables. They are accessed by the
--- trusted backend using service_role, not directly by browser roles.
+-- Explicit Data API privileges. Browser reads are limited by RLS to the
+-- signed-in user's active institutional membership; writes remain backend-only.
 alter table public.organizations enable row level security;
 alter table public.organization_members enable row level security;
 
-revoke all on table public.organizations from anon, authenticated;
-revoke all on table public.organization_members from anon, authenticated;
+revoke all on table public.organizations from anon;
+revoke all on table public.organization_members from anon;
+grant select on table public.organizations to authenticated;
+grant select on table public.organization_members to authenticated;
 grant select, insert, update, delete on table public.organizations to service_role;
 grant select, insert, update, delete on table public.organization_members to service_role;
+
+drop policy if exists organization_members_read_own on public.organization_members;
+create policy organization_members_read_own
+  on public.organization_members for select to authenticated
+  using (user_id = (select auth.uid()));
+
+drop policy if exists organizations_read_active_membership on public.organizations;
+create policy organizations_read_active_membership
+  on public.organizations for select to authenticated
+  using (
+    exists (
+      select 1
+      from public.organization_members member
+      where member.organization_id = organizations.id
+        and member.user_id = (select auth.uid())
+        and member.status = 'active'
+        and (member.access_starts_at is null or member.access_starts_at <= now())
+        and (member.access_ends_at is null or member.access_ends_at >= now())
+    )
+  );
