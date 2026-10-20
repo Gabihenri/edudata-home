@@ -119,8 +119,8 @@ create policy "agenda_task_status_history_owner_insert" on public.agenda_task_st
 
 
 -- Explicit Data API privileges. RLS policies above remain the row-level guard.
-revoke all on table public.agenda_tasks from anon;
-revoke all on table public.agenda_task_status_history from anon;
+revoke all on table public.agenda_tasks from anon, authenticated;
+revoke all on table public.agenda_task_status_history from anon, authenticated;
 grant select, insert, update on table public.agenda_tasks to authenticated;
 grant select, insert on table public.agenda_task_status_history to authenticated;
 grant all on table public.agenda_tasks to service_role;
