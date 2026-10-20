@@ -90,12 +90,20 @@ class AgendaRouterAuthorizationTests(unittest.TestCase):
             "school_id": "school-1",
             "title": "Private event",
         }
+        active_membership = {
+            "user_id": "user-1",
+            "organization_id": "org-1",
+            "school_id": "school-1",
+            "status": "active",
+            "role": "teacher",
+            "can_view_school": False,
+        }
         with (
             patch.object(agenda_router.AgendaService, "find_by_id", return_value=existing),
             patch.object(
-                agenda_router,
-                "authorize_event",
-                side_effect=HTTPException(status_code=403, detail="forbidden"),
+                agenda_authorization,
+                "_load_memberships",
+                return_value=[active_membership],
             ),
             patch.object(agenda_router.AgendaService, "update") as update,
         ):
@@ -114,12 +122,20 @@ class AgendaRouterAuthorizationTests(unittest.TestCase):
             "title": "Private event",
             "status": "planned",
         }
+        active_membership = {
+            "user_id": "user-1",
+            "organization_id": "org-1",
+            "school_id": "school-1",
+            "status": "active",
+            "role": "teacher",
+            "can_view_school": False,
+        }
         with (
             patch.object(agenda_router.AgendaService, "find_by_id", return_value=existing),
             patch.object(
-                agenda_router,
-                "authorize_event",
-                side_effect=HTTPException(status_code=403, detail="forbidden"),
+                agenda_authorization,
+                "_load_memberships",
+                return_value=[active_membership],
             ),
             patch.object(agenda_router.AgendaService, "change_status") as change_status,
         ):
@@ -131,6 +147,37 @@ class AgendaRouterAuthorizationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 403)
         change_status.assert_not_called()
 
+
+    def test_delete_denies_before_mutating_unauthorized_event(self):
+        client = TestClient(make_app())
+        existing = {
+            "id": "event-1",
+            "user_id": "user-2",
+            "organization_id": "org-1",
+            "school_id": "school-1",
+            "title": "Private event",
+        }
+        active_membership = {
+            "user_id": "user-1",
+            "organization_id": "org-1",
+            "school_id": "school-1",
+            "status": "active",
+            "role": "teacher",
+            "can_view_school": False,
+        }
+        with (
+            patch.object(agenda_router.AgendaService, "find_by_id", return_value=existing),
+            patch.object(
+                agenda_authorization,
+                "_load_memberships",
+                return_value=[active_membership],
+            ),
+            patch.object(agenda_router.AgendaService, "delete") as delete,
+        ):
+            response = client.delete("/api/v1/agenda/event-1")
+
+        self.assertEqual(response.status_code, 403)
+        delete.assert_not_called()
 
     def test_create_denies_when_no_active_membership_exists(self):
         client = TestClient(make_app())
