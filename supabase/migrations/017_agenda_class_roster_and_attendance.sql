@@ -65,8 +65,8 @@ create policy "agenda_attendance_owner_update"
 
 
 -- Explicit Data API grants; owner-only RLS policies remain the access boundary.
-revoke all on table public.agenda_class_students from anon;
-revoke all on table public.agenda_attendance_entries from anon;
+revoke all on table public.agenda_class_students from anon, authenticated;
+revoke all on table public.agenda_attendance_entries from anon, authenticated;
 grant select, insert, update on table public.agenda_class_students to authenticated;
 grant select, insert, update on table public.agenda_attendance_entries to authenticated;
 grant all on table public.agenda_class_students to service_role;
