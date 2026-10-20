@@ -21,3 +21,20 @@ alter table public.organization_members
 
 create index if not exists organization_members_user_org_school_status_idx
   on public.organization_members(user_id, organization_id, school_id, status);
+
+
+-- Tighten the organization lookup to memberships valid at the current time.
+drop policy if exists organizations_read_active_membership on public.organizations;
+create policy organizations_read_active_membership
+  on public.organizations for select to authenticated
+  using (
+    exists (
+      select 1
+      from public.organization_members member
+      where member.organization_id = organizations.id
+        and member.user_id = (select auth.uid())
+        and member.status = 'active'
+        and (member.access_starts_at is null or member.access_starts_at <= now())
+        and (member.access_ends_at is null or member.access_ends_at >= now())
+    )
+  );
