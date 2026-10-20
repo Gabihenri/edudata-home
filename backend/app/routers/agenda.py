@@ -195,6 +195,14 @@ def list_teacher_events(
     authenticated_user: dict[str, Any] = Depends(get_supabase_user),
 ) -> dict[str, Any]:
     try:
+        # Cross-teacher reads must use the explicitly school-scoped endpoints.
+        # Reject before querying the repository to avoid unnecessary access to
+        # another teacher's records without a trusted school context.
+        if teacher_id != _user_id(authenticated_user):
+            raise HTTPException(
+                status_code=403,
+                detail="A consulta de outro docente exige escopo escolar explícito.",
+            )
         events = AgendaService.list_by_teacher(teacher_id=teacher_id, limit=limit)
         events = _authorize_events(events, authenticated_user)
         return ApiResponse.success(
