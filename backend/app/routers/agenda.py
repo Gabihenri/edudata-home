@@ -28,6 +28,26 @@ def _user_id(authenticated_user: Mapping[str, Any]) -> str:
     return user_id
 
 
+EVENT_WRITE_FIELDS = frozenset({
+    "title", "description", "event_type", "category",
+    "start_at", "end_at", "start_datetime", "end_datetime",
+    "all_day", "location", "color", "status", "priority",
+    "recurrence_rule", "reminder_minutes", "active",
+    "planning_id", "evidence_id", "class_id", "subject_id",
+})
+
+
+def _sanitize_event_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+    # Only event fields are passed to the persistence layer. This prevents
+    # client-controlled IDs, timestamps, role/metadata, or arbitrary columns
+    # from being written through the generic repository.
+    return {
+        key: value
+        for key, value in payload.items()
+        if key in EVENT_WRITE_FIELDS
+    }
+
+
 def _filter_organization(
     events: list[dict[str, Any]],
     organization_id: str,
@@ -71,7 +91,7 @@ def _summary(events: list[dict[str, Any]]) -> dict[str, int]:
 
     return {
         "total_events": len(events),
-        "planned": sum(event.get("status") == "planned" for event in events),
+        "planned": sum(event.get("status") in {"planned", "planejado"} for event in events),
         "completed": sum(event.get("status") == "completed" for event in events),
         "cancelled": sum(event.get("status") == "cancelled" for event in events),
         "upcoming": upcoming,
@@ -271,7 +291,7 @@ def create_event(
             raise HTTPException(status_code=400, detail="school_id é obrigatório.")
 
         safe_payload = {
-            **payload,
+            **_sanitize_event_payload(payload),
             "user_id": user_id,
             "organization_id": organization_id,
             "school_id": school_id,
@@ -281,9 +301,6 @@ def create_event(
             event=safe_payload,
             action="create",
         )
-        safe_payload["role"] = membership.get("role")
-        safe_payload["metadata"] = {}
-
         event = AgendaService.create(safe_payload)
         engine_result = PipelineEngine.execute(
             context=build_engine_context(safe_payload, authenticated_user, membership),
@@ -321,12 +338,10 @@ def update_event(
             action="update",
         )
         safe_payload = {
-            **payload,
+            **_sanitize_event_payload(payload),
             "user_id": existing.get("user_id"),
             "organization_id": existing.get("organization_id"),
             "school_id": existing.get("school_id"),
-            "role": membership.get("role"),
-            "metadata": {},
         }
         event = AgendaService.update(record_id=event_id, data=safe_payload)
         if not event:
