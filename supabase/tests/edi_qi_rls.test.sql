@@ -3,7 +3,7 @@
 
 BEGIN;
 
-SELECT plan(16);
+SELECT plan(23);
 
 SELECT ok(
   to_regclass('public.organizations') IS NOT NULL,
@@ -97,6 +97,53 @@ SELECT ok(
       AND concat_ws(' ', qual, with_check) ~ '(principal|manager|institution_admin|super_admin)'
   ),
   'EIOS policies do not reference unsupported legacy roles'
+);
+
+
+SELECT ok(
+  to_regclass('public.matriculas_na_academia') IS NOT NULL,
+  'academy enrollment table exists'
+);
+SELECT ok(
+  (SELECT c.relrowsecurity
+   FROM pg_class c
+   WHERE c.oid = to_regclass('public.matriculas_na_academia')),
+  'RLS is enabled on academy enrollment table'
+);
+SELECT ok(
+  EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'matriculas_na_academia'
+      AND column_name = 'lgpd_consent'
+  ),
+  'academy enrollment table stores explicit consent flag'
+);
+SELECT ok(
+  EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'matriculas_na_academia'
+      AND column_name = 'privacy_consent_at'
+  ),
+  'academy enrollment table stores consent timestamp'
+);
+SELECT ok(
+  EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'matriculas_na_academia'
+      AND column_name = 'privacy_notice_version'
+  ),
+  'academy enrollment table supports privacy notice version'
+);
+SELECT ok(
+  NOT has_table_privilege('anon', 'public.matriculas_na_academia', 'SELECT'),
+  'anonymous role cannot select academy enrollment PII'
+);
+SELECT ok(
+  NOT has_table_privilege('authenticated', 'public.matriculas_na_academia', 'SELECT'),
+  'authenticated client role cannot select academy enrollment PII'
 );
 
 SELECT * FROM finish();
