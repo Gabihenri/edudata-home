@@ -1,87 +1,90 @@
--- EDI-QI institutional governance smoke tests.
--- Fail closed if prerequisite migrations or expected RLS policies are missing.
+-- EDI-QI institutional governance smoke tests using pgTAP.
 -- These checks inspect schema metadata only; no application data is inserted.
 
-DO $$
-DECLARE
-  required_table text;
-  expected_policy text;
-  missing_policies text[] := ARRAY[]::text[];
-BEGIN
-  FOREACH required_table IN ARRAY ARRAY[
-    'organizations',
-    'organization_members',
-    'eios_institutional_policies',
-    'eios_score_governance',
-    'eios_policy_audit_events'
-  ]
-  LOOP
-    IF to_regclass(format('public.%I', required_table)) IS NULL THEN
-      RAISE EXCEPTION 'EDI-QI schema test failed: missing table public.%', required_table;
-    END IF;
-  END LOOP;
+BEGIN;
 
-  IF NOT (
-    SELECT c.relrowsecurity
-    FROM pg_class c
-    WHERE c.oid = 'public.eios_institutional_policies'::regclass
-  ) THEN
-    RAISE EXCEPTION 'EDI-QI schema test failed: RLS is disabled on eios_institutional_policies';
-  END IF;
+SELECT plan(16);
 
-  IF NOT (
-    SELECT c.relrowsecurity
-    FROM pg_class c
-    WHERE c.oid = 'public.eios_score_governance'::regclass
-  ) THEN
-    RAISE EXCEPTION 'EDI-QI schema test failed: RLS is disabled on eios_score_governance';
-  END IF;
+SELECT ok(
+  to_regclass('public.organizations') IS NOT NULL,
+  'public.organizations exists'
+);
+SELECT ok(
+  to_regclass('public.organization_members') IS NOT NULL,
+  'public.organization_members exists'
+);
+SELECT ok(
+  to_regclass('public.eios_institutional_policies') IS NOT NULL,
+  'public.eios_institutional_policies exists'
+);
+SELECT ok(
+  to_regclass('public.eios_score_governance') IS NOT NULL,
+  'public.eios_score_governance exists'
+);
+SELECT ok(
+  to_regclass('public.eios_policy_audit_events') IS NOT NULL,
+  'public.eios_policy_audit_events exists'
+);
 
-  IF NOT (
-    SELECT c.relrowsecurity
-    FROM pg_class c
-    WHERE c.oid = 'public.eios_policy_audit_events'::regclass
-  ) THEN
-    RAISE EXCEPTION 'EDI-QI schema test failed: RLS is disabled on eios_policy_audit_events';
-  END IF;
+SELECT ok(
+  (SELECT c.relrowsecurity
+   FROM pg_class c
+   WHERE c.oid = to_regclass('public.eios_institutional_policies')),
+  'RLS is enabled on eios_institutional_policies'
+);
+SELECT ok(
+  (SELECT c.relrowsecurity
+   FROM pg_class c
+   WHERE c.oid = to_regclass('public.eios_score_governance')),
+  'RLS is enabled on eios_score_governance'
+);
+SELECT ok(
+  (SELECT c.relrowsecurity
+   FROM pg_class c
+   WHERE c.oid = to_regclass('public.eios_policy_audit_events')),
+  'RLS is enabled on eios_policy_audit_events'
+);
 
-  FOREACH expected_policy IN ARRAY ARRAY[
-    'institution_members_read_policies',
-    'institution_governors_manage_policies',
-    'institution_members_read_score_governance',
-    'institution_governors_manage_score_governance',
-    'institution_members_read_policy_audit',
-    'institution_governors_insert_policy_audit'
-  ]
-  LOOP
-    IF NOT EXISTS (
-      SELECT 1
-      FROM pg_policies
-      WHERE schemaname = 'public'
-        AND policyname = expected_policy
-    ) THEN
-      missing_policies := array_append(missing_policies, expected_policy);
-    END IF;
-  END LOOP;
+SELECT ok(
+  EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND policyname = 'institution_members_read_policies'),
+  'member read policy exists for institutional policies'
+);
+SELECT ok(
+  EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND policyname = 'institution_governors_manage_policies'),
+  'governor management policy exists for institutional policies'
+);
+SELECT ok(
+  EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND policyname = 'institution_members_read_score_governance'),
+  'member read policy exists for score governance'
+);
+SELECT ok(
+  EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND policyname = 'institution_governors_manage_score_governance'),
+  'governor management policy exists for score governance'
+);
+SELECT ok(
+  EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND policyname = 'institution_members_read_policy_audit'),
+  'member read policy exists for policy audit'
+);
+SELECT ok(
+  EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND policyname = 'institution_governors_insert_policy_audit'),
+  'governor insert policy exists for policy audit'
+);
 
-  IF cardinality(missing_policies) > 0 THEN
-    RAISE EXCEPTION 'EDI-QI schema test failed: missing RLS policies: %',
-      array_to_string(missing_policies, ', ');
-  END IF;
-
-  IF NOT EXISTS (
+SELECT ok(
+  EXISTS (
     SELECT 1
     FROM pg_constraint c
-    WHERE c.conrelid = 'public.organization_members'::regclass
+    WHERE c.conrelid = to_regclass('public.organization_members')
       AND c.conname = 'organization_members_role_check'
       AND pg_get_constraintdef(c.oid) LIKE '%coordenador%'
       AND pg_get_constraintdef(c.oid) LIKE '%diretor%'
       AND pg_get_constraintdef(c.oid) LIKE '%administrador%'
-  ) THEN
-    RAISE EXCEPTION 'EDI-QI schema test failed: organization membership role constraint is not aligned with institutional roles';
-  END IF;
+  ),
+  'membership role constraint includes supported institutional roles'
+);
 
-  IF EXISTS (
+SELECT ok(
+  NOT EXISTS (
     SELECT 1
     FROM pg_policies
     WHERE schemaname = 'public'
@@ -92,10 +95,10 @@ BEGIN
         'institution_governors_insert_policy_audit'
       )
       AND concat_ws(' ', qual, with_check) ~ '(principal|manager|institution_admin|super_admin)'
-  ) THEN
-    RAISE EXCEPTION 'EDI-QI schema test failed: EIOS RLS policy contains a role outside the institutional membership constraint';
-  END IF;
-END;
-$$;
+  ),
+  'EIOS policies do not reference unsupported legacy roles'
+);
 
-SELECT 'EDI-QI institutional governance schema checks passed' AS result;
+SELECT * FROM finish();
+
+ROLLBACK;
