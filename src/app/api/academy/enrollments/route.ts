@@ -26,12 +26,26 @@ function getServiceRoleSupabase() {
 function isPlatformAdminRole(role: unknown): boolean {
   if (typeof role !== 'string') return false
 
+  const normalizedRole = role
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\s-]+/g, '_')
+
+  // Match the Core's platform-admin aliases without accepting generic
+  // administrator roles that may be limited to a single institution.
   return [
     'platform_admin',
     'super_admin',
     'admin_plataforma',
     'administrador_plataforma',
-  ].includes(role.trim().toLowerCase())
+    'superadmin',
+    'super_administrator',
+    'superadministrator',
+    'superadministrador',
+    'superadministrador_edudata_ia',
+  ].includes(normalizedRole)
 }
 
 async function requireAcademyAdmin() {
