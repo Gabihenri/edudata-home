@@ -20,7 +20,8 @@ export default function InscricaoAcademyPage() {
     setLoading(true)
     setStatus('Enviando inscrição...')
 
-    const formData = new FormData(event.currentTarget)
+    const formElement = event.currentTarget
+    const formData = new FormData(formElement)
 
     const payload = {
       curso,
@@ -32,27 +33,43 @@ export default function InscricaoAcademyPage() {
       lgpd: formData.get('lgpd') === 'on',
     }
 
-    const response = await fetch('/api/academy/enrollments', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    })
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15000)
 
-    const result = await response.json()
+    try {
+      const response = await fetch('/api/academy/enrollments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      })
 
-    if (!response.ok || !result.success) {
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok || !result?.success) {
+        setStatus(
+          `Erro ao enviar inscrição: ${result?.error || 'tente novamente.'}`,
+        )
+        return
+      }
+
+      setStatus('Inscrição salva com sucesso. Redirecionando...')
+
+      setTimeout(() => {
+        window.location.href = `/academy/inscricao/sucesso?curso=${encodeURIComponent(curso)}`
+      }, 900)
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        setStatus('O envio demorou muito. Tente novamente.')
+      } else {
+        setStatus('Não foi possível enviar a inscrição. Verifique sua conexão e tente novamente.')
+      }
+    } finally {
+      clearTimeout(timeout)
       setLoading(false)
-      setStatus(`Erro ao enviar inscrição: ${result.error || 'tente novamente.'}`)
-      return
     }
-
-    setStatus('Inscrição salva com sucesso. Redirecionando...')
-
-    setTimeout(() => {
-      window.location.href = `/academy/inscricao/sucesso?curso=${curso}`
-    }, 900)
   }
 
   return (
@@ -75,7 +92,11 @@ export default function InscricaoAcademyPage() {
           </p>
 
           {status && (
-            <div className="mt-6 rounded-2xl bg-emerald-100 px-5 py-4 font-semibold text-emerald-800">
+            <div
+              role="status"
+              aria-live="polite"
+              className="mt-6 rounded-2xl bg-emerald-100 px-5 py-4 font-semibold text-emerald-800"
+            >
               {status}
             </div>
           )}
