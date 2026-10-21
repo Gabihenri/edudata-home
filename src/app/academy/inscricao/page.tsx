@@ -9,6 +9,7 @@ export default function InscricaoAcademyPage() {
   const [curso, setCurso] = useState('curso-nao-informado')
   const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(false)
+  const [redirecting, setRedirecting] = useState(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -55,6 +56,7 @@ export default function InscricaoAcademyPage() {
       }
 
       setStatus('Inscrição salva com sucesso. Redirecionando...')
+      setRedirecting(true)
 
       setTimeout(() => {
         window.location.href = `/academy/inscricao/sucesso?curso=${encodeURIComponent(curso)}`
@@ -94,7 +96,7 @@ export default function InscricaoAcademyPage() {
             <div
               role="status"
               aria-live="polite"
-              className="mt-6 rounded-2xl bg-emerald-100 px-5 py-4 font-semibold text-emerald-800"
+              className={`mt-6 rounded-2xl px-5 py-4 font-semibold ${status.startsWith('Erro') || status.startsWith('Não foi possível') || status.startsWith('O envio demorou') ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'}`}
             >
               {status}
             </div>
@@ -122,10 +124,10 @@ export default function InscricaoAcademyPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || redirecting}
               className="w-full rounded-2xl bg-[#1B6B3A] px-6 py-4 font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
             >
-              {loading ? 'Enviando...' : 'Enviar inscrição'}
+              {loading ? 'Enviando...' : redirecting ? 'Inscrição registrada...' : 'Enviar inscrição'}
             </button>
           </form>
         </section>
