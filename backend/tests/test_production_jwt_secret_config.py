@@ -6,11 +6,14 @@ import unittest
 
 
 class ProductionJWTSecretConfigurationTests(unittest.TestCase):
-    def _import_config(self, *, secret_key=None):
+    def _import_config(self, *, secret_key=None, render=False):
         env = os.environ.copy()
         env.pop("RENDER_SERVICE_ID", None)
         env.pop("ENVIRONMENT", None)
         env["APP_ENV"] = "production"
+        if render:
+            env.pop("APP_ENV", None)
+            env["RENDER_SERVICE_ID"] = "test-render-service"
         env["PYTHON_DOTENV_DISABLED"] = "true"
         if secret_key is None:
             env.pop("SECRET_KEY", None)
@@ -42,6 +45,14 @@ class ProductionJWTSecretConfigurationTests(unittest.TestCase):
         result = self._import_config(
             secret_key="edudata-ia-development-secret-change-in-production"
         )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "SECRET_KEY must be configured with a unique secret in production.",
+            result.stderr,
+        )
+
+    def test_render_rejects_missing_jwt_secret(self):
+        result = self._import_config(render=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(
             "SECRET_KEY must be configured with a unique secret in production.",
