@@ -111,9 +111,18 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const body: unknown = await request.json()
+  let body: unknown
 
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json(
+      { success: false, error: 'Corpo JSON inválido.' },
+      { status: 400 },
+    )
+  }
+
+  try {
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
       return NextResponse.json(
         { success: false, error: 'Corpo da requisição inválido.' },
