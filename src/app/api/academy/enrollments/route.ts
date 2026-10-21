@@ -100,11 +100,19 @@ export async function GET() {
       data,
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Acesso não autorizado.'
-    const status = message.includes('não autenticado') ? 401 : 403
+    const message = error instanceof Error ? error.message : ''
+    const isUnauthenticated = message.toLowerCase().includes('não autenticado')
+    const isUnauthorized = message.toLowerCase().includes('não autorizado')
+
+    const status = isUnauthenticated ? 401 : isUnauthorized ? 403 : 500
+    const publicMessage = isUnauthenticated
+      ? 'Autenticação necessária.'
+      : isUnauthorized
+        ? 'Acesso não autorizado.'
+        : 'Não foi possível carregar as inscrições.'
 
     return NextResponse.json(
-      { success: false, error: message },
+      { success: false, error: publicMessage },
       { status },
     )
   }
