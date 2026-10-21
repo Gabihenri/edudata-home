@@ -11,6 +11,7 @@ class ProductionJWTSecretConfigurationTests(unittest.TestCase):
         env.pop("RENDER_SERVICE_ID", None)
         env.pop("ENVIRONMENT", None)
         env["APP_ENV"] = "production"
+        env["PYTHON_DOTENV_DISABLED"] = "true"
         if secret_key is None:
             env.pop("SECRET_KEY", None)
         else:
