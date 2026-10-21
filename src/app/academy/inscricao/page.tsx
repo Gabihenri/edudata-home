@@ -20,8 +20,7 @@ export default function InscricaoAcademyPage() {
     setLoading(true)
     setStatus('Enviando inscrição...')
 
-    const formElement = event.currentTarget
-    const formData = new FormData(formElement)
+    const formData = new FormData(event.currentTarget)
 
     const payload = {
       curso,
