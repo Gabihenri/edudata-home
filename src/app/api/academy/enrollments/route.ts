@@ -23,19 +23,29 @@ function getServiceRoleSupabase() {
   })
 }
 
-function isAdminRole(role: unknown): boolean {
+function isPlatformAdminRole(role: unknown): boolean {
   if (typeof role !== 'string') return false
 
+  const normalizedRole = role
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\s-]+/g, '_')
+
+  // Match the Core's platform-admin aliases without accepting generic
+  // administrator roles that may be limited to a single institution.
   return [
-    'admin',
-    'administrator',
     'platform_admin',
     'super_admin',
-    'diretor',
-    'director',
-    'coordenador',
-    'coordinator',
-  ].includes(role.trim().toLowerCase())
+    'admin_plataforma',
+    'administrador_plataforma',
+    'superadmin',
+    'super_administrator',
+    'superadministrator',
+    'superadministrador',
+    'superadministrador_edudata_ia',
+  ].includes(normalizedRole)
 }
 
 async function requireAcademyAdmin() {
@@ -57,11 +67,15 @@ async function requireAcademyAdmin() {
     throw new Error('Não foi possível validar as permissões administrativas.')
   }
 
-  if (profile?.status !== 'active' || !isAdminRole(profile?.role)) {
+  if (profile?.status !== 'active' || !isPlatformAdminRole(profile?.role)) {
     throw new Error('Usuário não autorizado.')
   }
 
   return supabase
+}
+
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
 export async function GET() {
@@ -70,7 +84,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from('matriculas_na_academia')
-      .select('*')
+      .select('id, course_slug, name, email, phone, school_name, role, status, source, notes, created_at')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -86,35 +100,65 @@ export async function GET() {
       data,
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Acesso não autorizado.'
-    const status = message.includes('não autenticado') ? 401 : 403
+    const message = error instanceof Error ? error.message : ''
+    const isUnauthenticated = message.toLowerCase().includes('não autenticado')
+    const isUnauthorized = message.toLowerCase().includes('não autorizado')
+
+    const status = isUnauthenticated ? 401 : isUnauthorized ? 403 : 500
+    const publicMessage = isUnauthenticated
+      ? 'Autenticação necessária.'
+      : isUnauthorized
+        ? 'Acesso não autorizado.'
+        : 'Não foi possível carregar as inscrições.'
 
     return NextResponse.json(
-      { success: false, error: message },
+      { success: false, error: publicMessage },
       { status },
     )
   }
 }
 
 export async function POST(request: NextRequest) {
+  let body: unknown
+
   try {
-    const body = await request.json()
+    body = await request.json()
+  } catch {
+    return NextResponse.json(
+      { success: false, error: 'Corpo JSON inválido.' },
+      { status: 400 },
+    )
+  }
 
-    if (!body.fullName && !body.nome && !body.name) {
+  try {
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
       return NextResponse.json(
-        { success: false, error: 'Nome é obrigatório.' },
+        { success: false, error: 'Corpo da requisição inválido.' },
         { status: 400 },
       )
     }
 
-    if (!body.email) {
+    const input = body as Record<string, unknown>
+    const rawName = input.fullName ?? input.nome ?? input.name
+    const rawEmail = input.email
+    const name = typeof rawName === 'string' ? rawName.trim() : ''
+    const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : ''
+
+    if (name.length < 2 || name.length > 120) {
       return NextResponse.json(
-        { success: false, error: 'E-mail é obrigatório.' },
+        { success: false, error: 'Informe um nome entre 2 e 120 caracteres.' },
         { status: 400 },
       )
     }
 
-    if (!body.lgpd) {
+    if (email.length > 254 || !isValidEmail(email)) {
+      return NextResponse.json(
+        { success: false, error: 'Informe um endereço de e-mail válido.' },
+        { status: 400 },
+      )
+    }
+
+    if (input.lgpd !== true) {
       return NextResponse.json(
         {
           success: false,
@@ -126,23 +170,45 @@ export async function POST(request: NextRequest) {
 
     const supabase = getServiceRoleSupabase()
 
+    const courseValue = input.courseSlug ?? input.curso ?? input.courseId
+    const phoneValue = input.whatsapp ?? input.telefone ?? input.phone
+    const schoolValue = input.school ?? input.escola
+    const roleValue = input.role ?? input.cargo
+    const notesValue = input.notes
+
     const payload = {
-      course_slug: body.courseSlug || body.curso || body.courseId || 'professor-digital',
-      name: body.fullName || body.nome || body.name,
-      email: body.email,
-      phone: body.whatsapp || body.telefone || body.phone || null,
-      school_name: body.school || body.escola || null,
-      role: body.role || body.cargo || null,
+      course_slug:
+        typeof courseValue === 'string' && courseValue.trim()
+          ? courseValue.trim().slice(0, 160)
+          : 'professor-digital',
+      name,
+      email,
+      phone:
+        typeof phoneValue === 'string' && phoneValue.trim()
+          ? phoneValue.trim().slice(0, 40)
+          : null,
+      school_name:
+        typeof schoolValue === 'string' && schoolValue.trim()
+          ? schoolValue.trim().slice(0, 180)
+          : null,
+      role:
+        typeof roleValue === 'string' && roleValue.trim()
+          ? roleValue.trim().slice(0, 120)
+          : null,
       status: 'novo',
       source: 'academy',
-      notes: body.notes || null,
+      lgpd_consent: true,
+      privacy_consent_at: new Date().toISOString(),
+      privacy_notice_version: null,
+      notes:
+        typeof notesValue === 'string' && notesValue.trim()
+          ? notesValue.trim().slice(0, 2000)
+          : null,
     }
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('matriculas_na_academia')
       .insert(payload)
-      .select()
-      .single()
 
     if (error) {
       return NextResponse.json(
@@ -154,16 +220,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Inscrição realizada com sucesso.',
-      data,
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Erro interno ao processar inscrição.',
+        error: 'Erro interno ao processar inscrição.',
       },
       { status: 500 },
     )
