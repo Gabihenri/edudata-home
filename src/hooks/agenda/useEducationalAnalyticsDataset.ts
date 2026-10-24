@@ -21,7 +21,7 @@ import type {
 export type EducationalAnalyticsDatasetState = {
   data: BuildEducationalAnalyticsInput | null
   quality: AgendaAnalyticsDatasetQuality | null
-  operationalSummary: AgendaOperationalSnapshotSummary | null
+  operationalSummary: string | null
   generatedAt: string | null
   loading: boolean
   error: string | null
@@ -47,13 +47,27 @@ function normalizeError(
   return 'Não foi possível carregar o Dataset Analítico Educacional.'
 }
 
+function formatOperationalSummary(
+  summary: AgendaOperationalSnapshotSummary | undefined,
+): string | null {
+  if (!summary) return null
+
+  return [
+    `${summary.totalRecords} registros operacionais`,
+    `${summary.totalPlanning} planejamentos`,
+    `${summary.totalObjectives} objetivos`,
+    `${summary.totalLessons} aulas`,
+    `${summary.totalEvidences} evidências`,
+  ].join(' · ')
+}
+
 export function useEducationalAnalyticsDataset(): EducationalAnalyticsDatasetState {
   const [data, setData] =
     useState<BuildEducationalAnalyticsInput | null>(null)
   const [quality, setQuality] =
     useState<AgendaAnalyticsDatasetQuality | null>(null)
   const [operationalSummary, setOperationalSummary] =
-    useState<AgendaOperationalSnapshotSummary | null>(null)
+    useState<string | null>(null)
   const [generatedAt, setGeneratedAt] =
     useState<string | null>(null)
   const [loading, setLoading] =
@@ -90,7 +104,7 @@ export function useEducationalAnalyticsDataset(): EducationalAnalyticsDatasetSta
       setData(payload.data ?? null)
       setQuality(payload.quality ?? null)
       setOperationalSummary(
-        payload.operationalSummary ?? null,
+        formatOperationalSummary(payload.operationalSummary),
       )
       setGeneratedAt(
         payload.generatedAt ?? null,
