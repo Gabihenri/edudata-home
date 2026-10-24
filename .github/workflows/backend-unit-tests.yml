@@ -1,0 +1,42 @@
+name: EduData Backend Unit Tests
+
+on:
+  push:
+    branches:
+      - "security/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-unit-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  backend-unit-tests:
+    name: Backend unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_KEY: test-only-key
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run backend unit tests
+        run: python -m unittest discover -s tests -v
