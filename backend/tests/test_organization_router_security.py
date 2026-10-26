@@ -23,7 +23,7 @@ class OrganizationRouterSecurityTests(unittest.TestCase):
             with self.assertRaises(HTTPException) as raised:
                 organization_router._require_organization_scope(
                     "org-1", {"id": "   "}
-        )
+                )
         self.assertEqual(raised.exception.status_code, 401)
         membership.assert_not_called()
 
