@@ -113,6 +113,8 @@ create policy "institution_members_read_policies"
       where member.organization_id = eios_institutional_policies.organization_id
         and member.user_id = auth.uid()
         and member.status = 'active'
+        and (member.access_starts_at is null or member.access_starts_at <= now())
+        and (member.access_ends_at is null or member.access_ends_at > now())
     )
   );
 
@@ -125,11 +127,9 @@ create policy "institution_governors_manage_policies"
       where member.organization_id = eios_institutional_policies.organization_id
         and member.user_id = auth.uid()
         and member.status = 'active'
-        and (
-          member.can_manage_products = true
-          or member.can_audit = true
-          or member.role in ('principal','manager','institution_admin','super_admin')
-        )
+        and (member.access_starts_at is null or member.access_starts_at <= now())
+        and (member.access_ends_at is null or member.access_ends_at > now())
+        and member.can_manage_products = true
     )
   )
   with check (
@@ -139,11 +139,9 @@ create policy "institution_governors_manage_policies"
       where member.organization_id = eios_institutional_policies.organization_id
         and member.user_id = auth.uid()
         and member.status = 'active'
-        and (
-          member.can_manage_products = true
-          or member.can_audit = true
-          or member.role in ('principal','manager','institution_admin','super_admin')
-        )
+        and (member.access_starts_at is null or member.access_starts_at <= now())
+        and (member.access_ends_at is null or member.access_ends_at > now())
+        and member.can_manage_products = true
     )
   );
 
@@ -155,6 +153,8 @@ create policy "institution_members_read_score_governance"
       where member.organization_id = eios_score_governance.organization_id
         and member.user_id = auth.uid()
         and member.status = 'active'
+        and (member.access_starts_at is null or member.access_starts_at <= now())
+        and (member.access_ends_at is null or member.access_ends_at > now())
     )
   );
 
@@ -166,11 +166,9 @@ create policy "institution_governors_manage_score_governance"
       where member.organization_id = eios_score_governance.organization_id
         and member.user_id = auth.uid()
         and member.status = 'active'
-        and (
-          member.can_manage_products = true
-          or member.can_audit = true
-          or member.role in ('principal','manager','institution_admin','super_admin')
-        )
+        and (member.access_starts_at is null or member.access_starts_at <= now())
+        and (member.access_ends_at is null or member.access_ends_at > now())
+        and member.can_manage_products = true
     )
   )
   with check (
@@ -179,11 +177,9 @@ create policy "institution_governors_manage_score_governance"
       where member.organization_id = eios_score_governance.organization_id
         and member.user_id = auth.uid()
         and member.status = 'active'
-        and (
-          member.can_manage_products = true
-          or member.can_audit = true
-          or member.role in ('principal','manager','institution_admin','super_admin')
-        )
+        and (member.access_starts_at is null or member.access_starts_at <= now())
+        and (member.access_ends_at is null or member.access_ends_at > now())
+        and member.can_manage_products = true
     )
   );
 
@@ -195,7 +191,9 @@ create policy "institution_members_read_policy_audit"
       where member.organization_id = eios_policy_audit_events.organization_id
         and member.user_id = auth.uid()
         and member.status = 'active'
-        and (member.can_audit = true or member.role in ('principal','manager','institution_admin','super_admin'))
+        and (member.access_starts_at is null or member.access_starts_at <= now())
+        and (member.access_ends_at is null or member.access_ends_at > now())
+        and member.can_audit = true
     )
   );
 
@@ -208,10 +206,8 @@ create policy "institution_governors_insert_policy_audit"
       where member.organization_id = eios_policy_audit_events.organization_id
         and member.user_id = auth.uid()
         and member.status = 'active'
-        and (
-          member.can_manage_products = true
-          or member.can_audit = true
-          or member.role in ('principal','manager','institution_admin','super_admin')
-        )
+        and (member.access_starts_at is null or member.access_starts_at <= now())
+        and (member.access_ends_at is null or member.access_ends_at > now())
+        and member.can_manage_products = true
     )
   );
