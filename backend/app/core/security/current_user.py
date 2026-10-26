@@ -1,7 +1,7 @@
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from app.core.security.jwt import JWTService
+from app.core.security.jwt import JWTConfigurationError, JWTService
 
 security = HTTPBearer(auto_error=False)
 
@@ -26,7 +26,13 @@ class CurrentUser:
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        payload = JWTService.decode_token(credentials.credentials)
+        try:
+            payload = JWTService.decode_token(credentials.credentials)
+        except JWTConfigurationError as exc:
+            raise HTTPException(
+                status_code=503,
+                detail="Autenticação temporariamente indisponível por configuração do servidor.",
+            ) from exc
 
         subject = payload.get("sub")
         if not isinstance(subject, str) or not subject.strip():
