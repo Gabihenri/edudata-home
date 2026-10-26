@@ -101,5 +101,19 @@ class CurrentUserTokenValidationTests(unittest.TestCase):
                 JWTService.create_access_token("user-1")
 
 
+    def test_missing_jwt_secret_returns_service_unavailable(self):
+        from app.core.security.jwt import JWTConfigurationError
+
+        with patch(
+            "app.core.security.current_user.JWTService.decode_token",
+            side_effect=JWTConfigurationError("SECRET_KEY missing"),
+        ):
+            with self.assertRaises(HTTPException) as raised:
+                CurrentUser.get(credentials=self.credentials())
+
+        self.assertEqual(raised.exception.status_code, 503)
+        self.assertNotIn("SECRET_KEY", raised.exception.detail)
+
+
 if __name__ == "__main__":
     unittest.main()
