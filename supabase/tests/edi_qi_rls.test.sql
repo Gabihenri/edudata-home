@@ -1,6 +1,6 @@
 begin;
 
-select plan(29);
+select plan(32);
 
 select has_table('public', 'organizations', 'institutional organizations table exists');
 select has_table('public', 'organization_members', 'institutional membership table exists');
@@ -135,6 +135,52 @@ select ok(
   and not has_table_privilege('anon', 'public.agenda_learning_events', 'SELECT')
   and (select relrowsecurity from pg_class where oid = 'public.agenda_learning_events'::regclass),
   'learning feedback grants preserve append-only behavior, RLS, and no anonymous access'
+);
+
+
+select ok(
+  (
+    select count(*) = 6
+      and bool_and(
+        position('access_starts_at' in coalesce(qual, '') || ' ' || coalesce(with_check, '')) > 0
+        and position('access_ends_at' in coalesce(qual, '') || ' ' || coalesce(with_check, '')) > 0
+      )
+    from pg_policies
+    where schemaname = 'public'
+      and (
+        (tablename = 'eios_institutional_policies' and policyname in ('institution_members_read_policies', 'institution_governors_manage_policies'))
+        or (tablename = 'eios_score_governance' and policyname in ('institution_members_read_score_governance', 'institution_governors_manage_score_governance'))
+        or (tablename = 'eios_policy_audit_events' and policyname in ('institution_members_read_policy_audit', 'institution_governors_insert_policy_audit'))
+      )
+  ),
+  'all EDI-QI governance policies enforce membership start and end validity'
+);
+select ok(
+  not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename in ('eios_institutional_policies', 'eios_score_governance', 'eios_policy_audit_events')
+      and coalesce(qual, '') || ' ' || coalesce(with_check, '') like '%member.role%'
+  )
+  and position('member.can_manage_products = true' in (
+    select coalesce(qual, '') || ' ' || coalesce(with_check, '')
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'eios_institutional_policies'
+      and policyname = 'institution_governors_manage_policies'
+  )) > 0,
+  'governance management requires explicit permissions rather than role-name shortcuts'
+);
+select ok(
+  position('member.can_audit = true' in (
+    select coalesce(qual, '') || ' ' || coalesce(with_check, '')
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'eios_policy_audit_events'
+      and policyname = 'institution_members_read_policy_audit'
+  )) > 0,
+  'audit-event reads require the explicit can_audit permission'
 );
 
 select * from finish();
