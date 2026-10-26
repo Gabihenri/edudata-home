@@ -2,13 +2,15 @@ name: Agenda Temporal Contract Tests
 
 on:
   pull_request:
-    branches: [main]
+    branches:
+      - main
+      - fix/agenda-service-temporal-contract
     paths:
       - "backend/**"
       - ".github/workflows/agenda-temporal-tests.yml"
   push:
     branches:
-      - "fix/agenda-service-temporal-contract"
+      - fix/agenda-service-temporal-contract
     paths:
       - "backend/**"
       - ".github/workflows/agenda-temporal-tests.yml"
