@@ -86,5 +86,20 @@ class CurrentUserTokenValidationTests(unittest.TestCase):
         self.assertIs(result["payload"], payload)
 
 
+    def test_jwt_decode_fails_closed_when_secret_is_missing(self):
+        from app.core.security.jwt import JWTService
+
+        with patch("app.core.security.jwt.SECRET_KEY", None):
+            with self.assertRaisesRegex(RuntimeError, "SECRET_KEY"):
+                JWTService.decode_token("test-token")
+
+    def test_jwt_creation_fails_closed_when_secret_is_blank(self):
+        from app.core.security.jwt import JWTService
+
+        with patch("app.core.security.jwt.SECRET_KEY", "   "):
+            with self.assertRaisesRegex(RuntimeError, "SECRET_KEY"):
+                JWTService.create_access_token("user-1")
+
+
 if __name__ == "__main__":
     unittest.main()
