@@ -208,6 +208,6 @@ create policy "institution_governors_insert_policy_audit"
         and member.status = 'active'
         and (member.access_starts_at is null or member.access_starts_at <= now())
         and (member.access_ends_at is null or member.access_ends_at > now())
-        and member.can_manage_products = true
+        and (member.can_manage_products = true or member.can_audit = true)
     )
   );
