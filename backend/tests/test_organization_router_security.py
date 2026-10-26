@@ -110,6 +110,25 @@ class OrganizationRouterSecurityTests(unittest.TestCase):
         )
         self.assertEqual(result["data"], organization)
 
+    def test_slug_lookup_fails_closed_when_organization_id_is_missing(self):
+        organization = {"slug": "example"}
+        with (
+            patch.object(
+                organization_router.OrganizationService,
+                "find_by_slug",
+                return_value=organization,
+            ) as lookup,
+            patch.object(organization_router, "require_membership") as membership,
+        ):
+            with self.assertRaises(HTTPException) as raised:
+                organization_router.get_organization_by_slug(
+                    "example", actor=self.actor
+                )
+
+        self.assertEqual(raised.exception.status_code, 503)
+        lookup.assert_called_once_with("example")
+        membership.assert_not_called()
+
     def test_global_list_is_blocked_without_calling_service(self):
         with patch.object(
             organization_router.OrganizationService, "list"
