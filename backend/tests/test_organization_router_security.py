@@ -10,6 +10,7 @@ os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_KEY", "test-only-key")
 
 from fastapi import HTTPException
+from fastapi.routing import APIRoute
 
 from app.routers import organization as organization_router
 
@@ -17,6 +18,25 @@ from app.routers import organization as organization_router
 class OrganizationRouterSecurityTests(unittest.TestCase):
     def setUp(self):
         self.actor = {"id": "user-1", "email": "user@example.test"}
+
+    def test_every_organization_route_requires_supabase_authentication(self):
+        routes = [
+            route
+            for route in organization_router.router.routes
+            if isinstance(route, APIRoute)
+        ]
+        self.assertTrue(routes, "Expected organization routes to be registered")
+
+        for route in routes:
+            with self.subTest(path=route.path, methods=route.methods):
+                dependencies = route.dependant.dependencies
+                self.assertTrue(
+                    any(
+                        dependency.call is organization_router.get_supabase_user
+                        for dependency in dependencies
+                    ),
+                    f"{route.path} is missing the Supabase authentication dependency",
+                )
 
     def test_organization_id_requires_a_valid_identity(self):
         with patch.object(organization_router, "require_membership") as membership:
