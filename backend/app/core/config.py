@@ -15,10 +15,9 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 # JWT
 # ==========================================================
 
-SECRET_KEY = os.getenv(
-    "SECRET_KEY",
-    "edudata-ia-development-secret-change-in-production",
-)
+# Never use a public fallback for signing or validating application JWTs.
+# JWT-dependent operations must fail closed when this setting is absent.
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 ALGORITHM = os.getenv(
     "ALGORITHM",

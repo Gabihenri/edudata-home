@@ -7,6 +7,19 @@ from app.core.exceptions.exceptions import UnauthorizedException
 from app.core.config import SECRET_KEY, ALGORITHM
 
 
+class JWTConfigurationError(RuntimeError):
+    """The API JWT subsystem is not configured safely."""
+
+
+def _require_secret_key() -> str:
+    """Fail closed when the application JWT secret is not configured."""
+    if not isinstance(SECRET_KEY, str) or not SECRET_KEY.strip():
+        raise JWTConfigurationError(
+            "Configuração obrigatória ausente: SECRET_KEY para JWT da API."
+        )
+    return SECRET_KEY
+
+
 class JWTService:
     """
     Serviço central de JWT da EduData IA.
@@ -32,16 +45,17 @@ class JWTService:
 
         return jwt.encode(
             payload,
-            SECRET_KEY,
+            _require_secret_key(),
             algorithm=ALGORITHM,
         )
 
     @staticmethod
     def decode_token(token: str) -> dict[str, Any]:
+        secret_key = _require_secret_key()
         try:
             return jwt.decode(
                 token,
-                SECRET_KEY,
+                secret_key,
                 algorithms=[ALGORITHM],
             )
 

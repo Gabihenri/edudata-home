@@ -215,3 +215,16 @@ create policy "institution_governors_insert_policy_audit"
         )
     )
   );
+
+
+-- Explicit Data API privileges. Row-level access remains controlled by the
+-- membership/governance policies declared above.
+revoke all on table public.eios_institutional_policies from anon, authenticated;
+revoke all on table public.eios_score_governance from anon, authenticated;
+revoke all on table public.eios_policy_audit_events from anon, authenticated;
+grant select, insert, update, delete on table public.eios_institutional_policies to authenticated;
+grant select, insert, update, delete on table public.eios_score_governance to authenticated;
+grant select, insert on table public.eios_policy_audit_events to authenticated;
+grant all on table public.eios_institutional_policies to service_role;
+grant all on table public.eios_score_governance to service_role;
+grant all on table public.eios_policy_audit_events to service_role;
