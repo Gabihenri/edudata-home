@@ -1,14 +1,12 @@
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.exceptions.exceptions import EduDataException
 from app.core.responses.api_response import ApiResponse
-from app.schemas.organization import (
-    OrganizationCreate,
-    OrganizationResponse,
-    OrganizationUpdate,
-)
+from app.core.security.agenda_authorization import require_organization_membership
+from app.core.security.supabase_user import get_supabase_user
+from app.schemas.organization import OrganizationCreate, OrganizationUpdate
 from app.services.organization_service import OrganizationService
 
 
@@ -18,33 +16,49 @@ router = APIRouter(
 )
 
 
+def _require_organization_scope(
+    organization_id: str,
+    actor: dict[str, Any],
+) -> None:
+    user_id = actor.get("id")
+    if not isinstance(user_id, str) or not user_id.strip():
+        raise HTTPException(
+            status_code=401,
+            detail="Identidade autenticada inválida.",
+        )
+
+    require_organization_membership(
+        user_id=user_id,
+        organization_id=organization_id,
+    )
+
+
+def _management_not_ready() -> None:
+    raise HTTPException(
+        status_code=403,
+        detail=(
+            "Gestão de organizações indisponível até a validação "
+            "do escopo administrativo."
+        ),
+    )
+
+
 @router.get("/")
 def list_organizations(
     limit: int = Query(100, ge=1, le=200),
+    actor: dict[str, Any] = Depends(get_supabase_user),
 ) -> dict[str, Any]:
-    try:
-        organizations = OrganizationService.list(limit=limit)
-
-        return ApiResponse.success(
-            data={
-                "total": len(organizations),
-                "items": organizations,
-            },
-            message="Organizações listadas com sucesso.",
-        )
-
-    except EduDataException as exc:
-        raise HTTPException(
-            status_code=exc.status_code,
-            detail=exc.message,
-        )
+    # No safe resolver currently exists for a user's organization list.
+    _management_not_ready()
 
 
 @router.get("/{organization_id}")
 def get_organization_by_id(
     organization_id: str,
+    actor: dict[str, Any] = Depends(get_supabase_user),
 ) -> dict[str, Any]:
     try:
+        _require_organization_scope(organization_id, actor)
         organization = OrganizationService.find_by_id(organization_id)
 
         if not organization:
@@ -68,15 +82,36 @@ def get_organization_by_id(
 @router.get("/slug/{slug}")
 def get_organization_by_slug(
     slug: str,
+    actor: dict[str, Any] = Depends(get_supabase_user),
 ) -> dict[str, Any]:
     try:
+        # Authentication is enforced by the dependency before this lookup.
         organization = OrganizationService.find_by_slug(slug)
-
         if not organization:
             raise HTTPException(
                 status_code=404,
                 detail="Organização não encontrada.",
             )
+
+        organization_id = organization.get("id")
+        if not isinstance(organization_id, str) or not organization_id.strip():
+            raise HTTPException(
+                status_code=503,
+                detail="Não foi possível validar o escopo da organização.",
+            )
+
+        try:
+            _require_organization_scope(organization_id, actor)
+        except HTTPException as exc:
+            # Avoid disclosing whether a slug belongs to an organization the
+            # authenticated user cannot access. Keep identity/configuration
+            # and transient database failures distinguishable.
+            if exc.status_code == 403:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Organização não encontrada.",
+                ) from exc
+            raise
 
         return ApiResponse.success(
             data=organization,
@@ -93,102 +128,31 @@ def get_organization_by_slug(
 @router.post("/", response_model=None)
 def create_organization(
     payload: OrganizationCreate,
+    actor: dict[str, Any] = Depends(get_supabase_user),
 ) -> dict[str, Any]:
-    try:
-        organization = OrganizationService.create(
-            payload.model_dump()
-        )
-
-        return ApiResponse.created(
-            data=organization,
-            message="Organização criada com sucesso.",
-        )
-
-    except EduDataException as exc:
-        raise HTTPException(
-            status_code=exc.status_code,
-            detail=exc.message,
-        )
+    _management_not_ready()
 
 
 @router.put("/{organization_id}")
 def update_organization(
     organization_id: str,
     payload: OrganizationUpdate,
+    actor: dict[str, Any] = Depends(get_supabase_user),
 ) -> dict[str, Any]:
-    try:
-        organization = OrganizationService.update(
-            record_id=organization_id,
-            data=payload.model_dump(exclude_unset=True),
-        )
-
-        if not organization:
-            raise HTTPException(
-                status_code=404,
-                detail="Organização não encontrada.",
-            )
-
-        return ApiResponse.updated(
-            data=organization,
-            message="Organização atualizada com sucesso.",
-        )
-
-    except EduDataException as exc:
-        raise HTTPException(
-            status_code=exc.status_code,
-            detail=exc.message,
-        )
+    _management_not_ready()
 
 
 @router.patch("/{organization_id}/activate")
 def activate_organization(
     organization_id: str,
+    actor: dict[str, Any] = Depends(get_supabase_user),
 ) -> dict[str, Any]:
-    try:
-        organization = OrganizationService.activate(
-            organization_id
-        )
-
-        if not organization:
-            raise HTTPException(
-                status_code=404,
-                detail="Organização não encontrada.",
-            )
-
-        return ApiResponse.updated(
-            data=organization,
-            message="Organização ativada com sucesso.",
-        )
-
-    except EduDataException as exc:
-        raise HTTPException(
-            status_code=exc.status_code,
-            detail=exc.message,
-        )
+    _management_not_ready()
 
 
 @router.patch("/{organization_id}/deactivate")
 def deactivate_organization(
     organization_id: str,
+    actor: dict[str, Any] = Depends(get_supabase_user),
 ) -> dict[str, Any]:
-    try:
-        organization = OrganizationService.deactivate(
-            organization_id
-        )
-
-        if not organization:
-            raise HTTPException(
-                status_code=404,
-                detail="Organização não encontrada.",
-            )
-
-        return ApiResponse.updated(
-            data=organization,
-            message="Organização desativada com sucesso.",
-        )
-
-    except EduDataException as exc:
-        raise HTTPException(
-            status_code=exc.status_code,
-            detail=exc.message,
-        )
+    _management_not_ready()

@@ -69,6 +69,41 @@ def require_membership(
         ) from exc
 
 
+
+def require_organization_membership(
+    *,
+    user_id: str,
+    organization_id: str,
+) -> dict[str, Any]:
+    """Require at least one active, time-valid membership for organization metadata.
+
+    Organization-level metadata reads do not select a school context. A user
+    may legitimately have several active school memberships in the same
+    organization, so ambiguity at school scope must not block this read.
+    Resource access must continue to use require_membership with an explicit
+    school when school-specific authorization is needed.
+    """
+    rows = _load_memberships(
+        user_id=user_id,
+        organization_id=organization_id,
+        school_id=None,
+    )
+    for row in rows:
+        try:
+            return select_membership_context(
+                [row],
+                user_id=user_id,
+                organization_id=organization_id,
+                school_id=None,
+            )
+        except MembershipContextError:
+            continue
+
+    raise HTTPException(
+        status_code=403,
+        detail="Não existe vínculo ativo e vigente para a organização solicitada.",
+    )
+
 def authorize_event(
     *,
     authenticated_user: Mapping[str, Any],

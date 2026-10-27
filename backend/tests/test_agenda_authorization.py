@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from app.core.security.agenda_authorization import (
     authorize_event,
     authorize_school_scope,
+    require_organization_membership,
 )
 
 
@@ -92,6 +93,36 @@ class AgendaAuthorizationTests(unittest.TestCase):
             school_id="school-1",
         )
         self.assertTrue(result["can_view_school"])
+
+    def test_organization_metadata_read_allows_multiple_active_school_memberships(self):
+        first = membership(school_id="school-1")
+        second = membership(id="membership-2", school_id="school-2")
+        self.query.execute.return_value = SimpleNamespace(data=[first, second])
+
+        result = require_organization_membership(
+            user_id="user-1",
+            organization_id="org-1",
+        )
+
+        self.assertEqual(result["school_id"], "school-1")
+        self.query.eq.assert_any_call("user_id", "user-1")
+        self.query.eq.assert_any_call("organization_id", "org-1")
+        self.assertFalse(
+            any(args and args[0] == "school_id" for args, _ in self.query.eq.call_args_list)
+        )
+
+    def test_organization_metadata_read_rejects_when_no_active_membership(self):
+        self.query.execute.return_value = SimpleNamespace(
+            data=[membership(status="inactive")]
+        )
+
+        with self.assertRaises(HTTPException) as raised:
+            require_organization_membership(
+                user_id="user-1",
+                organization_id="org-1",
+            )
+
+        self.assertEqual(raised.exception.status_code, 403)
 
     def test_membership_query_failure_fails_closed(self):
         self.query.execute.side_effect = RuntimeError("database unavailable")
