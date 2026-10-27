@@ -1,6 +1,6 @@
 begin;
 
-select plan(47);
+select plan(51);
 
 select has_table('public', 'organizations', 'institutional organizations table exists');
 select has_table('public', 'organization_members', 'institutional membership table exists');
@@ -30,6 +30,48 @@ select has_column('public', 'organizations', 'zip_code', 'organization postal co
 select has_column('public', 'organizations', 'country', 'organization country is available');
 select has_column('public', 'organizations', 'status', 'organization status is available');
 select has_trigger('public', 'organizations', 'trg_organizations_sync_legacy_columns', 'legacy organization fields remain synchronized for compatibility');
+create temporary table legacy_organizations_test (
+  id integer generated always as identity primary key,
+  name text not null,
+  organization_type text not null default 'other',
+  type varchar(50) not null,
+  status text not null default 'active',
+  active boolean default true
+);
+create trigger legacy_organizations_test_sync
+before insert or update on legacy_organizations_test
+for each row execute function public.sync_organization_legacy_columns();
+
+insert into legacy_organizations_test (name, organization_type, status)
+values ('Application insert', 'school', 'inactive');
+
+select is(
+  (select type from legacy_organizations_test where name = 'Application insert'),
+  'school'::varchar,
+  'new organization_type writes populate the legacy NOT NULL type column'
+);
+select is(
+  (select active from legacy_organizations_test where name = 'Application insert'),
+  false,
+  'new status writes synchronize the legacy active flag'
+);
+
+update legacy_organizations_test set type = 'district'
+where name = 'Application insert';
+select is(
+  (select organization_type from legacy_organizations_test where name = 'Application insert'),
+  'district',
+  'legacy type updates synchronize organization_type'
+);
+
+update legacy_organizations_test set active = true
+where name = 'Application insert';
+select is(
+  (select status from legacy_organizations_test where name = 'Application insert'),
+  'active',
+  'legacy active updates synchronize status'
+);
+
 select ok(
   (select is_nullable = 'NO' from information_schema.columns
    where table_schema = 'public' and table_name = 'organizations' and column_name = 'organization_type')
