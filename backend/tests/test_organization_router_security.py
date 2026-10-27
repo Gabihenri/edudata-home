@@ -68,7 +68,7 @@ class OrganizationRouterSecurityTests(unittest.TestCase):
         lookup.assert_not_called()
 
     def test_organization_id_requires_a_valid_identity(self):
-        with patch.object(organization_router, "require_membership") as membership:
+        with patch.object(organization_router, "require_organization_membership") as membership:
             with self.assertRaises(HTTPException) as raised:
                 organization_router._require_organization_scope(
                     "org-1", {"id": "   "}
@@ -79,7 +79,7 @@ class OrganizationRouterSecurityTests(unittest.TestCase):
     def test_organization_id_checks_current_membership_before_lookup(self):
         organization = {"id": "org-1", "name": "Example"}
         with (
-            patch.object(organization_router, "require_membership") as membership,
+            patch.object(organization_router, "require_organization_membership") as membership,
             patch.object(
                 organization_router.OrganizationService,
                 "find_by_id",
@@ -93,7 +93,6 @@ class OrganizationRouterSecurityTests(unittest.TestCase):
         membership.assert_called_once_with(
             user_id="user-1",
             organization_id="org-1",
-            school_id=None,
         )
         lookup.assert_called_once_with("org-1")
         self.assertEqual(result["data"], organization)
@@ -102,7 +101,7 @@ class OrganizationRouterSecurityTests(unittest.TestCase):
         with (
             patch.object(
                 organization_router,
-                "require_membership",
+                "require_organization_membership",
                 side_effect=HTTPException(status_code=403, detail="Forbidden"),
             ),
             patch.object(
@@ -125,7 +124,7 @@ class OrganizationRouterSecurityTests(unittest.TestCase):
                 "find_by_slug",
                 return_value=organization,
             ) as lookup,
-            patch.object(organization_router, "require_membership") as membership,
+            patch.object(organization_router, "require_organization_membership") as membership,
         ):
             result = organization_router.get_organization_by_slug(
                 "example", actor=self.actor
@@ -135,7 +134,6 @@ class OrganizationRouterSecurityTests(unittest.TestCase):
         membership.assert_called_once_with(
             user_id="user-1",
             organization_id="org-1",
-            school_id=None,
         )
         self.assertEqual(result["data"], organization)
 
@@ -147,7 +145,7 @@ class OrganizationRouterSecurityTests(unittest.TestCase):
                 "find_by_slug",
                 return_value=organization,
             ) as lookup,
-            patch.object(organization_router, "require_membership") as membership,
+            patch.object(organization_router, "require_organization_membership") as membership,
         ):
             with self.assertRaises(HTTPException) as raised:
                 organization_router.get_organization_by_slug(
