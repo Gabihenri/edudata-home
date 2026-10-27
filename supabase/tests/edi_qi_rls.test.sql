@@ -1,6 +1,6 @@
 begin;
 
-select plan(46);
+select plan(47);
 
 select has_table('public', 'organizations', 'institutional organizations table exists');
 select has_table('public', 'organization_members', 'institutional membership table exists');
@@ -29,6 +29,7 @@ select has_column('public', 'organizations', 'state', 'organization state is ava
 select has_column('public', 'organizations', 'zip_code', 'organization postal code is available');
 select has_column('public', 'organizations', 'country', 'organization country is available');
 select has_column('public', 'organizations', 'status', 'organization status is available');
+select has_trigger('public', 'organizations', 'trg_organizations_sync_legacy_columns', 'legacy organization fields remain synchronized for compatibility');
 select ok(
   (select is_nullable = 'NO' from information_schema.columns
    where table_schema = 'public' and table_name = 'organizations' and column_name = 'organization_type')
