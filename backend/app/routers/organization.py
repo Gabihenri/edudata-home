@@ -100,7 +100,19 @@ def get_organization_by_slug(
                 detail="Não foi possível validar o escopo da organização.",
             )
 
-        _require_organization_scope(organization_id, actor)
+        try:
+            _require_organization_scope(organization_id, actor)
+        except HTTPException as exc:
+            # Avoid disclosing whether a slug belongs to an organization the
+            # authenticated user cannot access. Keep identity/configuration
+            # and transient database failures distinguishable.
+            if exc.status_code == 403:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Organização não encontrada.",
+                ) from exc
+            raise
+
         return ApiResponse.success(
             data=organization,
             message="Organização encontrada com sucesso.",
