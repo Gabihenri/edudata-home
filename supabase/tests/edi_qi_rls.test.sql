@@ -1,6 +1,6 @@
 begin;
 
-select plan(32);
+select plan(47);
 
 select has_table('public', 'organizations', 'institutional organizations table exists');
 select has_table('public', 'organization_members', 'institutional membership table exists');
@@ -16,6 +16,30 @@ select has_column('public', 'organization_members', 'school_id', 'membership has
 select has_column('public', 'organization_members', 'access_starts_at', 'membership start validity is available');
 select has_column('public', 'organization_members', 'access_ends_at', 'membership end validity is available');
 select has_column('public', 'organization_members', 'can_view_school', 'school-level read permission is explicit');
+select has_column('public', 'organizations', 'short_name', 'organization short name is available');
+select has_column('public', 'organizations', 'organization_type', 'organization type is available');
+select has_column('public', 'organizations', 'document', 'organization document is available');
+select has_column('public', 'organizations', 'email', 'organization email is available');
+select has_column('public', 'organizations', 'phone', 'organization phone is available');
+select has_column('public', 'organizations', 'website', 'organization website is available');
+select has_column('public', 'organizations', 'logo_url', 'organization logo URL is available');
+select has_column('public', 'organizations', 'address', 'organization address is available');
+select has_column('public', 'organizations', 'city', 'organization city is available');
+select has_column('public', 'organizations', 'state', 'organization state is available');
+select has_column('public', 'organizations', 'zip_code', 'organization postal code is available');
+select has_column('public', 'organizations', 'country', 'organization country is available');
+select has_column('public', 'organizations', 'status', 'organization status is available');
+select ok(
+  (select is_nullable = 'NO' from information_schema.columns
+   where table_schema = 'public' and table_name = 'organizations' and column_name = 'organization_type')
+  and (select is_nullable = 'NO' from information_schema.columns
+   where table_schema = 'public' and table_name = 'organizations' and column_name = 'status')
+  and exists (select 1 from pg_constraint
+   where conrelid = 'public.organizations'::regclass
+     and conname = 'organizations_status_check'),
+  'organization type and status are required and status is constrained'
+);
+
 
 select ok(
   (select relrowsecurity from pg_class where oid = 'public.eios_institutional_policies'::regclass),
