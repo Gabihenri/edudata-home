@@ -53,6 +53,20 @@ class OrganizationRouterSecurityTests(unittest.TestCase):
         self.assertEqual(response.status_code, 401)
         lookup.assert_not_called()
 
+    def test_unauthenticated_id_request_is_rejected_before_service_lookup(self):
+        app = FastAPI()
+        app.include_router(organization_router.router)
+
+        with patch.object(
+            organization_router.OrganizationService, "find_by_id"
+        ) as lookup:
+            response = TestClient(app).get(
+                "/api/v1/organizations/org-1"
+            )
+
+        self.assertEqual(response.status_code, 401)
+        lookup.assert_not_called()
+
     def test_organization_id_requires_a_valid_identity(self):
         with patch.object(organization_router, "require_membership") as membership:
             with self.assertRaises(HTTPException) as raised:
