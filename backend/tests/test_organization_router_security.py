@@ -1,4 +1,4 @@
-""""Regression tests for organization-route authorization.
+"""Regression tests for organization-route authorization.
 
 Run from backend/: python -m unittest discover -s tests -v
 """
