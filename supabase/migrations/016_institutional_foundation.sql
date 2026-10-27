@@ -272,6 +272,39 @@ alter table public.organization_members
   add column if not exists created_at timestamptz not null default now(),
   add column if not exists updated_at timestamptz not null default now();
 
+-- Reconcile constraints on historical organization_members tables as well.
+-- Invalid legacy hierarchy/scope values are normalized to least-privilege defaults.
+update public.organization_members
+set hierarchy_level = 10
+where hierarchy_level is null or hierarchy_level < 0 or hierarchy_level > 100;
+
+update public.organization_members
+set scope_type = 'self'
+where scope_type is null
+   or scope_type not in ('self', 'team', 'area', 'school', 'organization', 'network', 'platform');
+
+alter table public.organization_members
+  drop constraint if exists organization_members_hierarchy_level_check;
+alter table public.organization_members
+  add constraint organization_members_hierarchy_level_check
+  check (hierarchy_level >= 0 and hierarchy_level <= 100);
+
+alter table public.organization_members
+  drop constraint if exists organization_members_scope_type_check;
+alter table public.organization_members
+  add constraint organization_members_scope_type_check
+  check (scope_type in ('self', 'team', 'area', 'school', 'organization', 'network', 'platform'));
+
+-- Do not rewrite historical access windows: preserve them for audit and investigate
+-- invalid pairs separately. NOT VALID protects new/changed rows without silently
+-- altering legacy access dates during this foundation migration.
+alter table public.organization_members
+  drop constraint if exists organization_members_access_period_check;
+alter table public.organization_members
+  add constraint organization_members_access_period_check
+  check (access_ends_at is null or access_starts_at is null or access_ends_at >= access_starts_at)
+  not valid;
+
 create index if not exists organization_members_user_org_status_idx
   on public.organization_members(user_id, organization_id, status);
 create index if not exists organization_members_school_idx
