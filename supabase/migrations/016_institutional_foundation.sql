@@ -138,6 +138,76 @@ comment on column public.organizations.organization_type is
 comment on column public.organizations.status is
   'Situação operacional da organização na plataforma.';
 
+-- Keep legacy deployments writable when old NOT NULL columns (type) remain.
+-- New application writes use organization_type/status; legacy writes to type/active
+-- are mirrored on updates. JSON conversion lets this trigger work on both schemas.
+create or replace function public.sync_organization_legacy_columns()
+returns trigger
+language plpgsql
+as $
+declare
+  v_new jsonb := to_jsonb(NEW);
+  v_old jsonb;
+  v_type text;
+  v_status text;
+  v_has_legacy_type boolean;
+  v_has_legacy_active boolean;
+begin
+  if TG_OP = 'UPDATE' then
+    v_old := to_jsonb(OLD);
+  else
+    v_old := '{}'::jsonb;
+  end if;
+
+  select exists (
+    select 1 from pg_attribute
+    where attrelid = TG_RELID and attname = 'type'
+      and attnum > 0 and not attisdropped
+  ) into v_has_legacy_type;
+
+  if v_has_legacy_type then
+    if TG_OP = 'INSERT' then
+      v_type := coalesce(nullif(v_new->>'organization_type', ''), nullif(v_new->>'type', ''), 'other');
+    elsif (v_new->>'organization_type') is distinct from (v_old->>'organization_type') then
+      v_type := coalesce(nullif(v_new->>'organization_type', ''), nullif(v_new->>'type', ''), 'other');
+    elsif (v_new->>'type') is distinct from (v_old->>'type') then
+      v_type := coalesce(nullif(v_new->>'type', ''), nullif(v_new->>'organization_type', ''), 'other');
+    else
+      v_type := coalesce(nullif(v_new->>'organization_type', ''), nullif(v_new->>'type', ''), 'other');
+    end if;
+    v_new := jsonb_set(v_new, '{organization_type}', to_jsonb(v_type), true);
+    v_new := jsonb_set(v_new, '{type}', to_jsonb(v_type), true);
+  end if;
+
+  select exists (
+    select 1 from pg_attribute
+    where attrelid = TG_RELID and attname = 'active'
+      and attnum > 0 and not attisdropped
+  ) into v_has_legacy_active;
+
+  if v_has_legacy_active then
+    if TG_OP = 'INSERT' then
+      v_status := coalesce(nullif(v_new->>'status', ''), case when coalesce((v_new->>'active')::boolean, true) then 'active' else 'inactive' end);
+    elsif (v_new->>'status') is distinct from (v_old->>'status') then
+      v_status := coalesce(nullif(v_new->>'status', ''), 'active');
+    elsif (v_new->>'active') is distinct from (v_old->>'active') then
+      v_status := case when coalesce((v_new->>'active')::boolean, true) then 'active' else 'inactive' end;
+    else
+      v_status := coalesce(nullif(v_new->>'status', ''), case when coalesce((v_new->>'active')::boolean, true) then 'active' else 'inactive' end);
+    end if;
+    v_new := jsonb_set(v_new, '{status}', to_jsonb(v_status), true);
+    v_new := jsonb_set(v_new, '{active}', to_jsonb(v_status = 'active'), true);
+  end if;
+
+  return jsonb_populate_record(NEW, v_new);
+end;
+$;
+
+drop trigger if exists trg_organizations_sync_legacy_columns on public.organizations;
+create trigger trg_organizations_sync_legacy_columns
+before insert or update on public.organizations
+for each row execute function public.sync_organization_legacy_columns();
+
 create table if not exists public.organization_members (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.organizations(id) on delete cascade,
