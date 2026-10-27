@@ -137,6 +137,38 @@ class OrganizationRouterSecurityTests(unittest.TestCase):
         )
         self.assertEqual(result["data"], organization)
 
+    def test_inaccessible_slug_is_indistinguishable_from_unknown_slug(self):
+        with (
+            patch.object(
+                organization_router.OrganizationService,
+                "find_by_slug",
+                return_value={"id": "org-private", "slug": "private"},
+            ),
+            patch.object(
+                organization_router,
+                "require_organization_membership",
+                side_effect=HTTPException(status_code=403, detail="Forbidden"),
+            ),
+        ):
+            with self.assertRaises(HTTPException) as inaccessible:
+                organization_router.get_organization_by_slug(
+                    "private", actor=self.actor
+                )
+
+        with patch.object(
+            organization_router.OrganizationService,
+            "find_by_slug",
+            return_value=None,
+        ):
+            with self.assertRaises(HTTPException) as unknown:
+                organization_router.get_organization_by_slug(
+                    "does-not-exist", actor=self.actor
+                )
+
+        self.assertEqual(inaccessible.exception.status_code, 404)
+        self.assertEqual(unknown.exception.status_code, 404)
+        self.assertEqual(inaccessible.exception.detail, unknown.exception.detail)
+
     def test_slug_lookup_fails_closed_when_organization_id_is_missing(self):
         organization = {"slug": "example"}
         with (
