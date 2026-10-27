@@ -144,7 +144,7 @@ comment on column public.organizations.status is
 create or replace function public.sync_organization_legacy_columns()
 returns trigger
 language plpgsql
-as $
+as $sync_org$
 declare
   v_new jsonb := to_jsonb(NEW);
   v_old jsonb;
@@ -204,7 +204,7 @@ begin
 
   return jsonb_populate_record(NEW, v_new);
 end;
-$;
+$sync_org$;
 
 drop trigger if exists trg_organizations_sync_legacy_columns on public.organizations;
 create trigger trg_organizations_sync_legacy_columns
