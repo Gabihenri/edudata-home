@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.exceptions.exceptions import EduDataException
 from app.core.responses.api_response import ApiResponse
-from app.core.security.agenda_authorization import require_membership
+from app.core.security.agenda_authorization import require_organization_membership
 from app.core.security.supabase_user import get_supabase_user
 from app.schemas.organization import OrganizationCreate, OrganizationUpdate
 from app.services.organization_service import OrganizationService
@@ -27,10 +27,9 @@ def _require_organization_scope(
             detail="Identidade autenticada inválida.",
         )
 
-    require_membership(
+    require_organization_membership(
         user_id=user_id,
         organization_id=organization_id,
-        school_id=None,
     )
 
 
