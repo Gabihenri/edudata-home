@@ -1,6 +1,6 @@
 begin;
 
-select plan(54);
+select plan(56);
 
 select has_table('public', 'organizations', 'institutional organizations table exists');
 select has_table('public', 'organization_members', 'institutional membership table exists');
@@ -19,6 +19,15 @@ select has_column('public', 'organization_members', 'can_view_school', 'school-l
 select has_column('public', 'organization_members', 'department', 'legacy membership department context is preserved');
 select has_column('public', 'organization_members', 'knowledge_area', 'legacy membership knowledge area context is preserved');
 select has_column('public', 'organization_members', 'team_code', 'legacy membership team context is preserved');
+select ok(
+  exists (select 1 from pg_constraint where conrelid = 'public.organization_members'::regclass and conname = 'organization_members_hierarchy_level_check')
+  and exists (select 1 from pg_constraint where conrelid = 'public.organization_members'::regclass and conname = 'organization_members_scope_type_check'),
+  'membership hierarchy and scope constraints exist on the institutional foundation'
+);
+select ok(
+  exists (select 1 from pg_constraint where conrelid = 'public.organization_members'::regclass and conname = 'organization_members_access_period_check' and not convalidated),
+  'legacy access-period constraint is installed without rewriting historical validity data'
+);
 select has_column('public', 'organizations', 'short_name', 'organization short name is available');
 select has_column('public', 'organizations', 'organization_type', 'organization type is available');
 select has_column('public', 'organizations', 'document', 'organization document is available');
