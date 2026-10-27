@@ -187,7 +187,10 @@ begin
 
   if v_has_legacy_active then
     if TG_OP = 'INSERT' then
-      v_status := coalesce(nullif(v_new->>'status', ''), case when coalesce((v_new->>'active')::boolean, true) then 'active' else 'inactive' end);
+      v_status := case
+        when coalesce((v_new->>'active')::boolean, true) = false then 'inactive'
+        else coalesce(nullif(v_new->>'status', ''), 'active')
+      end;
     elsif (v_new->>'status') is distinct from (v_old->>'status') then
       v_status := coalesce(nullif(v_new->>'status', ''), 'active');
     elsif (v_new->>'active') is distinct from (v_old->>'active') then
