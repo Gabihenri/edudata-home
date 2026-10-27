@@ -11,10 +11,132 @@ create table if not exists public.organizations (
   updated_at timestamptz not null default now()
 );
 
+-- Reconcile the institutional table with the organization repository contract.
+-- Keep existing records and migrate the legacy type/active fields when present.
 alter table public.organizations
   add column if not exists name text,
+  add column if not exists short_name text,
+  add column if not exists organization_type text,
+  add column if not exists document text,
+  add column if not exists email text,
+  add column if not exists phone text,
+  add column if not exists website text,
+  add column if not exists logo_url text,
+  add column if not exists address text,
+  add column if not exists city text,
+  add column if not exists state text,
+  add column if not exists zip_code text,
+  add column if not exists country text,
+  add column if not exists status text,
   add column if not exists created_at timestamptz not null default now(),
   add column if not exists updated_at timestamptz not null default now();
+
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'organizations'
+      and column_name = 'type'
+  ) then
+    execute $migration$
+      update public.organizations
+      set organization_type = coalesce(
+        nullif(trim(organization_type), ''),
+        nullif(trim(type), ''),
+        'other'
+      )
+    $migration$;
+  else
+    update public.organizations
+    set organization_type = coalesce(nullif(trim(organization_type), ''), 'other');
+  end if;
+end;
+$$;
+
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'organizations'
+      and column_name = 'active'
+  ) then
+    execute $migration$
+      update public.organizations
+      set status = coalesce(
+        nullif(trim(status), ''),
+        case when active = true then 'active' else 'inactive' end
+      )
+    $migration$;
+  else
+    update public.organizations
+    set status = coalesce(nullif(trim(status), ''), 'active');
+  end if;
+end;
+$$;
+
+update public.organizations
+set
+  country = coalesce(nullif(trim(country), ''), 'Brasil'),
+  created_at = coalesce(created_at, now()),
+  updated_at = coalesce(updated_at, created_at, now()),
+  organization_type = coalesce(nullif(trim(organization_type), ''), 'other'),
+  status = coalesce(nullif(trim(status), ''), 'active');
+
+alter table public.organizations
+  alter column organization_type set default 'other',
+  alter column organization_type set not null,
+  alter column country set default 'Brasil',
+  alter column status set default 'active',
+  alter column status set not null,
+  alter column created_at set default now(),
+  alter column created_at set not null,
+  alter column updated_at set default now(),
+  alter column updated_at set not null;
+
+alter table public.organizations
+  drop constraint if exists organizations_status_check;
+
+alter table public.organizations
+  add constraint organizations_status_check
+  check (status in ('active', 'inactive', 'pending', 'suspended', 'archived'));
+
+create index if not exists idx_organizations_name
+  on public.organizations(name);
+create index if not exists idx_organizations_status
+  on public.organizations(status);
+create index if not exists idx_organizations_type
+  on public.organizations(organization_type);
+create index if not exists idx_organizations_city
+  on public.organizations(city);
+create index if not exists idx_organizations_state
+  on public.organizations(state);
+create unique index if not exists idx_organizations_document_unique
+  on public.organizations(document)
+  where document is not null and trim(document) <> '';
+
+create or replace function public.set_organization_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_organizations_updated_at on public.organizations;
+create trigger trg_organizations_updated_at
+before update on public.organizations
+for each row execute function public.set_organization_updated_at();
+
+comment on table public.organizations is
+  'Organizações institucionais compartilhadas por todos os produtos da EduData IA.';
+comment on column public.organizations.organization_type is
+  'Tipo da organização, como plataforma, secretaria, diretoria, rede, escola mantenedora, universidade ou empresa.';
+comment on column public.organizations.status is
+  'Situação operacional da organização na plataforma.';
 
 create table if not exists public.organization_members (
   id uuid primary key default gen_random_uuid(),
