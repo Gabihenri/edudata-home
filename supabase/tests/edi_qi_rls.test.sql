@@ -1,6 +1,6 @@
 begin;
 
-select plan(47);
+select plan(46);
 
 select has_table('public', 'organizations', 'institutional organizations table exists');
 select has_table('public', 'organization_members', 'institutional membership table exists');
