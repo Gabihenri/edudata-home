@@ -107,7 +107,9 @@ class AgendaAuthorizationTests(unittest.TestCase):
         self.assertEqual(result["school_id"], "school-1")
         self.query.eq.assert_any_call("user_id", "user-1")
         self.query.eq.assert_any_call("organization_id", "org-1")
-        self.query.eq.assert_not_called_with("school_id", unittest.mock.ANY)
+        self.assertFalse(
+            any(args and args[0] == "school_id" for args, _ in self.query.eq.call_args_list)
+        )
 
     def test_organization_metadata_read_rejects_when_no_active_membership(self):
         self.query.execute.return_value = SimpleNamespace(
