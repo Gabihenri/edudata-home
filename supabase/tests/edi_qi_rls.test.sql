@@ -1,6 +1,6 @@
 begin;
 
-select plan(51);
+select plan(54);
 
 select has_table('public', 'organizations', 'institutional organizations table exists');
 select has_table('public', 'organization_members', 'institutional membership table exists');
@@ -16,6 +16,9 @@ select has_column('public', 'organization_members', 'school_id', 'membership has
 select has_column('public', 'organization_members', 'access_starts_at', 'membership start validity is available');
 select has_column('public', 'organization_members', 'access_ends_at', 'membership end validity is available');
 select has_column('public', 'organization_members', 'can_view_school', 'school-level read permission is explicit');
+select has_column('public', 'organization_members', 'department', 'legacy membership department context is preserved');
+select has_column('public', 'organization_members', 'knowledge_area', 'legacy membership knowledge area context is preserved');
+select has_column('public', 'organization_members', 'team_code', 'legacy membership team context is preserved');
 select has_column('public', 'organizations', 'short_name', 'organization short name is available');
 select has_column('public', 'organizations', 'organization_type', 'organization type is available');
 select has_column('public', 'organizations', 'document', 'organization document is available');
