@@ -45,6 +45,13 @@ assert.equal(
 )
 assert.equal(
   hasCurrentActiveSchoolMembership(
+    [{ access_starts_at: null, access_ends_at: '2026-10-27T12:00:00.000Z' }],
+    now,
+  ),
+  false,
+)
+assert.equal(
+  hasCurrentActiveSchoolMembership(
     [{ access_starts_at: 'invalid-date', access_ends_at: null }],
     now,
   ),
@@ -65,4 +72,4 @@ assert.equal(
   true,
 )
 
-console.log('AGENDA AUTHORIZATION VALIDATION: PASS (19 assertions)')
+console.log('AGENDA AUTHORIZATION VALIDATION: PASS (20 assertions)')
