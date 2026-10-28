@@ -1,8 +1,12 @@
 begin;
 
-select plan(56);
+select plan(60);
 
 select has_table('public', 'organizations', 'institutional organizations table exists');
+select has_column('public', 'organizations', 'id', 'organization primary key is available');
+select has_column('public', 'organizations', 'name', 'organization display name is available');
+select has_column('public', 'organizations', 'created_at', 'organization creation timestamp is available');
+select has_column('public', 'organizations', 'updated_at', 'organization update timestamp is available');
 select has_table('public', 'organization_members', 'institutional membership table exists');
 select has_table('public', 'eios_institutional_policies', 'institutional policies table exists');
 select has_table('public', 'eios_score_governance', 'score governance table exists');
