@@ -19,7 +19,8 @@ import {
 
 import { requireSessionUser } from '@/lib/auth/session'
 import { normalizeSchoolId } from '@/lib/agenda/authorization/normalize-school-id'
-import { hasCurrentActiveSchoolMembership } from '@/lib/agenda/authorization/school-membership-period'
+import { assertActiveSchoolMembership as assertMembershipRule } from '@/lib/agenda/authorization/assert-active-school-membership'
+import { createAfterAuthorization } from '@/lib/agenda/authorization/create-after-authorization'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,58 +33,52 @@ async function assertActiveSchoolMembership(
   userId: string,
   schoolId: string | null,
 ): Promise<void> {
-  if (schoolId === null) {
-    return
-  }
+  await assertMembershipRule(
+    userId,
+    schoolId,
+    async (lookupUserId, lookupSchoolId) => {
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      if (!url || !serviceRoleKey) {
+        console.error(
+          '[AGENDA_EVENT_SCHOOL_MEMBERSHIP_CONFIG_ERROR]',
+          'NEXT_PUBLIC_SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY ausente.',
+        )
+        throw new Error('Não foi possível validar o vínculo institucional.')
+      }
 
-  // A política RLS de organization_members exige contexto autenticado.
-  // A chave anon sem JWT não consegue validar esse vínculo; falhar fechado.
-  if (!url || !serviceRoleKey) {
-    console.error(
-      '[AGENDA_EVENT_SCHOOL_MEMBERSHIP_CONFIG_ERROR]',
-      'NEXT_PUBLIC_SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY ausente.',
-    )
-    throw new Error('Não foi possível validar o vínculo institucional.')
-  }
+      const client = createClient(url, serviceRoleKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+        },
+      })
 
-  const client = createClient(url, serviceRoleKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
+      const { data, error } = await client
+        .from('organization_members')
+        .select('id, access_starts_at, access_ends_at')
+        .eq('user_id', lookupUserId)
+        .eq('school_id', lookupSchoolId)
+        .ilike('status', 'active')
+
+      if (error) {
+        console.error(
+          '[AGENDA_EVENT_SCHOOL_MEMBERSHIP_CHECK_ERROR]',
+          error,
+        )
+      }
+
+      return {
+        data: (data ?? []) as Array<{
+          access_starts_at: string | null
+          access_ends_at: string | null
+        }> | null,
+        error,
+      }
     },
-  })
-
-  const { data, error } = await client
-    .from('organization_members')
-    .select('id, access_starts_at, access_ends_at')
-    .eq('user_id', userId)
-    .eq('school_id', schoolId)
-    .ilike('status', 'active')
-
-  if (error) {
-    console.error(
-      '[AGENDA_EVENT_SCHOOL_MEMBERSHIP_CHECK_ERROR]',
-      error,
-    )
-    throw new Error('Não foi possível validar o vínculo institucional.')
-  }
-
-  const hasActiveMembership = hasCurrentActiveSchoolMembership(
-    (data ?? []) as Array<{
-      access_starts_at: string | null
-      access_ends_at: string | null
-    }>,
   )
-
-  if (!hasActiveMembership) {
-    throw new Error(
-      'Sem permissão: usuário não possui vínculo ativo com a escola informada.',
-    )
-  }
 }
 
 type ScheduleMode =
@@ -383,11 +378,6 @@ export async function POST(
 
     const schoolId = normalizeSchoolId(body.schoolId)
 
-    await assertActiveSchoolMembership(
-      user.id,
-      schoolId,
-    )
-
     const input: CreateAgendaEventInput = {
       title:
         typeof body.title === 'string'
@@ -474,8 +464,16 @@ export async function POST(
     }
 
     const data =
-      await eventsService
-        .createSchedule(input)
+      await createAfterAuthorization({
+        input,
+        authorize: () =>
+          assertActiveSchoolMembership(
+            user.id,
+            schoolId,
+          ),
+        create: (authorizedInput) =>
+          eventsService.createSchedule(authorizedInput),
+      })
 
     return NextResponse.json(
       {
