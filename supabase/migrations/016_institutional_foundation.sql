@@ -272,6 +272,58 @@ alter table public.organization_members
   add column if not exists created_at timestamptz not null default now(),
   add column if not exists updated_at timestamptz not null default now();
 
+-- Reconcile foreign keys on historical organization_members tables as well.
+-- NOT VALID preserves existing legacy rows for separate audit while enforcing
+-- the relationship for new or changed rows. Constraint names/actions match the
+-- canonical contract asserted by supabase/tests/edi_qi_rls.test.sql.
+do $reconcile_members_fks$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.organization_members'::regclass
+      and conname = 'organization_members_organization_id_fkey'
+  ) then
+    alter table public.organization_members
+      add constraint organization_members_organization_id_fkey
+      foreign key (organization_id) references public.organizations(id)
+      on delete cascade not valid;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.organization_members'::regclass
+      and conname = 'organization_members_user_id_fkey'
+  ) then
+    alter table public.organization_members
+      add constraint organization_members_user_id_fkey
+      foreign key (user_id) references auth.users(id)
+      on delete cascade not valid;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.organization_members'::regclass
+      and conname = 'organization_members_reports_to_user_id_fkey'
+  ) then
+    alter table public.organization_members
+      add constraint organization_members_reports_to_user_id_fkey
+      foreign key (reports_to_user_id) references auth.users(id)
+      on delete set null not valid;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.organization_members'::regclass
+      and conname = 'organization_members_approved_by_fkey'
+  ) then
+    alter table public.organization_members
+      add constraint organization_members_approved_by_fkey
+      foreign key (approved_by) references auth.users(id)
+      on delete set null not valid;
+  end if;
+end;
+$reconcile_members_fks$;
+
 -- Reconcile constraints on historical organization_members tables as well.
 -- Invalid legacy hierarchy/scope values are normalized to least-privilege defaults.
 update public.organization_members
