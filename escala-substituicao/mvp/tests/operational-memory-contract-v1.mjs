@@ -55,6 +55,9 @@ function validateEvent(item) {
   if (SNAPSHOT_REQUIRED.has(item.event_type) && !item.snapshot_reference) {
     return { valid: false, reason: 'missing_snapshot_reference' };
   }
+  if (['HUMAN_OVERRIDE', 'SUBSTITUTION_VALIDATED'].includes(item.event_type) && item.decision_origin !== 'HUMAN') {
+    return { valid: false, reason: 'human_decision_origin_required' };
+  }
   return { valid: true, reason: null };
 }
 
@@ -160,6 +163,7 @@ check('MO-06', 'override preserva origem humana', () => {
   const item = realEvent({ event_type: 'HUMAN_OVERRIDE', decision_origin: 'HUMAN' });
   assert.equal(validateEvent(item).valid, true);
   assert.equal(item.decision_origin, 'HUMAN');
+  assert.equal(validateEvent(realEvent({ event_type: 'HUMAN_OVERRIDE' })).reason, 'human_decision_origin_required');
 });
 
 // MO-07 — a recommendation is not a confirmed substitution.
@@ -167,6 +171,8 @@ check('MO-07', 'recomendação não equivale a substituição confirmada', () =>
   const item = realEvent({ event_type: 'RECOMMENDATION_GENERATED', snapshot_reference: 'snapshot-001', outcome: 'recommended' });
   assert.equal(validateEvent(item).valid, true);
   assert.notEqual(item.event_type, 'SUBSTITUTION_VALIDATED');
+  assert.equal(validateEvent(realEvent({ event_type: 'SUBSTITUTION_VALIDATED' })).reason, 'human_decision_origin_required');
+  assert.equal(validateEvent(realEvent({ event_type: 'SUBSTITUTION_VALIDATED', decision_origin: 'HUMAN' })).valid, true);
 });
 
 // MO-08 — uncovered vacancy remains a valid auditable fact.
