@@ -6,6 +6,7 @@ export type SchoolMembershipAccessPeriod = {
 /**
  * Confirma se ao menos um vínculo consultado está dentro do período de acesso.
  * Datas ausentes significam período sem limite; datas inválidas falham fechado.
+ * O limite final é exclusivo, alinhado às políticas RLS institucionais.
  */
 export function hasCurrentActiveSchoolMembership(
   memberships: SchoolMembershipAccessPeriod[],
@@ -21,7 +22,7 @@ export function hasCurrentActiveSchoolMembership(
 
     return (
       (startsAt === null || (Number.isFinite(startsAt) && startsAt <= now)) &&
-      (endsAt === null || (Number.isFinite(endsAt) && endsAt >= now))
+      (endsAt === null || (Number.isFinite(endsAt) && endsAt > now))
     )
   })
 }
