@@ -37,15 +37,19 @@ async function assertActiveSchoolMembership(
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-  if (!url || !key) {
+  // A política RLS de organization_members exige contexto autenticado.
+  // A chave anon sem JWT não consegue validar esse vínculo; falhar fechado.
+  if (!url || !serviceRoleKey) {
+    console.error(
+      '[AGENDA_EVENT_SCHOOL_MEMBERSHIP_CONFIG_ERROR]',
+      'NEXT_PUBLIC_SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY ausente.',
+    )
     throw new Error('Não foi possível validar o vínculo institucional.')
   }
 
-  const client = createClient(url, key, {
+  const client = createClient(url, serviceRoleKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
