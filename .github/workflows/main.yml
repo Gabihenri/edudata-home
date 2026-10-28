@@ -38,6 +38,11 @@ jobs:
       - name: Validate Agenda school identifier
         run: npx --yes tsx@4.23.1 src/scripts/validate-agenda-school-id.ts
 
+      - name: Validate Agenda school membership authorization
+        run: |
+          npx --yes tsx@4.23.1 --test src/scripts/validate-agenda-membership-authorization.ts
+          npx --yes tsx@4.23.1 --test src/scripts/validate-agenda-authorized-creation.ts
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
