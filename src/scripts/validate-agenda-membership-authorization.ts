@@ -22,12 +22,16 @@ test('nega quando não existe vínculo para a escola informada', async () => {
   }), NOW), /sem permissão/i)
 })
 
-test('nega vínculos futuros ou expirados', async () => {
+test('nega vínculo que ainda não começou', async () => {
   await assert.rejects(assertActiveSchoolMembership(USER_ID, SCHOOL_ID, async () => ({
-    data: [
-      { access_starts_at: '2026-10-27T12:01:00.000Z', access_ends_at: null },
-      { access_starts_at: null, access_ends_at: '2026-10-27T12:00:00.000Z' },
-    ],
+    data: [{ access_starts_at: '2026-10-27T12:01:00.000Z', access_ends_at: null }],
+    error: null,
+  }), NOW), /sem permissão/i)
+})
+
+test('nega vínculo que já expirou', async () => {
+  await assert.rejects(assertActiveSchoolMembership(USER_ID, SCHOOL_ID, async () => ({
+    data: [{ access_starts_at: null, access_ends_at: '2026-10-27T12:00:00.000Z' }],
     error: null,
   }), NOW), /sem permissão/i)
 })
