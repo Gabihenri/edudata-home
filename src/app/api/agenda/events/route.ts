@@ -18,10 +18,9 @@ import {
 } from '@/lib/access/guards/require-feature-access'
 
 import { requireSessionUser } from '@/lib/auth/session'
+import { normalizeSchoolId } from '@/lib/agenda/authorization/normalize-school-id'
 
 export const dynamic = 'force-dynamic'
-
-import { normalizeSchoolId } from '@/lib/agenda/authorization/normalize-school-id'
 
 type ActiveSchoolMembership = {
   id: string
