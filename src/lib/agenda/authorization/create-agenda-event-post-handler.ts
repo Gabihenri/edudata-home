@@ -30,7 +30,7 @@ export type AgendaEventPostDependencies = {
   requireSessionUser: () => Promise<AuthenticatedUser>
   requireFeatureAccess: (args: {
     userId: string
-    featureCode: string
+    featureCode: 'agenda.events' | 'agenda.recurring'
     options: { includeUsage: true }
   }) => Promise<unknown>
   normalizeSchoolId: (value: unknown) => string | null
