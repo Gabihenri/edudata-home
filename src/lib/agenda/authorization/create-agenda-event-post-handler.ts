@@ -75,7 +75,17 @@ export function createAgendaEventPostHandler(dependencies: AgendaEventPostDepend
   ): Promise<Response> {
     try {
       const user = await dependencies.requireSessionUser()
-      const body = (await request.json()) as CreateEventRequestBody
+      const parsedBody = await request.json()
+
+      if (
+        parsedBody === null ||
+        typeof parsedBody !== 'object' ||
+        Array.isArray(parsedBody)
+      ) {
+        throw new Error('Corpo da requisição inválido.')
+      }
+
+      const body = parsedBody as CreateEventRequestBody
       const scheduleMode = normalizeScheduleMode(body.scheduleMode)
       const requiredFeature = scheduleMode === 'recorrente'
         ? 'agenda.recurring'
