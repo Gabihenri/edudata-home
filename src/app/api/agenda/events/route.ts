@@ -1,3 +1,5 @@
+import { createClient } from '@supabase/supabase-js'
+
 import {
   NextRequest,
   NextResponse,
@@ -16,8 +18,69 @@ import {
 } from '@/lib/access/guards/require-feature-access'
 
 import { requireSessionUser } from '@/lib/auth/session'
+import { normalizeSchoolId } from '@/lib/agenda/authorization/normalize-school-id'
+import { hasCurrentActiveSchoolMembership } from '@/lib/agenda/authorization/school-membership-period'
 
 export const dynamic = 'force-dynamic'
+
+/**
+ * O repositório de eventos pode operar com service_role, que ignora RLS.
+ * Por isso, a rota valida explicitamente o vínculo ativo antes de persistir
+ * qualquer evento associado a uma escola informada pelo cliente.
+ */
+async function assertActiveSchoolMembership(
+  userId: string,
+  schoolId: string | null,
+): Promise<void> {
+  if (schoolId === null) {
+    return
+  }
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!url || !key) {
+    throw new Error('Não foi possível validar o vínculo institucional.')
+  }
+
+  const client = createClient(url, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  })
+
+  const { data, error } = await client
+    .from('organization_members')
+    .select('id, access_starts_at, access_ends_at')
+    .eq('user_id', userId)
+    .eq('school_id', schoolId)
+    .ilike('status', 'active')
+
+  if (error) {
+    console.error(
+      '[AGENDA_EVENT_SCHOOL_MEMBERSHIP_CHECK_ERROR]',
+      error,
+    )
+    throw new Error('Não foi possível validar o vínculo institucional.')
+  }
+
+  const hasActiveMembership = hasCurrentActiveSchoolMembership(
+    (data ?? []) as Array<{
+      access_starts_at: string | null
+      access_ends_at: string | null
+    }>,
+  )
+
+  if (!hasActiveMembership) {
+    throw new Error(
+      'Sem permissão: usuário não possui vínculo ativo com a escola informada.',
+    )
+  }
+}
 
 type ScheduleMode =
   | 'pontual'
@@ -314,6 +377,13 @@ export async function POST(
         body.recurrenceFrequency,
       )
 
+    const schoolId = normalizeSchoolId(body.schoolId)
+
+    await assertActiveSchoolMembership(
+      user.id,
+      schoolId,
+    )
+
     const input: CreateAgendaEventInput = {
       title:
         typeof body.title === 'string'
@@ -350,10 +420,7 @@ export async function POST(
           body.priority,
         ) ?? 'media',
 
-      school_id:
-        normalizeOptionalText(
-          body.schoolId,
-        ),
+      school_id: schoolId,
 
       /*
        * O proprietário do registro sempre será
