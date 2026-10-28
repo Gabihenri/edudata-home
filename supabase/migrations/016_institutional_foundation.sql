@@ -365,7 +365,11 @@ create index if not exists organization_members_school_idx
 alter table public.organizations enable row level security;
 alter table public.organization_members enable row level security;
 
-do $$
+-- Remove the legacy permissive policy: its inclusive expiry boundary would OR with
+-- the replacement policy and keep access valid at the exact expiration instant.
+drop policy if exists organizations_active_member_read on public.organizations;
+
+do $
 begin
   if not exists (
     select 1 from pg_policies
