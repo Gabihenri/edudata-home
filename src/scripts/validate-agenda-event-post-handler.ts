@@ -64,6 +64,24 @@ test('retorna 401 sem sessão e não tenta criar evento', async () => {
   assert.equal(createCalled, false)
 })
 
+test('retorna 400 para corpos JSON que não são objetos e não tenta criar evento', async (t) => {
+  for (const [label, body] of [['null', null], ['array', []]] as const) {
+    await t.test(label, async () => {
+      let createCalled = false
+      const handler = createAgendaEventPostHandler(makeDependencies({
+        createSchedule: async () => {
+          createCalled = true
+          return [] as never
+        },
+      }))
+
+      const response = await handler(makeRequest(body))
+      assert.equal(response.status, 400)
+      assert.equal(createCalled, false)
+    })
+  }
+})
+
 test('nega vínculo ausente, futuro ou expirado sem chamar o serviço de criação', async (t) => {
   const scenarios = [
     ['ausente', new Error('Sem permissão: vínculo institucional ausente.')],
