@@ -1,3 +1,5 @@
+import { createClient } from '@supabase/supabase-js'
+
 import {
   NextRequest,
   NextResponse,
@@ -6,7 +8,6 @@ import {
 import {
   eventsService,
   type AgendaEvent,
-  type CreateAgendaEventInput,
 } from '@/lib/agenda'
 
 import {
@@ -16,40 +17,67 @@ import {
 } from '@/lib/access/guards/require-feature-access'
 
 import { requireSessionUser } from '@/lib/auth/session'
+import { normalizeSchoolId } from '@/lib/agenda/authorization/normalize-school-id'
+import { assertActiveSchoolMembership as assertMembershipRule } from '@/lib/agenda/authorization/assert-active-school-membership'
+import { createAgendaEventPostHandler } from '@/lib/agenda/authorization/create-agenda-event-post-handler'
 
 export const dynamic = 'force-dynamic'
 
-type ScheduleMode =
-  | 'pontual'
-  | 'recorrente'
+/**
+ * O repositório de eventos pode operar com service_role, que ignora RLS.
+ * Por isso, a rota valida explicitamente o vínculo ativo antes de persistir
+ * qualquer evento associado a uma escola informada pelo cliente.
+ */
+async function assertActiveSchoolMembership(
+  userId: string,
+  schoolId: string | null,
+): Promise<void> {
+  await assertMembershipRule(
+    userId,
+    schoolId,
+    async (lookupUserId, lookupSchoolId) => {
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-type CreateEventRequestBody = {
-  title?: string
-  description?: string | null
+      if (!url || !serviceRoleKey) {
+        console.error(
+          '[AGENDA_EVENT_SCHOOL_MEMBERSHIP_CONFIG_ERROR]',
+          'NEXT_PUBLIC_SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY ausente.',
+        )
+        throw new Error('Não foi possível validar o vínculo institucional.')
+      }
 
-  eventType?: string
+      const client = createClient(url, serviceRoleKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+        },
+      })
 
-  startAt?: string
-  endAt?: string | null
+      const { data, error } = await client
+        .from('organization_members')
+        .select('id, access_starts_at, access_ends_at')
+        .eq('user_id', lookupUserId)
+        .eq('school_id', lookupSchoolId)
+        .ilike('status', 'active')
 
-  status?: string
-  priority?: string
+      if (error) {
+        console.error(
+          '[AGENDA_EVENT_SCHOOL_MEMBERSHIP_CHECK_ERROR]',
+          error,
+        )
+      }
 
-  schoolId?: string | null
-  planningId?: string | null
-  evidenceId?: string | null
-
-  scheduleMode?: ScheduleMode
-
-  recurrenceFrequency?:
-    | 'none'
-    | 'weekly'
-
-  recurrenceInterval?: number
-  recurrenceUntil?: string | null
-
-  sourceTemplateId?: string | null
-  weekReference?: string | null
+      return {
+        data: (data ?? []) as Array<{
+          access_starts_at: string | null
+          access_ends_at: string | null
+        }> | null,
+        error,
+      }
+    },
+  )
 }
 
 function normalizeOptionalText(
@@ -62,41 +90,6 @@ function normalizeOptionalText(
   const normalizedValue = value.trim()
 
   return normalizedValue || null
-}
-
-function normalizeScheduleMode(
-  value: unknown,
-): ScheduleMode {
-  return value === 'recorrente'
-    ? 'recorrente'
-    : 'pontual'
-}
-
-function normalizeRecurrenceFrequency(
-  scheduleMode: ScheduleMode,
-  value: unknown,
-): 'none' | 'weekly' {
-  if (scheduleMode === 'recorrente') {
-    return 'weekly'
-  }
-
-  return value === 'weekly'
-    ? 'weekly'
-    : 'none'
-}
-
-function normalizeRecurrenceInterval(
-  value: unknown,
-): number {
-  if (
-    value === undefined ||
-    value === null ||
-    value === ''
-  ) {
-    return 1
-  }
-
-  return Number(value)
 }
 
 function getErrorStatus(
@@ -280,161 +273,19 @@ export async function GET(
   }
 }
 
-export async function POST(
-  request: NextRequest,
-) {
-  try {
-    const user =
-      await requireSessionUser()
+const handleAgendaEventPost = createAgendaEventPostHandler({
+  requireSessionUser,
+  requireFeatureAccess,
+  normalizeSchoolId,
+  assertActiveSchoolMembership,
+  createSchedule: (input) => eventsService.createSchedule(input),
+  json: (body, init) => NextResponse.json(body, init),
+  createErrorResponse,
+  logError: (error) => {
+    console.error('[AGENDA_EVENTS_POST_ERROR]', error)
+  },
+})
 
-    const body =
-      (await request.json()) as CreateEventRequestBody
-
-    const scheduleMode =
-      normalizeScheduleMode(
-        body.scheduleMode,
-      )
-
-    const requiredFeature =
-      scheduleMode === 'recorrente'
-        ? 'agenda.recurring'
-        : 'agenda.events'
-
-    await requireFeatureAccess({
-      userId: user.id,
-      featureCode: requiredFeature,
-      options: {
-        includeUsage: true,
-      },
-    })
-
-    const recurrenceFrequency =
-      normalizeRecurrenceFrequency(
-        scheduleMode,
-        body.recurrenceFrequency,
-      )
-
-    const input: CreateAgendaEventInput = {
-      title:
-        typeof body.title === 'string'
-          ? body.title
-          : '',
-
-      description:
-        normalizeOptionalText(
-          body.description,
-        ),
-
-      event_type:
-        normalizeOptionalText(
-          body.eventType,
-        ) ?? 'pedagogico',
-
-      start_at:
-        typeof body.startAt === 'string'
-          ? body.startAt
-          : '',
-
-      end_at:
-        normalizeOptionalText(
-          body.endAt,
-        ),
-
-      status:
-        normalizeOptionalText(
-          body.status,
-        ) ?? 'planejado',
-
-      priority:
-        normalizeOptionalText(
-          body.priority,
-        ) ?? 'media',
-
-      school_id:
-        normalizeOptionalText(
-          body.schoolId,
-        ),
-
-      /*
-       * O proprietário do registro sempre será
-       * o usuário autenticado no servidor.
-       *
-       * Nunca aceitar user_id enviado pelo navegador.
-       */
-      user_id: user.id,
-
-      planning_id:
-        normalizeOptionalText(
-          body.planningId,
-        ),
-
-      evidence_id:
-        normalizeOptionalText(
-          body.evidenceId,
-        ),
-
-      schedule_mode:
-        scheduleMode,
-
-      recurrence_frequency:
-        recurrenceFrequency,
-
-      recurrence_interval:
-        normalizeRecurrenceInterval(
-          body.recurrenceInterval,
-        ),
-
-      recurrence_until:
-        normalizeOptionalText(
-          body.recurrenceUntil,
-        ),
-
-      source_template_id:
-        normalizeOptionalText(
-          body.sourceTemplateId,
-        ),
-
-      week_reference:
-        normalizeOptionalText(
-          body.weekReference,
-        ),
-
-      is_exception: false,
-    }
-
-    const data =
-      await eventsService
-        .createSchedule(input)
-
-    return NextResponse.json(
-      {
-        success: true,
-
-        message:
-          scheduleMode === 'recorrente'
-            ? `${data.length} eventos semanais foram criados.`
-            : 'Evento criado com sucesso.',
-
-        total: data.length,
-        data,
-      },
-      {
-        status: 201,
-        headers: {
-          'Cache-Control':
-            'no-store, no-cache, must-revalidate',
-        },
-      },
-    )
-  } catch (error) {
-    console.error(
-      '[AGENDA_EVENTS_POST_ERROR]',
-      error,
-    )
-
-    return createErrorResponse(
-      error,
-      'Erro interno ao criar evento.',
-    )
-  }
+export async function POST(request: NextRequest) {
+  return handleAgendaEventPost(request)
 }
