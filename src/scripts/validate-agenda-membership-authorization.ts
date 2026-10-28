@@ -36,6 +36,13 @@ test('nega vínculo que já expirou', async () => {
   }), NOW), /sem permissão/i)
 })
 
+test('nega vínculo cujo término é exatamente o instante atual', async () => {
+  await assert.rejects(assertActiveSchoolMembership(USER_ID, SCHOOL_ID, async () => ({
+    data: [{ access_starts_at: null, access_ends_at: '2026-10-27T12:00:00.000Z' }],
+    error: null,
+  }), NOW), /sem permissão/i)
+})
+
 test('falha fechado se a consulta institucional falhar', async () => {
   await assert.rejects(assertActiveSchoolMembership(USER_ID, SCHOOL_ID, async () => ({
     data: null, error: new Error('database unavailable'),
