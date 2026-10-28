@@ -379,11 +379,6 @@ export async function POST(
 
     const schoolId = normalizeSchoolId(body.schoolId)
 
-    await assertActiveSchoolMembership(
-      user.id,
-      schoolId,
-    )
-
     const input: CreateAgendaEventInput = {
       title:
         typeof body.title === 'string'
