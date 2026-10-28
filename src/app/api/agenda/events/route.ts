@@ -20,7 +20,7 @@ import {
 import { requireSessionUser } from '@/lib/auth/session'
 import { normalizeSchoolId } from '@/lib/agenda/authorization/normalize-school-id'
 import { assertActiveSchoolMembership as assertMembershipRule } from '@/lib/agenda/authorization/assert-active-school-membership'
-import { createAfterAuthorization } from '@/lib/agenda/authorization/create-after-authorization'
+import { createAgendaEventPostHandler } from '@/lib/agenda/authorization/create-agenda-event-post-handler'
 
 export const dynamic = 'force-dynamic'
 
@@ -342,168 +342,19 @@ export async function GET(
   }
 }
 
-export async function POST(
-  request: NextRequest,
-) {
-  try {
-    const user =
-      await requireSessionUser()
+const handleAgendaEventPost = createAgendaEventPostHandler({
+  requireSessionUser,
+  requireFeatureAccess,
+  normalizeSchoolId,
+  assertActiveSchoolMembership,
+  createSchedule: (input) => eventsService.createSchedule(input),
+  json: (body, init) => NextResponse.json(body, init),
+  createErrorResponse,
+  logError: (error) => {
+    console.error('[AGENDA_EVENTS_POST_ERROR]', error)
+  },
+})
 
-    const body =
-      (await request.json()) as CreateEventRequestBody
-
-    const scheduleMode =
-      normalizeScheduleMode(
-        body.scheduleMode,
-      )
-
-    const requiredFeature =
-      scheduleMode === 'recorrente'
-        ? 'agenda.recurring'
-        : 'agenda.events'
-
-    await requireFeatureAccess({
-      userId: user.id,
-      featureCode: requiredFeature,
-      options: {
-        includeUsage: true,
-      },
-    })
-
-    const recurrenceFrequency =
-      normalizeRecurrenceFrequency(
-        scheduleMode,
-        body.recurrenceFrequency,
-      )
-
-    const schoolId = normalizeSchoolId(body.schoolId)
-
-    const input: CreateAgendaEventInput = {
-      title:
-        typeof body.title === 'string'
-          ? body.title
-          : '',
-
-      description:
-        normalizeOptionalText(
-          body.description,
-        ),
-
-      event_type:
-        normalizeOptionalText(
-          body.eventType,
-        ) ?? 'pedagogico',
-
-      start_at:
-        typeof body.startAt === 'string'
-          ? body.startAt
-          : '',
-
-      end_at:
-        normalizeOptionalText(
-          body.endAt,
-        ),
-
-      status:
-        normalizeOptionalText(
-          body.status,
-        ) ?? 'planejado',
-
-      priority:
-        normalizeOptionalText(
-          body.priority,
-        ) ?? 'media',
-
-      school_id: schoolId,
-
-      /*
-       * O proprietário do registro sempre será
-       * o usuário autenticado no servidor.
-       *
-       * Nunca aceitar user_id enviado pelo navegador.
-       */
-      user_id: user.id,
-
-      planning_id:
-        normalizeOptionalText(
-          body.planningId,
-        ),
-
-      evidence_id:
-        normalizeOptionalText(
-          body.evidenceId,
-        ),
-
-      schedule_mode:
-        scheduleMode,
-
-      recurrence_frequency:
-        recurrenceFrequency,
-
-      recurrence_interval:
-        normalizeRecurrenceInterval(
-          body.recurrenceInterval,
-        ),
-
-      recurrence_until:
-        normalizeOptionalText(
-          body.recurrenceUntil,
-        ),
-
-      source_template_id:
-        normalizeOptionalText(
-          body.sourceTemplateId,
-        ),
-
-      week_reference:
-        normalizeOptionalText(
-          body.weekReference,
-        ),
-
-      is_exception: false,
-    }
-
-    const data =
-      await createAfterAuthorization({
-        input,
-        authorize: () =>
-          assertActiveSchoolMembership(
-            user.id,
-            schoolId,
-          ),
-        create: (authorizedInput) =>
-          eventsService.createSchedule(authorizedInput),
-      })
-
-    return NextResponse.json(
-      {
-        success: true,
-
-        message:
-          scheduleMode === 'recorrente'
-            ? `${data.length} eventos semanais foram criados.`
-            : 'Evento criado com sucesso.',
-
-        total: data.length,
-        data,
-      },
-      {
-        status: 201,
-        headers: {
-          'Cache-Control':
-            'no-store, no-cache, must-revalidate',
-        },
-      },
-    )
-  } catch (error) {
-    console.error(
-      '[AGENDA_EVENTS_POST_ERROR]',
-      error,
-    )
-
-    return createErrorResponse(
-      error,
-      'Erro interno ao criar evento.',
-    )
-  }
+export async function POST(request: NextRequest) {
+  return handleAgendaEventPost(request)
 }
