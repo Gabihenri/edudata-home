@@ -20,6 +20,7 @@ import {
 import { requireSessionUser } from '@/lib/auth/session'
 import { normalizeSchoolId } from '@/lib/agenda/authorization/normalize-school-id'
 import { assertActiveSchoolMembership as assertMembershipRule } from '@/lib/agenda/authorization/assert-active-school-membership'
+import { createAfterAuthorization } from '@/lib/agenda/authorization/create-after-authorization'
 
 export const dynamic = 'force-dynamic'
 
@@ -469,8 +470,16 @@ export async function POST(
     }
 
     const data =
-      await eventsService
-        .createSchedule(input)
+      await createAfterAuthorization({
+        input,
+        authorize: () =>
+          assertActiveSchoolMembership(
+            user.id,
+            schoolId,
+          ),
+        create: (authorizedInput) =>
+          eventsService.createSchedule(authorizedInput),
+      })
 
     return NextResponse.json(
       {
