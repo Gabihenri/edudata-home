@@ -276,7 +276,7 @@ alter table public.organization_members
 -- NOT VALID preserves existing legacy rows for separate audit while enforcing
 -- the relationship for new or changed rows. Constraint names/actions match the
 -- canonical contract asserted by supabase/tests/edi_qi_rls.test.sql.
-do $
+do $reconcile_members_fks$
 begin
   if not exists (
     select 1 from pg_constraint
@@ -322,7 +322,7 @@ begin
       on delete set null not valid;
   end if;
 end;
-$;
+$reconcile_members_fks$;
 
 -- Reconcile constraints on historical organization_members tables as well.
 -- Invalid legacy hierarchy/scope values are normalized to least-privilege defaults.
