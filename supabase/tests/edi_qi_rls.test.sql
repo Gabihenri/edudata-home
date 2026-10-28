@@ -10,18 +10,49 @@ select has_column('public', 'organizations', 'updated_at', 'organization update 
 select has_table('public', 'organization_members', 'institutional membership table exists');
 select ok(
   (
+    with expected(
+      constraint_name,
+      source_column,
+      target_schema,
+      target_table,
+      target_column,
+      delete_action
+    ) as (
+      values
+        ('organization_members_organization_id_fkey', 'organization_id', 'public', 'organizations', 'id', 'c'),
+        ('organization_members_user_id_fkey', 'user_id', 'auth', 'users', 'id', 'c'),
+        ('organization_members_reports_to_user_id_fkey', 'reports_to_user_id', 'auth', 'users', 'id', 'n'),
+        ('organization_members_approved_by_fkey', 'approved_by', 'auth', 'users', 'id', 'n')
+    )
     select count(*) = 4
-    from pg_constraint
-    where conrelid = 'public.organization_members'::regclass
-      and contype = 'f'
-      and conname in (
-        'organization_members_organization_id_fkey',
-        'organization_members_user_id_fkey',
-        'organization_members_reports_to_user_id_fkey',
-        'organization_members_approved_by_fkey'
+      and bool_and(
+        source_attribute.attname = expected.source_column
+        and target_namespace.nspname = expected.target_schema
+        and target_table.relname = expected.target_table
+        and target_attribute.attname = expected.target_column
+        and constraint_row.confdeltype = expected.delete_action
       )
+    from expected
+    join pg_constraint constraint_row
+      on constraint_row.conname = expected.constraint_name
+     and constraint_row.conrelid = 'public.organization_members'::regclass
+     and constraint_row.contype = 'f'
+    join pg_class target_table
+      on target_table.oid = constraint_row.confrelid
+    join pg_namespace target_namespace
+      on target_namespace.oid = target_table.relnamespace
+    join pg_attribute source_attribute
+      on source_attribute.attrelid = constraint_row.conrelid
+     and source_attribute.attnum = constraint_row.conkey[1]
+     and not source_attribute.attisdropped
+    join pg_attribute target_attribute
+      on target_attribute.attrelid = constraint_row.confrelid
+     and target_attribute.attnum = constraint_row.confkey[1]
+     and not target_attribute.attisdropped
+    where array_length(constraint_row.conkey, 1) = 1
+      and array_length(constraint_row.confkey, 1) = 1
   ),
-  'institutional memberships retain all four expected organization and user foreign keys'
+  'institutional membership foreign keys target the expected columns and preserve delete actions'
 );
 select has_table('public', 'eios_institutional_policies', 'institutional policies table exists');
 select has_table('public', 'eios_score_governance', 'score governance table exists');
