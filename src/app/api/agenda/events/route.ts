@@ -19,14 +19,9 @@ import {
 
 import { requireSessionUser } from '@/lib/auth/session'
 import { normalizeSchoolId } from '@/lib/agenda/authorization/normalize-school-id'
+import { hasCurrentActiveSchoolMembership } from '@/lib/agenda/authorization/school-membership-period'
 
 export const dynamic = 'force-dynamic'
-
-type ActiveSchoolMembership = {
-  id: string
-  access_starts_at: string | null
-  access_ends_at: string | null
-}
 
 /**
  * O repositório de eventos pode operar com service_role, que ignora RLS.
@@ -73,21 +68,11 @@ async function assertActiveSchoolMembership(
     throw new Error('Não foi possível validar o vínculo institucional.')
   }
 
-  const now = Date.now()
-  const hasActiveMembership = ((data ?? []) as ActiveSchoolMembership[]).some(
-    (membership) => {
-      const startsAt = membership.access_starts_at
-        ? Date.parse(membership.access_starts_at)
-        : null
-      const endsAt = membership.access_ends_at
-        ? Date.parse(membership.access_ends_at)
-        : null
-
-      return (
-        (startsAt === null || (Number.isFinite(startsAt) && startsAt <= now)) &&
-        (endsAt === null || (Number.isFinite(endsAt) && endsAt >= now))
-      )
-    },
+  const hasActiveMembership = hasCurrentActiveSchoolMembership(
+    (data ?? []) as Array<{
+      access_starts_at: string | null
+      access_ends_at: string | null
+    }>,
   )
 
   if (!hasActiveMembership) {
