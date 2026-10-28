@@ -21,7 +21,7 @@ export function hasCurrentActiveSchoolMembership(
 
     return (
       (startsAt === null || (Number.isFinite(startsAt) && startsAt <= now)) &&
-      (endsAt === null || (Number.isFinite(endsAt) && endsAt >= now))
+      (endsAt === null || (Number.isFinite(endsAt) && endsAt > now))
     )
   })
 }
