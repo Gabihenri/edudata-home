@@ -31,9 +31,17 @@ type ActiveSchoolMembership = {
 }
 
 function normalizeSchoolId(value: unknown): string | null {
-  const schoolId = normalizeOptionalText(value)
+  if (value === undefined || value === null) {
+    return null
+  }
 
-  if (schoolId === null) {
+  if (typeof value !== 'string') {
+    throw new Error('Identificador da escola é inválido.')
+  }
+
+  const schoolId = value.trim()
+
+  if (!schoolId) {
     return null
   }
 
