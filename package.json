@@ -7,7 +7,9 @@
     "build": "next build --no-lint",
     "start": "next start",
     "import:school-registry": "tsx --env-file=.env.local src/scripts/import-school-registry.ts",
-    "test:agenda-school-id": "tsx src/scripts/validate-agenda-school-id.ts"
+    "test:agenda-school-id": "tsx src/scripts/validate-agenda-school-id.ts",
+    "test:agenda-membership-authorization": "tsx --test src/scripts/validate-agenda-membership-authorization.ts",
+    "test:agenda-authorized-creation": "tsx --test src/scripts/validate-agenda-authorized-creation.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.0",
