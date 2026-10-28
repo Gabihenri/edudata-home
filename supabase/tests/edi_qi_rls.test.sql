@@ -1,6 +1,6 @@
 begin;
 
-select plan(61);
+select plan(62);
 
 select has_table('public', 'organizations', 'institutional organizations table exists');
 select has_column('public', 'organizations', 'id', 'organization primary key is available');
@@ -8,6 +8,24 @@ select has_column('public', 'organizations', 'name', 'organization display name 
 select has_column('public', 'organizations', 'created_at', 'organization creation timestamp is available');
 select has_column('public', 'organizations', 'updated_at', 'organization update timestamp is available');
 select has_table('public', 'organization_members', 'institutional membership table exists');
+select ok(
+  not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'organizations'
+      and policyname = 'organizations_active_member_read'
+  )
+  and exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'organizations'
+      and policyname = 'organizations_read_active_membership'
+      and position('access_ends_at > now()' in coalesce(qual, '')) > 0
+  ),
+  'organization read policy uses an exclusive expiry boundary without the legacy permissive policy'
+);
 select ok(
   (
     with expected(
