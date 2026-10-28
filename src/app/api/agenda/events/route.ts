@@ -8,7 +8,6 @@ import {
 import {
   eventsService,
   type AgendaEvent,
-  type CreateAgendaEventInput,
 } from '@/lib/agenda'
 
 import {
@@ -81,39 +80,6 @@ async function assertActiveSchoolMembership(
   )
 }
 
-type ScheduleMode =
-  | 'pontual'
-  | 'recorrente'
-
-type CreateEventRequestBody = {
-  title?: string
-  description?: string | null
-
-  eventType?: string
-
-  startAt?: string
-  endAt?: string | null
-
-  status?: string
-  priority?: string
-
-  schoolId?: string | null
-  planningId?: string | null
-  evidenceId?: string | null
-
-  scheduleMode?: ScheduleMode
-
-  recurrenceFrequency?:
-    | 'none'
-    | 'weekly'
-
-  recurrenceInterval?: number
-  recurrenceUntil?: string | null
-
-  sourceTemplateId?: string | null
-  weekReference?: string | null
-}
-
 function normalizeOptionalText(
   value: unknown,
 ): string | null {
@@ -124,41 +90,6 @@ function normalizeOptionalText(
   const normalizedValue = value.trim()
 
   return normalizedValue || null
-}
-
-function normalizeScheduleMode(
-  value: unknown,
-): ScheduleMode {
-  return value === 'recorrente'
-    ? 'recorrente'
-    : 'pontual'
-}
-
-function normalizeRecurrenceFrequency(
-  scheduleMode: ScheduleMode,
-  value: unknown,
-): 'none' | 'weekly' {
-  if (scheduleMode === 'recorrente') {
-    return 'weekly'
-  }
-
-  return value === 'weekly'
-    ? 'weekly'
-    : 'none'
-}
-
-function normalizeRecurrenceInterval(
-  value: unknown,
-): number {
-  if (
-    value === undefined ||
-    value === null ||
-    value === ''
-  ) {
-    return 1
-  }
-
-  return Number(value)
 }
 
 function getErrorStatus(
