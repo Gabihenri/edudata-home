@@ -1,3 +1,5 @@
+import { createClient } from '@supabase/supabase-js'
+
 import {
   NextRequest,
   NextResponse,
@@ -16,8 +18,69 @@ import {
 } from '@/lib/access/guards/require-feature-access'
 
 import { requireSessionUser } from '@/lib/auth/session'
+import { normalizeSchoolId } from '@/lib/agenda/authorization/normalize-school-id'
+import { assertActiveSchoolMembership as assertMembershipRule } from '@/lib/agenda/authorization/assert-active-school-membership'
+import { createAfterAuthorization } from '@/lib/agenda/authorization/create-after-authorization'
 
 export const dynamic = 'force-dynamic'
+
+/**
+ * O repositório de eventos pode operar com service_role, que ignora RLS.
+ * Por isso, a rota valida explicitamente o vínculo ativo antes de persistir
+ * qualquer evento associado a uma escola informada pelo cliente.
+ */
+async function assertActiveSchoolMembership(
+  userId: string,
+  schoolId: string | null,
+): Promise<void> {
+  await assertMembershipRule(
+    userId,
+    schoolId,
+    async (lookupUserId, lookupSchoolId) => {
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+      // A chave anon sem JWT não consegue validar o vínculo; falhar fechado.
+      if (!url || !serviceRoleKey) {
+        console.error(
+          '[AGENDA_EVENT_SCHOOL_MEMBERSHIP_CONFIG_ERROR]',
+          'NEXT_PUBLIC_SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY ausente.',
+        )
+        throw new Error('Não foi possível validar o vínculo institucional.')
+      }
+
+      const client = createClient(url, serviceRoleKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+        },
+      })
+
+      const { data, error } = await client
+        .from('organization_members')
+        .select('id, access_starts_at, access_ends_at')
+        .eq('user_id', lookupUserId)
+        .eq('school_id', lookupSchoolId)
+        .ilike('status', 'active')
+
+      if (error) {
+        console.error(
+          '[AGENDA_EVENT_SCHOOL_MEMBERSHIP_CHECK_ERROR]',
+          error,
+        )
+      }
+
+      return {
+        data: (data ?? []) as Array<{
+          access_starts_at: string | null
+          access_ends_at: string | null
+        }> | null,
+        error,
+      }
+    },
+  )
+}
 
 type ScheduleMode =
   | 'pontual'
@@ -314,6 +377,8 @@ export async function POST(
         body.recurrenceFrequency,
       )
 
+    const schoolId = normalizeSchoolId(body.schoolId)
+
     const input: CreateAgendaEventInput = {
       title:
         typeof body.title === 'string'
@@ -350,10 +415,7 @@ export async function POST(
           body.priority,
         ) ?? 'media',
 
-      school_id:
-        normalizeOptionalText(
-          body.schoolId,
-        ),
+      school_id: schoolId,
 
       /*
        * O proprietário do registro sempre será
@@ -403,8 +465,16 @@ export async function POST(
     }
 
     const data =
-      await eventsService
-        .createSchedule(input)
+      await createAfterAuthorization({
+        input,
+        authorize: () =>
+          assertActiveSchoolMembership(
+            user.id,
+            schoolId,
+          ),
+        create: (authorizedInput) =>
+          eventsService.createSchedule(authorizedInput),
+      })
 
     return NextResponse.json(
       {

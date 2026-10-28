@@ -1,0 +1,317 @@
+begin;
+
+select plan(61);
+
+select has_table('public', 'organizations', 'institutional organizations table exists');
+select has_column('public', 'organizations', 'id', 'organization primary key is available');
+select has_column('public', 'organizations', 'name', 'organization display name is available');
+select has_column('public', 'organizations', 'created_at', 'organization creation timestamp is available');
+select has_column('public', 'organizations', 'updated_at', 'organization update timestamp is available');
+select has_table('public', 'organization_members', 'institutional membership table exists');
+select ok(
+  (
+    with expected(
+      constraint_name,
+      source_column,
+      target_schema,
+      target_table,
+      target_column,
+      delete_action
+    ) as (
+      values
+        ('organization_members_organization_id_fkey', 'organization_id', 'public', 'organizations', 'id', 'c'),
+        ('organization_members_user_id_fkey', 'user_id', 'auth', 'users', 'id', 'c'),
+        ('organization_members_reports_to_user_id_fkey', 'reports_to_user_id', 'auth', 'users', 'id', 'n'),
+        ('organization_members_approved_by_fkey', 'approved_by', 'auth', 'users', 'id', 'n')
+    )
+    select count(*) = 4
+      and bool_and(
+        source_attribute.attname = expected.source_column
+        and target_namespace.nspname = expected.target_schema
+        and target_table.relname = expected.target_table
+        and target_attribute.attname = expected.target_column
+        and constraint_row.confdeltype = expected.delete_action
+      )
+    from expected
+    join pg_constraint constraint_row
+      on constraint_row.conname = expected.constraint_name
+     and constraint_row.conrelid = 'public.organization_members'::regclass
+     and constraint_row.contype = 'f'
+    join pg_class target_table
+      on target_table.oid = constraint_row.confrelid
+    join pg_namespace target_namespace
+      on target_namespace.oid = target_table.relnamespace
+    join pg_attribute source_attribute
+      on source_attribute.attrelid = constraint_row.conrelid
+     and source_attribute.attnum = constraint_row.conkey[1]
+     and not source_attribute.attisdropped
+    join pg_attribute target_attribute
+      on target_attribute.attrelid = constraint_row.confrelid
+     and target_attribute.attnum = constraint_row.confkey[1]
+     and not target_attribute.attisdropped
+    where array_length(constraint_row.conkey, 1) = 1
+      and array_length(constraint_row.confkey, 1) = 1
+  ),
+  'institutional membership foreign keys target the expected columns and preserve delete actions'
+);
+select has_table('public', 'eios_institutional_policies', 'institutional policies table exists');
+select has_table('public', 'eios_score_governance', 'score governance table exists');
+select has_table('public', 'eios_policy_audit_events', 'policy audit events table exists');
+
+select has_column('public', 'organization_members', 'user_id', 'membership is linked to an auth user');
+select has_column('public', 'organization_members', 'status', 'membership status is available');
+select has_column('public', 'organization_members', 'can_manage_products', 'product governance permission is available');
+select has_column('public', 'organization_members', 'can_audit', 'audit permission is available');
+select has_column('public', 'organization_members', 'school_id', 'membership has an explicit school scope');
+select has_column('public', 'organization_members', 'access_starts_at', 'membership start validity is available');
+select has_column('public', 'organization_members', 'access_ends_at', 'membership end validity is available');
+select has_column('public', 'organization_members', 'can_view_school', 'school-level read permission is explicit');
+select has_column('public', 'organization_members', 'department', 'legacy membership department context is preserved');
+select has_column('public', 'organization_members', 'knowledge_area', 'legacy membership knowledge area context is preserved');
+select has_column('public', 'organization_members', 'team_code', 'legacy membership team context is preserved');
+select ok(
+  exists (select 1 from pg_constraint where conrelid = 'public.organization_members'::regclass and conname = 'organization_members_hierarchy_level_check')
+  and exists (select 1 from pg_constraint where conrelid = 'public.organization_members'::regclass and conname = 'organization_members_scope_type_check'),
+  'membership hierarchy and scope constraints exist on the institutional foundation'
+);
+select ok(
+  exists (select 1 from pg_constraint where conrelid = 'public.organization_members'::regclass and conname = 'organization_members_access_period_check' and not convalidated),
+  'legacy access-period constraint is installed without rewriting historical validity data'
+);
+select has_column('public', 'organizations', 'short_name', 'organization short name is available');
+select has_column('public', 'organizations', 'organization_type', 'organization type is available');
+select has_column('public', 'organizations', 'document', 'organization document is available');
+select has_column('public', 'organizations', 'email', 'organization email is available');
+select has_column('public', 'organizations', 'phone', 'organization phone is available');
+select has_column('public', 'organizations', 'website', 'organization website is available');
+select has_column('public', 'organizations', 'logo_url', 'organization logo URL is available');
+select has_column('public', 'organizations', 'address', 'organization address is available');
+select has_column('public', 'organizations', 'city', 'organization city is available');
+select has_column('public', 'organizations', 'state', 'organization state is available');
+select has_column('public', 'organizations', 'zip_code', 'organization postal code is available');
+select has_column('public', 'organizations', 'country', 'organization country is available');
+select has_column('public', 'organizations', 'status', 'organization status is available');
+select has_trigger('public', 'organizations', 'trg_organizations_sync_legacy_columns', 'legacy organization fields remain synchronized for compatibility');
+create temporary table legacy_organizations_test (
+  id integer generated always as identity primary key,
+  name text not null,
+  organization_type text not null default 'other',
+  type varchar(50) not null,
+  status text not null default 'active',
+  active boolean default true
+);
+create trigger legacy_organizations_test_sync
+before insert or update on legacy_organizations_test
+for each row execute function public.sync_organization_legacy_columns();
+
+insert into legacy_organizations_test (name, organization_type, status)
+values ('Application insert', 'school', 'inactive');
+
+select is(
+  (select type from legacy_organizations_test where name = 'Application insert'),
+  'school'::varchar,
+  'new organization_type writes populate the legacy NOT NULL type column'
+);
+select is(
+  (select active from legacy_organizations_test where name = 'Application insert'),
+  false,
+  'new status writes synchronize the legacy active flag'
+);
+
+update legacy_organizations_test set type = 'district'
+where name = 'Application insert';
+select is(
+  (select organization_type from legacy_organizations_test where name = 'Application insert'),
+  'district',
+  'legacy type updates synchronize organization_type'
+);
+
+update legacy_organizations_test set active = true
+where name = 'Application insert';
+select is(
+  (select status from legacy_organizations_test where name = 'Application insert'),
+  'active',
+  'legacy active updates synchronize status'
+);
+
+select ok(
+  (select is_nullable = 'NO' from information_schema.columns
+   where table_schema = 'public' and table_name = 'organizations' and column_name = 'organization_type')
+  and (select is_nullable = 'NO' from information_schema.columns
+   where table_schema = 'public' and table_name = 'organizations' and column_name = 'status')
+  and exists (select 1 from pg_constraint
+   where conrelid = 'public.organizations'::regclass
+     and conname = 'organizations_status_check'),
+  'organization type and status are required and status is constrained'
+);
+
+
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.eios_institutional_policies'::regclass),
+  'institutional policies enforce row-level security'
+);
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.eios_score_governance'::regclass),
+  'score governance enforces row-level security'
+);
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.eios_policy_audit_events'::regclass),
+  'policy audit events enforce row-level security'
+);
+
+select ok(
+  exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'eios_institutional_policies' and policyname = 'institution_members_read_policies'),
+  'members have an explicit policy-read policy'
+);
+select ok(
+  exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'eios_score_governance' and policyname = 'institution_members_read_score_governance'),
+  'members have an explicit score-governance read policy'
+);
+select ok(
+  exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'eios_policy_audit_events' and policyname = 'institution_members_read_policy_audit'),
+  'audit access has an explicit membership policy'
+);
+
+select ok(
+  has_table_privilege('authenticated', 'public.organizations', 'SELECT')
+  and not has_table_privilege('anon', 'public.organizations', 'SELECT')
+  and not has_table_privilege('authenticated', 'public.organizations', 'INSERT')
+  and not has_table_privilege('authenticated', 'public.organizations', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.organizations', 'DELETE')
+  and (select relrowsecurity from pg_class where oid = 'public.organizations'::regclass)
+  and exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'organizations'
+      and policyname = 'organizations_read_active_membership'
+  ),
+  'organization reads have explicit privileges and active-membership RLS'
+);
+select ok(
+  has_table_privilege('authenticated', 'public.organization_members', 'SELECT')
+  and not has_table_privilege('anon', 'public.organization_members', 'SELECT')
+  and not has_table_privilege('authenticated', 'public.organization_members', 'INSERT')
+  and not has_table_privilege('authenticated', 'public.organization_members', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.organization_members', 'DELETE')
+  and (select relrowsecurity from pg_class where oid = 'public.organization_members'::regclass)
+  and exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'organization_members'
+      and policyname = 'organization_members_read_own'
+  ),
+  'membership reads have explicit privileges and self-only RLS'
+);
+select ok(
+  has_table_privilege('service_role', 'public.organization_members', 'SELECT'),
+  'trusted backend can read institutional memberships'
+);
+select ok(
+  has_table_privilege('authenticated', 'public.agenda_tasks', 'SELECT')
+  and has_table_privilege('authenticated', 'public.agenda_tasks', 'INSERT')
+  and has_table_privilege('authenticated', 'public.agenda_tasks', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.agenda_tasks', 'DELETE')
+  and not has_table_privilege('authenticated', 'public.agenda_task_status_history', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.agenda_task_status_history', 'DELETE'),
+  'authenticated users have only the declared agenda task and history operations'
+);
+select ok(
+  not has_table_privilege('anon', 'public.agenda_tasks', 'SELECT'),
+  'anonymous clients cannot query agenda tasks'
+);
+select ok(
+  has_function_privilege('authenticated', 'public.set_agenda_task_status(uuid,text,text)', 'EXECUTE')
+  and not has_function_privilege('anon', 'public.set_agenda_task_status(uuid,text,text)', 'EXECUTE'),
+  'agenda status function is executable only by authenticated users and trusted backend'
+);
+
+select ok(
+  has_table_privilege('authenticated', 'public.eios_institutional_policies', 'SELECT')
+  and has_table_privilege('authenticated', 'public.eios_score_governance', 'SELECT')
+  and has_table_privilege('authenticated', 'public.eios_policy_audit_events', 'SELECT')
+  and not has_table_privilege('anon', 'public.eios_institutional_policies', 'SELECT')
+  and not has_table_privilege('anon', 'public.eios_score_governance', 'SELECT')
+  and not has_table_privilege('anon', 'public.eios_policy_audit_events', 'SELECT'),
+  'governance Data API grants exclude anonymous access and permit authenticated reads'
+);
+select ok(
+  has_table_privilege('service_role', 'public.eios_institutional_policies', 'SELECT')
+  and has_table_privilege('service_role', 'public.eios_score_governance', 'SELECT')
+  and has_table_privilege('service_role', 'public.eios_policy_audit_events', 'SELECT')
+  and not has_table_privilege('authenticated', 'public.eios_policy_audit_events', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.eios_policy_audit_events', 'DELETE'),
+  'governance service role and append-only audit privileges are explicit'
+);
+
+select ok(
+  has_table_privilege('authenticated', 'public.agenda_class_students', 'SELECT')
+  and has_table_privilege('authenticated', 'public.agenda_class_students', 'INSERT')
+  and has_table_privilege('authenticated', 'public.agenda_class_students', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.agenda_class_students', 'DELETE')
+  and has_table_privilege('authenticated', 'public.agenda_attendance_entries', 'SELECT')
+  and has_table_privilege('authenticated', 'public.agenda_attendance_entries', 'INSERT')
+  and has_table_privilege('authenticated', 'public.agenda_attendance_entries', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.agenda_attendance_entries', 'DELETE')
+  and not has_table_privilege('anon', 'public.agenda_class_students', 'SELECT')
+  and not has_table_privilege('anon', 'public.agenda_attendance_entries', 'SELECT')
+  and (select relrowsecurity from pg_class where oid = 'public.agenda_class_students'::regclass)
+  and (select relrowsecurity from pg_class where oid = 'public.agenda_attendance_entries'::regclass),
+  'class roster and attendance have explicit grants, RLS, and no anonymous access'
+);
+select ok(
+  has_table_privilege('authenticated', 'public.agenda_learning_events', 'SELECT')
+  and has_table_privilege('authenticated', 'public.agenda_learning_events', 'INSERT')
+  and not has_table_privilege('authenticated', 'public.agenda_learning_events', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.agenda_learning_events', 'DELETE')
+  and not has_table_privilege('anon', 'public.agenda_learning_events', 'SELECT')
+  and (select relrowsecurity from pg_class where oid = 'public.agenda_learning_events'::regclass),
+  'learning feedback grants preserve append-only behavior, RLS, and no anonymous access'
+);
+
+
+select ok(
+  (
+    select count(*) = 6
+      and bool_and(
+        position('access_starts_at' in coalesce(qual, '') || ' ' || coalesce(with_check, '')) > 0
+        and position('access_ends_at' in coalesce(qual, '') || ' ' || coalesce(with_check, '')) > 0
+      )
+    from pg_policies
+    where schemaname = 'public'
+      and (
+        (tablename = 'eios_institutional_policies' and policyname in ('institution_members_read_policies', 'institution_governors_manage_policies'))
+        or (tablename = 'eios_score_governance' and policyname in ('institution_members_read_score_governance', 'institution_governors_manage_score_governance'))
+        or (tablename = 'eios_policy_audit_events' and policyname in ('institution_members_read_policy_audit', 'institution_governors_insert_policy_audit'))
+      )
+  ),
+  'all EDI-QI governance policies enforce membership start and end validity'
+);
+select ok(
+  not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename in ('eios_institutional_policies', 'eios_score_governance', 'eios_policy_audit_events')
+      and coalesce(qual, '') || ' ' || coalesce(with_check, '') like '%member.role%'
+  )
+  and position('member.can_manage_products = true' in (
+    select coalesce(qual, '') || ' ' || coalesce(with_check, '')
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'eios_institutional_policies'
+      and policyname = 'institution_governors_manage_policies'
+  )) > 0,
+  'governance management requires explicit permissions rather than role-name shortcuts'
+);
+select ok(
+  position('member.can_audit = true' in (
+    select coalesce(qual, '') || ' ' || coalesce(with_check, '')
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'eios_policy_audit_events'
+      and policyname = 'institution_members_read_policy_audit'
+  )) > 0,
+  'audit-event reads require the explicit can_audit permission'
+);
+
+select * from finish();
+
+rollback;
