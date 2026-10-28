@@ -1,6 +1,6 @@
 begin;
 
-select plan(60);
+select plan(61);
 
 select has_table('public', 'organizations', 'institutional organizations table exists');
 select has_column('public', 'organizations', 'id', 'organization primary key is available');
@@ -8,6 +8,21 @@ select has_column('public', 'organizations', 'name', 'organization display name 
 select has_column('public', 'organizations', 'created_at', 'organization creation timestamp is available');
 select has_column('public', 'organizations', 'updated_at', 'organization update timestamp is available');
 select has_table('public', 'organization_members', 'institutional membership table exists');
+select ok(
+  (
+    select count(*) = 4
+    from pg_constraint
+    where conrelid = 'public.organization_members'::regclass
+      and contype = 'f'
+      and conname in (
+        'organization_members_organization_id_fkey',
+        'organization_members_user_id_fkey',
+        'organization_members_reports_to_user_id_fkey',
+        'organization_members_approved_by_fkey'
+      )
+  ),
+  'institutional memberships retain all four expected organization and user foreign keys'
+);
 select has_table('public', 'eios_institutional_policies', 'institutional policies table exists');
 select has_table('public', 'eios_score_governance', 'score governance table exists');
 select has_table('public', 'eios_policy_audit_events', 'policy audit events table exists');
