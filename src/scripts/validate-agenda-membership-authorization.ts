@@ -31,7 +31,7 @@ test('nega vínculo que ainda não começou', async () => {
 
 test('nega vínculo que já expirou', async () => {
   await assert.rejects(assertActiveSchoolMembership(USER_ID, SCHOOL_ID, async () => ({
-    data: [{ access_starts_at: null, access_ends_at: '2026-10-27T12:00:00.000Z' }],
+    data: [{ access_starts_at: null, access_ends_at: '2026-10-27T11:59:59.999Z' }],
     error: null,
   }), NOW), /sem permissão/i)
 })
