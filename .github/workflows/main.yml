@@ -29,6 +29,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Validate Agenda school identifier
+        run: npm run test:agenda-school-id
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
