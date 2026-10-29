@@ -369,7 +369,7 @@ alter table public.organization_members enable row level security;
 -- the replacement policy and keep access valid at the exact expiration instant.
 drop policy if exists organizations_active_member_read on public.organizations;
 
-do $
+do $$
 begin
   if not exists (
     select 1 from pg_policies
