@@ -46,6 +46,31 @@ class AgendaListRouteSecurityTests(unittest.TestCase):
         )
         self.assertEqual(response.json()["data"]["total"], 1)
 
+    @patch("app.routers.agenda.dashboard_summary_for_user")
+    def test_dashboard_summary_requires_membership_and_uses_user_jwt(self, summary):
+        summary.return_value = {
+            "total_events": 2,
+            "planned": 1,
+            "completed": 1,
+            "cancelled": 0,
+            "upcoming": 1,
+        }
+
+        response = self.client.get("/api/v1/agenda/dashboard/summary")
+
+        self.assertEqual(response.status_code, 200)
+        summary.assert_called_once_with(access_token="verified-request-token")
+        self.assertEqual(response.json()["data"]["total_events"], 2)
+
+    def test_dashboard_summary_rejects_missing_membership(self):
+        self.app.dependency_overrides[get_current_membership] = lambda: (
+            self._raise_forbidden()
+        )
+
+        response = self.client.get("/api/v1/agenda/dashboard/summary")
+
+        self.assertEqual(response.status_code, 403)
+
     @patch("app.routers.agenda.get_event_for_user")
     def test_single_event_route_uses_user_scoped_repository(self, read_event):
         read_event.return_value = {"id": "event-7", "title": "Termodinâmica"}
