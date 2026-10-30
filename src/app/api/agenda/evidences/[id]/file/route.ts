@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 import { getSessionUser } from '@/lib/auth'
+import { getSessionAccessToken } from '@/lib/auth/session'
 import { EvidencesRepository } from '@/lib/agenda/repository/evidences.repository'
 import {
   createSignedUrl,
@@ -34,30 +35,6 @@ function jsonError(
       status,
     },
   )
-}
-
-function getAccessToken(request: Request): string | null {
-  const cookieHeader = request.headers.get('cookie')
-
-  if (!cookieHeader) {
-    return null
-  }
-
-  const cookies = cookieHeader.split(';').reduce<Record<string, string>>(
-    (accumulator, cookie) => {
-      const separatorIndex = cookie.indexOf('=')
-      if (separatorIndex === -1) return accumulator
-
-      const name = cookie.slice(0, separatorIndex).trim()
-      const value = cookie.slice(separatorIndex + 1).trim()
-
-      if (name) accumulator[name] = decodeURIComponent(value)
-      return accumulator
-    },
-    {},
-  )
-
-  return cookies['sb-access-token'] ?? cookies.access_token ?? null
 }
 
 function createAuthenticatedClient(accessToken: string): SupabaseClient {
@@ -109,7 +86,7 @@ export async function GET(
       )
     }
 
-    const accessToken = getAccessToken(request)
+    const accessToken = await getSessionAccessToken()
 
     if (!accessToken) {
       return jsonError(
