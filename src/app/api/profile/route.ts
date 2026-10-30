@@ -3,7 +3,7 @@ import {
   NextResponse,
 } from 'next/server'
 
-import { requireSessionUser } from '@/lib/auth/session'
+import { requireSessionAccessToken, requireSessionUser } from '@/lib/auth/session'
 import type { UpdateUserProfileDto } from '@/lib/profile/profile.dto'
 import { profileService } from '@/lib/profile/profile.service'
 
@@ -152,11 +152,14 @@ function createErrorResponse(
 
 export async function GET() {
   try {
-    const user =
-      await requireSessionUser()
+    const [accessToken, user] = await Promise.all([
+      requireSessionAccessToken(),
+      requireSessionUser(),
+    ])
 
     const profile =
       await profileService.getOrCreate(
+        accessToken,
         user.id,
         getDefaultDisplayName(user),
       )
@@ -215,8 +218,10 @@ export async function PATCH(
   request: NextRequest,
 ) {
   try {
-    const user =
-      await requireSessionUser()
+    const [accessToken, user] = await Promise.all([
+      requireSessionAccessToken(),
+      requireSessionUser(),
+    ])
 
     const body =
       (await request.json()) as UpdateProfileRequestBody
@@ -241,6 +246,7 @@ export async function PATCH(
 
     const profile =
       await profileService.updateOwnProfile(
+        accessToken,
         user.id,
         input,
       )
