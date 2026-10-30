@@ -46,6 +46,36 @@ class AgendaListRouteSecurityTests(unittest.TestCase):
         )
         self.assertEqual(response.json()["data"]["total"], 1)
 
+    @patch("app.routers.agenda.get_event_for_user")
+    def test_single_event_route_uses_user_scoped_repository(self, read_event):
+        read_event.return_value = {"id": "event-7", "title": "Termodinâmica"}
+
+        response = self.client.get("/api/v1/agenda/event-7")
+
+        self.assertEqual(response.status_code, 200)
+        read_event.assert_called_once_with(
+            access_token="verified-request-token",
+            event_id="event-7",
+        )
+        self.assertEqual(response.json()["data"]["id"], "event-7")
+
+    @patch("app.routers.agenda.get_event_for_user")
+    def test_single_event_hidden_by_rls_is_returned_as_not_found(self, read_event):
+        read_event.return_value = None
+
+        response = self.client.get("/api/v1/agenda/event-from-another-user")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_single_event_route_rejects_missing_membership(self):
+        self.app.dependency_overrides[get_current_membership] = lambda: (
+            self._raise_forbidden()
+        )
+
+        response = self.client.get("/api/v1/agenda/event-7")
+
+        self.assertEqual(response.status_code, 403)
+
     def test_list_route_rejects_request_without_bearer_token(self):
         self.app.dependency_overrides[security] = lambda: None
         self.app.dependency_overrides[get_current_membership] = lambda: (
