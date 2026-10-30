@@ -63,6 +63,38 @@ class AgendaReadRepositoryTests(unittest.TestCase):
             agenda_read_repository.list_events_for_user("user-jwt")
         self.assertEqual(caught.exception.status_code, 403)
 
+    @patch.object(agenda_read_repository, "urlopen")
+    @patch.object(agenda_read_repository, "SUPABASE_ANON_KEY", "public-anon-key")
+    @patch.object(agenda_read_repository, "SUPABASE_URL", "https://example.supabase.co")
+    def test_reads_single_event_by_id_with_user_jwt(self, mocked_urlopen):
+        event = {"id": "event-123", "title": "Aula de Física"}
+        mocked_urlopen.return_value = self._response([event])
+
+        result = agenda_read_repository.get_event_for_user(
+            "individual-user-jwt",
+            "event-123",
+        )
+
+        request = mocked_urlopen.call_args.args[0]
+        query = parse_qs(urlparse(request.full_url).query)
+        self.assertEqual(query["id"], ["eq.event-123"])
+        self.assertEqual(query["deleted_at"], ["is.null"])
+        self.assertEqual(query["limit"], ["1"])
+        self.assertEqual(
+            request.get_header("Authorization"),
+            "Bearer individual-user-jwt",
+        )
+        self.assertEqual(result, event)
+
+    @patch.object(agenda_read_repository, "urlopen")
+    @patch.object(agenda_read_repository, "SUPABASE_ANON_KEY", "public-anon-key")
+    @patch.object(agenda_read_repository, "SUPABASE_URL", "https://example.supabase.co")
+    def test_invisible_or_missing_event_returns_none(self, mocked_urlopen):
+        mocked_urlopen.return_value = self._response([])
+        self.assertIsNone(
+            agenda_read_repository.get_event_for_user("user-jwt", "event-other-user")
+        )
+
     def test_invalid_limit_is_rejected(self):
         with self.assertRaises(HTTPException) as caught:
             agenda_read_repository.list_events_for_user("user-jwt", limit=0)
