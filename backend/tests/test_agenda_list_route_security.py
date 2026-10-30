@@ -319,6 +319,42 @@ class AgendaListRouteSecurityTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 404)
 
+
+    @patch("app.routers.agenda.soft_delete_event_for_user")
+    def test_delete_event_uses_request_jwt_reason_and_membership(
+        self, soft_delete
+    ):
+        soft_delete.return_value = {
+            "id": "event-1",
+            "deleted_at": "2026-10-30T12:00:00Z",
+        }
+
+        response = self.client.delete(
+            "/api/v1/agenda/event-1?reason=Evento%20duplicado"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        soft_delete.assert_called_once_with(
+            access_token="verified-request-token",
+            event_id="event-1",
+            reason="Evento duplicado",
+        )
+
+    def test_delete_event_requires_reason(self):
+        response = self.client.delete("/api/v1/agenda/event-1")
+        self.assertEqual(response.status_code, 422)
+
+    def test_delete_event_rejects_missing_membership(self):
+        self.app.dependency_overrides[get_current_membership] = lambda: (
+            self._raise_forbidden()
+        )
+
+        response = self.client.delete(
+            "/api/v1/agenda/event-1?reason=Evento%20duplicado"
+        )
+
+        self.assertEqual(response.status_code, 403)
+
     @staticmethod
     def _raise_unauthorized():
         raise HTTPException(status_code=401, detail="Token não informado.")
