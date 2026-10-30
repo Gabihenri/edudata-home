@@ -135,3 +135,42 @@ def get_event_for_user(access_token: str, event_id: str) -> dict[str, Any] | Non
     if not payload:
         return None
     return payload[0]
+
+
+def dashboard_summary_for_user(access_token: str) -> dict[str, int]:
+    """Aggregate only Agenda events visible to the authenticated caller."""
+    from datetime import datetime, timezone
+
+    events = list_events_for_user(access_token=access_token, limit=500)
+    now = datetime.now(timezone.utc)
+    planned_statuses = {"planned", "planejado", "planejada"}
+    completed_statuses = {"completed", "concluido", "concluído"}
+    cancelled_statuses = {"cancelled", "canceled", "cancelado", "cancelada"}
+
+    planned = completed = cancelled = upcoming = 0
+    for event in events:
+        status = str(event.get("status") or "").strip().lower()
+        planned += status in planned_statuses
+        completed += status in completed_statuses
+        cancelled += status in cancelled_statuses
+
+        start_value = event.get("start_at") or event.get("start_datetime")
+        if start_value:
+            try:
+                start = datetime.fromisoformat(
+                    str(start_value).replace("Z", "+00:00")
+                )
+                if start.tzinfo is None:
+                    start = start.replace(tzinfo=timezone.utc)
+                upcoming += start >= now
+            except ValueError:
+                # Malformed timestamps are excluded from the upcoming count.
+                continue
+
+    return {
+        "total_events": len(events),
+        "planned": planned,
+        "completed": completed,
+        "cancelled": cancelled,
+        "upcoming": upcoming,
+    }
