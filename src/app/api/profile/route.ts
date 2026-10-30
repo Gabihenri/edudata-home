@@ -116,7 +116,7 @@ export async function GET() {
     ])
 
     const profile =
-      await profileService.getOrCreate(
+      await profileService.getRequiredProfile(
         accessToken,
         user.id,
       )
