@@ -8,18 +8,17 @@ export function getSupabase(): SupabaseClient {
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  if (!url || !key) {
-    throw new Error('Variáveis do Supabase não configuradas.')
+  if (!url || !anonKey) {
+    throw new Error('Configuração pública do Supabase não configurada.')
   }
 
-  supabase = createClient(url, key, {
+  supabase = createClient(url, anonKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
+      detectSessionInUrl: false,
     },
   })
 
@@ -27,6 +26,10 @@ export function getSupabase(): SupabaseClient {
 }
 
 export async function getCurrentUser(accessToken: string) {
+  if (!accessToken?.trim()) {
+    throw new Error('Token de acesso não informado.')
+  }
+
   const client = getSupabase()
 
   const {
@@ -34,8 +37,8 @@ export async function getCurrentUser(accessToken: string) {
     error,
   } = await client.auth.getUser(accessToken)
 
-  if (error) {
-    throw new Error(error.message)
+  if (error || !user) {
+    throw new Error(error?.message ?? 'Não foi possível validar a sessão.')
   }
 
   return user
