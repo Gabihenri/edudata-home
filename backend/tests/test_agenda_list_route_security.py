@@ -46,6 +46,25 @@ class AgendaListRouteSecurityTests(unittest.TestCase):
         )
         self.assertEqual(response.json()["data"]["total"], 1)
 
+
+    @patch("app.routers.agenda.list_events_for_teacher_for_user")
+    def test_teacher_events_route_uses_verified_jwt_and_rls_query(self, read_events):
+        read_events.return_value = [{"id": "event-9", "user_id": "teacher-9"}]
+        response = self.client.get("/api/v1/agenda/teacher/teacher-9?limit=15")
+        self.assertEqual(response.status_code, 200)
+        read_events.assert_called_once_with(
+            access_token="verified-request-token",
+            teacher_id="teacher-9",
+            limit=15,
+        )
+
+    def test_teacher_events_route_rejects_missing_membership(self):
+        self.app.dependency_overrides[get_current_membership] = lambda: (
+            self._raise_forbidden()
+        )
+        response = self.client.get("/api/v1/agenda/teacher/teacher-9")
+        self.assertEqual(response.status_code, 403)
+
     @patch("app.routers.agenda.dashboard_summary_for_user")
     def test_dashboard_summary_requires_membership_and_uses_user_jwt(self, summary):
         summary.return_value = {
