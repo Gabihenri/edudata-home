@@ -1,7 +1,7 @@
 """Request-scoped PostgREST membership lookup tests."""
 import json
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
 from fastapi import HTTPException
@@ -24,7 +24,7 @@ class MembershipRepositoryTests(unittest.TestCase):
         }
 
     def _response(self, payload):
-        response = Mock()
+        response = MagicMock()
         response.__enter__ = Mock(return_value=response)
         response.__exit__ = Mock(return_value=False)
         response.read.return_value = json.dumps(payload).encode("utf-8")
