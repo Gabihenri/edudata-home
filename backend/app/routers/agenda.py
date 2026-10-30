@@ -10,6 +10,7 @@ from app.core.security.current_user import security
 from app.repositories.agenda_read_repository import (
     dashboard_summary_for_user,
     get_event_for_user,
+    list_events_for_school_for_user,
     list_events_for_teacher_for_user,
     list_events_for_user,
 )
@@ -130,9 +131,12 @@ def list_teacher_events(
 def list_school_events(
     school_id: str,
     limit: int = Query(100, ge=1, le=500),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    _membership: dict[str, Any] = Depends(get_current_membership),
 ) -> dict[str, Any]:
     try:
-        events = AgendaService.list_by_school(
+        events = list_events_for_school_for_user(
+            access_token=credentials.credentials,
             school_id=school_id,
             limit=limit,
         )
