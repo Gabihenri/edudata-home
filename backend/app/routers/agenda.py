@@ -8,6 +8,7 @@ from app.core.exceptions.exceptions import EduDataException
 from app.core.security.current_membership import get_current_membership
 from app.core.security.current_user import security
 from app.repositories.agenda_read_repository import (
+    dashboard_summary_for_user,
     get_event_for_user,
     list_events_for_user,
 )
@@ -59,9 +60,14 @@ def list_events(
 
 
 @router.get("/dashboard/summary")
-def dashboard_summary() -> dict[str, Any]:
+def dashboard_summary(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    _membership: dict[str, Any] = Depends(get_current_membership),
+) -> dict[str, Any]:
     try:
-        summary = AgendaService.dashboard_summary()
+        summary = dashboard_summary_for_user(
+            access_token=credentials.credentials,
+        )
 
         return ApiResponse.success(
             data=summary,
