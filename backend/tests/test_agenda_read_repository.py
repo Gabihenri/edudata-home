@@ -284,5 +284,36 @@ class AgendaReadRepositoryTests(unittest.TestCase):
         self.assertEqual(caught.exception.status_code, 422)
 
 
+    @patch.object(agenda_read_repository, "update_event_for_user")
+    def test_change_status_uses_rls_scoped_update(self, update_event):
+        event = {"id": "event-1", "status": "completed"}
+        update_event.return_value = event
+
+        result = agenda_read_repository.change_event_status_for_user(
+            "caller-jwt", "event-1", "completed"
+        )
+
+        update_event.assert_called_once_with(
+            access_token="caller-jwt",
+            event_id="event-1",
+            payload={"status": "completed"},
+        )
+        self.assertEqual(result, event)
+
+    def test_change_status_rejects_unknown_status(self):
+        with self.assertRaises(HTTPException) as caught:
+            agenda_read_repository.change_event_status_for_user(
+                "caller-jwt", "event-1", "in_progress"
+            )
+        self.assertEqual(caught.exception.status_code, 422)
+
+    def test_change_status_rejects_empty_status(self):
+        with self.assertRaises(HTTPException) as caught:
+            agenda_read_repository.change_event_status_for_user(
+                "caller-jwt", "event-1", ""
+            )
+        self.assertEqual(caught.exception.status_code, 422)
+
+
 if __name__ == "__main__":
     unittest.main()
