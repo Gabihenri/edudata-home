@@ -8,15 +8,15 @@ export async function getCurrentUserRole(): Promise<UserRole | null> {
     return null
   }
 
-  const role =
-    user.user_metadata?.role ??
-    user.app_metadata?.role
+  // user_metadata is user-editable and must never grant permissions.
+  // app_metadata is managed server-side; unknown roles fall back to least privilege.
+  const trustedRole = user.app_metadata?.role
 
-  if (!isValidUserRole(role)) {
-    return null
+  if (isValidUserRole(trustedRole)) {
+    return trustedRole
   }
 
-  return role
+  return 'professor'
 }
 
 export async function requireUserRole(): Promise<UserRole> {
