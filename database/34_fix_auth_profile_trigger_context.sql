@@ -122,7 +122,7 @@ IS
 -- roles or service_role.
 REVOKE ALL
 ON FUNCTION public.ensure_default_user_profile(uuid)
-FROM PUBLIC, anon, authenticated, service_role;
+FROM PUBLIC, anon, authenticated, service_role, supabase_auth_admin;
 
 
 -- Fail closed if a caller-controlled role can execute the helper.
