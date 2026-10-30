@@ -247,6 +247,8 @@ def list_events_for_school_for_user(
     access_token: str,
     school_id: str,
     limit: int = 100,
+    start_at_gte: str | None = None,
+    end_at_lte: str | None = None,
 ) -> list[dict[str, Any]]:
     """Filter by school; the caller JWT and database RLS remain authoritative."""
     if not isinstance(access_token, str) or not access_token.strip():
@@ -261,15 +263,18 @@ def list_events_for_school_for_user(
             detail="Consulta da Agenda indisponível.",
         )
 
-    query = urlencode(
-        {
-            "select": "*",
-            "school_id": f"eq.{school_id}",
-            "deleted_at": "is.null",
-            "order": "start_at.asc",
-            "limit": str(limit),
-        }
-    )
+    filters = {
+        "select": "*",
+        "school_id": f"eq.{school_id}",
+        "deleted_at": "is.null",
+        "order": "start_at.asc",
+        "limit": str(limit),
+    }
+    if start_at_gte is not None:
+        filters["start_at"] = f"gte.{start_at_gte}"
+    if end_at_lte is not None:
+        filters["end_at"] = f"lte.{end_at_lte}"
+    query = urlencode(filters)
     endpoint = f"{SUPABASE_URL.rstrip('/')}/rest/v1/agenda_events?{query}"
     request = Request(
         endpoint,
