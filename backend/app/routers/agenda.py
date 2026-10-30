@@ -14,6 +14,7 @@ from app.repositories.agenda_read_repository import (
     list_events_for_school_for_user,
     list_events_for_teacher_for_user,
     list_events_for_user,
+    update_event_for_user,
 )
 from app.core.responses.api_response import ApiResponse
 from app.engine.context import EngineContext
@@ -257,20 +258,30 @@ def create_event(
 def update_event(
     event_id: str,
     payload: dict[str, Any],
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    membership: dict[str, Any] = Depends(get_current_membership),
 ) -> dict[str, Any]:
     try:
-        event = AgendaService.update(
-            record_id=event_id,
-            data=payload,
+        event = update_event_for_user(
+            access_token=credentials.credentials,
+            event_id=event_id,
+            payload=payload,
         )
 
         if not event:
             raise HTTPException(status_code=404, detail="Evento não encontrado.")
 
+        trusted_payload = {
+            **payload,
+            "user_id": membership["user_id"],
+            "organization_id": membership["organization_id"],
+            "school_id": membership.get("school_id"),
+            "role": membership.get("role"),
+        }
         engine_result = PipelineEngine.execute(
-            context=build_engine_context(payload),
+            context=build_engine_context(trusted_payload),
             payload={
-                **payload,
+                **trusted_payload,
                 "agenda_events": [event],
                 "evidences": payload.get("evidences", []),
                 "trainings": payload.get("trainings", []),
