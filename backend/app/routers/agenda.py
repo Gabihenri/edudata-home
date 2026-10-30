@@ -1,9 +1,13 @@
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.security import HTTPAuthorizationCredentials
 
 from app.core.exceptions.exceptions import EduDataException
+from app.core.security.current_membership import get_current_membership
+from app.core.security.current_user import security
+from app.repositories.agenda_read_repository import list_events_for_user
 from app.core.responses.api_response import ApiResponse
 from app.engine.context import EngineContext
 from app.engine.pipelines.pipeline_engine import PipelineEngine
@@ -30,9 +34,17 @@ def build_engine_context(payload: dict[str, Any]) -> EngineContext:
 @router.get("/")
 def list_events(
     limit: int = Query(100, ge=1, le=500),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    _membership: dict[str, Any] = Depends(get_current_membership),
 ) -> dict[str, Any]:
     try:
-        events = AgendaService.list(limit=limit)
+        # The membership dependency establishes the authenticated institutional
+        # context. The event query uses the same user's JWT so PostgreSQL RLS,
+        # not a service-role client, decides which rows are visible.
+        events = list_events_for_user(
+            access_token=credentials.credentials,
+            limit=limit,
+        )
 
         return ApiResponse.success(
             data={"total": len(events), "items": events},
