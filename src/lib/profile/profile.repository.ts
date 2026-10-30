@@ -188,52 +188,6 @@ class ProfileRepository {
     return parseUserProfile(data)
   }
 
-  async createDefault(
-    accessToken: string,
-    userId: string,
-    displayName: string | null,
-  ): Promise<UserProfileDto> {
-    const { data, error } =
-      await createProfileClient(accessToken)
-        .from('user_profiles')
-        .insert({
-          user_id: userId,
-          role: 'professor',
-          status: 'active',
-          display_name: displayName,
-          phone: null,
-          onboarding_completed: false,
-        })
-        .select(
-          [
-            'user_id',
-            'display_name',
-            'phone',
-            'role',
-            'status',
-            'onboarding_completed',
-          ].join(','),
-        )
-        .single()
-
-    if (error) {
-      throw new Error(
-        `Erro ao criar perfil: ${error.message}`,
-      )
-    }
-
-    const profile =
-      parseUserProfile(data)
-
-    if (!profile) {
-      throw new Error(
-        'O perfil foi criado, mas os dados retornados são inválidos.',
-      )
-    }
-
-    return profile
-  }
-
   async updateByUserId(
     accessToken: string,
     userId: string,
