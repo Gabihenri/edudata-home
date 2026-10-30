@@ -133,7 +133,7 @@ class AgendaListRouteSecurityTests(unittest.TestCase):
                 "start_at": "2026-10-30T14:00:00-03:00",
             },
         )
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 200)
         create_event.assert_called_once_with(
             access_token="verified-request-token",
             membership={
