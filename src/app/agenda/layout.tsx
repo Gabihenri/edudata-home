@@ -7,7 +7,7 @@ import { AgendaMobileNavigation } from '@/components/agenda/AgendaMobileNavigati
 import { AgendaNavigation } from '@/components/agenda/AgendaNavigation'
 import { AgendaSecondaryNavigation } from '@/components/agenda/AgendaSecondaryNavigation'
 import AgendaPwaInstallPrompt from '@/components/pwa/AgendaPwaInstallPrompt'
-import { requireSessionUser } from '@/lib/auth/session'
+import { requireSessionAccessToken, requireSessionUser } from '@/lib/auth/session'
 import { profileService } from '@/lib/profile/profile.service'
 
 type AgendaLayoutProps = { children: ReactNode }
@@ -29,8 +29,11 @@ function getDefaultDisplayName(user: Awaited<ReturnType<typeof requireSessionUse
 
 export default async function AgendaLayout({ children }: AgendaLayoutProps) {
   try {
-    const user = await requireSessionUser()
-    const profile = await profileService.getOrCreate(user.id, getDefaultDisplayName(user))
+    const [accessToken, user] = await Promise.all([
+      requireSessionAccessToken(),
+      requireSessionUser(),
+    ])
+    const profile = await profileService.getOrCreate(accessToken, user.id, getDefaultDisplayName(user))
     if (!profile.onboarding_completed) redirect('/perfil/onboarding')
 
     return (
