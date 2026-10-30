@@ -50,3 +50,6 @@ jobs:
 
       - name: Run verified membership dependency tests
         run: python -m unittest discover -s tests -p 'test_current_membership_dependency.py' -v
+
+      - name: Run RLS-scoped Agenda read repository tests
+        run: python -m unittest discover -s tests -p 'test_agenda_read_repository.py' -v
