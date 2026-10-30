@@ -48,6 +48,39 @@ class AgendaListRouteSecurityTests(unittest.TestCase):
 
 
 
+
+    @patch("app.routers.agenda.list_events_for_school_for_user")
+    def test_upcoming_school_events_use_user_jwt_and_future_filter(self, read_events):
+        read_events.return_value = [{"id": "future-event", "school_id": "school-12"}]
+        response = self.client.get("/api/v1/agenda/school/school-12/upcoming?limit=8")
+        self.assertEqual(response.status_code, 200)
+        kwargs = read_events.call_args.kwargs
+        self.assertEqual(kwargs["access_token"], "verified-request-token")
+        self.assertEqual(kwargs["school_id"], "school-12")
+        self.assertEqual(kwargs["limit"], 8)
+        self.assertTrue(kwargs["start_at_gte"])
+
+    @patch("app.routers.agenda.list_events_for_school_for_user")
+    def test_school_events_between_uses_user_jwt_and_date_bounds(self, read_events):
+        read_events.return_value = []
+        response = self.client.get(
+            "/api/v1/agenda/school/school-12/between"
+            "?start=2026-10-01T00:00:00Z&end=2026-10-31T23:59:59Z"
+        )
+        self.assertEqual(response.status_code, 200)
+        kwargs = read_events.call_args.kwargs
+        self.assertEqual(kwargs["access_token"], "verified-request-token")
+        self.assertEqual(kwargs["school_id"], "school-12")
+        self.assertEqual(kwargs["start_at_gte"], "2026-10-01T00:00:00+00:00")
+        self.assertEqual(kwargs["end_at_lte"], "2026-10-31T23:59:59+00:00")
+
+    def test_school_events_between_rejects_inverted_dates(self):
+        response = self.client.get(
+            "/api/v1/agenda/school/school-12/between"
+            "?start=2026-10-31T00:00:00Z&end=2026-10-01T00:00:00Z"
+        )
+        self.assertEqual(response.status_code, 422)
+
     @patch("app.routers.agenda.list_events_for_school_for_user")
     def test_school_events_route_uses_verified_jwt_and_rls_query(self, read_events):
         read_events.return_value = [{"id": "event-11", "school_id": "school-11"}]
