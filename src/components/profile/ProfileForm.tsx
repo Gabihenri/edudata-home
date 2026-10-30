@@ -896,11 +896,7 @@ export default function ProfileForm() {
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <button
             type="submit"
-            disabled={
-              true ||
-              saving ||
-              redirecting
-            }
+            disabled
             className="rounded-lg bg-[#0B7491] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#09657e] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {redirecting
