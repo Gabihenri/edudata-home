@@ -7,7 +7,10 @@ from fastapi.security import HTTPAuthorizationCredentials
 from app.core.exceptions.exceptions import EduDataException
 from app.core.security.current_membership import get_current_membership
 from app.core.security.current_user import security
-from app.repositories.agenda_read_repository import list_events_for_user
+from app.repositories.agenda_read_repository import (
+    get_event_for_user,
+    list_events_for_user,
+)
 from app.core.responses.api_response import ApiResponse
 from app.engine.context import EngineContext
 from app.engine.pipelines.pipeline_engine import PipelineEngine
@@ -70,9 +73,16 @@ def dashboard_summary() -> dict[str, Any]:
 
 
 @router.get("/{event_id}")
-def get_event(event_id: str) -> dict[str, Any]:
+def get_event(
+    event_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    _membership: dict[str, Any] = Depends(get_current_membership),
+) -> dict[str, Any]:
     try:
-        event = AgendaService.find_by_id(event_id)
+        event = get_event_for_user(
+            access_token=credentials.credentials,
+            event_id=event_id,
+        )
 
         if not event:
             raise HTTPException(status_code=404, detail="Evento não encontrado.")
