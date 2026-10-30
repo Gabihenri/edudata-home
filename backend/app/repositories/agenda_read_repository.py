@@ -549,3 +549,85 @@ def change_event_status_for_user(
         event_id=event_id,
         payload={"status": status},
     )
+
+def soft_delete_event_for_user(
+    access_token: str,
+    event_id: str,
+    reason: str,
+) -> dict[str, Any]:
+    """Soft-delete an event through the audited RPC using the caller JWT."""
+    if not isinstance(access_token, str) or not access_token.strip():
+        raise HTTPException(status_code=401, detail="Token não informado.")
+    if not isinstance(event_id, str) or not event_id.strip():
+        raise HTTPException(status_code=422, detail="Identificador do evento inválido.")
+    if not isinstance(reason, str) or not reason.strip():
+        raise HTTPException(status_code=422, detail="O motivo da exclusão é obrigatório.")
+    if len(reason.strip()) > 1000:
+        raise HTTPException(status_code=422, detail="O motivo da exclusão é muito longo.")
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="Exclusão da Agenda indisponível.",
+        )
+
+    endpoint = f"{SUPABASE_URL.rstrip('/')}/rest/v1/rpc/soft_delete_agenda_record"
+    request = Request(
+        endpoint,
+        data=json.dumps({
+            "requested_resource_type": "agenda_events",
+            "requested_resource_id": event_id,
+            "requested_reason": reason.strip(),
+        }).encode("utf-8"),
+        headers={
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=10) as response:
+            result = json.loads(response.read().decode("utf-8"))
+    except HTTPError as exc:
+        try:
+            error = json.loads(exc.read().decode("utf-8"))
+        except (ValueError, OSError):
+            error = {}
+        code = error.get("code") if isinstance(error, dict) else None
+        if exc.code == 401:
+            raise HTTPException(
+                status_code=401,
+                detail="Token não autorizado para excluir o evento.",
+            ) from exc
+        if code == "P0002":
+            raise HTTPException(
+                status_code=404,
+                detail="Evento não encontrado.",
+            ) from exc
+        if code == "42501" or exc.code == 403:
+            raise HTTPException(
+                status_code=403,
+                detail="Exclusão do evento não autorizada.",
+            ) from exc
+        if code == "22023" or exc.code in (400, 422):
+            raise HTTPException(
+                status_code=422,
+                detail="Motivo ou dados da exclusão inválidos.",
+            ) from exc
+        raise HTTPException(
+            status_code=503,
+            detail="Exclusão da Agenda indisponível.",
+        ) from exc
+    except (URLError, TimeoutError, OSError, ValueError) as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Exclusão da Agenda indisponível.",
+        ) from exc
+
+    if not isinstance(result, dict):
+        raise HTTPException(
+            status_code=503,
+            detail="Resposta inválida ao excluir evento da Agenda.",
+        )
+    return result
