@@ -168,6 +168,39 @@ class AgendaListRouteSecurityTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 403)
 
+
+    @patch("app.routers.agenda.PipelineEngine.execute")
+    @patch("app.routers.agenda.update_event_for_user")
+    def test_update_event_uses_request_jwt_and_verified_membership(
+        self, update_event, execute_pipeline
+    ):
+        update_event.return_value = {"id": "event-1", "title": "Atualizado"}
+        execute_pipeline.return_value = {"score": 0}
+        response = self.client.put(
+            "/api/v1/agenda/event-1",
+            json={"title": "Atualizado"},
+        )
+        self.assertEqual(response.status_code, 200)
+        update_event.assert_called_once_with(
+            access_token="verified-request-token",
+            event_id="event-1",
+            payload={"title": "Atualizado"},
+        )
+        pipeline_context = execute_pipeline.call_args.kwargs["context"]
+        self.assertEqual(pipeline_context.user_id, "verified-user")
+        self.assertEqual(pipeline_context.organization_id, "org-from-database")
+        self.assertEqual(pipeline_context.school_id, "school-from-database")
+
+    def test_update_event_rejects_missing_membership(self):
+        self.app.dependency_overrides[get_current_membership] = lambda: (
+            self._raise_forbidden()
+        )
+        response = self.client.put(
+            "/api/v1/agenda/event-1",
+            json={"title": "Tentativa"},
+        )
+        self.assertEqual(response.status_code, 403)
+
     @patch("app.routers.agenda.dashboard_summary_for_user")
     def test_dashboard_summary_requires_membership_and_uses_user_jwt(self, summary):
         summary.return_value = {
