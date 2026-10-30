@@ -7,8 +7,7 @@ import { AgendaMobileNavigation } from '@/components/agenda/AgendaMobileNavigati
 import { AgendaNavigation } from '@/components/agenda/AgendaNavigation'
 import { AgendaSecondaryNavigation } from '@/components/agenda/AgendaSecondaryNavigation'
 import AgendaPwaInstallPrompt from '@/components/pwa/AgendaPwaInstallPrompt'
-import { requireSessionAccessToken, requireSessionUser } from '@/lib/auth/session'
-import { profileService } from '@/lib/profile/profile.service'
+import { requireSessionUser } from '@/lib/auth/session'
 
 type AgendaLayoutProps = { children: ReactNode }
 
@@ -20,11 +19,7 @@ const quickActions = [
 
 export default async function AgendaLayout({ children }: AgendaLayoutProps) {
   try {
-    const [accessToken, user] = await Promise.all([
-      requireSessionAccessToken(),
-      requireSessionUser(),
-    ])
-    const profile = await profileService.getRequiredProfile(accessToken, user.id)
+    await requireSessionUser()
 
     return (
       <div className="min-h-screen bg-[#EEF3F7] pb-[calc(4rem+env(safe-area-inset-bottom))] font-sans text-slate-950 lg:pb-0">
