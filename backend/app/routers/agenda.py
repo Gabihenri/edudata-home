@@ -15,6 +15,7 @@ from app.repositories.agenda_read_repository import (
     list_events_for_school_for_user,
     list_events_for_teacher_for_user,
     list_events_for_user,
+    soft_delete_event_for_user,
     update_event_for_user,
 )
 from app.core.responses.api_response import ApiResponse
@@ -334,9 +335,18 @@ def change_status(
 
 
 @router.delete("/{event_id}")
-def delete_event(event_id: str) -> dict[str, Any]:
+def delete_event(
+    event_id: str,
+    reason: str = Query(..., min_length=1, max_length=1000),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    _membership: dict[str, Any] = Depends(get_current_membership),
+) -> dict[str, Any]:
     try:
-        deleted = AgendaService.delete(event_id)
+        deleted = soft_delete_event_for_user(
+            access_token=credentials.credentials,
+            event_id=event_id,
+            reason=reason,
+        )
 
         if not deleted:
             raise HTTPException(status_code=404, detail="Evento não encontrado.")
