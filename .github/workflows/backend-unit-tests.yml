@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   supabase-auth-tests:
-    name: Supabase auth regression tests
+    name: Supabase auth and membership regression tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -24,6 +24,7 @@ jobs:
     env:
       SUPABASE_URL: https://example.supabase.co
       SUPABASE_KEY: test-only-key
+      SUPABASE_ANON_KEY: test-only-anon-key
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,3 +41,9 @@ jobs:
 
       - name: Run Supabase auth regression tests
         run: python -m unittest discover -s tests -p 'test_current_user_supabase_auth.py' -v
+
+      - name: Run membership resolver tests
+        run: python -m unittest discover -s tests -p 'test_membership_resolver.py' -v
+
+      - name: Run request-scoped membership repository tests
+        run: python -m unittest discover -s tests -p 'test_membership_repository.py' -v
