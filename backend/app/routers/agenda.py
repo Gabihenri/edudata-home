@@ -9,6 +9,7 @@ from app.core.security.current_membership import get_current_membership
 from app.core.security.current_user import security
 from app.repositories.agenda_read_repository import (
     create_event_for_user,
+    change_event_status_for_user,
     dashboard_summary_for_user,
     get_event_for_user,
     list_events_for_school_for_user,
@@ -310,9 +311,12 @@ def update_event(
 def change_status(
     event_id: str,
     status: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    _membership: dict[str, Any] = Depends(get_current_membership),
 ) -> dict[str, Any]:
     try:
-        event = AgendaService.change_status(
+        event = change_event_status_for_user(
+            access_token=credentials.credentials,
             event_id=event_id,
             status=status,
         )
