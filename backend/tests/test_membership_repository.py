@@ -50,7 +50,7 @@ class MembershipRepositoryTests(unittest.TestCase):
         self.assertEqual(query["user_id"], [f"eq.{self.user_id}"])
         self.assertEqual(
             query["select"],
-            ["user_id,organization_id,school_id,role,status,access_starts_at,access_ends_at"],
+            ["user_id,organization_id,school_id,role,status,access_starts_at,access_ends_at,scope_type,scope_id,can_view_team,can_view_school,can_view_network,can_manage_users,can_manage_products,can_audit,can_access_private_content"],
         )
         self.assertEqual(request.get_header("Authorization"), f"Bearer {self.token}")
         self.assertEqual(request.get_header("Apikey"), "public-anon-key")
