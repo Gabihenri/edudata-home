@@ -154,6 +154,22 @@ class AgendaReadRepositoryTests(unittest.TestCase):
         self.assertEqual(request.get_header("Authorization"), "Bearer caller-jwt")
         self.assertEqual(result, events)
 
+
+    @patch.object(agenda_read_repository, "urlopen")
+    @patch.object(agenda_read_repository, "SUPABASE_ANON_KEY", "public-anon-key")
+    @patch.object(agenda_read_repository, "SUPABASE_URL", "https://example.supabase.co")
+    def test_school_query_supports_start_and_end_date_filters(self, mocked_urlopen):
+        mocked_urlopen.return_value = self._response([])
+        agenda_read_repository.list_events_for_school_for_user(
+            "caller-jwt",
+            "school-3",
+            start_at_gte="2026-10-01T00:00:00+00:00",
+            end_at_lte="2026-10-31T23:59:59+00:00",
+        )
+        query = parse_qs(urlparse(mocked_urlopen.call_args.args[0].full_url).query)
+        self.assertEqual(query["start_at"], ["gte.2026-10-01T00:00:00+00:00"])
+        self.assertEqual(query["end_at"], ["lte.2026-10-31T23:59:59+00:00"])
+
     def test_invalid_limit_is_rejected(self):
         with self.assertRaises(HTTPException) as caught:
             agenda_read_repository.list_events_for_user("user-jwt", limit=0)
