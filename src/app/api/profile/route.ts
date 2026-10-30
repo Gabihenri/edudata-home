@@ -8,47 +8,6 @@ import { profileService } from '@/lib/profile/profile.service'
 
 export const dynamic = 'force-dynamic'
 
-type UpdateProfileRequestBody = {
-  displayName?: unknown
-  phone?: unknown
-}
-
-function getDefaultDisplayName(
-  user: Awaited<
-    ReturnType<typeof requireSessionUser>
-  >,
-): string | null {
-  const fullName =
-    user.user_metadata?.full_name
-
-  if (
-    typeof fullName === 'string' &&
-    fullName.trim()
-  ) {
-    return fullName.trim()
-  }
-
-  const name =
-    user.user_metadata?.name
-
-  if (
-    typeof name === 'string' &&
-    name.trim()
-  ) {
-    return name.trim()
-  }
-
-  if (user.email) {
-    return (
-      user.email
-        .split('@')[0]
-        ?.trim() || null
-    )
-  }
-
-  return null
-}
-
 function getErrorStatus(
   error: unknown,
 ): number {
@@ -160,7 +119,6 @@ export async function GET() {
       await profileService.getOrCreate(
         accessToken,
         user.id,
-        getDefaultDisplayName(user),
       )
 
     return NextResponse.json(
