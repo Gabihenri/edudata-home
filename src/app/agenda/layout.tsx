@@ -24,7 +24,7 @@ export default async function AgendaLayout({ children }: AgendaLayoutProps) {
       requireSessionAccessToken(),
       requireSessionUser(),
     ])
-    const profile = await profileService.getOrCreate(accessToken, user.id)
+    const profile = await profileService.getRequiredProfile(accessToken, user.id)
     if (!profile.onboarding_completed) redirect('/perfil/onboarding')
 
     return (
