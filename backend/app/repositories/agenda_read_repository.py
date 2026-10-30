@@ -531,3 +531,21 @@ def update_event_for_user(
     if not result:
         return None
     return result[0]
+
+def change_event_status_for_user(
+    access_token: str,
+    event_id: str,
+    status: str,
+) -> dict[str, Any] | None:
+    """Change an event status with the caller JWT; Supabase RLS authorizes the row."""
+    allowed_statuses = {"planned", "completed", "cancelled"}
+    if not isinstance(status, str) or status not in allowed_statuses:
+        raise HTTPException(
+            status_code=422,
+            detail="Status do evento inválido.",
+        )
+    return update_event_for_user(
+        access_token=access_token,
+        event_id=event_id,
+        payload={"status": status},
+    )
