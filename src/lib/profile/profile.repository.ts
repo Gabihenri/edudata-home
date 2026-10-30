@@ -4,7 +4,6 @@ import {
 } from '@supabase/supabase-js'
 
 import type {
-  UpdateUserProfileDto,
   UserProfileDto,
 } from './profile.dto'
 
@@ -188,50 +187,7 @@ class ProfileRepository {
     return parseUserProfile(data)
   }
 
-  async updateByUserId(
-    accessToken: string,
-    userId: string,
-    input: UpdateUserProfileDto,
-  ): Promise<UserProfileDto> {
-    const { data, error } =
-      await createProfileClient(accessToken)
-        .from('user_profiles')
-        .update({
-          display_name: input.display_name,
-          phone: input.phone || null,
-          onboarding_completed:
-            input.onboarding_completed ?? true,
-        })
-        .eq('user_id', userId)
-        .select(
-          [
-            'user_id',
-            'display_name',
-            'phone',
-            'role',
-            'status',
-            'onboarding_completed',
-          ].join(','),
-        )
-        .single()
 
-    if (error) {
-      throw new Error(
-        `Erro ao atualizar perfil: ${error.message}`,
-      )
-    }
-
-    const profile =
-      parseUserProfile(data)
-
-    if (!profile) {
-      throw new Error(
-        'O perfil foi atualizado, mas os dados retornados são inválidos.',
-      )
-    }
-
-    return profile
-  }
 }
 
 export const profileRepository =
