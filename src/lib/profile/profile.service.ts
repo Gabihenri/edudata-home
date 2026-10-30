@@ -31,21 +31,6 @@ function normalizeUserId(
   return normalizedUserId
 }
 
-function normalizeDefaultName(
-  displayName:
-    | string
-    | null
-    | undefined,
-): string | null {
-  const normalizedDisplayName =
-    displayName?.trim()
-
-  return (
-    normalizedDisplayName ||
-    null
-  )
-}
-
 class ProfileService {
   async getByUserId(
     accessToken: string,
@@ -60,7 +45,6 @@ class ProfileService {
   async getOrCreate(
     accessToken: string,
     userId: string,
-    _defaultDisplayName?: string | null,
   ): Promise<UserProfileDto> {
     const profile = await profileRepository.findByUserId(
       normalizeAccessToken(accessToken),
