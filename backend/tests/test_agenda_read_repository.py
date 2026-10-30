@@ -315,5 +315,50 @@ class AgendaReadRepositoryTests(unittest.TestCase):
         self.assertEqual(caught.exception.status_code, 422)
 
 
+    @patch.object(agenda_read_repository, "urlopen")
+    @patch.object(agenda_read_repository, "SUPABASE_ANON_KEY", "public-anon-key")
+    @patch.object(agenda_read_repository, "SUPABASE_URL", "https://example.supabase.co")
+    def test_soft_delete_uses_audited_rpc_and_request_jwt(self, mocked_urlopen):
+        deleted = {"id": "event-1", "deleted_at": "2026-10-30T12:00:00Z"}
+        mocked_urlopen.return_value = self._response(deleted)
+
+        result = agenda_read_repository.soft_delete_event_for_user(
+            "caller-jwt", "event-1", "Evento duplicado"
+        )
+
+        request = mocked_urlopen.call_args.args[0]
+        body = json.loads(request.data.decode("utf-8"))
+        self.assertEqual(
+            request.full_url,
+            "https://example.supabase.co/rest/v1/rpc/soft_delete_agenda_record",
+        )
+        self.assertEqual(request.get_method(), "POST")
+        self.assertEqual(request.get_header("Authorization"), "Bearer caller-jwt")
+        self.assertEqual(request.get_header("Apikey"), "public-anon-key")
+        self.assertEqual(
+            body,
+            {
+                "requested_resource_type": "agenda_events",
+                "requested_resource_id": "event-1",
+                "requested_reason": "Evento duplicado",
+            },
+        )
+        self.assertEqual(result, deleted)
+
+    def test_soft_delete_rejects_blank_reason(self):
+        with self.assertRaises(HTTPException) as caught:
+            agenda_read_repository.soft_delete_event_for_user(
+                "caller-jwt", "event-1", "   "
+            )
+        self.assertEqual(caught.exception.status_code, 422)
+
+    def test_soft_delete_rejects_reason_longer_than_limit(self):
+        with self.assertRaises(HTTPException) as caught:
+            agenda_read_repository.soft_delete_event_for_user(
+                "caller-jwt", "event-1", "x" * 1001
+            )
+        self.assertEqual(caught.exception.status_code, 422)
+
+
 if __name__ == "__main__":
     unittest.main()
