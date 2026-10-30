@@ -53,3 +53,6 @@ jobs:
 
       - name: Run RLS-scoped Agenda read repository tests
         run: python -m unittest discover -s tests -p 'test_agenda_read_repository.py' -v
+
+      - name: Run Agenda list route security tests
+        run: python -m unittest discover -s tests -p 'test_agenda_list_route_security.py' -v
