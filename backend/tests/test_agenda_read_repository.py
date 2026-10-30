@@ -95,6 +95,29 @@ class AgendaReadRepositoryTests(unittest.TestCase):
             agenda_read_repository.get_event_for_user("user-jwt", "event-other-user")
         )
 
+    @patch.object(agenda_read_repository, "list_events_for_user")
+    def test_dashboard_summary_aggregates_only_user_visible_events(self, list_events):
+        list_events.return_value = [
+            {"id": "1", "status": "planejado", "start_at": "2099-01-01T10:00:00Z"},
+            {"id": "2", "status": "completed", "start_at": "2020-01-01T10:00:00Z"},
+            {"id": "3", "status": "cancelled", "start_at": "invalid"},
+            {"id": "4", "status": "in_progress", "start_at": "2099-01-02T10:00:00Z"},
+        ]
+
+        summary = agenda_read_repository.dashboard_summary_for_user("user-jwt")
+
+        list_events.assert_called_once_with(access_token="user-jwt", limit=500)
+        self.assertEqual(
+            summary,
+            {
+                "total_events": 4,
+                "planned": 1,
+                "completed": 1,
+                "cancelled": 1,
+                "upcoming": 2,
+            },
+        )
+
     def test_invalid_limit_is_rejected(self):
         with self.assertRaises(HTTPException) as caught:
             agenda_read_repository.list_events_for_user("user-jwt", limit=0)
