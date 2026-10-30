@@ -42,7 +42,7 @@ class ProfileService {
     )
   }
 
-  async getOrCreate(
+  async getRequiredProfile(
     accessToken: string,
     userId: string,
   ): Promise<UserProfileDto> {
