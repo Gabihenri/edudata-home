@@ -170,6 +170,62 @@ class AgendaReadRepositoryTests(unittest.TestCase):
         self.assertEqual(query["start_at"], ["gte.2026-10-01T00:00:00+00:00"])
         self.assertEqual(query["end_at"], ["lte.2026-10-31T23:59:59+00:00"])
 
+
+    @patch.object(agenda_read_repository, "urlopen")
+    @patch.object(agenda_read_repository, "SUPABASE_ANON_KEY", "public-anon-key")
+    @patch.object(agenda_read_repository, "SUPABASE_URL", "https://example.supabase.co")
+    def test_create_event_uses_verified_membership_scope(self, mocked_urlopen):
+        response = self._response([{
+            "id": "created-event",
+            "user_id": "verified-user",
+            "organization_id": "verified-org",
+            "school_id": "verified-school",
+        }])
+        mocked_urlopen.return_value = response
+        result = agenda_read_repository.create_event_for_user(
+            "caller-jwt",
+            {
+                "user_id": "verified-user",
+                "organization_id": "verified-org",
+                "school_id": "verified-school",
+                "role": "teacher",
+            },
+            {
+                "title": "Aula de Física",
+                "event_type": "pedagogico",
+                "start_at": "2026-10-30T14:00:00-03:00",
+                "user_id": "attacker-user",
+                "school_id": "attacker-school",
+            },
+        )
+        request = mocked_urlopen.call_args.args[0]
+        body = json.loads(request.data.decode("utf-8"))
+        self.assertEqual(request.get_method(), "POST")
+        self.assertEqual(request.get_header("Authorization"), "Bearer caller-jwt")
+        self.assertEqual(body["user_id"], "verified-user")
+        self.assertEqual(body["organization_id"], "verified-org")
+        self.assertEqual(body["school_id"], "verified-school")
+        self.assertNotIn("role", body)
+        self.assertEqual(result["id"], "created-event")
+
+    def test_create_event_rejects_client_controlled_scope_fields(self):
+        with self.assertRaises(HTTPException) as caught:
+            agenda_read_repository.create_event_for_user(
+                "caller-jwt",
+                {
+                    "user_id": "verified-user",
+                    "organization_id": "verified-org",
+                    "school_id": "verified-school",
+                },
+                {
+                    "title": "Aula",
+                    "event_type": "pedagogico",
+                    "start_at": "2026-10-30T14:00:00-03:00",
+                    "organization_id": "attacker-org",
+                },
+            )
+        self.assertEqual(caught.exception.status_code, 422)
+
     def test_invalid_limit_is_rejected(self):
         with self.assertRaises(HTTPException) as caught:
             agenda_read_repository.list_events_for_user("user-jwt", limit=0)
