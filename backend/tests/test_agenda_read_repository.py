@@ -224,6 +224,60 @@ class AgendaReadRepositoryTests(unittest.TestCase):
             )
         self.assertEqual(caught.exception.status_code, 422)
 
+
+    @patch.object(agenda_read_repository, "urlopen")
+    @patch.object(agenda_read_repository, "SUPABASE_ANON_KEY", "public-anon-key")
+    @patch.object(agenda_read_repository, "SUPABASE_URL", "https://example.supabase.co")
+    def test_update_event_uses_request_jwt_and_only_mutable_fields(self, mocked_urlopen):
+        event = {"id": "event-1", "title": "Aula atualizada"}
+        mocked_urlopen.return_value = self._response([event])
+        result = agenda_read_repository.update_event_for_user(
+            "caller-jwt",
+            "event-1",
+            {"title": "Aula atualizada", "priority": "alta"},
+        )
+        request = mocked_urlopen.call_args.args[0]
+        query = parse_qs(urlparse(request.full_url).query)
+        body = json.loads(request.data.decode("utf-8"))
+        self.assertEqual(request.get_method(), "PATCH")
+        self.assertEqual(query["id"], ["eq.event-1"])
+        self.assertEqual(query["deleted_at"], ["is.null"])
+        self.assertEqual(request.get_header("Authorization"), "Bearer caller-jwt")
+        self.assertEqual(body, {"title": "Aula atualizada", "priority": "alta"})
+        self.assertEqual(result, event)
+
+    def test_update_event_rejects_attempt_to_change_owner_or_scope(self):
+        with self.assertRaises(HTTPException) as caught:
+            agenda_read_repository.update_event_for_user(
+                "caller-jwt",
+                "event-1",
+                {"school_id": "other-school"},
+            )
+        self.assertEqual(caught.exception.status_code, 422)
+
+    def test_update_event_rejects_inverted_timestamps(self):
+        with self.assertRaises(HTTPException) as caught:
+            agenda_read_repository.update_event_for_user(
+                "caller-jwt",
+                "event-1",
+                {
+                    "start_at": "2026-10-30T16:00:00Z",
+                    "end_at": "2026-10-30T15:00:00Z",
+                },
+            )
+        self.assertEqual(caught.exception.status_code, 422)
+
+    @patch.object(agenda_read_repository, "urlopen")
+    @patch.object(agenda_read_repository, "SUPABASE_ANON_KEY", "public-anon-key")
+    @patch.object(agenda_read_repository, "SUPABASE_URL", "https://example.supabase.co")
+    def test_update_event_returns_none_when_rls_hides_target(self, mocked_urlopen):
+        mocked_urlopen.return_value = self._response([])
+        self.assertIsNone(
+            agenda_read_repository.update_event_for_user(
+                "caller-jwt", "event-not-visible", {"title": "Alteração"}
+            )
+        )
+
     def test_invalid_limit_is_rejected(self):
         with self.assertRaises(HTTPException) as caught:
             agenda_read_repository.list_events_for_user("user-jwt", limit=0)
