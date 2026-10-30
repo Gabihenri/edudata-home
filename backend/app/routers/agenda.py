@@ -8,6 +8,7 @@ from app.core.exceptions.exceptions import EduDataException
 from app.core.security.current_membership import get_current_membership
 from app.core.security.current_user import security
 from app.repositories.agenda_read_repository import (
+    create_event_for_user,
     dashboard_summary_for_user,
     get_event_for_user,
     list_events_for_school_for_user,
@@ -205,14 +206,29 @@ def events_between(
 
 
 @router.post("/")
-def create_event(payload: dict[str, Any]) -> dict[str, Any]:
+def create_event(
+    payload: dict[str, Any],
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    membership: dict[str, Any] = Depends(get_current_membership),
+) -> dict[str, Any]:
     try:
-        event = AgendaService.create(payload)
+        event = create_event_for_user(
+            access_token=credentials.credentials,
+            membership=membership,
+            payload=payload,
+        )
+        trusted_payload = {
+            **payload,
+            "user_id": membership["user_id"],
+            "organization_id": membership["organization_id"],
+            "school_id": membership["school_id"],
+            "role": membership.get("role"),
+        }
 
         engine_result = PipelineEngine.execute(
-            context=build_engine_context(payload),
+            context=build_engine_context(trusted_payload),
             payload={
-                **payload,
+                **trusted_payload,
                 "agenda_events": [event],
                 "evidences": payload.get("evidences", []),
                 "trainings": payload.get("trainings", []),
