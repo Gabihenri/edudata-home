@@ -120,26 +120,20 @@ class ProfileService {
   async getOrCreate(
     accessToken: string,
     userId: string,
-    defaultDisplayName?: string | null,
+    _defaultDisplayName?: string | null,
   ): Promise<UserProfileDto> {
-    const token = normalizeAccessToken(accessToken)
-    const normalizedUserId = normalizeUserId(userId)
+    const profile = await profileRepository.findByUserId(
+      normalizeAccessToken(accessToken),
+      normalizeUserId(userId),
+    )
 
-    const existingProfile =
-      await profileRepository.findByUserId(
-        token,
-        normalizedUserId,
+    if (!profile) {
+      throw new Error(
+        'Perfil individual ainda não foi provisionado pelo Supabase Auth.',
       )
-
-    if (existingProfile) {
-      return existingProfile
     }
 
-    return profileRepository.createDefault(
-      token,
-      normalizedUserId,
-      normalizeDefaultName(defaultDisplayName),
-    )
+    return profile
   }
 
   async updateOwnProfile(
