@@ -8,7 +8,10 @@ import {
   type SupabaseClient,
 } from '@supabase/supabase-js'
 
-import { requireSessionUser } from '@/lib/auth/session'
+import {
+  requireSessionAccessToken,
+  requireSessionUser,
+} from '@/lib/auth/session'
 
 export const dynamic = 'force-dynamic'
 
@@ -240,15 +243,16 @@ const PLATFORM_ROLES =
     'super_admin',
   ])
 
-function createPortalClient():
-  SupabaseClient {
+function createPortalClient(
+  accessToken: string,
+): SupabaseClient {
   const url =
     process.env
       .NEXT_PUBLIC_SUPABASE_URL
 
-  const serviceRoleKey =
+  const anonKey =
     process.env
-      .SUPABASE_SERVICE_ROLE_KEY
+      .NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!url) {
     throw new Error(
@@ -256,20 +260,31 @@ function createPortalClient():
     )
   }
 
-  if (!serviceRoleKey) {
+  if (!anonKey) {
     throw new Error(
-      'SUPABASE_SERVICE_ROLE_KEY não configurada.',
+      'NEXT_PUBLIC_SUPABASE_ANON_KEY não configurada.',
+    )
+  }
+
+  if (!accessToken.trim()) {
+    throw new Error(
+      'Token de acesso não informado.',
     )
   }
 
   return createClient(
     url,
-    serviceRoleKey,
+    anonKey,
     {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
         detectSessionInUrl: false,
+      },
+      global: {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       },
     },
   )
@@ -934,11 +949,13 @@ export async function GET(
   request: NextRequest,
 ) {
   try {
-    const user =
-      await requireSessionUser()
+    const [accessToken, user] = await Promise.all([
+      requireSessionAccessToken(),
+      requireSessionUser(),
+    ])
 
     const client =
-      createPortalClient()
+      createPortalClient(accessToken)
 
     const requestedContext = {
       organizationId:
@@ -1222,25 +1239,36 @@ export async function GET(
             ),
         )
 
+    // Platform-level privileges must come only from verified,
+    // server-controlled app_metadata. The profile role is used
+    // for display/fallback and cannot grant platform access.
+    const appMetadataRole =
+      normalizeRole(
+        typeof user.app_metadata?.role === 'string'
+          ? user.app_metadata.role
+          : null,
+      )
+
+    const platformRole =
+      appMetadataRole &&
+      PLATFORM_ROLES.has(appMetadataRole)
+        ? appMetadataRole
+        : null
+
     const hasPlatformAccess =
       Boolean(
-        registeredRole &&
-        PLATFORM_ROLES.has(
-          registeredRole,
-        ) &&
-        isActiveStatus(
-          profileStatus,
-        ),
+        platformRole &&
+        isActiveStatus(profileStatus),
       )
 
     if (
       hasPlatformAccess &&
-      registeredRole
+      platformRole
     ) {
       contexts.unshift(
         createPlatformContext(
           user.id,
-          registeredRole,
+          platformRole,
           profileStatus,
           onboardingCompleted,
         ),
