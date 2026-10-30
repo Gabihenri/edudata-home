@@ -25,8 +25,8 @@ class MembershipRepositoryTests(unittest.TestCase):
 
     def _response(self, payload):
         response = MagicMock()
-        response.__enter__ = Mock(return_value=response)
-        response.__exit__ = Mock(return_value=False)
+        response.__enter__ = MagicMock(return_value=response)
+        response.__exit__ = MagicMock(return_value=False)
         response.read.return_value = json.dumps(payload).encode("utf-8")
         return response
 
