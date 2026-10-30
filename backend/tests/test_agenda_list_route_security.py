@@ -117,6 +117,57 @@ class AgendaListRouteSecurityTests(unittest.TestCase):
         response = self.client.get("/api/v1/agenda/teacher/teacher-9")
         self.assertEqual(response.status_code, 403)
 
+
+    @patch("app.routers.agenda.PipelineEngine.execute")
+    @patch("app.routers.agenda.create_event_for_user")
+    def test_create_event_uses_verified_membership_and_request_jwt(
+        self, create_event, execute_pipeline
+    ):
+        create_event.return_value = {"id": "new-event", "title": "Aula"}
+        execute_pipeline.return_value = {"score": 0}
+        response = self.client.post(
+            "/api/v1/agenda/",
+            json={
+                "title": "Aula",
+                "event_type": "pedagogico",
+                "start_at": "2026-10-30T14:00:00-03:00",
+            },
+        )
+        self.assertEqual(response.status_code, 201)
+        create_event.assert_called_once_with(
+            access_token="verified-request-token",
+            membership={
+                "user_id": "verified-user",
+                "organization_id": "org-from-database",
+                "school_id": "school-from-database",
+                "role": "teacher",
+                "status": "active",
+            },
+            payload={
+                "title": "Aula",
+                "event_type": "pedagogico",
+                "start_at": "2026-10-30T14:00:00-03:00",
+            },
+        )
+        pipeline_context = execute_pipeline.call_args.kwargs["context"]
+        self.assertEqual(pipeline_context.user_id, "verified-user")
+        self.assertEqual(pipeline_context.organization_id, "org-from-database")
+        self.assertEqual(pipeline_context.school_id, "school-from-database")
+
+    def test_create_event_rejects_missing_membership(self):
+        self.app.dependency_overrides[get_current_membership] = lambda: (
+            self._raise_forbidden()
+        )
+        response = self.client.post(
+            "/api/v1/agenda/",
+            json={
+                "title": "Aula",
+                "event_type": "pedagogico",
+                "start_at": "2026-10-30T14:00:00-03:00",
+            },
+        )
+        self.assertEqual(response.status_code, 403)
+
     @patch("app.routers.agenda.dashboard_summary_for_user")
     def test_dashboard_summary_requires_membership_and_uses_user_jwt(self, summary):
         summary.return_value = {
