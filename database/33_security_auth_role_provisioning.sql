@@ -122,7 +122,7 @@ IS
 -- This is a trigger implementation, not an application RPC.
 REVOKE ALL
 ON FUNCTION public.edi_create_default_user_access()
-FROM PUBLIC, anon, authenticated;
+FROM PUBLIC, anon, authenticated, service_role;
 
 
 DO $$
