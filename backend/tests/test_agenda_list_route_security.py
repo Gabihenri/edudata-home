@@ -275,6 +275,50 @@ class AgendaListRouteSecurityTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 403)
 
+
+    @patch("app.routers.agenda.change_event_status_for_user")
+    def test_change_status_uses_request_jwt_and_requires_membership(
+        self, change_status
+    ):
+        change_status.return_value = {
+            "id": "event-1",
+            "status": "completed",
+        }
+
+        response = self.client.patch(
+            "/api/v1/agenda/event-1/status?status=completed"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        change_status.assert_called_once_with(
+            access_token="verified-request-token",
+            event_id="event-1",
+            status="completed",
+        )
+
+    def test_change_status_rejects_missing_membership(self):
+        self.app.dependency_overrides[get_current_membership] = lambda: (
+            self._raise_forbidden()
+        )
+
+        response = self.client.patch(
+            "/api/v1/agenda/event-1/status?status=completed"
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    @patch("app.routers.agenda.change_event_status_for_user")
+    def test_change_status_returns_not_found_when_rls_hides_event(
+        self, change_status
+    ):
+        change_status.return_value = None
+
+        response = self.client.patch(
+            "/api/v1/agenda/event-from-another-user/status?status=completed"
+        )
+
+        self.assertEqual(response.status_code, 404)
+
     @staticmethod
     def _raise_unauthorized():
         raise HTTPException(status_code=401, detail="Token não informado.")
