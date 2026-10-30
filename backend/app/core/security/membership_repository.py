@@ -18,7 +18,9 @@ SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
 
 _MEMBERSHIP_COLUMNS = (
     "user_id,organization_id,school_id,role,status,"
-    "access_starts_at,access_ends_at"
+    "access_starts_at,access_ends_at,scope_type,scope_id,"
+    "can_view_team,can_view_school,can_view_network,can_manage_users,"
+    "can_manage_products,can_audit,can_access_private_content"
 )
 
 
