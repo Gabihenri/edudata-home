@@ -25,7 +25,6 @@ export default async function AgendaLayout({ children }: AgendaLayoutProps) {
       requireSessionUser(),
     ])
     const profile = await profileService.getRequiredProfile(accessToken, user.id)
-    if (!profile.onboarding_completed) redirect('/perfil/onboarding')
 
     return (
       <div className="min-h-screen bg-[#EEF3F7] pb-[calc(4rem+env(safe-area-inset-bottom))] font-sans text-slate-950 lg:pb-0">
