@@ -412,3 +412,122 @@ def create_event_for_user(
             detail="Resposta inválida ao criar evento da Agenda.",
         )
     return result[0]
+
+
+def update_event_for_user(
+    access_token: str,
+    event_id: str,
+    payload: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Update editable event fields; Supabase RLS authorizes the target row."""
+    if not isinstance(access_token, str) or not access_token.strip():
+        raise HTTPException(status_code=401, detail="Token não informado.")
+    if not isinstance(event_id, str) or not event_id.strip():
+        raise HTTPException(status_code=422, detail="Identificador do evento inválido.")
+    if not isinstance(payload, dict) or not payload:
+        raise HTTPException(status_code=422, detail="Nenhum campo para atualização.")
+    allowed_fields = {
+        "title",
+        "description",
+        "event_type",
+        "start_at",
+        "end_at",
+        "status",
+        "priority",
+    }
+    if set(payload) - allowed_fields:
+        raise HTTPException(
+            status_code=422,
+            detail="A atualização contém campos não permitidos.",
+        )
+    if "title" in payload and not str(payload["title"]).strip():
+        raise HTTPException(status_code=422, detail="O título não pode ficar vazio.")
+    if "event_type" in payload and not str(payload["event_type"]).strip():
+        raise HTTPException(status_code=422, detail="O tipo do evento não pode ficar vazio.")
+    if "start_at" in payload and not payload["start_at"]:
+        raise HTTPException(status_code=422, detail="O início do evento é obrigatório.")
+
+    if "start_at" in payload and "end_at" in payload and payload["end_at"]:
+        from datetime import datetime
+
+        try:
+            start = datetime.fromisoformat(
+                str(payload["start_at"]).replace("Z", "+00:00")
+            )
+            end = datetime.fromisoformat(
+                str(payload["end_at"]).replace("Z", "+00:00")
+            )
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=422,
+                detail="Data/hora do evento inválida.",
+            ) from exc
+        if start.tzinfo is None:
+            start = start.astimezone()
+        if end.tzinfo is None:
+            end = end.astimezone()
+        if end <= start:
+            raise HTTPException(
+                status_code=422,
+                detail="A data/hora final deve ser maior que a inicial.",
+            )
+
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="Atualização da Agenda indisponível.",
+        )
+
+    query = urlencode({
+        "id": f"eq.{event_id}",
+        "deleted_at": "is.null",
+    })
+    endpoint = (
+        f"{SUPABASE_URL.rstrip('/')}/rest/v1/agenda_events?{query}"
+    )
+    request = Request(
+        endpoint,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Prefer": "return=representation",
+        },
+        method="PATCH",
+    )
+    try:
+        with urlopen(request, timeout=10) as response:
+            result = json.loads(response.read().decode("utf-8"))
+    except HTTPError as exc:
+        if exc.code in (401, 403):
+            raise HTTPException(
+                status_code=403,
+                detail="Atualização do evento não autorizada.",
+            ) from exc
+        if exc.code in (400, 422):
+            raise HTTPException(
+                status_code=422,
+                detail="Dados incompatíveis com o contrato da Agenda.",
+            ) from exc
+        raise HTTPException(
+            status_code=503,
+            detail="Atualização da Agenda indisponível.",
+        ) from exc
+    except (URLError, TimeoutError, OSError, ValueError) as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Atualização da Agenda indisponível.",
+        ) from exc
+
+    if not isinstance(result, list) or any(
+        not isinstance(row, dict) for row in result
+    ):
+        raise HTTPException(
+            status_code=503,
+            detail="Resposta inválida ao atualizar evento da Agenda.",
+        )
+    if not result:
+        return None
+    return result[0]
