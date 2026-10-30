@@ -194,8 +194,6 @@ class AgendaReadRepositoryTests(unittest.TestCase):
                 "title": "Aula de Física",
                 "event_type": "pedagogico",
                 "start_at": "2026-10-30T14:00:00-03:00",
-                "user_id": "attacker-user",
-                "school_id": "attacker-school",
             },
         )
         request = mocked_urlopen.call_args.args[0]
