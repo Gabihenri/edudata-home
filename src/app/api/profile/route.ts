@@ -4,7 +4,6 @@ import {
 } from 'next/server'
 
 import { requireSessionAccessToken, requireSessionUser } from '@/lib/auth/session'
-import type { UpdateUserProfileDto } from '@/lib/profile/profile.dto'
 import { profileService } from '@/lib/profile/profile.service'
 
 export const dynamic = 'force-dynamic'
@@ -215,86 +214,21 @@ export async function GET() {
 }
 
 export async function PATCH(
-  request: NextRequest,
+  _request: NextRequest,
 ) {
-  try {
-    const [accessToken, user] = await Promise.all([
-      requireSessionAccessToken(),
-      requireSessionUser(),
-    ])
-
-    const body =
-      (await request.json()) as UpdateProfileRequestBody
-
-    const input:
-      UpdateUserProfileDto = {
-        display_name:
-          typeof body.displayName ===
-          'string'
-            ? body.displayName
-            : '',
-
-        phone:
-          typeof body.phone ===
-          'string'
-            ? body.phone
-            : '',
-
-        onboarding_completed:
-          true,
-      }
-
-    const profile =
-      await profileService.updateOwnProfile(
-        accessToken,
-        user.id,
-        input,
-      )
-
-    return NextResponse.json(
-      {
-        success: true,
-
-        message:
-          'Perfil atualizado com sucesso.',
-
-        profile: {
-          userId:
-            profile.user_id,
-
-          displayName:
-            profile.display_name,
-
-          phone:
-            profile.phone,
-
-          role:
-            profile.role,
-
-          status:
-            profile.status,
-
-          onboardingCompleted:
-            profile.onboarding_completed,
-        },
+  return NextResponse.json(
+    {
+      success: false,
+      error: (
+        'A edição do perfil está temporariamente indisponível. '
+        + 'O banco ainda não autoriza UPDATE individual por RLS.'
+      ),
+    },
+    {
+      status: 501,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
       },
-      {
-        status: 200,
-        headers: {
-          'Cache-Control':
-            'no-store, no-cache, must-revalidate',
-        },
-      },
-    )
-  } catch (error) {
-    console.error(
-      '[PROFILE_PATCH_ERROR]',
-      error,
-    )
-
-    return createErrorResponse(
-      error,
-      'Não foi possível atualizar o perfil.',
-    )
-  }
+    },
+  )
 }
