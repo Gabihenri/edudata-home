@@ -154,11 +154,15 @@ def list_school_events(
 def upcoming_events(
     school_id: str,
     limit: int = Query(10, ge=1, le=50),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    _membership: dict[str, Any] = Depends(get_current_membership),
 ) -> dict[str, Any]:
     try:
-        events = AgendaService.upcoming_events(
+        events = list_events_for_school_for_user(
+            access_token=credentials.credentials,
             school_id=school_id,
             limit=limit,
+            start_at_gte=datetime.now().astimezone().isoformat(),
         )
 
         return ApiResponse.success(
@@ -175,12 +179,20 @@ def events_between(
     school_id: str,
     start: datetime,
     end: datetime,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    _membership: dict[str, Any] = Depends(get_current_membership),
 ) -> dict[str, Any]:
     try:
-        events = AgendaService.events_between(
+        if end <= start:
+            raise HTTPException(
+                status_code=422,
+                detail="A data final deve ser maior que a data inicial.",
+            )
+        events = list_events_for_school_for_user(
+            access_token=credentials.credentials,
             school_id=school_id,
-            start=start,
-            end=end,
+            start_at_gte=start.isoformat(),
+            end_at_lte=end.isoformat(),
         )
 
         return ApiResponse.success(
