@@ -118,6 +118,24 @@ class AgendaReadRepositoryTests(unittest.TestCase):
             },
         )
 
+
+    @patch.object(agenda_read_repository, "urlopen")
+    @patch.object(agenda_read_repository, "SUPABASE_ANON_KEY", "public-anon-key")
+    @patch.object(agenda_read_repository, "SUPABASE_URL", "https://example.supabase.co")
+    def test_teacher_query_uses_user_jwt_and_teacher_filter(self, mocked_urlopen):
+        events = [{"id": "event-1", "user_id": "teacher-1"}]
+        mocked_urlopen.return_value = self._response(events)
+        result = agenda_read_repository.list_events_for_teacher_for_user(
+            "caller-jwt", "teacher-1", limit=30
+        )
+        request = mocked_urlopen.call_args.args[0]
+        query = parse_qs(urlparse(request.full_url).query)
+        self.assertEqual(query["user_id"], ["eq.teacher-1"])
+        self.assertEqual(query["deleted_at"], ["is.null"])
+        self.assertEqual(query["limit"], ["30"])
+        self.assertEqual(request.get_header("Authorization"), "Bearer caller-jwt")
+        self.assertEqual(result, events)
+
     def test_invalid_limit_is_rejected(self):
         with self.assertRaises(HTTPException) as caught:
             agenda_read_repository.list_events_for_user("user-jwt", limit=0)
