@@ -5,6 +5,18 @@ import type {
 
 import { profileRepository } from './profile.repository'
 
+function normalizeAccessToken(
+  accessToken: string,
+): string {
+  const normalized = accessToken.trim()
+
+  if (!normalized) {
+    throw new Error('Usuário não autenticado.')
+  }
+
+  return normalized
+}
+
 function normalizeUserId(
   userId: string,
 ): string {
@@ -63,7 +75,7 @@ function normalizePhone(
 
   const digits =
     normalizedPhone.replace(
-      /\D/g,
+      /\\D/g,
       '',
     )
 
@@ -96,57 +108,53 @@ function normalizeDefaultName(
 
 class ProfileService {
   async getByUserId(
+    accessToken: string,
     userId: string,
   ): Promise<UserProfileDto | null> {
-    const normalizedUserId =
-      normalizeUserId(userId)
-
-    return profileRepository
-      .findByUserId(
-        normalizedUserId,
-      )
+    return profileRepository.findByUserId(
+      normalizeAccessToken(accessToken),
+      normalizeUserId(userId),
+    )
   }
 
   async getOrCreate(
+    accessToken: string,
     userId: string,
-    defaultDisplayName?:
-      | string
-      | null,
+    defaultDisplayName?: string | null,
   ): Promise<UserProfileDto> {
-    const normalizedUserId =
-      normalizeUserId(userId)
+    const token = normalizeAccessToken(accessToken)
+    const normalizedUserId = normalizeUserId(userId)
 
     const existingProfile =
-      await profileRepository
-        .findByUserId(
-          normalizedUserId,
-        )
+      await profileRepository.findByUserId(
+        token,
+        normalizedUserId,
+      )
 
     if (existingProfile) {
       return existingProfile
     }
 
-    return profileRepository
-      .createDefault(
-        normalizedUserId,
-        normalizeDefaultName(
-          defaultDisplayName,
-        ),
-      )
+    return profileRepository.createDefault(
+      token,
+      normalizedUserId,
+      normalizeDefaultName(defaultDisplayName),
+    )
   }
 
   async updateOwnProfile(
+    accessToken: string,
     userId: string,
     input: UpdateUserProfileDto,
   ): Promise<UserProfileDto> {
-    const normalizedUserId =
-      normalizeUserId(userId)
+    const token = normalizeAccessToken(accessToken)
+    const normalizedUserId = normalizeUserId(userId)
 
     const existingProfile =
-      await profileRepository
-        .findByUserId(
-          normalizedUserId,
-        )
+      await profileRepository.findByUserId(
+        token,
+        normalizedUserId,
+      )
 
     if (!existingProfile) {
       throw new Error(
@@ -154,27 +162,17 @@ class ProfileService {
       )
     }
 
-    const normalizedInput:
-      UpdateUserProfileDto = {
-        display_name:
-          normalizeDisplayName(
-            input.display_name,
-          ),
+    const normalizedInput: UpdateUserProfileDto = {
+      display_name: normalizeDisplayName(input.display_name),
+      phone: normalizePhone(input.phone),
+      onboarding_completed: true,
+    }
 
-        phone:
-          normalizePhone(
-            input.phone,
-          ),
-
-        onboarding_completed:
-          true,
-      }
-
-    return profileRepository
-      .updateByUserId(
-        normalizedUserId,
-        normalizedInput,
-      )
+    return profileRepository.updateByUserId(
+      token,
+      normalizedUserId,
+      normalizedInput,
+    )
   }
 }
 
