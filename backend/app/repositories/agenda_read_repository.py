@@ -313,3 +313,102 @@ def list_events_for_school_for_user(
             detail="Resposta inválida ao consultar eventos da escola.",
         )
     return payload
+
+
+def create_event_for_user(
+    access_token: str,
+    membership: dict[str, Any],
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    """Create an event with identity and institutional scope from verified membership."""
+    if not isinstance(access_token, str) or not access_token.strip():
+        raise HTTPException(status_code=401, detail="Token não informado.")
+    if not isinstance(membership, dict):
+        raise HTTPException(status_code=403, detail="Vínculo institucional inválido.")
+    user_id = membership.get("user_id")
+    organization_id = membership.get("organization_id")
+    school_id = membership.get("school_id")
+    if not user_id or not organization_id or not school_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Vínculo institucional sem escopo de escola válido.",
+        )
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=422, detail="Dados do evento inválidos.")
+
+    allowed_fields = {
+        "title",
+        "description",
+        "event_type",
+        "start_at",
+        "end_at",
+        "status",
+        "priority",
+    }
+    unknown_fields = set(payload) - allowed_fields
+    if unknown_fields:
+        raise HTTPException(
+            status_code=422,
+            detail="O evento contém campos não permitidos.",
+        )
+    required_fields = ("title", "event_type", "start_at")
+    if any(not payload.get(field) for field in required_fields):
+        raise HTTPException(
+            status_code=422,
+            detail="Título, tipo e início do evento são obrigatórios.",
+        )
+    event_data = {
+        **payload,
+        "user_id": user_id,
+        "organization_id": organization_id,
+        "school_id": school_id,
+    }
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="Gravação da Agenda indisponível.",
+        )
+
+    endpoint = f"{SUPABASE_URL.rstrip('/')}/rest/v1/agenda_events"
+    request = Request(
+        endpoint,
+        data=json.dumps(event_data).encode("utf-8"),
+        headers={
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Prefer": "return=representation",
+        },
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=10) as response:
+            result = json.loads(response.read().decode("utf-8"))
+    except HTTPError as exc:
+        if exc.code in (401, 403):
+            raise HTTPException(
+                status_code=403,
+                detail="Criação do evento não autorizada.",
+            ) from exc
+        if exc.code == 400 or exc.code == 422:
+            raise HTTPException(
+                status_code=422,
+                detail="Dados do evento incompatíveis com o contrato da Agenda.",
+            ) from exc
+        raise HTTPException(
+            status_code=503,
+            detail="Gravação da Agenda indisponível.",
+        ) from exc
+    except (URLError, TimeoutError, OSError, ValueError) as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Gravação da Agenda indisponível.",
+        ) from exc
+
+    if not isinstance(result, list) or not result or not isinstance(result[0], dict):
+        raise HTTPException(
+            status_code=503,
+            detail="Resposta inválida ao criar evento da Agenda.",
+        )
+    return result[0]
