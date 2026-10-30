@@ -18,22 +18,13 @@ const quickActions = [
   { eyebrow: 'Analisar', label: 'Indicadores', href: '/agenda/indicadores' },
 ] as const
 
-function getDefaultDisplayName(user: Awaited<ReturnType<typeof requireSessionUser>>): string | null {
-  const fullName = user.user_metadata?.full_name
-  if (typeof fullName === 'string' && fullName.trim()) return fullName.trim()
-  const name = user.user_metadata?.name
-  if (typeof name === 'string' && name.trim()) return name.trim()
-  if (user.email) return user.email.split('@')[0]?.trim() || null
-  return null
-}
-
 export default async function AgendaLayout({ children }: AgendaLayoutProps) {
   try {
     const [accessToken, user] = await Promise.all([
       requireSessionAccessToken(),
       requireSessionUser(),
     ])
-    const profile = await profileService.getOrCreate(accessToken, user.id, getDefaultDisplayName(user))
+    const profile = await profileService.getOrCreate(accessToken, user.id)
     if (!profile.onboarding_completed) redirect('/perfil/onboarding')
 
     return (
