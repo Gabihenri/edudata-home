@@ -22,6 +22,13 @@ BEGIN
       'Required function public.edi_create_default_user_access() was not found.';
   END IF;
 
+  IF to_regprocedure(
+    'public.ensure_default_free_subscription(uuid)'
+  ) IS NULL THEN
+    RAISE EXCEPTION
+      'Required function public.ensure_default_free_subscription(uuid) was not found.';
+  END IF;
+
   IF NOT EXISTS (
     SELECT 1
     FROM pg_trigger
@@ -45,7 +52,6 @@ SECURITY DEFINER
 SET search_path = pg_catalog, public, auth
 AS $function$
 DECLARE
-  free_plan_id uuid;
   initial_name text;
 BEGIN
   -- Never derive a permission-bearing role from signup metadata.
@@ -80,35 +86,11 @@ BEGIN
   ON CONFLICT (user_id)
   DO NOTHING;
 
-  -- Preserve automatic EDI Free subscription provisioning.
-  SELECT id
-  INTO free_plan_id
-  FROM public.plans
-  WHERE code = 'edi_free'
-    AND is_active = true
-  LIMIT 1;
-
-  IF free_plan_id IS NOT NULL THEN
-    INSERT INTO public.subscriptions (
-      owner_type,
-      subscriber_type,
-      user_id,
-      plan_id,
-      status,
-      source,
-      starts_at
-    )
-    VALUES (
-      'user',
-      'user',
-      new.id,
-      free_plan_id,
-      'active',
-      'default',
-      now()
-    )
-    ON CONFLICT DO NOTHING;
-  END IF;
+  -- Delegate EDI Free provisioning to the canonical, idempotent helper.
+  -- The dedicated migration-20 Auth trigger calls the same helper.
+  -- Keeping one provisioning path avoids duplicate or misclassified
+  -- subscriptions when both signup triggers run.
+  PERFORM public.ensure_default_free_subscription(new.id);
 
   RETURN new;
 END;
