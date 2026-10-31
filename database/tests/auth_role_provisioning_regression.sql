@@ -160,10 +160,11 @@ BEGIN
       AND NOT tgisinternal
       AND tgname IN (
         'edi_auth_user_created',
-        'on_auth_user_created_ensure_default_profile'
+        'on_auth_user_created_ensure_default_profile',
+        'on_auth_user_created_ensure_edi_free_subscription'
       )
-  ) <> 2 THEN
-    RAISE EXCEPTION 'Expected both signup triggers to be attached.';
+  ) <> 3 THEN
+    RAISE EXCEPTION 'Expected all three signup triggers to be attached.';
   END IF;
 END;
 $$;
@@ -221,4 +222,4 @@ BEGIN
 END;
 $$;
 
-SELECT 'PASS: malicious signup remains professor; both triggers work; edi_free is provisioned once; helper is not exposed.' AS regression_result;
+SELECT 'PASS: malicious signup remains professor; all three triggers work; edi_free is provisioned once; helper is not exposed.' AS regression_result;
