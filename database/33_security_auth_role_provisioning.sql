@@ -91,6 +91,7 @@ BEGIN
   IF free_plan_id IS NOT NULL THEN
     INSERT INTO public.subscriptions (
       owner_type,
+      subscriber_type,
       user_id,
       plan_id,
       status,
@@ -98,6 +99,7 @@ BEGIN
       starts_at
     )
     VALUES (
+      'user',
       'user',
       new.id,
       free_plan_id,
