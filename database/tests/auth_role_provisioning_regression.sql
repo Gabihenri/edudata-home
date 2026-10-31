@@ -1,4 +1,4 @@
--- Isolated PostgreSQL regression for migrations 21, 33 and 34.
+-- Isolated PostgreSQL regression for migrations 20, 21, 33 and 34.
 -- Run as postgres with psql -v ON_ERROR_STOP=1.
 -- This harness models only the Supabase Auth objects required by these migrations.
 
@@ -150,6 +150,7 @@ DECLARE
   created_role text;
   profile_count integer;
   free_count integer;
+  total_subscription_count integer;
 BEGIN
   SELECT role
   INTO created_role
@@ -181,6 +182,15 @@ BEGIN
 
   IF free_count <> 1 THEN
     RAISE EXCEPTION 'Expected exactly one active default edi_free subscription, found %.', free_count;
+  END IF;
+
+  SELECT count(*)
+  INTO total_subscription_count
+  FROM public.subscriptions
+  WHERE user_id = '10000000-0000-0000-0000-000000000001';
+
+  IF total_subscription_count <> 1 THEN
+    RAISE EXCEPTION 'Expected exactly one subscription total for the new user, found %.', total_subscription_count;
   END IF;
 END;
 $$;
