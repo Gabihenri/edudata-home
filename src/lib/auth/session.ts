@@ -1,12 +1,28 @@
 import { cookies } from 'next/headers'
 import { getCurrentUser } from './auth'
 
-export async function getSessionUser() {
+export async function getSessionAccessToken(): Promise<string | null> {
   const cookieStore = await cookies()
 
-  const token =
+  return (
     cookieStore.get('sb-access-token')?.value ??
-    cookieStore.get('access_token')?.value
+    cookieStore.get('access_token')?.value ??
+    null
+  )
+}
+
+export async function requireSessionAccessToken(): Promise<string> {
+  const token = await getSessionAccessToken()
+
+  if (!token) {
+    throw new Error('Usuário não autenticado.')
+  }
+
+  return token
+}
+
+export async function getSessionUser() {
+  const token = await getSessionAccessToken()
 
   if (!token) {
     return null

@@ -803,6 +803,10 @@ export default function ProfileForm() {
           Informações pessoais
         </h2>
 
+        <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-6 text-amber-900">
+          A edição de dados pessoais está temporariamente suspensa. O banco permite a leitura do próprio perfil, mas ainda não autoriza sua atualização por RLS. Nenhuma alteração será enviada com privilégios administrativos.
+        </div>
+
         {error ? (
           <div
             role="alert"
@@ -832,6 +836,7 @@ export default function ProfileForm() {
             <input
               type="text"
               value={displayName}
+              disabled
               onChange={(event) =>
                 setDisplayName(
                   event.target.value,
@@ -858,6 +863,7 @@ export default function ProfileForm() {
             <input
               type="tel"
               value={phone}
+              disabled
               onChange={(event) =>
                 setPhone(
                   event.target.value,
@@ -890,10 +896,7 @@ export default function ProfileForm() {
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <button
             type="submit"
-            disabled={
-              saving ||
-              redirecting
-            }
+            disabled
             className="rounded-lg bg-[#0B7491] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#09657e] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {redirecting

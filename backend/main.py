@@ -12,7 +12,6 @@ from app.routers.calendar_intelligence import (
     router as calendar_intelligence_router,
 )
 from app.routers.database import router as database_router
-from app.routers.engine import router as engine_router
 from app.routers.evidence_intelligence import (
     router as evidence_intelligence_router,
 )
@@ -97,7 +96,6 @@ app.include_router(agenda_router)
 # ==========================================================
 # EDI INTELLIGENCE ENGINE / EIOS
 # ==========================================================
-app.include_router(engine_router)
 app.include_router(intelligence_router)
 app.include_router(planning_intelligence_router)
 app.include_router(evidence_intelligence_router)

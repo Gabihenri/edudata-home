@@ -1,0 +1,58 @@
+name: Auth Role Provisioning Regression
+
+on:
+  push:
+    branches:
+      - "security/**"
+    paths:
+      - "database/**"
+      - ".github/workflows/auth-role-provisioning-regression.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "database/**"
+      - ".github/workflows/auth-role-provisioning-regression.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  auth-role-provisioning:
+    name: Auth role provisioning regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+
+      - name: Run isolated signup role provisioning regression
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql \
+            --host=127.0.0.1 \
+            --username=postgres \
+            --dbname=postgres \
+            --set=ON_ERROR_STOP=1 \
+            --file=database/tests/auth_role_provisioning_regression.sql

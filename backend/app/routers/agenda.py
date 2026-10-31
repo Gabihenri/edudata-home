@@ -1,9 +1,23 @@
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.security import HTTPAuthorizationCredentials
 
 from app.core.exceptions.exceptions import EduDataException
+from app.core.security.current_membership import get_current_membership
+from app.core.security.current_user import security
+from app.repositories.agenda_read_repository import (
+    create_event_for_user,
+    change_event_status_for_user,
+    dashboard_summary_for_user,
+    get_event_for_user,
+    list_events_for_school_for_user,
+    list_events_for_teacher_for_user,
+    list_events_for_user,
+    soft_delete_event_for_user,
+    update_event_for_user,
+)
 from app.core.responses.api_response import ApiResponse
 from app.engine.context import EngineContext
 from app.engine.pipelines.pipeline_engine import PipelineEngine
@@ -30,9 +44,17 @@ def build_engine_context(payload: dict[str, Any]) -> EngineContext:
 @router.get("/")
 def list_events(
     limit: int = Query(100, ge=1, le=500),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    _membership: dict[str, Any] = Depends(get_current_membership),
 ) -> dict[str, Any]:
     try:
-        events = AgendaService.list(limit=limit)
+        # The membership dependency establishes the authenticated institutional
+        # context. The event query uses the same user's JWT so PostgreSQL RLS,
+        # not a service-role client, decides which rows are visible.
+        events = list_events_for_user(
+            access_token=credentials.credentials,
+            limit=limit,
+        )
 
         return ApiResponse.success(
             data={"total": len(events), "items": events},
@@ -44,9 +66,14 @@ def list_events(
 
 
 @router.get("/dashboard/summary")
-def dashboard_summary() -> dict[str, Any]:
+def dashboard_summary(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    _membership: dict[str, Any] = Depends(get_current_membership),
+) -> dict[str, Any]:
     try:
-        summary = AgendaService.dashboard_summary()
+        summary = dashboard_summary_for_user(
+            access_token=credentials.credentials,
+        )
 
         return ApiResponse.success(
             data=summary,
@@ -58,9 +85,16 @@ def dashboard_summary() -> dict[str, Any]:
 
 
 @router.get("/{event_id}")
-def get_event(event_id: str) -> dict[str, Any]:
+def get_event(
+    event_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    _membership: dict[str, Any] = Depends(get_current_membership),
+) -> dict[str, Any]:
     try:
-        event = AgendaService.find_by_id(event_id)
+        event = get_event_for_user(
+            access_token=credentials.credentials,
+            event_id=event_id,
+        )
 
         if not event:
             raise HTTPException(status_code=404, detail="Evento não encontrado.")
@@ -78,9 +112,12 @@ def get_event(event_id: str) -> dict[str, Any]:
 def list_teacher_events(
     teacher_id: str,
     limit: int = Query(100, ge=1, le=500),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    _membership: dict[str, Any] = Depends(get_current_membership),
 ) -> dict[str, Any]:
     try:
-        events = AgendaService.list_by_teacher(
+        events = list_events_for_teacher_for_user(
+            access_token=credentials.credentials,
             teacher_id=teacher_id,
             limit=limit,
         )
@@ -98,9 +135,12 @@ def list_teacher_events(
 def list_school_events(
     school_id: str,
     limit: int = Query(100, ge=1, le=500),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    _membership: dict[str, Any] = Depends(get_current_membership),
 ) -> dict[str, Any]:
     try:
-        events = AgendaService.list_by_school(
+        events = list_events_for_school_for_user(
+            access_token=credentials.credentials,
             school_id=school_id,
             limit=limit,
         )
@@ -118,11 +158,15 @@ def list_school_events(
 def upcoming_events(
     school_id: str,
     limit: int = Query(10, ge=1, le=50),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    _membership: dict[str, Any] = Depends(get_current_membership),
 ) -> dict[str, Any]:
     try:
-        events = AgendaService.upcoming_events(
+        events = list_events_for_school_for_user(
+            access_token=credentials.credentials,
             school_id=school_id,
             limit=limit,
+            start_at_gte=datetime.now().astimezone().isoformat(),
         )
 
         return ApiResponse.success(
@@ -139,12 +183,20 @@ def events_between(
     school_id: str,
     start: datetime,
     end: datetime,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    _membership: dict[str, Any] = Depends(get_current_membership),
 ) -> dict[str, Any]:
     try:
-        events = AgendaService.events_between(
+        if end <= start:
+            raise HTTPException(
+                status_code=422,
+                detail="A data final deve ser maior que a data inicial.",
+            )
+        events = list_events_for_school_for_user(
+            access_token=credentials.credentials,
             school_id=school_id,
-            start=start,
-            end=end,
+            start_at_gte=start.isoformat(),
+            end_at_lte=end.isoformat(),
         )
 
         return ApiResponse.success(
@@ -157,14 +209,29 @@ def events_between(
 
 
 @router.post("/")
-def create_event(payload: dict[str, Any]) -> dict[str, Any]:
+def create_event(
+    payload: dict[str, Any],
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    membership: dict[str, Any] = Depends(get_current_membership),
+) -> dict[str, Any]:
     try:
-        event = AgendaService.create(payload)
+        event = create_event_for_user(
+            access_token=credentials.credentials,
+            membership=membership,
+            payload=payload,
+        )
+        trusted_payload = {
+            **payload,
+            "user_id": membership["user_id"],
+            "organization_id": membership["organization_id"],
+            "school_id": membership["school_id"],
+            "role": membership.get("role"),
+        }
 
         engine_result = PipelineEngine.execute(
-            context=build_engine_context(payload),
+            context=build_engine_context(trusted_payload),
             payload={
-                **payload,
+                **trusted_payload,
                 "agenda_events": [event],
                 "evidences": payload.get("evidences", []),
                 "trainings": payload.get("trainings", []),
@@ -193,20 +260,30 @@ def create_event(payload: dict[str, Any]) -> dict[str, Any]:
 def update_event(
     event_id: str,
     payload: dict[str, Any],
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    membership: dict[str, Any] = Depends(get_current_membership),
 ) -> dict[str, Any]:
     try:
-        event = AgendaService.update(
-            record_id=event_id,
-            data=payload,
+        event = update_event_for_user(
+            access_token=credentials.credentials,
+            event_id=event_id,
+            payload=payload,
         )
 
         if not event:
             raise HTTPException(status_code=404, detail="Evento não encontrado.")
 
+        trusted_payload = {
+            **payload,
+            "user_id": membership["user_id"],
+            "organization_id": membership["organization_id"],
+            "school_id": membership.get("school_id"),
+            "role": membership.get("role"),
+        }
         engine_result = PipelineEngine.execute(
-            context=build_engine_context(payload),
+            context=build_engine_context(trusted_payload),
             payload={
-                **payload,
+                **trusted_payload,
                 "agenda_events": [event],
                 "evidences": payload.get("evidences", []),
                 "trainings": payload.get("trainings", []),
@@ -235,9 +312,12 @@ def update_event(
 def change_status(
     event_id: str,
     status: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    _membership: dict[str, Any] = Depends(get_current_membership),
 ) -> dict[str, Any]:
     try:
-        event = AgendaService.change_status(
+        event = change_event_status_for_user(
+            access_token=credentials.credentials,
             event_id=event_id,
             status=status,
         )
@@ -255,9 +335,18 @@ def change_status(
 
 
 @router.delete("/{event_id}")
-def delete_event(event_id: str) -> dict[str, Any]:
+def delete_event(
+    event_id: str,
+    reason: str = Query(..., min_length=1, max_length=1000),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    _membership: dict[str, Any] = Depends(get_current_membership),
+) -> dict[str, Any]:
     try:
-        deleted = AgendaService.delete(event_id)
+        deleted = soft_delete_event_for_user(
+            access_token=credentials.credentials,
+            event_id=event_id,
+            reason=reason,
+        )
 
         if not deleted:
             raise HTTPException(status_code=404, detail="Evento não encontrado.")

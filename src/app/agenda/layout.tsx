@@ -8,7 +8,6 @@ import { AgendaNavigation } from '@/components/agenda/AgendaNavigation'
 import { AgendaSecondaryNavigation } from '@/components/agenda/AgendaSecondaryNavigation'
 import AgendaPwaInstallPrompt from '@/components/pwa/AgendaPwaInstallPrompt'
 import { requireSessionUser } from '@/lib/auth/session'
-import { profileService } from '@/lib/profile/profile.service'
 
 type AgendaLayoutProps = { children: ReactNode }
 
@@ -18,20 +17,9 @@ const quickActions = [
   { eyebrow: 'Analisar', label: 'Indicadores', href: '/agenda/indicadores' },
 ] as const
 
-function getDefaultDisplayName(user: Awaited<ReturnType<typeof requireSessionUser>>): string | null {
-  const fullName = user.user_metadata?.full_name
-  if (typeof fullName === 'string' && fullName.trim()) return fullName.trim()
-  const name = user.user_metadata?.name
-  if (typeof name === 'string' && name.trim()) return name.trim()
-  if (user.email) return user.email.split('@')[0]?.trim() || null
-  return null
-}
-
 export default async function AgendaLayout({ children }: AgendaLayoutProps) {
   try {
-    const user = await requireSessionUser()
-    const profile = await profileService.getOrCreate(user.id, getDefaultDisplayName(user))
-    if (!profile.onboarding_completed) redirect('/perfil/onboarding')
+    await requireSessionUser()
 
     return (
       <div className="min-h-screen bg-[#EEF3F7] pb-[calc(4rem+env(safe-area-inset-bottom))] font-sans text-slate-950 lg:pb-0">
