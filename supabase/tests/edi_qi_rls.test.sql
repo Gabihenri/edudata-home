@@ -177,6 +177,7 @@ select throws_ok(
     )
   $$,
   '42501',
+  'new row violates row-level security policy for table "agenda_class_students"',
   'User A cannot insert a student owned by User B'
 );
 select throws_ok(
@@ -192,16 +193,17 @@ select throws_ok(
     )
   $$,
   '42501',
+  'new row violates row-level security policy for table "agenda_attendance_entries"',
   'User A cannot insert attendance for User B'
 );
+with changed as (
+  update public.agenda_class_students
+     set full_name = 'EDI-QI unauthorized update'
+   where id = '40000000-0000-4000-8000-000000000002'
+   returning id
+)
 select is(
-  (with changed as (
-     update public.agenda_class_students
-        set full_name = 'EDI-QI unauthorized update'
-      where id = '40000000-0000-4000-8000-000000000002'
-      returning id
-   )
-   select count(*)::integer from changed),
+  (select count(*)::integer from changed),
   0,
   'User A cannot update a student owned by User B'
 );
