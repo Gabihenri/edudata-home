@@ -25,19 +25,41 @@ CREATE TABLE public.user_profiles (
 CREATE TABLE public.plans (
   id uuid PRIMARY KEY,
   code text NOT NULL,
-  is_active boolean NOT NULL DEFAULT true
+  is_active boolean NOT NULL DEFAULT true,
+  sort_order integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE public.subscriptions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  owner_type text NOT NULL,
-  subscriber_type text NOT NULL,
-  user_id uuid NOT NULL,
-  plan_id uuid NOT NULL,
-  status text NOT NULL,
-  source text,
-  starts_at timestamptz NOT NULL,
-  is_default_free boolean NOT NULL DEFAULT false
+  owner_type text NOT NULL CHECK (owner_type IN ('user', 'organization')),
+  subscriber_type text NOT NULL CHECK (subscriber_type IN ('user', 'organization')),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  organization_id uuid,
+  plan_id uuid NOT NULL REFERENCES public.plans(id),
+  status text NOT NULL DEFAULT 'active'
+    CHECK (status IN ('active', 'trialing', 'past_due', 'canceled', 'expired', 'suspended')),
+  source text NOT NULL DEFAULT 'manual'
+    CHECK (source IN ('default', 'manual', 'trial', 'billing', 'institutional')),
+  starts_at timestamptz NOT NULL DEFAULT now(),
+  billing_cycle text NOT NULL DEFAULT 'monthly',
+  quantity integer NOT NULL DEFAULT 1,
+  currency text NOT NULL DEFAULT 'BRL',
+  unit_amount_cents integer,
+  total_amount_cents integer,
+  current_period_start timestamptz,
+  current_period_end timestamptz,
+  current_period_starts_at timestamptz,
+  current_period_ends_at timestamptz,
+  cancel_at_period_end boolean NOT NULL DEFAULT false,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  is_default_free boolean NOT NULL DEFAULT false,
+  CONSTRAINT subscriptions_owner_check CHECK (
+    (owner_type = 'user' AND user_id IS NOT NULL AND organization_id IS NULL)
+    OR (owner_type = 'organization' AND organization_id IS NOT NULL AND user_id IS NULL)
+  )
 );
 
 INSERT INTO public.plans (id, code, is_active)
@@ -61,67 +83,8 @@ AFTER INSERT ON auth.users
 FOR EACH ROW
 EXECUTE FUNCTION public.edi_create_default_user_access();
 
-CREATE FUNCTION public.ensure_default_free_subscription(target_user_id uuid)
-RETURNS uuid
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $test$
-DECLARE
-  existing_subscription_id uuid;
-BEGIN
-  SELECT id
-  INTO existing_subscription_id
-  FROM public.subscriptions
-  WHERE user_id = target_user_id
-    AND is_default_free = true
-    AND status = 'active'
-  LIMIT 1;
-
-  IF existing_subscription_id IS NOT NULL THEN
-    RETURN existing_subscription_id;
-  END IF;
-
-  INSERT INTO public.subscriptions (
-    owner_type,
-    subscriber_type,
-    user_id,
-    plan_id,
-    status,
-    source,
-    starts_at,
-    is_default_free
-  )
-  VALUES (
-    'user',
-    'user',
-    target_user_id,
-    '00000000-0000-0000-0000-000000000001',
-    'active',
-    'default',
-    now(),
-    true
-  )
-  RETURNING id INTO existing_subscription_id;
-
-  RETURN existing_subscription_id;
-END;
-$test$;
-
-CREATE FUNCTION public.handle_new_auth_user_default_subscription()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $test$
-BEGIN
-  PERFORM public.ensure_default_free_subscription(NEW.id);
-  RETURN NEW;
-END;
-$test$;
-
-CREATE TRIGGER on_auth_user_created_ensure_edi_free_subscription
-AFTER INSERT ON auth.users
-FOR EACH ROW
-EXECUTE FUNCTION public.handle_new_auth_user_default_subscription();
+-- Apply the real migration-20 helper and its dedicated Auth trigger.
+\ir ../20_default_free_subscription.sql
 
 -- Migration 21 installs the second Auth trigger and its SECURITY DEFINER wrapper.
 \ir ../21_default_user_profile.sql
