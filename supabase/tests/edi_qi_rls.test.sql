@@ -280,6 +280,7 @@ select throws_ok(
     )
   $$,
   '42501',
+  'new row violates row-level security policy for table "eios_institutional_policies"',
   'User B without governance capabilities cannot manage institutional policies'
 );
 
