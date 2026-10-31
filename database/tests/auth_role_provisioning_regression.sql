@@ -36,7 +36,8 @@ CREATE TABLE public.subscriptions (
   plan_id uuid NOT NULL,
   status text NOT NULL,
   source text,
-  starts_at timestamptz NOT NULL
+  starts_at timestamptz NOT NULL,
+  is_default_free boolean NOT NULL DEFAULT false
 );
 
 INSERT INTO public.plans (id, code, is_active)
@@ -59,6 +60,68 @@ CREATE TRIGGER edi_auth_user_created
 AFTER INSERT ON auth.users
 FOR EACH ROW
 EXECUTE FUNCTION public.edi_create_default_user_access();
+
+CREATE FUNCTION public.ensure_default_free_subscription(target_user_id uuid)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $
+DECLARE
+  existing_subscription_id uuid;
+BEGIN
+  SELECT id
+  INTO existing_subscription_id
+  FROM public.subscriptions
+  WHERE user_id = target_user_id
+    AND is_default_free = true
+    AND status = 'active'
+  LIMIT 1;
+
+  IF existing_subscription_id IS NOT NULL THEN
+    RETURN existing_subscription_id;
+  END IF;
+
+  INSERT INTO public.subscriptions (
+    owner_type,
+    subscriber_type,
+    user_id,
+    plan_id,
+    status,
+    source,
+    starts_at,
+    is_default_free
+  )
+  VALUES (
+    'user',
+    'user',
+    target_user_id,
+    '00000000-0000-0000-0000-000000000001',
+    'active',
+    'default',
+    now(),
+    true
+  )
+  RETURNING id INTO existing_subscription_id;
+
+  RETURN existing_subscription_id;
+END;
+$;
+
+CREATE FUNCTION public.handle_new_auth_user_default_subscription()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $
+BEGIN
+  PERFORM public.ensure_default_free_subscription(NEW.id);
+  RETURN NEW;
+END;
+$;
+
+CREATE TRIGGER on_auth_user_created_ensure_edi_free_subscription
+AFTER INSERT ON auth.users
+FOR EACH ROW
+EXECUTE FUNCTION public.handle_new_auth_user_default_subscription();
 
 -- Migration 21 installs the second Auth trigger and its SECURITY DEFINER wrapper.
 \ir ../21_default_user_profile.sql
@@ -149,10 +212,11 @@ BEGIN
     AND plan_id = '00000000-0000-0000-0000-000000000001'
     AND owner_type = 'user'
     AND subscriber_type = 'user'
-    AND status = 'active';
+    AND status = 'active'
+    AND is_default_free = true;
 
   IF free_count <> 1 THEN
-    RAISE EXCEPTION 'Expected exactly one active edi_free subscription, found %.', free_count;
+    RAISE EXCEPTION 'Expected exactly one active default edi_free subscription, found %.', free_count;
   END IF;
 END;
 $$;
