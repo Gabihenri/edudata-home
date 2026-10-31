@@ -65,7 +65,7 @@ CREATE FUNCTION public.ensure_default_free_subscription(target_user_id uuid)
 RETURNS uuid
 LANGUAGE plpgsql
 SECURITY DEFINER
-AS $
+AS $test$
 DECLARE
   existing_subscription_id uuid;
 BEGIN
@@ -105,18 +105,18 @@ BEGIN
 
   RETURN existing_subscription_id;
 END;
-$;
+$test$;
 
 CREATE FUNCTION public.handle_new_auth_user_default_subscription()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
-AS $
+AS $test$
 BEGIN
   PERFORM public.ensure_default_free_subscription(NEW.id);
   RETURN NEW;
 END;
-$;
+$test$;
 
 CREATE TRIGGER on_auth_user_created_ensure_edi_free_subscription
 AFTER INSERT ON auth.users
