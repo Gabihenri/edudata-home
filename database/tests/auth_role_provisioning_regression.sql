@@ -117,6 +117,9 @@ EXECUTE FUNCTION public.edi_create_default_user_access();
 -- Migration 34 restricts the helper while preserving trusted trigger execution.
 \ir ../34_fix_auth_profile_trigger_context.sql
 
+-- Migration 35 removes direct API-role execution of the internal EDI Free helper.
+\ir ../35_restrict_default_free_subscription_helper.sql
+
 DO $$
 DECLARE
   profile_helper_oid oid := 'public.ensure_default_user_profile(uuid)'::regprocedure;
@@ -131,6 +134,13 @@ BEGIN
      OR has_function_privilege('service_role', profile_helper_oid, 'EXECUTE')
      OR has_function_privilege('supabase_auth_admin', profile_helper_oid, 'EXECUTE') THEN
     RAISE EXCEPTION 'A non-owner role can execute ensure_default_user_profile directly.';
+  END IF;
+
+  IF has_function_privilege('anon', subscription_helper_oid, 'EXECUTE')
+     OR has_function_privilege('authenticated', subscription_helper_oid, 'EXECUTE')
+     OR has_function_privilege('service_role', subscription_helper_oid, 'EXECUTE')
+     OR has_function_privilege('supabase_auth_admin', subscription_helper_oid, 'EXECUTE') THEN
+    RAISE EXCEPTION 'A non-owner role can execute ensure_default_free_subscription directly.';
   END IF;
 
   -- Trigger entry points must execute with their trusted function owner.
@@ -257,4 +267,4 @@ BEGIN
 END;
 $$;
 
-SELECT 'PASS: existing super_admin profile preserved; malicious signup remains professor; all three triggers work; edi_free is provisioned once; profile helper is not exposed.' AS regression_result;
+SELECT 'PASS: existing super_admin profile preserved; malicious signup remains professor; all three triggers work; edi_free is provisioned once; internal profile and subscription helpers are not exposed.' AS regression_result;
