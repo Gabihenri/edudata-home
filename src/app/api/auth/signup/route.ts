@@ -85,7 +85,6 @@ export async function POST(request: Request) {
         data: {
           display_name: displayName,
           full_name: displayName,
-          role: 'individual',
           source: 'agenda_public_signup',
         },
       },

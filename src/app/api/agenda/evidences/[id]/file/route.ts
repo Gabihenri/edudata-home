@@ -1,10 +1,8 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
-import {
-  getCurrentUserRole,
-  getSessionUser,
-} from '@/lib/auth'
+import { getSessionUser } from '@/lib/auth'
+import { getSessionAccessToken } from '@/lib/auth/session'
 import { EvidencesRepository } from '@/lib/agenda/repository/evidences.repository'
 import {
   createSignedUrl,
@@ -37,30 +35,6 @@ function jsonError(
       status,
     },
   )
-}
-
-function getAccessToken(request: Request): string | null {
-  const cookieHeader = request.headers.get('cookie')
-
-  if (!cookieHeader) {
-    return null
-  }
-
-  const cookies = cookieHeader.split(';').reduce<Record<string, string>>(
-    (accumulator, cookie) => {
-      const separatorIndex = cookie.indexOf('=')
-      if (separatorIndex === -1) return accumulator
-
-      const name = cookie.slice(0, separatorIndex).trim()
-      const value = cookie.slice(separatorIndex + 1).trim()
-
-      if (name) accumulator[name] = decodeURIComponent(value)
-      return accumulator
-    },
-    {},
-  )
-
-  return cookies['sb-access-token'] ?? cookies.access_token ?? null
 }
 
 function createAuthenticatedClient(accessToken: string): SupabaseClient {
@@ -112,7 +86,7 @@ export async function GET(
       )
     }
 
-    const accessToken = getAccessToken(request)
+    const accessToken = await getSessionAccessToken()
 
     if (!accessToken) {
       return jsonError(
@@ -134,17 +108,10 @@ export async function GET(
       )
     }
 
-    const currentRole = await getCurrentUserRole()
-    const isOwner = evidence.user_id === user.id
-    const isSuperAdmin = currentRole === 'super_admin'
-
-    if (!isOwner && !isSuperAdmin) {
-      return jsonError(
-        'Você não possui permissão para acessar este arquivo.',
-        403,
-        'EVIDENCE_FILE_ACCESS_DENIED',
-      )
-    }
+    // The evidence row was fetched using the caller's JWT.
+    // Supabase RLS (can_view_agenda_record) is the authority
+    // for owner, team, school, and institutional access.
+    // Do not add a separate role claim bypass here.
 
     const storageBucket = evidence.storage_bucket?.trim()
     const storagePath = evidence.storage_path?.trim()

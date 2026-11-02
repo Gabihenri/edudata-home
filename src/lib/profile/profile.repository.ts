@@ -4,40 +4,49 @@ import {
 } from '@supabase/supabase-js'
 
 import type {
-  UpdateUserProfileDto,
   UserProfileDto,
 } from './profile.dto'
 
 type DatabaseRecord =
   Record<string, unknown>
 
-function createProfileClient(): SupabaseClient {
+function createProfileClient(
+  accessToken: string,
+): SupabaseClient {
   const url =
     process.env.NEXT_PUBLIC_SUPABASE_URL
 
-  const serviceRoleKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY
+  const anonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  if (!url) {
+  if (!url || !anonKey) {
     throw new Error(
-      'NEXT_PUBLIC_SUPABASE_URL não configurada.',
+      'Configuração pública do Supabase indisponível.',
     )
   }
 
-  if (!serviceRoleKey) {
+  if (
+    typeof accessToken !== 'string' ||
+    !accessToken.trim()
+  ) {
     throw new Error(
-      'SUPABASE_SERVICE_ROLE_KEY não configurada.',
+      'Usuário não autenticado.',
     )
   }
 
   return createClient(
     url,
-    serviceRoleKey,
+    anonKey,
     {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
         detectSessionInUrl: false,
+      },
+      global: {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       },
     },
   )
@@ -149,15 +158,12 @@ function parseUserProfile(
 }
 
 class ProfileRepository {
-  private get client(): SupabaseClient {
-    return createProfileClient()
-  }
-
   async findByUserId(
+    accessToken: string,
     userId: string,
   ): Promise<UserProfileDto | null> {
     const { data, error } =
-      await this.client
+      await createProfileClient(accessToken)
         .from('user_profiles')
         .select(
           [
@@ -181,101 +187,7 @@ class ProfileRepository {
     return parseUserProfile(data)
   }
 
-  async createDefault(
-    userId: string,
-    displayName: string | null,
-  ): Promise<UserProfileDto> {
-    const { data, error } =
-      await this.client
-        .from('user_profiles')
-        .insert({
-          user_id: userId,
-          role: 'professor',
-          status: 'active',
-          display_name:
-            displayName,
-          phone: null,
-          onboarding_completed:
-            false,
-        })
-        .select(
-          [
-            'user_id',
-            'display_name',
-            'phone',
-            'role',
-            'status',
-            'onboarding_completed',
-          ].join(','),
-        )
-        .single()
 
-    if (error) {
-      throw new Error(
-        `Erro ao criar perfil: ${error.message}`,
-      )
-    }
-
-    const profile =
-      parseUserProfile(data)
-
-    if (!profile) {
-      throw new Error(
-        'O perfil foi criado, mas os dados retornados são inválidos.',
-      )
-    }
-
-    return profile
-  }
-
-  async updateByUserId(
-    userId: string,
-    input: UpdateUserProfileDto,
-  ): Promise<UserProfileDto> {
-    const { data, error } =
-      await this.client
-        .from('user_profiles')
-        .update({
-          display_name:
-            input.display_name,
-
-          phone:
-            input.phone || null,
-
-          onboarding_completed:
-            input.onboarding_completed ??
-            true,
-        })
-        .eq('user_id', userId)
-        .select(
-          [
-            'user_id',
-            'display_name',
-            'phone',
-            'role',
-            'status',
-            'onboarding_completed',
-          ].join(','),
-        )
-        .single()
-
-    if (error) {
-      throw new Error(
-        `Erro ao atualizar perfil: ${error.message}`,
-      )
-    }
-
-    const profile =
-      parseUserProfile(data)
-
-    if (!profile) {
-      throw new Error(
-        'O perfil foi atualizado, mas os dados retornados são inválidos.',
-      )
-    }
-
-    return profile
-  }
 }
 
 export const profileRepository =
