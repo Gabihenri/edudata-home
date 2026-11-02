@@ -171,7 +171,7 @@ END;
 $;
 
 -- Existing privileged profile must be preserved by migration 21 and remain unique.
-DO $
+DO $$
 DECLARE
   preserved_role text;
   preserved_count integer;
@@ -192,7 +192,7 @@ BEGIN
     RAISE EXCEPTION 'Expected exactly one preserved existing profile, found %.', preserved_count;
   END IF;
 END;
-$;
+$$;
 
 -- Signup with attacker-controlled metadata must remain a professor account.
 SET ROLE supabase_auth_admin;
