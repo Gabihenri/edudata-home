@@ -119,23 +119,39 @@ EXECUTE FUNCTION public.edi_create_default_user_access();
 
 DO $$
 DECLARE
-  helper_oid oid := 'public.ensure_default_user_profile(uuid)'::regprocedure;
-  wrapper_oid oid := 'public.handle_new_auth_user_default_profile()'::regprocedure;
+  profile_helper_oid oid := 'public.ensure_default_user_profile(uuid)'::regprocedure;
+  subscription_helper_oid oid := 'public.ensure_default_free_subscription(uuid)'::regprocedure;
+  profile_wrapper_oid oid := 'public.handle_new_auth_user_default_profile()'::regprocedure;
+  subscription_wrapper_oid oid := 'public.handle_new_auth_user_default_subscription()'::regprocedure;
+  access_wrapper_oid oid := 'public.edi_create_default_user_access()'::regprocedure;
+  function_oid oid;
 BEGIN
-  IF has_function_privilege('anon', helper_oid, 'EXECUTE')
-     OR has_function_privilege('authenticated', helper_oid, 'EXECUTE')
-     OR has_function_privilege('service_role', helper_oid, 'EXECUTE')
-     OR has_function_privilege('supabase_auth_admin', helper_oid, 'EXECUTE') THEN
+  IF has_function_privilege('anon', profile_helper_oid, 'EXECUTE')
+     OR has_function_privilege('authenticated', profile_helper_oid, 'EXECUTE')
+     OR has_function_privilege('service_role', profile_helper_oid, 'EXECUTE')
+     OR has_function_privilege('supabase_auth_admin', profile_helper_oid, 'EXECUTE') THEN
     RAISE EXCEPTION 'A non-owner role can execute ensure_default_user_profile directly.';
   END IF;
 
-  IF NOT (SELECT prosecdef FROM pg_proc WHERE oid = wrapper_oid) THEN
-    RAISE EXCEPTION 'The Auth profile trigger wrapper is not SECURITY DEFINER.';
-  END IF;
+  -- Trigger entry points must execute with their trusted function owner.
+  FOREACH function_oid IN ARRAY ARRAY[
+    profile_wrapper_oid,
+    subscription_wrapper_oid,
+    access_wrapper_oid
+  ]
+  LOOP
+    IF NOT (SELECT prosecdef FROM pg_proc WHERE oid = function_oid) THEN
+      RAISE EXCEPTION 'Auth trigger function % is not SECURITY DEFINER.', function_oid::regprocedure;
+    END IF;
 
-  IF pg_get_userbyid((SELECT proowner FROM pg_proc WHERE oid = wrapper_oid)) <> 'postgres'
-     OR pg_get_userbyid((SELECT proowner FROM pg_proc WHERE oid = helper_oid)) <> 'postgres' THEN
-    RAISE EXCEPTION 'Unexpected function owner; trusted trigger/helper execution context is not postgres.';
+    IF pg_get_userbyid((SELECT proowner FROM pg_proc WHERE oid = function_oid)) <> 'postgres' THEN
+      RAISE EXCEPTION 'Auth trigger function % is not owned by postgres.', function_oid::regprocedure;
+    END IF;
+  END LOOP;
+
+  IF pg_get_userbyid((SELECT proowner FROM pg_proc WHERE oid = profile_helper_oid)) <> 'postgres'
+     OR pg_get_userbyid((SELECT proowner FROM pg_proc WHERE oid = subscription_helper_oid)) <> 'postgres' THEN
+    RAISE EXCEPTION 'A provisioning helper is not owned by postgres.';
   END IF;
 
   IF (
@@ -152,7 +168,7 @@ BEGIN
     RAISE EXCEPTION 'Expected all three signup triggers to be attached.';
   END IF;
 END;
-$$;
+$;
 
 -- Existing privileged profile must be preserved by migration 21 and remain unique.
 DO $
