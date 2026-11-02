@@ -1,0 +1,55 @@
+name: Core Role Canonicalization Harness
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "escala-substituicao/tests/role-canonicalization-core-harness.postgres.test.sql"
+      - ".github/workflows/role-canonicalization-harness.yml"
+  push:
+    branches: ["test/core-role-canonicalization-harness-v1"]
+    paths:
+      - "escala-substituicao/tests/role-canonicalization-core-harness.postgres.test.sql"
+      - ".github/workflows/role-canonicalization-harness.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  role-canonicalization:
+    name: Isolated PostgreSQL contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: role_contract_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d role_contract_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: role_contract_test
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+
+      - name: Execute isolated role contract
+        run: |
+          psql -v ON_ERROR_STOP=1 \
+            -f escala-substituicao/tests/role-canonicalization-core-harness.postgres.test.sql
