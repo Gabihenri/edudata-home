@@ -52,3 +52,4 @@ jobs:
           node --version
           node escala-substituicao/mvp/tests/regression-fixture-v1.mjs
           node escala-substituicao/mvp/tests/round-persistence-v1.mjs
+          node escala-substituicao/mvp/tests/operational-memory-contract-v1.mjs
