@@ -62,3 +62,12 @@ create policy "agenda_attendance_owner_update"
   on public.agenda_attendance_entries for update
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+
+-- Explicit Data API grants; owner-only RLS policies remain the access boundary.
+revoke all on table public.agenda_class_students from anon, authenticated;
+revoke all on table public.agenda_attendance_entries from anon, authenticated;
+grant select, insert, update on table public.agenda_class_students to authenticated;
+grant select, insert, update on table public.agenda_attendance_entries to authenticated;
+grant all on table public.agenda_class_students to service_role;
+grant all on table public.agenda_attendance_entries to service_role;

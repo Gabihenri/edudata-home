@@ -81,11 +81,19 @@ class AgendaServiceTimestampContractTests(unittest.TestCase):
 
         with patch.object(
             AgendaService.repository,
-            "list",
+            "list_by_school",
             return_value=records,
-        ):
-            summary = AgendaService.dashboard_summary()
+        ) as query:
+            summary = AgendaService.dashboard_summary(
+                school_id="school-a",
+                organization_id="org-a",
+            )
 
+        query.assert_called_once_with(
+            school_id="school-a",
+            organization_id="org-a",
+            limit=500,
+        )
         self.assertEqual(summary["total_events"], 2)
         self.assertEqual(summary["planned"], 1)
         self.assertEqual(summary["completed"], 1)
