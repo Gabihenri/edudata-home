@@ -1,4 +1,5 @@
 -- Isolated PostgreSQL regression for migrations 20, 21, 33 and 34.
+-- Covers both legacy-profile preservation and untrusted signup metadata.
 -- Run as postgres with psql -v ON_ERROR_STOP=1.
 -- This harness models only the Supabase Auth objects required by these migrations.
 
@@ -19,7 +20,13 @@ CREATE TABLE auth.users (
 );
 
 CREATE TABLE public.user_profiles (
-  user_id uuid NOT NULL UNIQUE
+  user_id uuid NOT NULL UNIQUE,
+  role text,
+  status text,
+  onboarding_completed boolean,
+  metadata jsonb,
+  created_at timestamptz,
+  updated_at timestamptz
 );
 
 CREATE TABLE public.plans (
@@ -64,6 +71,21 @@ CREATE TABLE public.subscriptions (
 
 INSERT INTO public.plans (id, code, is_active)
 VALUES ('00000000-0000-0000-0000-000000000001', 'edi_free', true);
+
+-- Existing privileged profiles must survive the default-profile backfill.
+INSERT INTO auth.users (id, email)
+VALUES (
+  '20000000-0000-0000-0000-000000000002',
+  'existing-admin@example.test'
+);
+
+INSERT INTO public.user_profiles (
+  user_id, role, status, onboarding_completed, metadata, created_at, updated_at
+)
+VALUES (
+  '20000000-0000-0000-0000-000000000002',
+  'super_admin', 'active', true, '{"origin":"preexisting"}'::jsonb, now(), now()
+);
 
 GRANT USAGE ON SCHEMA auth TO supabase_auth_admin;
 GRANT INSERT ON auth.users TO supabase_auth_admin;
@@ -132,6 +154,30 @@ BEGIN
 END;
 $$;
 
+-- Existing privileged profile must be preserved by migration 21 and remain unique.
+DO $
+DECLARE
+  preserved_role text;
+  preserved_count integer;
+BEGIN
+  SELECT role INTO preserved_role
+  FROM public.user_profiles
+  WHERE user_id = '20000000-0000-0000-0000-000000000002';
+
+  IF preserved_role IS DISTINCT FROM 'super_admin' THEN
+    RAISE EXCEPTION 'Existing privileged profile was changed; expected super_admin, received %.', preserved_role;
+  END IF;
+
+  SELECT count(*) INTO preserved_count
+  FROM public.user_profiles
+  WHERE user_id = '20000000-0000-0000-0000-000000000002';
+
+  IF preserved_count <> 1 THEN
+    RAISE EXCEPTION 'Expected exactly one preserved existing profile, found %.', preserved_count;
+  END IF;
+END;
+$;
+
 -- Signup with attacker-controlled metadata must remain a professor account.
 SET ROLE supabase_auth_admin;
 
@@ -195,4 +241,4 @@ BEGIN
 END;
 $$;
 
-SELECT 'PASS: malicious signup remains professor; all three triggers work; edi_free is provisioned once; helper is not exposed.' AS regression_result;
+SELECT 'PASS: existing super_admin profile preserved; malicious signup remains professor; all three triggers work; edi_free is provisioned once; profile helper is not exposed.' AS regression_result;
