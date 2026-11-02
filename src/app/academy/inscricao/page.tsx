@@ -9,6 +9,7 @@ export default function InscricaoAcademyPage() {
   const [curso, setCurso] = useState('curso-nao-informado')
   const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(false)
+  const [redirecting, setRedirecting] = useState(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -32,27 +33,44 @@ export default function InscricaoAcademyPage() {
       lgpd: formData.get('lgpd') === 'on',
     }
 
-    const response = await fetch('/api/academy/enrollments', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    })
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15000)
 
-    const result = await response.json()
+    try {
+      const response = await fetch('/api/academy/enrollments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      })
 
-    if (!response.ok || !result.success) {
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok || !result?.success) {
+        setStatus(
+          `Erro ao enviar inscrição: ${result?.error || 'tente novamente.'}`,
+        )
+        return
+      }
+
+      setStatus('Inscrição salva com sucesso. Redirecionando...')
+      setRedirecting(true)
+
+      setTimeout(() => {
+        window.location.href = `/academy/inscricao/sucesso?curso=${encodeURIComponent(curso)}`
+      }, 900)
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        setStatus('O envio demorou muito. Tente novamente.')
+      } else {
+        setStatus('Não foi possível enviar a inscrição. Verifique sua conexão e tente novamente.')
+      }
+    } finally {
+      clearTimeout(timeout)
       setLoading(false)
-      setStatus(`Erro ao enviar inscrição: ${result.error || 'tente novamente.'}`)
-      return
     }
-
-    setStatus('Inscrição salva com sucesso. Redirecionando...')
-
-    setTimeout(() => {
-      window.location.href = `/academy/inscricao/sucesso?curso=${curso}`
-    }, 900)
   }
 
   return (
@@ -75,7 +93,11 @@ export default function InscricaoAcademyPage() {
           </p>
 
           {status && (
-            <div className="mt-6 rounded-2xl bg-emerald-100 px-5 py-4 font-semibold text-emerald-800">
+            <div
+              role="status"
+              aria-live="polite"
+              className={`mt-6 rounded-2xl px-5 py-4 font-semibold ${status.startsWith('Erro') || status.startsWith('Não foi possível') || status.startsWith('O envio demorou') ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'}`}
+            >
               {status}
             </div>
           )}
@@ -102,10 +124,10 @@ export default function InscricaoAcademyPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || redirecting}
               className="w-full rounded-2xl bg-[#1B6B3A] px-6 py-4 font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
             >
-              {loading ? 'Enviando...' : 'Enviar inscrição'}
+              {loading ? 'Enviando...' : redirecting ? 'Inscrição registrada...' : 'Enviar inscrição'}
             </button>
           </form>
         </section>
