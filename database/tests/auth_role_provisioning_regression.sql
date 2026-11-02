@@ -168,7 +168,7 @@ BEGIN
     RAISE EXCEPTION 'Expected all three signup triggers to be attached.';
   END IF;
 END;
-$;
+$$;
 
 -- Existing privileged profile must be preserved by migration 21 and remain unique.
 DO $$
