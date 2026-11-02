@@ -3,6 +3,12 @@ name: EDI-QI Local Database
 on:
   push:
     branches: ['feat/edi-qi-qa-journeys']
+  pull_request:
+    branches: ['main']
+    paths:
+      - 'supabase/**'
+      - 'database/**'
+      - '.github/workflows/edi-qi-db.yml'
 
 permissions:
   contents: read
