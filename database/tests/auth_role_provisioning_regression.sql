@@ -140,7 +140,7 @@ EXECUTE FUNCTION public.edi_create_default_user_access();
 \ir ../21_default_user_profile.sql
 
 -- Migration 32 removes direct API-role execution of internal helpers.
-\\ir ../32_security_hardening.sql
+\ir ../32_security_hardening.sql
 
 -- Migration 33 removes metadata-based role assignment and provisions edi_free.
 \ir ../33_security_auth_role_provisioning.sql
@@ -248,7 +248,21 @@ VALUES (
 
 RESET ROLE;
 
-DO $$
+-- OAuth-style signup: user metadata contains a display name only,
+-- while app metadata carries an attacker-controlled privileged role.
+SET ROLE supabase_auth_admin;
+
+INSERT INTO auth.users (id, email, raw_user_meta_data, raw_app_meta_data)
+VALUES (
+  '30000000-0000-0000-0000-000000000003',
+  'oauth-signup@example.test',
+  '{"full_name":"OAuth Signup"}'::jsonb,
+  '{"role":"super_admin"}'::jsonb
+);
+
+RESET ROLE;
+
+DO $
 DECLARE
   created_role text;
   profile_count integer;
@@ -296,6 +310,36 @@ BEGIN
     RAISE EXCEPTION 'Expected exactly one subscription total for the new user, found %.', total_subscription_count;
   END IF;
 END;
-$$;
+$;
 
-SELECT 'PASS: legacy super_admin preserved; metadata cannot assign privileged roles; all three Auth triggers execute; exactly one edi_free subscription is provisioned; internal helpers are not executable by API/Auth roles.' AS regression_result;
+DO $
+DECLARE
+  oauth_role text;
+  oauth_profile_count integer;
+  oauth_free_count integer;
+BEGIN
+  SELECT role INTO oauth_role
+  FROM public.user_profiles
+  WHERE user_id = '30000000-0000-0000-0000-000000000003';
+
+  IF oauth_role IS DISTINCT FROM 'professor' THEN
+    RAISE EXCEPTION 'OAuth app_metadata must not assign a privileged role; received %.', oauth_role;
+  END IF;
+
+  SELECT count(*) INTO oauth_profile_count
+  FROM public.user_profiles
+  WHERE user_id = '30000000-0000-0000-0000-000000000003';
+
+  SELECT count(*) INTO oauth_free_count
+  FROM public.subscriptions
+  WHERE user_id = '30000000-0000-0000-0000-000000000003'
+    AND is_default_free = true
+    AND status = 'active';
+
+  IF oauth_profile_count <> 1 OR oauth_free_count <> 1 THEN
+    RAISE EXCEPTION 'OAuth signup must create exactly one profile and one EDI Free subscription.';
+  END IF;
+END;
+$;
+
+SELECT 'PASS: legacy super_admin preserved; user_metadata and app_metadata cannot assign privileged roles; all three Auth triggers execute; exactly one edi_free subscription is provisioned per signup; internal helpers are not executable by API/Auth roles.' AS regression_result;
