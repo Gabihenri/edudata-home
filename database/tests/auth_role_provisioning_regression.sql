@@ -108,11 +108,11 @@ GRANT INSERT ON auth.users TO supabase_auth_admin;
 -- Migration 32 also hardens shared internal RPCs. These inert signatures
 -- model the functions whose grants it adjusts; they are outside this Auth test.
 CREATE FUNCTION public.can_view_identity_user(uuid, uuid, uuid)
-RETURNS boolean LANGUAGE sql AS $ SELECT false $;
+RETURNS boolean LANGUAGE sql AS 'SELECT false';
 CREATE FUNCTION public.edi_current_user_access(text)
 RETURNS boolean LANGUAGE sql AS $ SELECT false $;
 CREATE FUNCTION public.edi_current_user_access_snapshot()
-RETURNS jsonb LANGUAGE sql AS $ SELECT '{}'::jsonb $;
+RETURNS jsonb LANGUAGE sql AS 'SELECT ''{}''::jsonb';
 CREATE FUNCTION public.edi_has_current_user_feature(text)
 RETURNS boolean LANGUAGE sql AS $ SELECT false $;
 
