@@ -1,7 +1,11 @@
--- Isolated PostgreSQL regression for migrations 20, 21, 33 and 34.
--- Covers both legacy-profile preservation and untrusted signup metadata.
--- Run as postgres with psql -v ON_ERROR_STOP=1.
--- This harness models only the Supabase Auth objects required by these migrations.
+-- Isolated PostgreSQL regression for migrations 20, 21 and 32-35.
+-- Covers legacy-profile preservation, untrusted signup metadata, trigger
+-- execution context, and direct helper privilege boundaries.
+-- Run in a disposable PostgreSQL database as postgres:
+--   psql -v ON_ERROR_STOP=1 -f database/tests/auth_role_provisioning_regression.sql
+-- The edi_free plan row below is a deterministic fixture representing the
+-- commercial seed established by migration 19. This test isolates Auth and
+-- provisioning behavior; it does not replay the full commercial catalog.
 
 \set ON_ERROR_STOP on
 
@@ -33,6 +37,11 @@ CREATE TABLE public.plans (
   id uuid PRIMARY KEY,
   code text NOT NULL,
   is_active boolean NOT NULL DEFAULT true,
+  is_free boolean NOT NULL DEFAULT false,
+  audience_type text NOT NULL DEFAULT 'individual',
+  audience text NOT NULL DEFAULT 'individual',
+  billing_model text NOT NULL DEFAULT 'subscription',
+  billing_mode text NOT NULL DEFAULT 'recurring',
   sort_order integer NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT now()
 );
@@ -45,7 +54,7 @@ CREATE TABLE public.subscriptions (
   organization_id uuid,
   plan_id uuid NOT NULL REFERENCES public.plans(id),
   status text NOT NULL DEFAULT 'active'
-    CHECK (status IN ('active', 'trialing', 'past_due', 'canceled', 'expired', 'suspended')),
+    CHECK (status IN ('pending', 'active', 'trialing', 'past_due', 'paused', 'incomplete', 'canceled', 'expired', 'suspended')),
   source text NOT NULL DEFAULT 'manual'
     CHECK (source IN ('default', 'manual', 'trial', 'billing', 'institutional')),
   starts_at timestamptz NOT NULL DEFAULT now(),
@@ -69,8 +78,14 @@ CREATE TABLE public.subscriptions (
   )
 );
 
-INSERT INTO public.plans (id, code, is_active)
-VALUES ('00000000-0000-0000-0000-000000000001', 'edi_free', true);
+INSERT INTO public.plans (
+  id, code, is_active, is_free, audience_type, audience,
+  billing_model, billing_mode, sort_order
+)
+VALUES (
+  '00000000-0000-0000-0000-000000000001',
+  'edi_free', true, true, 'individual', 'individual', 'free', 'free', 10
+);
 
 -- Existing privileged profiles must survive the default-profile backfill.
 INSERT INTO auth.users (id, email)
@@ -89,6 +104,19 @@ VALUES (
 
 GRANT USAGE ON SCHEMA auth TO supabase_auth_admin;
 GRANT INSERT ON auth.users TO supabase_auth_admin;
+
+-- Migration 32 also hardens shared internal RPCs. These inert signatures
+-- model the functions whose grants it adjusts; they are outside this Auth test.
+CREATE FUNCTION public.can_view_identity_user(uuid, uuid, uuid)
+RETURNS boolean LANGUAGE sql AS $ SELECT false $;
+CREATE FUNCTION public.edi_current_user_access(text)
+RETURNS boolean LANGUAGE sql AS $ SELECT false $;
+CREATE FUNCTION public.edi_current_user_access_snapshot()
+RETURNS jsonb LANGUAGE sql AS $ SELECT '{}'::jsonb $;
+CREATE FUNCTION public.edi_has_current_user_feature(text)
+RETURNS boolean LANGUAGE sql AS $ SELECT false $;
+
+CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;
 
 -- Migration 33 replaces this legacy trigger function.
 CREATE FUNCTION public.edi_create_default_user_access()
@@ -111,10 +139,13 @@ EXECUTE FUNCTION public.edi_create_default_user_access();
 -- Migration 21 installs the second Auth trigger and its SECURITY DEFINER wrapper.
 \ir ../21_default_user_profile.sql
 
+-- Migration 32 removes direct API-role execution of internal helpers.
+\\ir ../32_security_hardening.sql
+
 -- Migration 33 removes metadata-based role assignment and provisions edi_free.
 \ir ../33_security_auth_role_provisioning.sql
 
--- Migration 34 restricts the helper while preserving trusted trigger execution.
+-- Migration 34 keeps Auth trigger execution functional without exposing the profile helper.
 \ir ../34_fix_auth_profile_trigger_context.sql
 
 -- Migration 35 removes direct API-role execution of the internal EDI Free helper.
@@ -267,4 +298,4 @@ BEGIN
 END;
 $$;
 
-SELECT 'PASS: existing super_admin profile preserved; malicious signup remains professor; all three triggers work; edi_free is provisioned once; internal profile and subscription helpers are not exposed.' AS regression_result;
+SELECT 'PASS: legacy super_admin preserved; metadata cannot assign privileged roles; all three Auth triggers execute; exactly one edi_free subscription is provisioned; internal helpers are not executable by API/Auth roles.' AS regression_result;
