@@ -1,11 +1,20 @@
+"""Authenticated user directory endpoints.
+
+Administrative mutations remain intentionally unavailable until the Auth-user
+lifecycle and profile-to-membership identity contract are implemented.
+"""
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.security import HTTPAuthorizationCredentials
 
-from app.core.exceptions.exceptions import EduDataException
+from app.core.security.current_membership import get_current_membership
+from app.core.security.current_user import security
+from app.repositories.user_access_repository import (
+    get_user_for_membership,
+    list_users_for_membership,
+)
 from app.core.responses.api_response import ApiResponse
-from app.schemas.user import UserBase, UserResponse
-from app.services.user_service import UserService
 
 
 router = APIRouter(
@@ -14,187 +23,97 @@ router = APIRouter(
 )
 
 
+def _access_token(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> str:
+    return credentials.credentials
+
+
 @router.get("/")
 def list_users(
     limit: int = Query(100, ge=1, le=200),
+    access_token: str = Depends(_access_token),
+    membership: dict[str, Any] = Depends(get_current_membership),
 ) -> dict[str, Any]:
-    try:
-        users = UserService.list(limit=limit)
-
-        return ApiResponse.success(
-            data={
-                "total": len(users),
-                "items": users,
-            },
-            message="Usuários listados com sucesso.",
-        )
-
-    except EduDataException as exc:
-        raise HTTPException(
-            status_code=exc.status_code,
-            detail=exc.message,
-        )
+    users = list_users_for_membership(
+        access_token=access_token,
+        membership=membership,
+        limit=limit,
+    )
+    return ApiResponse.success(
+        data={"total": len(users), "items": users},
+        message="Usuários listados com sucesso.",
+    )
 
 
 @router.get("/{user_id}")
-def get_user(user_id: str) -> dict[str, Any]:
-    try:
-        user = UserService.find_by_id(user_id)
+def get_user(
+    user_id: str,
+    access_token: str = Depends(_access_token),
+    membership: dict[str, Any] = Depends(get_current_membership),
+) -> dict[str, Any]:
+    user = get_user_for_membership(
+        access_token=access_token,
+        membership=membership,
+        user_id=user_id,
+    )
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
 
-        if not user:
-            raise HTTPException(
-                status_code=404,
-                detail="Usuário não encontrado.",
-            )
-
-        return ApiResponse.success(
-            data=user,
-            message="Usuário encontrado com sucesso.",
-        )
-
-    except EduDataException as exc:
-        raise HTTPException(
-            status_code=exc.status_code,
-            detail=exc.message,
-        )
-
-
-@router.get("/email/{email}")
-def get_user_by_email(email: str) -> dict[str, Any]:
-    try:
-        user = UserService.find_by_email(email)
-
-        if not user:
-            raise HTTPException(
-                status_code=404,
-                detail="Usuário não encontrado.",
-            )
-
-        return ApiResponse.success(
-            data=user,
-            message="Usuário encontrado com sucesso.",
-        )
-
-    except EduDataException as exc:
-        raise HTTPException(
-            status_code=exc.status_code,
-            detail=exc.message,
-        )
+    return ApiResponse.success(
+        data=user,
+        message="Usuário encontrado com sucesso.",
+    )
 
 
 @router.get("/school/{school_id}")
 def list_users_by_school(
     school_id: str,
     limit: int = Query(100, ge=1, le=200),
+    access_token: str = Depends(_access_token),
+    membership: dict[str, Any] = Depends(get_current_membership),
 ) -> dict[str, Any]:
-    try:
-        users = UserService.list_by_school(
-            school_id=school_id,
-            limit=limit,
-        )
+    # A path parameter is a requested filter, never an authorization source.
+    authorized_school_id = membership.get("school_id")
+    if not isinstance(authorized_school_id, str) or school_id != authorized_school_id:
+        raise HTTPException(status_code=403, detail="Escola fora do escopo do vínculo ativo.")
 
-        return ApiResponse.success(
-            data={
-                "total": len(users),
-                "items": users,
-            },
-            message="Usuários da escola listados com sucesso.",
-        )
+    users = list_users_for_membership(
+        access_token=access_token,
+        membership=membership,
+        limit=limit,
+    )
+    return ApiResponse.success(
+        data={"total": len(users), "items": users},
+        message="Usuários da escola listados com sucesso.",
+    )
 
-    except EduDataException as exc:
-        raise HTTPException(
-            status_code=exc.status_code,
-            detail=exc.message,
-        )
+
+def _mutations_temporarily_disabled() -> None:
+    raise HTTPException(
+        status_code=501,
+        detail=(
+            "Operação temporariamente indisponível até a integração segura "
+            "do ciclo de vida de usuários com o Supabase Auth."
+        ),
+    )
 
 
 @router.post("/", response_model=None)
-def create_user(payload: UserBase) -> dict[str, Any]:
-    try:
-        user = UserService.create(payload.model_dump())
-
-        return ApiResponse.created(
-            data=user,
-            message="Usuário criado com sucesso.",
-        )
-
-    except EduDataException as exc:
-        raise HTTPException(
-            status_code=exc.status_code,
-            detail=exc.message,
-        )
+def create_user() -> None:
+    _mutations_temporarily_disabled()
 
 
 @router.put("/{user_id}")
-def update_user(
-    user_id: str,
-    payload: UserBase,
-) -> dict[str, Any]:
-    try:
-        user = UserService.update(
-            record_id=user_id,
-            data=payload.model_dump(),
-        )
-
-        if not user:
-            raise HTTPException(
-                status_code=404,
-                detail="Usuário não encontrado.",
-            )
-
-        return ApiResponse.updated(
-            data=user,
-            message="Usuário atualizado com sucesso.",
-        )
-
-    except EduDataException as exc:
-        raise HTTPException(
-            status_code=exc.status_code,
-            detail=exc.message,
-        )
+def update_user(user_id: str) -> None:
+    _mutations_temporarily_disabled()
 
 
 @router.patch("/{user_id}/activate")
-def activate_user(user_id: str) -> dict[str, Any]:
-    try:
-        user = UserService.activate(user_id)
-
-        if not user:
-            raise HTTPException(
-                status_code=404,
-                detail="Usuário não encontrado.",
-            )
-
-        return ApiResponse.updated(
-            data=user,
-            message="Usuário ativado com sucesso.",
-        )
-
-    except EduDataException as exc:
-        raise HTTPException(
-            status_code=exc.status_code,
-            detail=exc.message,
-        )
+def activate_user(user_id: str) -> None:
+    _mutations_temporarily_disabled()
 
 
 @router.patch("/{user_id}/deactivate")
-def deactivate_user(user_id: str) -> dict[str, Any]:
-    try:
-        user = UserService.deactivate(user_id)
-
-        if not user:
-            raise HTTPException(
-                status_code=404,
-                detail="Usuário não encontrado.",
-            )
-
-        return ApiResponse.updated(
-            data=user,
-            message="Usuário desativado com sucesso.",
-        )
-
-    except EduDataException as exc:
-        raise HTTPException(
-            status_code=exc.status_code,
-            detail=exc.message,
-        )
+def deactivate_user(user_id: str) -> None:
+    _mutations_temporarily_disabled()

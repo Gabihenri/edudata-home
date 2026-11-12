@@ -86,6 +86,19 @@ class Permission:
         ]
 
     @staticmethod
+    def membership_can_manage_users(membership: dict) -> bool:
+        """
+        Authorize user administration only from the active membership
+        capability loaded under the caller's verified JWT and RLS.
+        Role names and client-provided values are not authorization sources.
+        """
+        return (
+            isinstance(membership, dict)
+            and membership.get("status") == "active"
+            and membership.get("can_manage_users") is True
+        )
+
+    @staticmethod
     def can_access_dashboard(role: str) -> bool:
         return role != Role.GUEST
 
