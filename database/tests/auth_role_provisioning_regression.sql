@@ -110,11 +110,11 @@ GRANT INSERT ON auth.users TO supabase_auth_admin;
 CREATE FUNCTION public.can_view_identity_user(uuid, uuid, uuid)
 RETURNS boolean LANGUAGE sql AS 'SELECT false';
 CREATE FUNCTION public.edi_current_user_access(text)
-RETURNS boolean LANGUAGE sql AS $ SELECT false $;
+RETURNS boolean LANGUAGE sql AS 'SELECT false';
 CREATE FUNCTION public.edi_current_user_access_snapshot()
 RETURNS jsonb LANGUAGE sql AS 'SELECT ''{}''::jsonb';
 CREATE FUNCTION public.edi_has_current_user_feature(text)
-RETURNS boolean LANGUAGE sql AS $ SELECT false $;
+RETURNS boolean LANGUAGE sql AS 'SELECT false';
 
 CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;
 
@@ -262,7 +262,7 @@ VALUES (
 
 RESET ROLE;
 
-DO $
+DO $$
 DECLARE
   created_role text;
   profile_count integer;
@@ -310,9 +310,9 @@ BEGIN
     RAISE EXCEPTION 'Expected exactly one subscription total for the new user, found %.', total_subscription_count;
   END IF;
 END;
-$;
+$$;
 
-DO $
+DO $$
 DECLARE
   oauth_role text;
   oauth_profile_count integer;
@@ -340,6 +340,6 @@ BEGIN
     RAISE EXCEPTION 'OAuth signup must create exactly one profile and one EDI Free subscription.';
   END IF;
 END;
-$;
+$$;
 
 SELECT 'PASS: legacy super_admin preserved; user_metadata and app_metadata cannot assign privileged roles; all three Auth triggers execute; exactly one edi_free subscription is provisioned per signup; internal helpers are not executable by API/Auth roles.' AS regression_result;
