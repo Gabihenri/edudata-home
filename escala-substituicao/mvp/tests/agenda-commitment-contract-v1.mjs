@@ -1,100 +1,92 @@
 import assert from 'node:assert/strict';
 
-// Contract tests for the future Agenda -> Escala commitment adapter.
-// This test uses no real school data and does not claim live Agenda integration.
+// Agenda -> Escala contract, aligned with the Agenda schema.
+// Synthetic-only tests; no live data or production integration.
 
+const ACTIVE_STATUSES = new Set([
+  'active', 'ativo', 'in_progress', 'in_progression', 'em_andamento',
+  'em_acompanhamento', 'em_preparacao', 'scheduled', 'agendado',
+  'agendada', 'planned', 'planejado', 'planejada', 'rescheduled',
+  'reagendado', 'reagendada', 'pending', 'pendente', 'draft', 'rascunho',
+  'open', 'aberto', 'aberta', 'todo', 'to_do', 'not_started',
+  'nao_iniciado', 'nao_iniciada',
+]);
+const INACTIVE_STATUSES = new Set([
+  'cancelled', 'canceled', 'cancelado', 'cancelada', 'archived',
+  'arquivado', 'arquivada', 'suspended', 'suspenso', 'suspensa',
+  'completed', 'complete', 'concluido', 'concluida', 'finished',
+  'finalizado', 'finalizada', 'done', 'realizado', 'realizada',
+]);
+function validInterval(startAt, endAt) {
+  const start = Date.parse(startAt), end = Date.parse(endAt);
+  return Number.isFinite(start) && Number.isFinite(end) && end > start;
+}
 function overlaps(a, b) {
-  return a.start < b.end && b.start < a.end;
+  return Date.parse(a.start_at) < Date.parse(b.end_at)
+    && Date.parse(b.start_at) < Date.parse(a.end_at);
 }
-
-function isBlockingAgendaEvent(event) {
-  return event.status === 'CONFIRMED'
-    && event.blocks_substitution === true
-    && typeof event.start_time === 'string'
-    && typeof event.end_time === 'string'
-    && event.end_time > event.start_time;
-}
-
-function agendaEventToCommitment(event) {
-  if (!isBlockingAgendaEvent(event)) return null;
+function agendaEventToCommitment(event, blockingTypePolicy) {
+  const status = String(event.status ?? '').trim().toLowerCase();
+  if (!ACTIVE_STATUSES.has(status) || INACTIVE_STATUSES.has(status)) return null;
+  if (!blockingTypePolicy?.(event.event_type)) return null;
+  if (!event.id || !validInterval(event.start_at, event.end_at)) return null;
   return {
     source: 'agenda',
     source_event_id: event.id,
-    day: event.day,
-    start: event.start_time,
-    end: event.end_time,
-    type: event.type,
+    event_type: event.event_type,
+    start_at: event.start_at,
+    end_at: event.end_at,
   };
 }
-
 function candidateBlockedByAgenda(candidate, vacancy) {
-  return candidate.commitments.some(commitment =>
-    commitment.source === 'agenda'
-    && commitment.day === vacancy.day
-    && overlaps(
-      { start: commitment.start, end: commitment.end },
-      { start: vacancy.start_time, end: vacancy.end_time },
-    )
-  );
+  return candidate.commitments.some(c => c.source === 'agenda' && overlaps(c, vacancy));
 }
-
-const baseEvent = {
-  id: 'agenda-event-01',
-  day: 'qua',
-  type: 'REUNIAO_PEDAGOGICA',
-  status: 'CONFIRMED',
-  blocks_substitution: true,
-  start_time: '09:00',
-  end_time: '10:00',
+const base = {
+  id: 'agenda-event-01', title: 'Reunião pedagógica',
+  event_type: 'reuniao_pedagogica', status: 'planejado',
+  start_at: '2026-11-25T12:00:00-03:00',
+  end_at: '2026-11-25T13:00:00-03:00',
 };
-
+const isBlockingType = type => type === 'reuniao_pedagogica';
 let passed = 0;
-function test(id, description, assertion) {
-  assertion();
-  passed += 1;
-  console.log(`PASS ${id} — ${description}`);
-}
+function test(id, desc, fn) { fn(); passed++; console.log(`PASS ${id} — ${desc}`); }
 
-test('AE-01', 'evento confirmado e explicitamente bloqueante vira compromisso', () => {
-  const commitment = agendaEventToCommitment(baseEvent);
-  assert.deepEqual(commitment, {
-    source: 'agenda',
-    source_event_id: 'agenda-event-01',
-    day: 'qua',
-    start: '09:00',
-    end: '10:00',
-    type: 'REUNIAO_PEDAGOGICA',
+test('AE-01', 'campos reais Agenda: event_type, start_at, end_at', () => {
+  assert.deepEqual(agendaEventToCommitment(base, isBlockingType), {
+    source: 'agenda', source_event_id: 'agenda-event-01',
+    event_type: 'reuniao_pedagogica',
+    start_at: base.start_at, end_at: base.end_at,
   });
 });
-
-test('AE-02', 'evento cancelado não bloqueia candidato', () => {
-  assert.equal(agendaEventToCommitment({ ...baseEvent, status: 'CANCELLED' }), null);
+test('AE-02', 'evento não bloqueia sem política de tipo explícita', () => {
+  assert.equal(agendaEventToCommitment(base, null), null);
 });
-
-test('AE-03', 'evento sem flag explícita de bloqueio não bloqueia candidato', () => {
-  assert.equal(agendaEventToCommit({ ...baseEvent, blocks_substitution: false }), null);
+test('AE-03', 'cancelado não gera compromisso', () => {
+  assert.equal(agendaEventToCommitment({...base, status: 'cancelado'}, isBlockingType), null);
 });
-
-test('AE-04', 'intervalos parcialmente sobrepostos bloqueiam', () => {
-  const candidate = { commitments: [agendaEventToCommit(baseEvent)] };
-  const vacancy = { day: 'qua', start_time: '09:30', end_time: '10:20' };
-  assert.equal(candidateBlockedByAgenda(candidate, vacancy), true);
+test('AE-04', 'realizado/concluído não bloqueia período futuro', () => {
+  assert.equal(agendaEventToCommitment({...base, status: 'realizado'}, isBlockingType), null);
 });
-
-test('AE-05', 'intervalos adjacentes não bloqueiam', () => {
-  const candidate = { commitments: [agendaEventToCommit(baseEvent)] };
-  const vacancy = { day: 'qua', start_time: '10:00', end_time: '10:50' };
-  assert.equal(candidateBlockedByAgenda(candidate, vacancy), false);
+test('AE-05', 'sobreposição parcial bloqueia', () => {
+  const candidate = {commitments: [agendaEventToCommitment(base, isBlockingType)]};
+  assert.equal(candidateBlockedByAgenda(candidate, {
+    start_at: '2026-11-25T12:30:00-03:00', end_at: '2026-11-25T13:20:00-03:00',
+  }), true);
 });
-
-test('AE-06', 'evento em outro dia não bloqueia', () => {
-  const candidate = { commitments: [agendaEventToCommit(baseEvent)] };
-  const vacancy = { day: 'qui', start_time: '09:30', end_time: '10:20' };
-  assert.equal(candidateBlockedByAgenda(candidate, vacancy), false);
+test('AE-06', 'intervalos adjacentes não conflitam', () => {
+  const candidate = {commitments: [agendaEventToCommitment(base, isBlockingType)]};
+  assert.equal(candidateBlockedByAgenda(candidate, {
+    start_at: '2026-11-25T13:00:00-03:00', end_at: '2026-11-25T13:50:00-03:00',
+  }), false);
 });
-
-test('AE-07', 'evento com intervalo inválido é rejeitado', () => {
-  assert.equal(agendaEventToCommitment({ ...baseEvent, end_time: '08:30' }), null);
+test('AE-07', 'dia diferente não conflita', () => {
+  const candidate = {commitments: [agendaEventToCommitment(base, isBlockingType)]};
+  assert.equal(candidateBlockedByAgenda(candidate, {
+    start_at: '2026-11-26T12:30:00-03:00', end_at: '2026-11-26T13:20:00-03:00',
+  }), false);
 });
-
-console.log(`AGENDA–ESCALA COMMITMENT CONTRACT V1: PASS (${passed}/7)`);
+test('AE-08', 'end_at ausente/inválido é rejeitado', () => {
+  assert.equal(agendaEventToCommitment({...base, end_at: null}, isBlockingType), null);
+  assert.equal(agendaEventToCommitment({...base, end_at: '2026-11-25T11:00:00-03:00'}, isBlockingType), null);
+});
+console.log(`AGENDA–ESCALA CONTRACT: PASS (${passed}/8)`);
