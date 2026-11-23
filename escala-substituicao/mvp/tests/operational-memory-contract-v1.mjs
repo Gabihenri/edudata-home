@@ -76,15 +76,19 @@ function usableForLearning(item, { institutionId, start, end }) {
 }
 
 function derivePattern(events, { institutionId, start, end, minimumSample, ruleVersion }) {
-  const accepted = events.filter(item => {
+  const acceptedByKey = new Map();
+  for (const item of events) {
     const validation = validateEvent(item);
-    if (!validation.valid || item.institution_id !== institutionId) return false;
-    if (item.snapshot_stale === true || item.environment === 'synthetic' || item.fixture_official === false) return false;
+    if (!validation.valid || item.institution_id !== institutionId) continue;
+    if (item.snapshot_stale === true || item.environment === 'synthetic' || item.fixture_official === false) continue;
     const timestamp = Date.parse(item.occurred_at);
-    return timestamp >= Date.parse(start) && timestamp < Date.parse(end);
-  });
+    if (timestamp < Date.parse(start) || timestamp >= Date.parse(end)) continue;
+    const key = idempotencyKey(item);
+    if (!acceptedByKey.has(key)) acceptedByKey.set(key, item);
+  }
+  const accepted = [...acceptedByKey.values()];
   if (accepted.length < minimumSample) return null;
-  const sourceIds = accepted.map(item => idempotencyKey(item)).sort();
+  const sourceIds = [...acceptedByKey.keys()].sort();
   return {
     kind: 'PATTERN',
     institution_id: institutionId,
@@ -248,4 +252,18 @@ check('MO-16', 'mudança de regra gera versão distinta', () => {
   assert.notEqual(v1.rule_version, v2.rule_version);
 });
 
-console.log(`OPERATIONAL MEMORY CONTRACT V1: PASS (${passed}/16)`);
+// MO-17 — duplicate events with the same idempotency key cannot inflate sample size.
+check('MO-17', 'duplicidade idempotente não aumenta tamanho da amostra', () => {
+  const first = realEvent({ source_event_id: 'source-duplicate' });
+  const replay = realEvent({ id: 'replayed-event-id', source_event_id: 'source-duplicate' });
+  const pattern = derivePattern([first, replay], { ...window, minimumSample: 2, ruleVersion: 'memory-v1' });
+  assert.equal(pattern, null);
+  const validSample = derivePattern([
+    first,
+    realEvent({ source_event_id: 'source-distinct' }),
+  ], { ...window, minimumSample: 2, ruleVersion: 'memory-v1' });
+  assert.equal(validSample.sample_size, 2);
+  assert.equal(validSample.source_event_keys.length, 2);
+});
+
+console.log(`OPERATIONAL MEMORY CONTRACT V1: PASS (${passed}/17)`);
